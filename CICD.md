@@ -17,8 +17,8 @@ GitHub → Settings → Secrets → Actions → New secret
 
 Mỗi lần `git push` lên branch `main`, workflow tự động:
 
-1. SSH vào EC2
-2. Pull code mới
+1. SSH vào EC2 (user: `ec2-user`)
+2. Pull code mới vào `/home/ec2-user/app`
 3. Rebuild containers
 4. Restart app
 
@@ -38,13 +38,13 @@ git push origin main
 
 **Workflow failed:**
 - Check secrets đã add đúng chưa
-- Test SSH thủ công: `ssh -i key.pem ubuntu@[EC2_IP]`
+- Test SSH thủ công: `ssh -i key.pem ec2-user@[EC2_IP]`
 - Xem logs workflow trên GitHub
 
 **Containers không start:**
 ```bash
 # SSH vào EC2
-cd ~/QL_DH_RenLuyen
+cd /home/ec2-user/app
 docker compose -f docker-compose.production.yml logs
 ```
 

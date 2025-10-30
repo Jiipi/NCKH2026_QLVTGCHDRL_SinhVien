@@ -1,32 +1,34 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -e
 
-echo "[entrypoint] Starting container (PID $$)"
+echo "🚀 Starting backend container..."
+echo "📅 Time: $(date)"
+echo "🌍 Environment: $NODE_ENV"
 
-if [ -z "${DATABASE_URL:-}" ]; then
-  echo "[entrypoint] ERROR: DATABASE_URL is not set" >&2
-  exit 1
-fi
-
-echo "[entrypoint] Waiting for database..."
-ATTEMPTS=0
-until node -e "const {Client}=require('pg');(async()=>{try{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.end();process.exit(0)}catch(e){process.exit(1)}})()"; do
-  ATTEMPTS=$((ATTEMPTS+1))
-  if [ "$ATTEMPTS" -gt 60 ]; then
-    echo "[entrypoint] ERROR: Database not reachable after 60 attempts" >&2
-    exit 1
-  fi
-  echo "[entrypoint] Database not ready yet, retrying... ($ATTEMPTS)"
+# Wait for database
+echo "⏳ Waiting for PostgreSQL..."
+until wget --spider -q http://db:5432 2>/dev/null || nc -z db 5432; do
+  echo "   Database is unavailable - sleeping"
   sleep 2
 done
+echo "✅ PostgreSQL is up!"
 
-echo "[entrypoint] Running prisma migrate deploy..."
+# Run Prisma migrations
+echo "🔄 Running Prisma migrations..."
 npx prisma migrate deploy
 
-if [ -f prisma/seed.js ]; then
-  echo "[entrypoint] Seeding database (ignore errors if already seeded)..."
-  node prisma/seed.js || echo "[entrypoint] Seed script exited non-zero (probably already seeded)"
+# Generate Prisma Client (if needed)
+echo "🔧 Generating Prisma Client..."
+npx prisma generate
+
+# Seed database (optional)
+if [ "$RUN_SEED" = "true" ]; then
+  echo "🌱 Seeding database..."
+  npx prisma db seed || echo "⚠️  No seed script found or seed failed"
 fi
 
-echo "[entrypoint] Launching: $*"
+echo "✅ Backend initialization complete!"
+echo "🎯 Starting application on port $PORT..."
+
+# Start application
 exec "$@"

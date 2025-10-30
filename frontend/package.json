@@ -7,6 +7,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "@zxing/browser": "^0.1.5",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "jsqr": "^1.4.0",
@@ -17,14 +18,14 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
     "react-scripts": "5.0.1",
-    "recharts": "^2.15.4",
+    "recharts": "^2.12.7",
     "web-vitals": "^2.1.4",
     "zustand": "^5.0.8"
   },
   "scripts": {
-    "start": "cross-env PORT=3000 BROWSER=none NODE_NO_WARNINGS=1 NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
-    "build": "cross-env NODE_NO_WARNINGS=1 NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
@@ -40,7 +41,8 @@
     "production": [
       ">0.2%",
       "not dead",
-      "not op_mini all"
+      "not op_mini all",
+      "not ie 11"
     ],
     "development": [
       "last 1 chrome version",
@@ -50,10 +52,11 @@
   },
   "proxy": "http://dacn_backend_dev:3001",
   "devDependencies": {
+    "@playwright/test": "^1.48.2",
     "autoprefixer": "^10.4.21",
     "cross-env": "^7.0.3",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
-    "@playwright/test": "^1.48.2"
+    "react-app-rewired": "^2.2.1",
+    "tailwindcss": "^3.4.17"
   }
 }

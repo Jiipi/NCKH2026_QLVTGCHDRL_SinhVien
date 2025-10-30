@@ -2,7 +2,7 @@
 
 Domain: **hoatdongrenluyen.io.vn**  
 Stack: PostgreSQL + Node.js + React + Nginx  
-Platform: AWS EC2 Ubuntu 22.04
+Platform: AWS EC2 Amazon Linux 2
 
 ---
 
@@ -22,7 +22,7 @@ Copy key hiển thị → GitHub Settings → SSH Keys
 ### 3. Đổi password trong .env
 
 ```bash
-nano ~/QL_DH_RenLuyen/.env
+nano /home/ec2-user/app/.env
 # Đổi DB_PASSWORD, JWT_SECRET
 ```
 
@@ -33,7 +33,7 @@ A record: `@` và `www` → IP EC2
 ### 5. Deploy
 
 ```bash
-cd ~/QL_DH_RenLuyen
+cd /home/ec2-user/app
 docker compose -f docker-compose.production.yml up -d
 ```
 
