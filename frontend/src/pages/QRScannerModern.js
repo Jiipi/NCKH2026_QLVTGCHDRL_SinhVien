@@ -5,7 +5,8 @@ import {
   Clock, MapPin, User, Award
 } from 'lucide-react';
 import jsQR from 'jsqr';
-import { BrowserQRCodeReader } from '@zxing/browser';
+// Optional: ZXing reader for enhanced QR detection (can be lazy loaded)
+// import { BrowserQRCodeReader } from '@zxing/browser';
 import http from '../services/http';
 import { useNotification } from '../contexts/NotificationContext';
 
@@ -158,6 +159,8 @@ export default function QRScannerModern() {
   // Initialize ZXing Browser QR reader (best-in-class open source)
   async function setupZXing() {
     try {
+      // Lazy load @zxing/browser to avoid build issues
+      const { BrowserQRCodeReader } = await import('@zxing/browser');
       const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 50 });
       zxingReaderRef.current = reader;
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
