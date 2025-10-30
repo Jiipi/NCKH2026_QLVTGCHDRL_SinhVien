@@ -3,20 +3,22 @@
 ## 1. SETUP EC2 (1 lần duy nhất)
 
 ```bash
-# Chạy trên EC2 Ubuntu 22.04
+# Chạy trên EC2 Amazon Linux 2 (user: ec2-user)
 curl -o setup.sh https://raw.githubusercontent.com/Jiipi/QL_DH_RenLuyen/main/SETUP_EC2.sh
 bash setup.sh
 ```
 
 **Script sẽ:**
-- Cài Docker, Git, Nginx
+- Cài Docker, Docker Compose, Git, Nginx
+- Cấu hình firewalld
+- Cài Certbot (SSL)
 - Tạo SSH key (thêm vào GitHub)
-- Clone project
-- Tạo file .env
+- Clone project vào `/home/ec2-user/app/`
+- Tạo file `.env`
 
 **SAU KHI CHẠY SCRIPT:**
 1. Copy SSH key hiển thị → GitHub Settings → SSH Keys → Add
-2. Đổi password trong file `.env`
+2. Đổi password trong file `/home/ec2-user/app/.env`
 3. Cấu hình DNS A record trỏ về IP EC2
 
 ---
@@ -37,7 +39,7 @@ Type: A    Name: www    Value: [IP_EC2]
 ## 3. DEPLOY APP
 
 ```bash
-cd ~/QL_DH_RenLuyen
+cd /home/ec2-user/app
 
 # Build và start 4 containers
 docker compose -f docker-compose.production.yml up -d
@@ -99,7 +101,7 @@ docker compose -f docker-compose.production.yml exec db pg_dump -U admin Web_Qua
 ## CẤU TRÚC FILE .ENV
 
 ```bash
-# Trên EC2: ~/QL_DH_RenLuyen/.env
+# Trên EC2: /home/ec2-user/app/.env
 NODE_ENV=production
 DB_PASSWORD=ĐỔI_CÁI_NÀY
 DATABASE_URL=postgresql://admin:ĐỔI_CÁI_NÀY@db:5432/Web_QuanLyDiemRenLuyen?schema=public

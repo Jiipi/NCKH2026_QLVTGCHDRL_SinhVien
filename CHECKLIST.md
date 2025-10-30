@@ -4,7 +4,7 @@
 
 - [ ] Có AWS account
 - [ ] Đã mua domain `hoatdongrenluyen.io.vn`
-- [ ] Có EC2 Ubuntu 22.04 đang chạy
+- [ ] Có EC2 Amazon Linux 2 đang chạy
 - [ ] Có file `.pem` key để SSH
 
 ---
@@ -12,7 +12,7 @@
 ## ☐ BƯỚC 1: SETUP EC2 (15 phút)
 
 ```bash
-ssh -i key.pem ubuntu@[EC2_IP]
+ssh -i key.pem ec2-user@[EC2_IP]
 curl -o setup.sh https://raw.githubusercontent.com/Jiipi/QL_DH_RenLuyen/main/SETUP_EC2.sh
 bash setup.sh
 ```
@@ -20,14 +20,14 @@ bash setup.sh
 - [ ] Script chạy xong không lỗi
 - [ ] Copy SSH key hiển thị
 - [ ] Add key vào GitHub (Settings → SSH Keys)
-- [ ] File `~/QL_DH_RenLuyen/.env` đã tồn tại
+- [ ] File `/home/ec2-user/app/.env` đã tồn tại
 
 ---
 
 ## ☐ BƯỚC 2: ĐỔI MẬT KHẨU TRONG .ENV (2 phút)
 
 ```bash
-nano ~/QL_DH_RenLuyen/.env
+nano /home/ec2-user/app/.env
 ```
 
 Đổi các dòng:
@@ -56,7 +56,7 @@ nslookup hoatdongrenluyen.io.vn
 ## ☐ BƯỚC 4: DEPLOY APP (5 phút)
 
 ```bash
-cd ~/QL_DH_RenLuyen
+cd /home/ec2-user/app
 docker compose -f docker-compose.production.yml up -d
 ```
 

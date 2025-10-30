@@ -5,6 +5,7 @@ import {
   Clock, MapPin, User, Award
 } from 'lucide-react';
 import jsQR from 'jsqr';
+import { BrowserQRCodeReader } from '@zxing/browser';
 import http from '../services/http';
 import { useNotification } from '../contexts/NotificationContext';
 
@@ -157,8 +158,6 @@ export default function QRScannerModern() {
   // Initialize ZXing Browser QR reader (best-in-class open source)
   async function setupZXing() {
     try {
-      const mod = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
-      const { BrowserQRCodeReader } = mod;
       const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 50 });
       zxingReaderRef.current = reader;
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
