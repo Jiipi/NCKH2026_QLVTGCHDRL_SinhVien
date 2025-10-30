@@ -1,52 +1,72 @@
-# Multi-stage build để giảm dung lượng image
-FROM node:18-alpine AS builder
+# Stage 1: Dependencies
+FROM node:18-alpine AS deps
+WORKDIR /app/backend
 
-# Install dependencies for building
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache openssl libc6-compat bash curl
 
-WORKDIR /app
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --only=production --ignore-scripts
+RUN npm install --no-save prisma@latest
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+# Stage 2: Prisma Client
+FROM node:18-alpine AS prisma-builder
+WORKDIR /app/backend
 
-# Install dependencies (including devDependencies for Prisma)
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN apk add --no-cache openssl libc6-compat
 
-# Generate Prisma Client
+COPY --from=deps /app/backend/node_modules ./node_modules
+COPY backend/prisma ./prisma
+
 RUN npx prisma generate
 
-# Production stage
-FROM node:18-alpine
+# Stage 3: Frontend Build
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app/frontend
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init curl
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --ignore-scripts
 
-WORKDIR /app
+COPY frontend/ ./
 
-# Copy node_modules from builder
-COPY --from=builder /app/node_modules ./node_modules
+ARG REACT_APP_API_URL=https://hoatdongrenluyen.io.vn/api
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
-# Copy application code
-COPY . .
+RUN npm run build
 
-# Create necessary directories
-RUN mkdir -p uploads logs data/semesters && \
-    chown -R node:node /app
+# Stage 4: Runtime
+FROM node:18-alpine AS runtime
+WORKDIR /app/backend
 
-# Use non-root user
-USER node
+RUN apk add --no-cache openssl libc6-compat bash curl wget ca-certificates tzdata
+RUN rm -rf /var/cache/apk/*
 
-# Expose port
-EXPOSE 5000
+ENV TZ=Asia/Ho_Chi_Minh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || exit 1
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+COPY --from=deps --chown=nodejs:nodejs /app/backend/node_modules ./node_modules
+COPY --from=prisma-builder --chown=nodejs:nodejs /app/backend/node_modules/.prisma ./node_modules/.prisma
+COPY --from=prisma-builder --chown=nodejs:nodejs /app/backend/node_modules/@prisma ./node_modules/@prisma
 
-# Start application
+COPY --chown=nodejs:nodejs backend/prisma ./prisma
+COPY --chown=nodejs:nodejs backend/src ./src
+COPY --chown=nodejs:nodejs backend/package.json ./
+
+COPY --from=frontend-builder --chown=nodejs:nodejs /app/frontend/build ../frontend/build
+
+RUN mkdir -p logs uploads && chown -R nodejs:nodejs logs uploads
+
+COPY --chown=nodejs:nodejs backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+USER nodejs
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]
