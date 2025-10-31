@@ -5,6 +5,7 @@ const SemesterClosure = require('../services/semesterClosure.service');
 const { enforceAdminWritable } = require('../middlewares/semesterLock.middleware');
 const { prisma } = require('../config/database');
 const { determineSemesterFromDate } = require('../utils/semester');
+const { getSemesterDataDir, getMetadataPath } = require('../utils/paths');
 
 const router = Router();
 router.use(auth);
@@ -160,7 +161,7 @@ router.get('/current', async (req, res) => {
     const path = require('path');
     
     // 1. Đọc từ metadata.json
-    const metadataPath = path.join(__dirname, '../../data/semesters/metadata.json');
+    const metadataPath = getMetadataPath();
     let activeSemester = null;
     
     try {
@@ -254,7 +255,7 @@ router.get('/list', requirePermission('admin.semesters.manage'), async (req, res
     console.log('[SEMESTER /list] Raw data from DB:', rows);
     
     // 2. Đọc học kỳ active từ metadata.json
-    const metadataPath = path.join(__dirname, '../../data/semesters/metadata.json');
+    const metadataPath = getMetadataPath();
     let activeSemester = null;
     try {
       if (fs.existsSync(metadataPath)) {
@@ -280,7 +281,7 @@ router.get('/list', requirePermission('admin.semesters.manage'), async (req, res
         
         // Check if locked (any class has this semester locked)
         let status = null;
-        const semesterDir = path.join(__dirname, '../../data/semesters');
+        const semesterDir = getSemesterDataDir();
         const tryState = (p) => {
           if (fs.existsSync(p)) {
             try {
@@ -360,7 +361,7 @@ router.post('/activate', requirePermission('admin.semesters.manage'), async (req
     const path = require('path');
     
     // 1. Đọc học kỳ cũ
-    const metadataPath = path.join(__dirname, '../../data/semesters/metadata.json');
+    const metadataPath = getMetadataPath();
     let oldActive = null;
     try {
       if (fs.existsSync(metadataPath)) {
@@ -388,7 +389,7 @@ router.post('/activate', requirePermission('admin.semesters.manage'), async (req
     if (oldActive) {
       const [hoc_ky, year] = oldActive.split('-');
       const semKey = `${hoc_ky}_${year}`;
-      const semesterDir = path.join(__dirname, '../../data/semesters');
+      const semesterDir = getSemesterDataDir();
       
       try {
         if (fs.existsSync(semesterDir)) {
@@ -424,7 +425,7 @@ router.post('/activate', requirePermission('admin.semesters.manage'), async (req
     let unlockedCount = 0;
     const [new_hoc_ky, new_year] = semester.split('-');
     const newSemKey = `${new_hoc_ky}_${new_year}`;
-    const semesterDir = path.join(__dirname, '../../data/semesters');
+    const semesterDir = getSemesterDataDir();
     
     try {
       if (fs.existsSync(semesterDir)) {
@@ -497,7 +498,7 @@ router.post('/create-next', async (req, res) => {
     // 1. Lấy học kỳ gần nhất từ danh sách distinct hợp lệ (ưu tiên metadata nếu có)
     const fs = require('fs');
     const path = require('path');
-    const metadataPath = path.join(__dirname, '../../data/semesters/metadata.json');
+    const metadataPath = getMetadataPath();
     let latestSemester = null;
     try {
       if (fs.existsSync(metadataPath)) {
