@@ -61,6 +61,13 @@ export default function Login() {
     e.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
+    
+    // Clear localStorage cache trước khi login để tránh hiển thị thông tin cũ
+    try {
+      localStorage.removeItem('profile');
+      localStorage.removeItem('tab_id_temp');
+    } catch(_) {}
+    
     try {
       var res = await http.post('/auth/login', { 
         maso: String(formData.username || '').trim(), 
@@ -72,6 +79,14 @@ export default function Login() {
         var user = data?.user || null;
         var roleRaw = (user?.role || user?.roleCode || '').toString();
         var role = normalizeRole(roleRaw);
+        
+        console.log('✅ Login successful:', {
+          ho_ten: user?.ho_ten,
+          ten_dn: user?.ten_dn,
+          role: role,
+          email: user?.email
+        });
+        
         saveTabSession({ token, user, role });
         try {
           window.localStorage.setItem('token', token);
