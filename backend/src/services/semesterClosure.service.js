@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { getSemesterDataDir, getMetadataPath } = require('../utils/paths');
 const { prisma } = require('../config/database');
 const { determineSemesterFromDate, parseSemesterString } = require('../utils/semester');
 
-// Use path relative to this file to avoid double 'backend' when cwd is backend
-const DATA_DIR = path.join(__dirname, '../../data/semesters');
+// Use configurable dir (env) or OS temp as safe writable default
+const DATA_DIR = getSemesterDataDir();
 
 function ensureDir(p) { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); }
 
@@ -35,7 +36,7 @@ function snapshotFilePath(classId, semInfo) {
 
 function readActiveSemesterFromMetadata() {
   try {
-    const metadataPath = path.join(__dirname, '../../data/semesters/metadata.json');
+    const metadataPath = getMetadataPath();
     if (fs.existsSync(metadataPath)) {
       const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
       return metadata.active_semester || null; // format: hoc_ky_1-YYYY (YYYY depends on HK)
