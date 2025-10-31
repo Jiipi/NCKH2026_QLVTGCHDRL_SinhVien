@@ -78,27 +78,27 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // Load profile (tab-specific)
+  // Load profile (tab-specific) - ALWAYS fetch fresh from API
   React.useEffect(() => {
-    try {
-      const session = sessionStorageManager.getSession();
-      if (session?.user) setProfile(session.user);
-    } catch(_) {}
-
     const token = sessionStorageManager.getToken();
     if (token) {
-      // Try /users/profile first (has anh_dai_dien), fallback to /auth/profile
+      // ALWAYS fetch fresh profile from API (không lấy từ session cũ)
       http.get('/users/profile')
         .then(response => {
           const payload = (response?.data?.data || response?.data) || null;
-          console.log('🔍 ModernHeader profile loaded from /users/profile:', {
+          console.log('✅ ModernHeader profile loaded from /users/profile:', {
             ho_ten: payload?.ho_ten,
+            ten_dn: payload?.ten_dn,
+            email: payload?.email,
             anh_dai_dien: payload?.anh_dai_dien,
-            fullPayload: payload
+            vai_tro: payload?.vai_tro
           });
           setProfile(payload);
           if (payload) {
-            sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.role || payload?.roleCode });
+            // Clear localStorage cache cũ (nếu có)
+            localStorage.removeItem('profile');
+            // Update session with fresh data
+            sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.vai_tro?.ten_vt || payload?.role || payload?.roleCode });
           }
         })
         .catch(error => {
@@ -107,25 +107,35 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
           http.get('/auth/profile')
             .then(response => {
               const payload = (response?.data?.data || response?.data) || null;
-              console.log('🔍 ModernHeader profile loaded from /auth/profile:', {
+              console.log('✅ ModernHeader profile loaded from /auth/profile:', {
                 ho_ten: payload?.ho_ten,
+                ten_dn: payload?.ten_dn,
+                email: payload?.email,
                 anh_dai_dien: payload?.anh_dai_dien,
-                fullPayload: payload
+                vai_tro: payload?.vai_tro
               });
               setProfile(payload);
               if (payload) {
-                sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.role || payload?.roleCode });
+                // Clear localStorage cache cũ (nếu có)
+                localStorage.removeItem('profile');
+                // Update session with fresh data
+                sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.vai_tro?.ten_vt || payload?.role || payload?.roleCode });
               }
             })
             .catch(err => {
               console.error('Failed to load profile (modern header):', err?.response?.status || err?.message);
               if (err?.response?.status === 401) {
                 sessionStorageManager.clearSession();
+                localStorage.removeItem('profile'); // Clear cache
                 setProfile(null);
               }
             });
         });
       loadNotifications();
+    } else {
+      // No token, clear profile
+      setProfile(null);
+      localStorage.removeItem('profile');
     }
   }, []);
 
@@ -134,7 +144,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     const handleProfileUpdate = (event) => {
       console.log('📢 ModernHeader received profileUpdated event:', event.detail);
       if (event.detail?.profile) {
-        console.log('🔄 Updating ModernHeader profile from:', profile?.anh_dai_dien, 'to:', event.detail.profile.anh_dai_dien);
+        console.log('🔄 Updating ModernHeader profile from:', profile?.ho_ten, 'to:', event.detail.profile.ho_ten);
         setProfile(event.detail.profile);
         // Also update session storage
         const currentSession = sessionStorageManager.getSession();
@@ -146,46 +156,12 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
     // Listen for custom profile update events
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    
-    // Also listen for storage changes
-    const handleStorageChange = (e) => {
-      console.log('💾 ModernHeader storage change detected:', e.key, e.newValue);
-      if (e.key === 'profile' && e.newValue) {
-        try {
-          const updatedProfile = JSON.parse(e.newValue);
-          console.log('🔄 Updating ModernHeader from localStorage:', updatedProfile);
-          setProfile(updatedProfile);
-        } catch (error) {
-          console.error('Error parsing updated profile:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check localStorage on mount
-    const checkLocalStorage = () => {
-      const storedProfile = localStorage.getItem('profile');
-      if (storedProfile) {
-        try {
-          const parsedProfile = JSON.parse(storedProfile);
-          console.log('📦 ModernHeader loading profile from localStorage on mount:', parsedProfile);
-          setProfile(parsedProfile);
-        } catch (error) {
-          console.error('Error parsing stored profile:', error);
-        }
-      }
-    };
-    
-    checkLocalStorage();
-    
-    console.log('🎧 ModernHeader event listeners added');
+    console.log('🎧 ModernHeader event listener added for profileUpdated');
 
     return () => {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
-      window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [profile]);
 
   // Keep in sync with session events
   React.useEffect(() => {
@@ -319,6 +295,9 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     try {
       clearSession();
       sessionStorageManager.clearSession();
+      // Clear localStorage cache
+      localStorage.removeItem('profile');
+      localStorage.removeItem('tab_id_temp');
     } catch (_) {}
     setProfile(null);
     navigate('/login');

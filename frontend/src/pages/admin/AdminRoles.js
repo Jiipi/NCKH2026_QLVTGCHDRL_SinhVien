@@ -88,6 +88,29 @@ export default function AdminRoles() {
     fetchUsers({ page: userPage, limit: userLimit, role: roleFilter.ten_vt, search: searchApplied });
   }, [roleFilter?.id, userPage, userLimit, searchApplied]);
 
+  // Ensure roleFilter has fresh quyen_han from backend (list API may omit/normalize)
+  useEffect(() => {
+    (async () => {
+      if (!roleFilter?.id) return;
+      try {
+        const resp = await http.get(`/admin/roles/${roleFilter.id}`);
+        const data = resp?.data?.data || resp?.data || {};
+        if (!Array.isArray(data.quyen_han)) data.quyen_han = [];
+        
+        console.log('🔄 Loaded fresh role permissions from API:', {
+          roleId: data.id,
+          roleName: data.ten_vt,
+          permissions: data.quyen_han
+        });
+        
+        // Always update roleFilter with fresh data from API
+        setRoleFilter({ ...data });
+      } catch (err) {
+        console.error('❌ Failed to load role details:', err);
+      }
+    })();
+  }, [roleFilter?.id]);
+
   async function fetchRoleCounts(list) {
     const arr = Array.isArray(list) ? list : roles;
     if (!arr || arr.length === 0) return;
@@ -193,30 +216,47 @@ export default function AdminRoles() {
     'activityTypes.read','activityTypes.write','activityTypes.delete'
   ];
 
-  // Mapping legacy UI slugs to canonical slugs for display in test mode
+  // Mapping legacy UI slugs to canonical backend slugs
   const LEGACY_TO_CANONICAL = {
+    // Users
+    'users.read': ['users.view'],
+    'users.write': ['users.create','users.update'],
+    'users.delete': ['users.delete'],
+    // Activities
     'activities.read': ['activities.view'],
-    'activities.write': ['activities.update'],
+    'activities.write': ['activities.create','activities.update'],
     'activities.delete': ['activities.delete'],
-    'activities.approve': ['activities.approve'],
-    'registrations.read': [],
-    'registrations.write': ['registrations.approve','registrations.reject'],
+    'activities.approve': ['activities.approve','activities.reject'],
+    // Registrations
+    'registrations.read': ['registrations.view'],
+    'registrations.write': ['registrations.approve','registrations.reject','registrations.register','registrations.cancel'],
     'registrations.delete': [],
+    // Attendance
     'attendance.read': ['attendance.view'],
     'attendance.write': ['attendance.mark'],
     'attendance.delete': [],
+    // Notifications
     'notifications.read': ['notifications.view'],
     'notifications.write': ['notifications.create'],
     'notifications.delete': ['notifications.manage'],
-    // passthroughs
-    'users.read': ['users.read'], 'users.write': ['users.write'], 'users.delete': ['users.delete'],
-    'reports.read': ['reports.read'], 'reports.export': ['reports.export'],
-    'roles.read': ['roles.read'], 'roles.write': ['roles.write'], 'roles.delete': ['roles.delete'],
+    // Reports
+    'reports.read': ['reports.view'],
+    'reports.export': ['reports.export'],
+    // Roles (map to system.roles management)
+    'roles.read': ['system.roles'],
+    'roles.write': ['system.roles'],
+    'roles.delete': ['system.roles'],
+    // Students & classmates (keep as-is for now; backend may not enforce)
     'students.read': ['students.read'], 'students.update': ['students.update'],
     'classmates.read': ['classmates.read'], 'classmates.assist': ['classmates.assist'],
+    // Profile
     'profile.read': ['profile.read'], 'profile.update': ['profile.update'],
-    'scores.read': ['scores.read'],
-    'system.manage': ['system.manage'], 'system.configure': ['system.configure'],
+    // Scores -> points
+    'scores.read': ['points.view_all','points.view_own'],
+    // System
+    'system.manage': ['system.dashboard','system.roles','system.settings','system.logs'],
+    'system.configure': ['system.settings'],
+    // Activity types
     'activityTypes.read': ['activityTypes.read'], 'activityTypes.write': ['activityTypes.write'], 'activityTypes.delete': ['activityTypes.delete']
   };
 
@@ -323,6 +363,7 @@ export default function AdminRoles() {
           role={useCanonicalSlugs ? { ...roleFilter, quyen_han: Array.from(toCanonicalSet(roleFilter.quyen_han)) } : roleFilter}
           allPermissions={useCanonicalSlugs ? CANONICAL_PERMISSION_SLUGS : LEGACY_PERMISSION_SLUGS}
           useCanonical={useCanonicalSlugs}
+          legacyToCanonical={LEGACY_TO_CANONICAL}
           onRestoreOriginal={useCanonicalSlugs && permsBackupByRoleId[roleFilter.id]?.length ? async () => {
             try {
               const orig = permsBackupByRoleId[roleFilter.id] || [];
@@ -338,19 +379,35 @@ export default function AdminRoles() {
           } : null}
           onSaved={async (updated) => {
             try {
+              console.log('💾 Updating role permissions via API:', updated);
+              
               await http.put(`/admin/roles/${roleFilter.id}`, {
                 ten_vt: updated.ten_vt,
                 mo_ta: updated.mo_ta,
                 quyen_han: updated.quyen_han,
               });
-              // Refresh roles & counts and keep selection
+              
+              console.log('✅ Role permissions saved successfully');
+              
+              // Refresh roles list
               const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles'));
               setRoles(rs);
-              const cur = rs.find(r => r.id === roleFilter.id) || rs[0] || null;
-              setRoleFilter(cur);
+              
+              // Reload the current role with fresh data from API
+              const freshResp = await http.get(`/admin/roles/${roleFilter.id}`);
+              const freshData = freshResp?.data?.data || freshResp?.data || {};
+              if (!Array.isArray(freshData.quyen_han)) freshData.quyen_han = [];
+              
+              console.log('🔄 Reloaded role after save:', {
+                roleId: freshData.id,
+                permissions: freshData.quyen_han
+              });
+              
+              setRoleFilter({ ...freshData });
               fetchRoleCounts(rs);
             } catch (e) {
-              console.error('Cập nhật quyền vai trò lỗi', e.response?.data || e.message);
+              console.error('❌ Update role permissions failed:', e.response?.data || e.message);
+              alert('Cập nhật quyền vai trò thất bại: ' + (e.response?.data?.message || e.message));
             }
           }}
         />
@@ -459,25 +516,34 @@ export default function AdminRoles() {
               <div>
                 <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Quyền hạn</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                  {(useCanonicalSlugs ? CANONICAL_PERMISSION_SLUGS : LEGACY_PERMISSION_SLUGS).map(p => (
-                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                      <input
-                        type="checkbox"
-                        checked={useCanonicalSlugs
-                          ? Array.from(toCanonicalSet(editingRole.quyen_han)).includes(p)
-                          : (Array.isArray(editingRole.quyen_han) && editingRole.quyen_han.includes(p))}
-                        onChange={(e) => {
-                          const base = useCanonicalSlugs
-                            ? Array.from(toCanonicalSet(editingRole.quyen_han))
-                            : (Array.isArray(editingRole.quyen_han) ? editingRole.quyen_han : []);
-                          const next = new Set(base);
-                          if (e.target.checked) next.add(p); else next.delete(p);
-                          setEditingRole({ ...editingRole, quyen_han: Array.from(next) });
-                        }}
-                      />
-                      {p}
-                    </label>
-                  ))}
+                  {(useCanonicalSlugs ? CANONICAL_PERMISSION_SLUGS : LEGACY_PERMISSION_SLUGS).map(p => {
+                    // Determine checked state with slug equivalence
+                    let checked = false;
+                    if (useCanonicalSlugs) {
+                      checked = Array.from(toCanonicalSet(editingRole.quyen_han)).includes(p);
+                    } else {
+                      const base = Array.isArray(editingRole.quyen_han) ? new Set(editingRole.quyen_han) : new Set();
+                      const equivalents = LEGACY_TO_CANONICAL[p] || [];
+                      checked = base.has(p) || equivalents.some((q) => base.has(q));
+                    }
+                    return (
+                      <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const base = useCanonicalSlugs
+                              ? Array.from(toCanonicalSet(editingRole.quyen_han))
+                              : (Array.isArray(editingRole.quyen_han) ? editingRole.quyen_han : []);
+                            const next = new Set(base);
+                            if (e.target.checked) next.add(p); else next.delete(p);
+                            setEditingRole({ ...editingRole, quyen_han: Array.from(next) });
+                          }}
+                        />
+                        {p}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -488,18 +554,25 @@ export default function AdminRoles() {
   );
 }
 
-function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onRestoreOriginal }) {
+function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onRestoreOriginal, legacyToCanonical }) {
   const [name, setName] = React.useState(role.ten_vt || '');
   const [desc, setDesc] = React.useState(role.mo_ta || '');
   const [setDirty, setSetDirty] = React.useState(false);
   const [selected, setSelected] = React.useState(Array.isArray(role.quyen_han) ? new Set(role.quyen_han) : new Set());
 
+  // Update state whenever role data changes (important for permission display)
   React.useEffect(() => {
+    console.log('📋 RolePermissionEditor updating state:', {
+      roleId: role?.id,
+      roleName: role?.ten_vt,
+      permissions: role?.quyen_han
+    });
+    
     setName(role.ten_vt || '');
     setDesc(role.mo_ta || '');
     setSelected(new Set(Array.isArray(role.quyen_han) ? role.quyen_han : []));
     setSetDirty(false);
-  }, [role?.id]);
+  }, [role?.id, JSON.stringify(role?.quyen_han)]);
 
   const buttonStyle = {
     padding: '8px 12px',
@@ -523,13 +596,58 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
 
   const toggle = (perm) => {
     const next = new Set(selected);
-    if (next.has(perm)) next.delete(perm); else next.add(perm);
+    
+    if (!useCanonical) {
+      // In legacy mode, need to handle both legacy and canonical equivalents
+      const equivalents = (legacyToCanonical && legacyToCanonical[perm]) ? legacyToCanonical[perm] : [];
+      const isCurrentlyActive = next.has(perm) || equivalents.some((q) => next.has(q));
+      
+      if (isCurrentlyActive) {
+        // Remove: delete both legacy permission AND all canonical equivalents
+        next.delete(perm);
+        equivalents.forEach((q) => next.delete(q));
+      } else {
+        // Add: just add the legacy permission (will be converted to canonical on save)
+        next.add(perm);
+      }
+    } else {
+      // In canonical mode, simple toggle
+      if (next.has(perm)) next.delete(perm); else next.add(perm);
+    }
+    
     setSelected(next);
     setSetDirty(true);
   };
 
-  const save = () => {
-    onSaved?.({ ten_vt: name.trim(), mo_ta: desc, quyen_han: Array.from(selected) });
+  const save = async () => {
+    // Convert selected permissions to canonical format before saving
+    const permissionsToSave = new Set();
+    
+    Array.from(selected).forEach((p) => {
+      if (useCanonical) {
+        // Already canonical
+        permissionsToSave.add(p);
+      } else {
+        // Map legacy to canonical
+        const eq = (legacyToCanonical && legacyToCanonical[p]) ? legacyToCanonical[p] : [];
+        if (eq.length > 0) {
+          eq.forEach((q) => permissionsToSave.add(q));
+        } else {
+          // If no mapping, keep original
+          permissionsToSave.add(p);
+        }
+      }
+    });
+    
+    const payload = {
+      ten_vt: name.trim(),
+      mo_ta: desc,
+      quyen_han: Array.from(permissionsToSave)
+    };
+    
+    console.log('💾 Saving role permissions:', payload);
+    
+    await onSaved?.(payload);
     setSetDirty(false);
   };
 
@@ -555,7 +673,16 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
       <div style={{ fontWeight: 600 }}>Quyền của vai trò: {role.ten_vt} {useCanonical ? '(slug chuẩn - test)' : ''}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {allPermissions.map((p) => {
-          const active = selected.has(p);
+          // Show as active if:
+          // - canonical mode: exact slug is selected
+          // - legacy mode: either the legacy slug is selected OR any of its canonical equivalents are selected
+          let active = false;
+          if (useCanonical) {
+            active = selected.has(p);
+          } else {
+            const equivalents = (legacyToCanonical && legacyToCanonical[p]) ? legacyToCanonical[p] : [];
+            active = selected.has(p) || equivalents.some((q) => selected.has(q));
+          }
           return (
             <button key={p} onClick={() => toggle(p)}
               style={{ ...buttonStyle, borderColor: active ? '#c7d2fe' : '#e5e7eb', background: active ? '#eef2ff' : 'white', color: active ? '#4338ca' : '#374151' }}>

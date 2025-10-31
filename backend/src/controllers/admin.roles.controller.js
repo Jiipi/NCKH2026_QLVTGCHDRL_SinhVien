@@ -15,6 +15,14 @@ class AdminRolesController {
         prisma.vaiTro.findMany({ where, skip, take: parseInt(limit), orderBy: { ngay_tao: 'desc' } }),
         prisma.vaiTro.count({ where })
       ]);
+      
+      // Convert quyen_han from object to array for all items
+      items.forEach(item => {
+        if (item.quyen_han && typeof item.quyen_han === 'object' && !Array.isArray(item.quyen_han)) {
+          item.quyen_han = Object.values(item.quyen_han);
+        }
+      });
+      
       return sendResponse(res, 200, ApiResponse.success({ items, total, page: parseInt(page), limit: parseInt(limit) }));
     } catch (err) {
       logError('AdminRolesController.list error', err);
@@ -26,6 +34,12 @@ class AdminRolesController {
     try {
       const item = await prisma.vaiTro.findUnique({ where: { id: req.params.id } });
       if (!item) return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy vai trò'));
+      
+      // Convert quyen_han from object to array if needed
+      if (item.quyen_han && typeof item.quyen_han === 'object' && !Array.isArray(item.quyen_han)) {
+        item.quyen_han = Object.values(item.quyen_han);
+      }
+      
       return sendResponse(res, 200, ApiResponse.success(item));
     } catch (err) {
       logError('AdminRolesController.getById error', err);
@@ -52,8 +66,25 @@ class AdminRolesController {
   static async update(req, res) {
     try {
       const { ten_vt, mo_ta, quyen_han } = req.body || {};
-      const updated = await prisma.vaiTro.update({ where: { id: req.params.id }, data: { ten_vt, mo_ta, quyen_han } });
+      
+      // Ensure quyen_han is an array
+      let normalizedQuyenHan = quyen_han;
+      if (quyen_han && typeof quyen_han === 'object' && !Array.isArray(quyen_han)) {
+        normalizedQuyenHan = Object.values(quyen_han);
+      }
+      
+      const updated = await prisma.vaiTro.update({ 
+        where: { id: req.params.id }, 
+        data: { ten_vt, mo_ta, quyen_han: normalizedQuyenHan } 
+      });
+      
       invalidateRoleCache(ten_vt || updated.ten_vt);
+      
+      // Return with normalized quyen_han
+      if (updated.quyen_han && typeof updated.quyen_han === 'object' && !Array.isArray(updated.quyen_han)) {
+        updated.quyen_han = Object.values(updated.quyen_han);
+      }
+      
       return sendResponse(res, 200, ApiResponse.success(updated, 'Cập nhật vai trò thành công'));
     } catch (err) {
       logError('AdminRolesController.update error', err);
