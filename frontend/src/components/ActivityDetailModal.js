@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Clock, Users, Award, UserPlus, Eye, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Calendar, MapPin, Clock, Users, Award, UserPlus, Eye, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import http from '../services/http';
 import { useNotification } from '../contexts/NotificationContext';
 import { getActivityImage } from '../utils/activityImages';
@@ -135,36 +135,37 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
   return React.createElement(
     'div',
     { 
-      className: 'fixed inset-0 z-50 overflow-y-auto',
+      className: 'fixed inset-0 z-50 overflow-y-auto flex items-center justify-center',
       onClick: (e) => {
         if (e.target === e.currentTarget) onClose();
       }
     },
     React.createElement(
       'div',
-      { className: 'flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0' },
+      { className: 'flex items-center justify-center min-h-screen w-full px-4 py-6' },
       [
         // Backdrop
         React.createElement(
           'div',
           { 
             key: 'backdrop',
-            className: 'fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity'
+            className: 'fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity',
+            onClick: onClose
           }
         ),
         
-        // Modal
+        // Modal - Optimized size
         React.createElement(
           'div',
           { 
             key: 'modal',
-            className: 'inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full'
+            className: 'relative inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-3xl max-h-[90vh] flex flex-col'
           },
           [
-            // Header
+            // Header - Compact and modern
             React.createElement(
               'div',
-              { key: 'header', className: 'bg-white px-6 py-4 border-b border-gray-200' },
+              { key: 'header', className: 'flex-shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 border-b border-blue-700' },
               [
                 React.createElement(
                   'div',
@@ -172,26 +173,29 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                   [
                     React.createElement('h3', { 
                       key: 'title', 
-                      className: 'text-lg font-medium text-gray-900' 
-                    }, 'Chi tiết hoạt động'),
+                      className: 'text-xl font-bold text-white flex items-center gap-2' 
+                    }, [
+                      React.createElement(Eye, { key: 'icon', className: 'h-5 w-5' }),
+                      'Chi tiết hoạt động'
+                    ]),
                     React.createElement(
                       'button',
                       {
                         key: 'close',
                         onClick: onClose,
-                        className: 'text-gray-400 hover:text-gray-600 transition-colors'
+                        className: 'text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg p-2'
                       },
-                      React.createElement(X, { className: 'h-6 w-6' })
+                      React.createElement(X, { className: 'h-5 w-5' })
                     )
                   ]
                 )
               ]
             ),
             
-            // Content
+            // Content - Optimized scrolling
             React.createElement(
               'div',
-              { key: 'content', className: 'bg-white px-6 py-4 max-h-96 overflow-y-auto' },
+              { key: 'content', className: 'flex-1 bg-white px-6 py-5 overflow-y-auto' },
               loading ? (
                 React.createElement(
                   'div',
@@ -217,14 +221,14 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                   ]
                 )
               ) : data ? [
-                // Activity Image - Always show (with fallback)
+                // Activity Image - Compact version
                 React.createElement(
                   'div',
-                  { key: 'image', className: 'mb-6' },
+                  { key: 'image', className: 'mb-5 -mx-6 -mt-5' },
                   React.createElement('img', {
                     src: getActivityImage(data.hinh_anh, data.loai_hd?.ten_loai),
                     alt: data.ten_hd || 'Poster hoạt động',
-                    className: 'w-full h-64 object-cover rounded-lg shadow-md',
+                    className: 'w-full h-48 object-cover',
                     onError: (e) => {
                       // Fallback to default image if image fails to load
                       e.target.src = '/images/default-activity.jpg';
@@ -232,69 +236,90 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                   })
                 ),
                 
-                // Activity Title
-                React.createElement(
-                  'h2',
-                  { key: 'activity-title', className: 'text-2xl font-bold text-gray-900 mb-4' },
-                  data.ten_hd || 'Hoạt động'
-                ),
-                
-                // Status Badge
+                // Activity Title and Status - Combined
                 React.createElement(
                   'div',
-                  { key: 'status', className: 'mb-6' },
-                  React.createElement('span', {
-                    className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`
-                  }, [
-                    React.createElement('div', { 
-                      key: 'dot',
-                      className: `w-2 h-2 rounded-full mr-2 ${
-                        data?.is_registered ? 'bg-green-500' : 
-                        isDeadlinePast ? 'bg-red-500' : 
-                        'bg-blue-500'
-                      }`
-                    }),
-                    statusInfo.label
-                  ])
+                  { key: 'title-section', className: 'mb-5 px-6' },
+                  [
+                    React.createElement(
+                      'h2',
+                      { key: 'activity-title', className: 'text-2xl font-bold text-gray-900 mb-3' },
+                      data.ten_hd || 'Hoạt động'
+                    ),
+                    React.createElement(
+                      'div',
+                      { key: 'status-badges', className: 'flex items-center gap-2 flex-wrap' },
+                      [
+                        React.createElement('span', {
+                          key: 'status',
+                          className: `inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border-2 ${statusInfo.color}`
+                        }, [
+                          React.createElement('div', { 
+                            key: 'dot',
+                            className: `w-2 h-2 rounded-full mr-2 ${
+                              data?.is_registered ? 'bg-green-500' : 
+                              isDeadlinePast ? 'bg-red-500' : 
+                              'bg-blue-500'
+                            }`
+                          }),
+                          statusInfo.label
+                        ]),
+                        React.createElement('span', {
+                          key: 'points',
+                          className: 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-600'
+                        }, [
+                          React.createElement(Award, { key: 'icon', className: 'h-4 w-4' }),
+                          `+${data.diem_rl || 0} điểm`
+                        ])
+                      ]
+                    )
+                  ]
                 ),
                 
                 // Description
                 React.createElement(
                   'div',
-                  { key: 'description', className: 'mb-6' },
+                  { key: 'description', className: 'mb-5 px-6 py-4 bg-blue-50 rounded-xl border border-blue-100' },
                   [
                     React.createElement('h4', { 
                       key: 'desc-title', 
-                      className: 'text-lg font-semibold text-gray-900 mb-2' 
-                    }, 'Mô tả'),
+                      className: 'text-sm font-bold text-blue-900 mb-2 uppercase tracking-wide flex items-center gap-2' 
+                    }, [
+                      React.createElement(Info, { key: 'icon', className: 'h-4 w-4' }),
+                      'Mô tả hoạt động'
+                    ]),
                     React.createElement('p', { 
                       key: 'desc-content', 
-                      className: 'text-gray-700 leading-relaxed' 
+                      className: 'text-gray-700 leading-relaxed text-sm' 
                     }, data.mo_ta || 'Chưa có mô tả')
                   ]
                 ),
                 
-                // Activity Details Grid
+                // Activity Details Grid - Compact
                 React.createElement(
                   'div',
-                  { key: 'details', className: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-6' },
+                  { key: 'details', className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 px-6' },
                   [
                     React.createElement(
                       'div',
-                      { key: 'type', className: 'flex items-center' },
+                      { key: 'type', className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200' },
                       [
-                        React.createElement(Calendar, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
+                        React.createElement(
+                          'div',
+                          { key: 'icon-wrapper', className: 'flex-shrink-0 p-2 bg-blue-100 rounded-lg' },
+                          React.createElement(Calendar, { 
+                            key: 'icon', 
+                            className: 'h-5 w-5 text-blue-600' 
+                          })
+                        ),
+                        React.createElement('div', { key: 'content', className: 'flex-1 min-w-0' }, [
                           React.createElement('span', { 
                             key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
+                            className: 'text-xs font-semibold text-gray-500 uppercase tracking-wide block' 
                           }, 'Loại hoạt động'),
                           React.createElement('p', { 
                             key: 'value', 
-                            className: 'text-gray-900' 
+                            className: 'text-sm font-semibold text-gray-900 mt-0.5 truncate' 
                           }, data.loai || data.loai_hd?.ten_loai_hd || 'Chưa xác định')
                         ])
                       ]
@@ -302,66 +327,53 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                     
                     React.createElement(
                       'div',
-                      { key: 'points', className: 'flex items-center' },
+                      { key: 'time', className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200' },
                       [
-                        React.createElement(Award, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
+                        React.createElement(
+                          'div',
+                          { key: 'icon-wrapper', className: 'flex-shrink-0 p-2 bg-green-100 rounded-lg' },
+                          React.createElement(Clock, { 
+                            key: 'icon', 
+                            className: 'h-5 w-5 text-green-600' 
+                          })
+                        ),
+                        React.createElement('div', { key: 'content', className: 'flex-1 min-w-0' }, [
                           React.createElement('span', { 
                             key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
-                          }, 'Điểm rèn luyện'),
-                          React.createElement('p', { 
-                            key: 'value', 
-                            className: 'text-gray-900 font-semibold' 
-                          }, `${data.diem_rl || 0} điểm`)
-                        ])
-                      ]
-                    ),
-                    
-                    React.createElement(
-                      'div',
-                      { key: 'time', className: 'flex items-center' },
-                      [
-                        React.createElement(Clock, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
-                          React.createElement('span', { 
-                            key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
+                            className: 'text-xs font-semibold text-gray-500 uppercase tracking-wide block' 
                           }, 'Thời gian'),
                           React.createElement('p', { 
                             key: 'value', 
-                            className: 'text-gray-900' 
-                          }, start ? start.toLocaleString('vi-VN') : 'Chưa xác định'),
+                            className: 'text-sm font-semibold text-gray-900 mt-0.5' 
+                          }, start ? start.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : 'Chưa xác định'),
                           end && React.createElement('p', { 
                             key: 'end', 
-                            className: 'text-sm text-gray-600' 
-                          }, `Đến: ${end.toLocaleString('vi-VN')}`)
+                            className: 'text-xs text-gray-600 mt-0.5' 
+                          }, `→ ${end.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`)
                         ])
                       ]
                     ),
                     
                     React.createElement(
                       'div',
-                      { key: 'location', className: 'flex items-center' },
+                      { key: 'location', className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200' },
                       [
-                        React.createElement(MapPin, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
+                        React.createElement(
+                          'div',
+                          { key: 'icon-wrapper', className: 'flex-shrink-0 p-2 bg-purple-100 rounded-lg' },
+                          React.createElement(MapPin, { 
+                            key: 'icon', 
+                            className: 'h-5 w-5 text-purple-600' 
+                          })
+                        ),
+                        React.createElement('div', { key: 'content', className: 'flex-1 min-w-0' }, [
                           React.createElement('span', { 
                             key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
+                            className: 'text-xs font-semibold text-gray-500 uppercase tracking-wide block' 
                           }, 'Địa điểm'),
                           React.createElement('p', { 
                             key: 'value', 
-                            className: 'text-gray-900' 
+                            className: 'text-sm font-semibold text-gray-900 mt-0.5 truncate' 
                           }, data.dia_diem || 'Chưa xác định')
                         ])
                       ]
@@ -369,20 +381,24 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                     
                     React.createElement(
                       'div',
-                      { key: 'capacity', className: 'flex items-center' },
+                      { key: 'capacity', className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200' },
                       [
-                        React.createElement(Users, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
+                        React.createElement(
+                          'div',
+                          { key: 'icon-wrapper', className: 'flex-shrink-0 p-2 bg-orange-100 rounded-lg' },
+                          React.createElement(Users, { 
+                            key: 'icon', 
+                            className: 'h-5 w-5 text-orange-600' 
+                          })
+                        ),
+                        React.createElement('div', { key: 'content', className: 'flex-1 min-w-0' }, [
                           React.createElement('span', { 
                             key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
+                            className: 'text-xs font-semibold text-gray-500 uppercase tracking-wide block' 
                           }, 'Số lượng tối đa'),
                           React.createElement('p', { 
                             key: 'value', 
-                            className: 'text-gray-900' 
+                            className: 'text-sm font-semibold text-gray-900 mt-0.5' 
                           }, `${data.sl_toi_da || 0} người`)
                         ])
                       ]
@@ -390,20 +406,24 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                     
                     React.createElement(
                       'div',
-                      { key: 'organizer', className: 'flex items-center' },
+                      { key: 'organizer', className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200' },
                       [
-                        React.createElement(Users, { 
-                          key: 'icon', 
-                          className: 'h-5 w-5 text-gray-400 mr-3' 
-                        }),
-                        React.createElement('div', { key: 'content' }, [
+                        React.createElement(
+                          'div',
+                          { key: 'icon-wrapper', className: 'flex-shrink-0 p-2 bg-indigo-100 rounded-lg' },
+                          React.createElement(Users, { 
+                            key: 'icon', 
+                            className: 'h-5 w-5 text-indigo-600' 
+                          })
+                        ),
+                        React.createElement('div', { key: 'content', className: 'flex-1 min-w-0' }, [
                           React.createElement('span', { 
                             key: 'label', 
-                            className: 'text-sm font-medium text-gray-600' 
+                            className: 'text-xs font-semibold text-gray-500 uppercase tracking-wide block' 
                           }, 'Đơn vị tổ chức'),
                           React.createElement('p', { 
                             key: 'value', 
-                            className: 'text-gray-900' 
+                            className: 'text-sm font-semibold text-gray-900 mt-0.5 truncate' 
                           }, data.don_vi_to_chuc || 'Nhà trường')
                         ])
                       ]
@@ -411,51 +431,51 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                   ]
                 ),
                 
-                // Deadline info
+                // Deadline info - Compact
                 deadline && React.createElement(
                   'div',
-                  { key: 'deadline', className: 'mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' },
+                  { key: 'deadline', className: 'mb-4 mx-6 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg' },
                   [
                     React.createElement('div', { 
                       key: 'deadline-content', 
-                      className: 'flex items-center' 
+                      className: 'flex items-center gap-2' 
                     }, [
                       React.createElement(AlertCircle, { 
                         key: 'icon', 
-                        className: 'h-5 w-5 text-yellow-600 mr-2' 
+                        className: 'h-5 w-5 text-yellow-600 flex-shrink-0' 
                       }),
-                      React.createElement('div', { key: 'text' }, [
+                      React.createElement('div', { key: 'text', className: 'flex-1' }, [
                         React.createElement('span', { 
                           key: 'label', 
-                          className: 'text-sm font-medium text-yellow-800' 
+                          className: 'text-xs font-bold text-yellow-800 uppercase tracking-wide' 
                         }, 'Hạn đăng ký: '),
                         React.createElement('span', { 
                           key: 'value', 
-                          className: 'text-yellow-900' 
-                        }, deadline.toLocaleString('vi-VN'))
+                          className: 'text-sm font-semibold text-yellow-900' 
+                        }, deadline.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }))
                       ])
                     ])
                   ]
                 ),
                 
-                // Rejection reason
+                // Rejection reason - Compact
                 data?.registration_status === 'tu_choi' && data?.rejection_reason && React.createElement(
                   'div',
-                  { key: 'rejection', className: 'mb-6 p-4 bg-red-50 border border-red-200 rounded-lg' },
+                  { key: 'rejection', className: 'mb-4 mx-6 p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg' },
                   [
                     React.createElement('div', { 
                       key: 'rejection-header', 
-                      className: 'flex items-start' 
+                      className: 'flex items-start gap-2' 
                     }, [
                       React.createElement(AlertCircle, { 
                         key: 'icon', 
-                        className: 'h-5 w-5 text-red-600 mr-2 mt-0.5 flex-shrink-0' 
+                        className: 'h-5 w-5 text-red-600 flex-shrink-0 mt-0.5' 
                       }),
-                      React.createElement('div', { key: 'content' }, [
+                      React.createElement('div', { key: 'content', className: 'flex-1' }, [
                         React.createElement('p', { 
                           key: 'label', 
-                          className: 'text-sm font-semibold text-red-800 mb-1' 
-                        }, 'Lý do từ chối đăng ký:'),
+                          className: 'text-xs font-bold text-red-800 mb-1 uppercase tracking-wide' 
+                        }, 'Lý do từ chối:'),
                         React.createElement('p', { 
                           key: 'reason', 
                           className: 'text-sm text-red-700' 
@@ -467,13 +487,13 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
               ] : null
             ),
             
-            // Footer with actions
+            // Footer with actions - Modern style
             React.createElement(
               'div',
-              { key: 'footer', className: 'bg-gray-50 px-6 py-4 border-t border-gray-200' },
+              { key: 'footer', className: 'flex-shrink-0 bg-gray-50 px-6 py-4 border-t border-gray-200' },
               React.createElement(
                 'div',
-                { key: 'actions', className: 'flex justify-end space-x-3' },
+                { key: 'actions', className: 'flex justify-end gap-3' },
                 [
                   React.createElement(
                     'button',
@@ -481,7 +501,7 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                       key: 'close-btn',
                       type: 'button',
                       onClick: onClose,
-                      className: 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      className: 'px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200'
                     },
                     'Đóng'
                   ),
@@ -491,10 +511,10 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                       key: 'register-btn',
                       type: 'button',
                       onClick: handleRegister,
-                      className: 'px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center'
+                      className: 'px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-emerald-600 border-2 border-green-700 rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200'
                     },
                     [
-                      React.createElement(UserPlus, { key: 'icon', className: 'h-4 w-4 mr-2' }),
+                      React.createElement(UserPlus, { key: 'icon', className: 'h-4 w-4' }),
                       'Đăng ký tham gia'
                     ]
                   )

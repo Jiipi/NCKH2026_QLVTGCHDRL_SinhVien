@@ -1,7 +1,6 @@
 import React from 'react';
-import { TrendingUp, Calendar, Award, Target, BookOpen, Users, Heart, Trophy, Medal, BarChart3, PieChart, Filter, Download, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
+import { TrendingUp, Calendar, Target, BookOpen, Users, Heart, Trophy, Medal, BarChart3, PieChart, RefreshCw, AlertCircle } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
 import SemesterFilter from '../../components/SemesterFilter';
 
 export default function Scores(){
@@ -15,43 +14,11 @@ export default function Scores(){
     return `hoc_ky_1-${y}`;
   };
   const [semester, setSemester] = React.useState(getDefaultSemester());
-  const { options: semesterOptions } = useSemesterOptions();
-  // Backward-compat local computed values for APIs that still accept hoc_ky + nam_hoc
-  const [hocKy, setHocKy] = React.useState('hoc_ky_1');
-  const [namHoc, setNamHoc] = React.useState('');
-  const [namHocOptions, setNamHocOptions] = React.useState([]);
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // Derive hoc_ky/nam_hoc from semester whenever it changes
-  React.useEffect(() => {
-    const m = String(semester || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!m) {
-      setHocKy('hoc_ky_1');
-      setNamHoc('');
-      setNamHocOptions([]);
-      return;
-    }
-    const hk = m[1];
-    const year = Number(m[2]);
-    const nh = hk === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-    setHocKy(hk);
-    setNamHoc(nh);
-    // Also synthesize a small options list from semesterOptions for the legacy year dropdown (kept for UI continuity)
-    const years = (semesterOptions || [])
-      .map(o => {
-        const mm = String(o.value || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-        if (!mm) return null;
-        const y = Number(mm[2]);
-        const nhv = mm[1] === 'hoc_ky_1' ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-        return nhv;
-      })
-      .filter(Boolean);
-    // De-duplicate and sort desc by start year
-    const uniqueYears = Array.from(new Set(years)).sort((a, b) => Number(b.split('-')[0]) - Number(a.split('-')[0]));
-    setNamHocOptions(uniqueYears.map(v => ({ value: v, label: v })));
-  }, [semester, semesterOptions]);
+  // Keep only unified semester value; backend supports `semester` directly
 
   const loadScores = React.useCallback(async function() {
     if (!semester) return;
@@ -60,25 +27,9 @@ export default function Scores(){
     setError('');
     
     try {
-      const m = String(semester || '').match(/^(hoc_ky_(\d+))-(\d{4})$/);
-      const hk = m ? m[1] : 'hoc_ky_1';
-      const hkNum = m ? m[2] : '1';
-      const year = m ? Number(m[3]) : new Date().getFullYear();
-      const nh = hk === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-      // Log and pass both legacy and new param for compatibility
-      console.log('🔍 Loading scores with params:', { hoc_ky: hkNum, nam_hoc: nh, semester });
-      const params = { 
-        hoc_ky: hkNum,
-        nam_hoc: nh,
-        semester
-      };
+      const params = { semester };
       
       const response = await http.get('/dashboard/scores/detailed', { params });
-      
-      console.log('✅ Scores API response:', response.data);
-      console.log('📊 Scores data:', response.data.data);
-      console.log('📊 Total score:', response.data.data?.summary?.total_score);
-      console.log('📊 Activities count:', response.data.data?.activities?.length);
       
       setData(response.data.data); // Extract data from API response wrapper
     } catch (err) {
@@ -272,8 +223,15 @@ export default function Scores(){
     return (
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
-          <h1 className="text-2xl font-bold mb-2">Điểm rèn luyện</h1>
-          <p className="text-orange-100">Theo dõi và phân tích kết quả rèn luyện của bạn</p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold mb-1">Điểm rèn luyện</h1>
+              <p className="text-orange-100">Theo dõi và phân tích kết quả rèn luyện của bạn</p>
+            </div>
+            <div className="min-w-[240px]">
+              <SemesterFilter value={semester} onChange={setSemester} label="" />
+            </div>
+          </div>
         </div>
         <div className="flex justify-center py-12">
           <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
@@ -289,11 +247,38 @@ export default function Scores(){
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Điểm rèn luyện theo học kỳ</h1>
-        <p className="text-orange-100">
-          Theo dõi và phân tích kết quả rèn luyện của từng học kỳ
-        </p>
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-6 text-white">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Điểm rèn luyện</h1>
+            <p className="text-orange-100">Theo dõi và phân tích kết quả rèn luyện của bạn</p>
+          </div>
+          <div className="min-w-[240px]">
+            <SemesterFilter value={semester} onChange={setSemester} label="" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+            <Trophy className="h-5 w-5 text-white mb-2" />
+            <p className="text-2xl font-bold">{currentScore}</p>
+            <p className="text-xs text-white/80 uppercase">Tổng điểm</p>
+          </div>
+          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+            <Medal className="h-5 w-5 text-white mb-2" />
+            <p className="text-2xl font-bold">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
+            <p className="text-xs text-white/80 uppercase">Xếp hạng</p>
+          </div>
+          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+            <Calendar className="h-5 w-5 text-white mb-2" />
+            <p className="text-2xl font-bold">{stats.totalActivities}</p>
+            <p className="text-xs text-white/80 uppercase">Hoạt động</p>
+          </div>
+          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+            <TrendingUp className="h-5 w-5 text-white mb-2" />
+            <p className="text-2xl font-bold">{stats.averagePoints}</p>
+            <p className="text-xs text-white/80 uppercase">Trung bình</p>
+          </div>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -306,48 +291,41 @@ export default function Scores(){
         </div>
       )}
 
-      {/* Bộ lọc học kỳ đồng bộ như các role khác */}
-      <div className="bg-white rounded-xl border p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-          <div>
-            <SemesterFilter value={semester} onChange={setSemester} label="" />
-          </div>
-        </div>
-      </div>
+      {/* Filter moved to header above */}
 
       {/* Summary Stats */}
       {data && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Overall Progress */}
-              <div className="bg-white rounded-xl border p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Tổng điểm học kỳ</h3>
-                  <Target className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="flex items-center justify-center mb-4">
-                  <ProgressCircle percentage={Math.round(progressPercentage)} />
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900 mb-2">
-                    {currentScore}/{targetScore}
-                  </div>
-                  <p className="text-gray-600">điểm rèn luyện</p>
-                  {data.summary?.xep_loai && (
-                    <div className="mt-2">
-                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                        data.summary.xep_loai === 'Xuất sắc' ? 'bg-yellow-100 text-yellow-800' :
-                        data.summary.xep_loai === 'Tốt' ? 'bg-blue-100 text-blue-800' :
-                        data.summary.xep_loai === 'Khá' ? 'bg-green-100 text-green-800' :
-                        data.summary.xep_loai === 'Trung bình' ? 'bg-orange-100 text-orange-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {data.summary.xep_loai}
-                      </span>
-                    </div>
-                  )}
-                </div>
+            <div className="bg-white rounded-xl border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Tổng điểm học kỳ</h3>
+                <Target className="h-6 w-6 text-orange-600" />
               </div>
+              <div className="flex items-center justify-center mb-4">
+                <ProgressCircle percentage={Math.round(progressPercentage)} />
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  {currentScore}/{targetScore}
+                </div>
+                <p className="text-gray-600">điểm rèn luyện</p>
+                {data.summary?.xep_loai && (
+                  <div className="mt-2">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                      data.summary.xep_loai === 'Xuất sắc' ? 'bg-yellow-100 text-yellow-800' :
+                      data.summary.xep_loai === 'Tốt' ? 'bg-blue-100 text-blue-800' :
+                      data.summary.xep_loai === 'Khá' ? 'bg-green-100 text-green-800' :
+                      data.summary.xep_loai === 'Trung bình' ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {data.summary.xep_loai}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Quick Stats */}
             <div className="bg-white rounded-xl border p-6">

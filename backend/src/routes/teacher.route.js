@@ -703,7 +703,12 @@ router.post('/registrations/:regId/approve', async (req, res) => {
     if (!registration) return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy đăng ký'));
     // Enforce semester write lock for this class/semester
     try {
-      SemesterClosure.checkWritableForClassSemesterOrThrow({ classId: registration.sinh_vien.lop.id, hoc_ky: registration.hoat_dong?.hoc_ky, nam_hoc: registration.hoat_dong?.nam_hoc });
+      SemesterClosure.checkWritableForClassSemesterOrThrow({ 
+        classId: registration.sinh_vien.lop.id, 
+        hoc_ky: registration.hoat_dong?.hoc_ky, 
+        nam_hoc: registration.hoat_dong?.nam_hoc,
+        userRole: req.user?.role 
+      });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -797,7 +802,12 @@ router.post('/registrations/bulk-approve', async (req, res) => {
     // Enforce semester lock per registration (all must be writable)
     for (const reg of registrations) {
       try {
-        SemesterClosure.checkWritableForClassSemesterOrThrow({ classId: reg.sinh_vien.lop.id, hoc_ky: reg.hoat_dong?.hoc_ky, nam_hoc: reg.hoat_dong?.nam_hoc });
+        SemesterClosure.checkWritableForClassSemesterOrThrow({ 
+          classId: reg.sinh_vien.lop.id, 
+          hoc_ky: reg.hoat_dong?.hoc_ky, 
+          nam_hoc: reg.hoat_dong?.nam_hoc,
+          userRole: req.user?.role 
+        });
       } catch (e) {
         if (e && e.status === 423) {
           return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -882,7 +892,12 @@ router.post('/registrations/:regId/reject', async (req, res) => {
     if (!registration) return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy đăng ký'));
     // Enforce semester write lock for this class/semester
     try {
-      SemesterClosure.checkWritableForClassSemesterOrThrow({ classId: registration.sinh_vien.lop.id, hoc_ky: registration.hoat_dong?.hoc_ky, nam_hoc: registration.hoat_dong?.nam_hoc });
+      SemesterClosure.checkWritableForClassSemesterOrThrow({ 
+        classId: registration.sinh_vien.lop.id, 
+        hoc_ky: registration.hoat_dong?.hoc_ky, 
+        nam_hoc: registration.hoat_dong?.nam_hoc,
+        userRole: req.user?.role 
+      });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));

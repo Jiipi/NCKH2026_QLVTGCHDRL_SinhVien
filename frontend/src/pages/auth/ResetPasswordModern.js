@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import http from '../../services/http';
 import './AuthModern.css';
@@ -7,6 +7,7 @@ import './AuthModern.css';
 export default function ResetPasswordModern() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [formData, setFormData] = React.useState({
     password: '',
     confirmPassword: ''
@@ -18,12 +19,18 @@ export default function ResetPasswordModern() {
   const [success, setSuccess] = React.useState('');
 
   const token = searchParams.get('token');
+  const stateEmail = location.state?.email;
+  const stateCode = location.state?.code;
+  const qpEmail = searchParams.get('email');
+  const qpCode = searchParams.get('code');
+  const email = stateEmail || qpEmail || '';
+  const code = stateCode || qpCode || '';
 
   React.useEffect(() => {
-    if (!token) {
-      navigate('/forgot-password');
-    }
-  }, [token, navigate]);
+    // New flow uses email+code; support legacy token but prefer email+code
+    const ok = (email && code) || !!token;
+    if (!ok) navigate('/forgot-password');
+  }, [email, code, token, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,11 +61,22 @@ export default function ResetPasswordModern() {
     if (!validateForm()) return;
     setIsLoading(true);
     try {
-      const res = await http.post('/auth/reset', {
-        token: token,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword
-      });
+      let res;
+      if (email && code) {
+        res = await http.post('/auth/reset', {
+          email,
+          code,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword
+        });
+      } else {
+        // Legacy fallback (should not be used anymore)
+        res = await http.post('/auth/reset', {
+          token: token,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword
+        });
+      }
       if (res.data?.success || res.data?.data) {
         setSuccess('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
         setTimeout(() => {
@@ -74,9 +92,7 @@ export default function ResetPasswordModern() {
     }
   };
 
-  if (!token) {
-    return null;
-  }
+  if (!token && !(email && code)) return null;
 
   return (
     <div

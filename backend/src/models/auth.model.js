@@ -90,8 +90,14 @@ class AuthModel {
   // Tìm người dùng theo email
   static async timNguoiDungTheoEmail(email) {
     const e = String(email || '').trim().toLowerCase();
-    return prisma.nguoiDung.findUnique({
-      where: { email: e },
+    // Một số dữ liệu có thể lưu email ở bảng sinh_vien.email -> tìm theo cả hai nơi
+    return prisma.nguoiDung.findFirst({
+      where: {
+        OR: [
+          { email: { equals: e, mode: 'insensitive' } },
+          { sinh_vien: { email: { equals: e, mode: 'insensitive' } } }
+        ]
+      },
       include: this.includeForUser()
     });
   }
@@ -176,11 +182,15 @@ class AuthModel {
 
   // Tìm hoặc tạo lớp cho khoa cụ thể
   static async findOrCreateClassForFaculty(khoa) {
-    // Tìm lớp mặc định cho khoa này
+    // Rút gọn tên khoa để tạo tên lớp (max 15 ký tự)
+    const khoaShort = khoa.substring(0, 15);
+    const tenLop = `MD-${khoaShort}`; // "MD" = Mặc định, tổng ≤ 18 ký tự
+    
+    // Tìm lớp mặc định cho khoa này (tìm theo tên lớp chuẩn)
     const existing = await prisma.lop.findFirst({ 
       where: { 
         khoa: khoa,
-        ten_lop: { contains: 'mặc định' }
+        ten_lop: tenLop
       } 
     });
     if (existing) return existing;
@@ -194,7 +204,7 @@ class AuthModel {
     // Tạo lớp mặc định cho khoa
     return prisma.lop.create({
       data: {
-        ten_lop: `Lớp mặc định - ${khoa}`,
+        ten_lop: tenLop,
         khoa: khoa,
         nien_khoa: '2021-2025',
         nam_nhap_hoc: new Date(),
@@ -204,14 +214,16 @@ class AuthModel {
   }
 
   // Tạo người dùng sinh viên mặc định
-  static async createStudent({ name, maso, email, hashedPassword, lopId }) {
-    // Lấy hoặc tạo vai trò SINH_VIEN để đảm bảo không lỗi khi DB thiếu seed
-    let role = await prisma.vaiTro.findFirst({ where: { ten_vt: 'SINH_VIÊN' } });
+  static async createStudent({ name, maso, email, hashedPassword, lopId, ngaySinh, gioiTinh, diaChi, sdt }) {
+    // Lấy hoặc tạo vai trò SINH_VIEN (ưu tiên không dấu theo chuẩn hệ thống)
+    let role = await prisma.vaiTro.findFirst({ where: { ten_vt: 'SINH_VIEN' } });
     if (!role) {
-      role = await prisma.vaiTro.create({ data: { ten_vt: 'SINH_VIÊN', mo_ta: 'Sinh viên' } }).catch(async () => {
-        // Fallback to unaccented key
-        return prisma.vaiTro.findFirst({ where: { ten_vt: 'SINH_VIEN' } }) || await prisma.vaiTro.create({ data: { ten_vt: 'SINH_VIEN', mo_ta: 'Sinh vien' } });
-      });
+      // Fallback: tìm có dấu nếu DB dùng có dấu
+      role = await prisma.vaiTro.findFirst({ where: { ten_vt: 'SINH_VIÊN' } });
+      if (!role) {
+        // Tạo mới với không dấu (chuẩn)
+        role = await prisma.vaiTro.create({ data: { ten_vt: 'SINH_VIEN', mo_ta: 'Sinh vien' } });
+      }
     }
     const user = await prisma.nguoiDung.create({
       data: {
@@ -224,14 +236,20 @@ class AuthModel {
       },
       include: this.includeForUser()
     });
+    
+    // Tạo bản ghi SinhVien với đầy đủ thông tin
     await prisma.sinhVien.create({
       data: {
         nguoi_dung_id: user.id,
         mssv: maso,
-        ngay_sinh: new Date('2000-01-01'),
+        ngay_sinh: ngaySinh ? new Date(ngaySinh) : new Date('2000-01-01'), // Sử dụng ngày sinh thực hoặc fallback
+        gt: gioiTinh || null,
+        dia_chi: diaChi || null,
+        sdt: sdt || null,
         lop_id: lopId,
       }
     });
+    
     return prisma.nguoiDung.findUnique({ where: { id: user.id }, include: this.includeForUser() });
   }
 

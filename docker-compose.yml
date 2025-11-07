@@ -65,6 +65,10 @@ services:
       CORS_ORIGIN: http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.8:3000,http://192.168.2.12:3000
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      # Persist semester metadata/state in repo-mounted folder instead of tmp
+      SEMESTER_DATA_DIR: /app/data/semesters
+      # Enable detailed semester lock debug logs
+      DEBUG_SEMESTER: "1"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules

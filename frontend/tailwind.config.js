@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       animation: {
         'in': 'in 200ms ease-out',
         'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Unlock, Hourglass, AlertCircle, CheckCircle, ShieldCheck, Calendar } from 'lucide-react';
 import http from '../services/http';
-import { invalidateSemesterOptionsCache } from '../hooks/useSemesterOptions';
+import { invalidateSemesterDataCache } from '../hooks/useSemesterData';
 
 export default function SemesterClosureWidget({ compact = false, onChanged, classId: forcedClassId = null, enableSoftLock = false, enableHardLock = false, className = '' }) {
   const [loading, setLoading] = useState(true);
@@ -99,8 +99,8 @@ export default function SemesterClosureWidget({ compact = false, onChanged, clas
       setBusy(true);
   await http.post(`/semesters/${classId}/hard-lock`, { semester: `${info.semester.semester}-${info.semester.year}` });
       await loadStatus();
-  // Invalidate semester options cache so new semester becomes visible immediately
-  invalidateSemesterOptionsCache();
+  // Invalidate semester cache so new semester becomes visible immediately
+  invalidateSemesterDataCache();
       onChanged && onChanged();
     } catch (e) {
       setError(e?.response?.data?.message || 'Không thể chốt cứng');

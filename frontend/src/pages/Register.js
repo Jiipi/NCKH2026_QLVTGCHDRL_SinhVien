@@ -23,9 +23,12 @@ export default function RegisterComplete() {
     gt: '',
     lop_id: '',
     dia_chi: '',
-    sdt: ''
+    sdt: '',
+    khoa: '' // Thêm trường khoa
   });
   const [classes, setClasses] = React.useState([]);
+  const [allClasses, setAllClasses] = React.useState([]); // Lưu tất cả lớp
+  const [faculties, setFaculties] = React.useState([]); // Danh sách khoa
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -41,14 +44,38 @@ export default function RegisterComplete() {
         const normalized = Array.isArray(raw)
           ? raw.map((c) => ({ id: c.value || c.id, ten_lop: c.label || c.ten_lop, khoa: c.khoa }))
           : [];
-        setClasses(normalized);
+        setAllClasses(normalized);
+        setClasses(normalized); // Hiển thị tất cả ban đầu
+        
+        // Tạo danh sách khoa duy nhất
+        const uniqueFaculties = [...new Set(normalized.map(c => c.khoa))].filter(Boolean);
+        setFaculties(uniqueFaculties);
       } catch (err) {
         console.error('Error loading classes:', err);
+        setAllClasses([]);
         setClasses([]);
+        setFaculties([]);
       }
     };
     loadClasses();
   }, []);
+
+  // Filter lớp khi chọn khoa
+  React.useEffect(() => {
+    if (studentData.khoa) {
+      const filtered = allClasses.filter(c => c.khoa === studentData.khoa);
+      setClasses(filtered);
+      // Reset lớp nếu không thuộc khoa mới
+      if (studentData.lop_id) {
+        const isValidClass = filtered.some(c => c.id === studentData.lop_id);
+        if (!isValidClass) {
+          setStudentData(prev => ({ ...prev, lop_id: '' }));
+        }
+      }
+    } else {
+      setClasses(allClasses); // Hiển thị tất cả nếu chưa chọn khoa
+    }
+  }, [studentData.khoa, allClasses, studentData.lop_id]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -86,6 +113,7 @@ export default function RegisterComplete() {
     if (!studentData.mssv) newErrors.mssv = 'Vui lòng nhập MSSV';
     if (!studentData.ngay_sinh) newErrors.ngay_sinh = 'Vui lòng nhập ngày sinh';
     if (!studentData.gt) newErrors.gt = 'Vui lòng chọn giới tính';
+    if (!studentData.khoa) newErrors.khoa = 'Vui lòng chọn khoa'; // Validate khoa
     if (!studentData.lop_id) newErrors.lop_id = 'Vui lòng chọn lớp';
 
     if (!formData.agreeToTerms) newErrors.agreeToTerms = 'Vui lòng đồng ý với điều khoản';
@@ -106,6 +134,11 @@ export default function RegisterComplete() {
         password: formData.mat_khau,
         confirmPassword: confirmPassword,
         lopId: studentData.lop_id || undefined,
+        // Thêm các trường sinh viên
+        ngaySinh: studentData.ngay_sinh || undefined,
+        gioiTinh: studentData.gt || undefined,
+        diaChi: studentData.dia_chi || undefined,
+        sdt: studentData.sdt || undefined
       };
 
       const res = await http.post('/auth/register', payload);
@@ -118,8 +151,34 @@ export default function RegisterComplete() {
       console.error('[Register] Error:', err);
       const backendMsg = err?.response?.data?.message;
       const validationErrors = err?.response?.data?.errors;
-      const message = backendMsg || (Array.isArray(validationErrors) && validationErrors[0]?.message) || 'Đăng ký thất bại';
-      setErrors({ submit: message });
+      if (Array.isArray(validationErrors) && validationErrors.length) {
+        const mapped = {};
+        for (const e of validationErrors) {
+          const field = (e?.field || e?.path || '').toString();
+          const msg = e?.message || 'Dữ liệu không hợp lệ';
+          // Map backend field names -> local error keys
+          const keyMap = {
+            name: 'ho_ten',
+            maso: 'ten_dn',
+            email: 'email',
+            password: 'mat_khau',
+            confirmPassword: 'confirmPassword',
+            lopId: 'lop_id',
+            khoa: 'khoa',
+            ngaySinh: 'ngay_sinh',
+            gioiTinh: 'gt',
+            diaChi: 'dia_chi',
+            sdt: 'sdt'
+          };
+          const key = keyMap[field] || 'submit';
+          if (!mapped[key]) mapped[key] = msg;
+        }
+        if (!mapped.submit) mapped.submit = backendMsg || 'Vui lòng kiểm tra các trường bị đánh dấu.';
+        setErrors(mapped);
+      } else {
+        const message = backendMsg || 'Đăng ký thất bại';
+        setErrors({ submit: message });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -227,7 +286,7 @@ export default function RegisterComplete() {
           </div>
         </div>
 
-        {/* Student: MSSV & Class */}
+        {/* Student: MSSV & Khoa */}
         <div className="flex w-full gap-4">
           <div className="flex flex-col gap-2 w-full">
             <label className="w-full text-gray-700 text-sm font-medium">MSSV</label>
@@ -243,22 +302,40 @@ export default function RegisterComplete() {
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <label className="w-full text-gray-700 text-sm font-medium">Lớp</label>
+            <label className="w-full text-gray-700 text-sm font-medium">Khoa</label>
             <select
-              name="student_lop_id"
-              value={studentData.lop_id}
+              name="student_khoa"
+              value={studentData.khoa}
               onChange={handleInputChange}
               className="w-full bg-white text-gray-900 outline-none py-3 px-4 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Chọn lớp</option>
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.ten_lop} - {cls.khoa}
-                </option>
+              <option value="">Chọn khoa</option>
+              {faculties.map(fac => (
+                <option key={fac} value={fac}>{fac}</option>
               ))}
             </select>
-            {errors.lop_id && <p className="text-red-400 text-sm mt-1">{errors.lop_id}</p>}
+            {errors.khoa && <p className="text-red-400 text-sm mt-1">{errors.khoa}</p>}
           </div>
+        </div>
+
+        {/* Class selection (filtered by faculty) */}
+        <div className="flex flex-col gap-2 w-full">
+          <label className="w-full text-gray-700 text-sm font-medium">Lớp</label>
+          <select
+            name="student_lop_id"
+            value={studentData.lop_id}
+            onChange={handleInputChange}
+            disabled={!studentData.khoa}
+            className="w-full bg-white text-gray-900 outline-none py-3 px-4 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">{studentData.khoa ? 'Chọn lớp' : 'Vui lòng chọn khoa trước'}</option>
+            {classes.map(cls => (
+              <option key={cls.id} value={cls.id}>
+                {cls.ten_lop}
+              </option>
+            ))}
+          </select>
+          {errors.lop_id && <p className="text-red-400 text-sm mt-1">{errors.lop_id}</p>}
         </div>
 
         {/* Birthday & Gender */}

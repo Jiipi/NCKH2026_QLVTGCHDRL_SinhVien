@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import http from '../../services/http';
 import SemesterClosureWidget from '../../components/SemesterClosureWidget';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import { 
   MobileOptimizedStatCard, 
   MobileOptimizedActionCard, 
@@ -218,7 +218,7 @@ export default function ModernTeacherDashboard() {
   });
 
   // Unified semester options from backend
-  const { options: semesterOptions, currentSemester } = useSemesterOptions();
+  const { options: semesterOptions, currentSemester } = useSemesterData();
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {

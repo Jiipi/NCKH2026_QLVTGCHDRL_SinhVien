@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import { useNotification } from '../../contexts/NotificationContext';
 import { extractActivitiesFromAxiosResponse } from '../../utils/apiNormalization';
 import { getActivityImage } from '../../utils/activityImages';
@@ -41,7 +41,7 @@ export default function AdminActivities() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const [total, setTotal] = useState(0);
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   const statusLabels = {
     cho_duyet: 'Chờ duyệt',

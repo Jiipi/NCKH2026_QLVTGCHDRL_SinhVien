@@ -12,7 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import SemesterFilter from '../../components/SemesterFilter';
 
 export default function ModernReports() {
@@ -34,7 +34,7 @@ export default function ModernReports() {
   const [filterMode, setFilterMode] = useState('semester'); // 'semester' | 'dateRange'
 
   // Unified semester options from backend
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   useEffect(() => {
     loadStatistics();

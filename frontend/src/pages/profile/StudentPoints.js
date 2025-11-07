@@ -5,7 +5,7 @@ import {
   ChevronRight, Sparkles, Medal, TrendingDown
 } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function StudentPoints() {
   const [pointsSummary, setPointsSummary] = useState(null);
@@ -14,7 +14,7 @@ export default function StudentPoints() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summary');
   const [semester, setSemester] = useState('');
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   const parseSemesterToLegacy = useCallback((value) => {
     const m = String(value || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);

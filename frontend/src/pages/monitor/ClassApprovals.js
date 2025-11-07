@@ -3,7 +3,7 @@ import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCi
 import http from '../../services/http';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassApprovals() {
   const [registrations, setRegistrations] = useState([]);
@@ -27,7 +27,7 @@ export default function ClassApprovals() {
   
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   // Status mappings (matching Prisma enum TrangThaiDangKy)
   const statusLabels = {

@@ -9,10 +9,18 @@ export default function ClassStudents() {
   const [sortBy, setSortBy] = useState('points_desc');
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(null);
+  // Pagination state (align with ClassApprovalsModern)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
 
   useEffect(() => {
     loadStudents();
   }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sortBy]);
 
   const loadStudents = async () => {
     try {
@@ -144,6 +152,12 @@ export default function ClassStudents() {
     student.mssv.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.nguoi_dung.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Client-side pagination similar to ClassApprovalsModern
+  const effectiveTotal = filteredStudents.length;
+  const startIdx = (page - 1) * limit;
+  const endIdx = startIdx + limit;
+  const pageItems = filteredStudents.slice(startIdx, endIdx);
 
   const stats = {
     total: students.length,
@@ -385,9 +399,9 @@ export default function ClassStudents() {
         </div>
 
         {/* Students Grid */}
-        {filteredStudents.length > 0 ? (
+        {effectiveTotal > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredStudents.map(student => (
+            {pageItems.map(student => (
               <StudentCard key={student.id} student={student} />
             ))}
           </div>
@@ -401,6 +415,43 @@ export default function ClassStudents() {
               <p className="text-gray-600 text-lg">
                 Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {effectiveTotal > 0 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-600">
+              Đang hiển thị {effectiveTotal ? Math.min(startIdx + 1, effectiveTotal) : 0} - {Math.min(endIdx, effectiveTotal)} / {effectiveTotal}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
+              >
+                Trước
+              </button>
+              <div className="text-sm text-gray-600">Trang {page} / {Math.max(1, Math.ceil(effectiveTotal / limit))}</div>
+              <button
+                disabled={page >= Math.ceil(effectiveTotal / limit)}
+                onClick={() => setPage(p => Math.min(Math.ceil(effectiveTotal / limit) || 1, p + 1))}
+                className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(effectiveTotal / limit) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
+              >
+                Tiếp
+              </button>
+              <select
+                value={limit}
+                onChange={e => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
+                className="ml-2 px-2 py-1.5 rounded-lg border border-gray-300"
+                title="Số sinh viên mỗi trang"
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+              </select>
             </div>
           </div>
         )}

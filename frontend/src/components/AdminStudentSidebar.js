@@ -216,7 +216,7 @@ function AdminStudentSidebar() {
   };
 
   const adminMenu = useMemo(() => ([
-    { key: 'dashboard', to: '/admin', label: 'Tổng quan', icon: <Home className="w-5 h-5" />, active: isActive('/admin') },
+    { key: 'dashboard', to: '/admin', label: 'Trang chủ', icon: <Home className="w-5 h-5" />, active: isActive('/admin') },
     {
       type: 'group', key: 'users', title: 'Người dùng', groupKey: 'users', icon: <Users className="w-5 h-5" />, defaultOpen: true,
       items: [

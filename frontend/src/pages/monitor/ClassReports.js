@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, Area } from 'recharts';
 import { TrendingUp, Users, Calendar, Award, Download, RefreshCw, Filter, BarChart3, PieChart as PieIcon, LineChart as LineIcon, FileText, AlertCircle, Sparkles, Target, Activity, Trophy, Star, CheckCircle2, XCircle } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassReports() {
   const [reportData, setReportData] = useState(null);
@@ -28,7 +28,7 @@ export default function ClassReports() {
   
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 

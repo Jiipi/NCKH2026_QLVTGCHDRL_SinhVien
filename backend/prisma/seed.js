@@ -65,7 +65,7 @@ async function main() {
   // 2) Tạo nhiều người dùng đại diện cho các vai trò
   console.log('👥 Creating users...');
   const usersSpec = [
-    { vt: vtAdmin, ten_dn: 'admin', email: 'admin@dlu.edu.vn', ho_ten: 'Quản Trị Viên', password: 'Admin@123' },
+    { vt: vtAdmin, ten_dn: 'admin', email: 'admin@dlu.edu.vn', ho_ten: 'Quản Trị Viên', password: '123456' },
     { vt: vtGiangVien, ten_dn: 'gv001', email: 'nguyenvana@dlu.edu.vn', ho_ten: 'Nguyễn Văn A', password: 'Teacher@123' },
     { vt: vtGiangVien, ten_dn: 'gv002', email: 'lethib@dlu.edu.vn', ho_ten: 'Lê Thị B', password: 'Teacher@123' },
     // Lớp trưởng dùng chính MSSV làm tên đăng nhập
@@ -478,7 +478,7 @@ async function main() {
   // Skipped QR seeds summary
   
   console.log('\n🔑 Login credentials:');
-  console.log('Admin: admin / Admin@123');
+  console.log('Admin: admin / 123456');
   console.log('Teacher: gv001 / Teacher@123');
   console.log('Teacher: gv002 / Teacher@123');
   console.log('Monitor (CTK46A): 2021001 / Monitor@123');

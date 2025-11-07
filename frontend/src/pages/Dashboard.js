@@ -1,7 +1,7 @@
 import React from 'react';
 import OptimizedSidebar from '../components/OptimizedSidebar';
 import Header from '../components/Header';
-import DashboardStudentImproved from './student/DashboardStudentImproved';
+import DashboardStudentModern from './student/DashboardStudentModern';
 import ActivitiesList from './student/ActivitiesList';
 import MyActivities from './student/MyActivities';
 import Scores from './student/Scores';
@@ -12,7 +12,7 @@ import ClassStudents from './monitor/ClassStudents';
 import ClassReports from './monitor/ClassReports';
 import ClassNotifications from './monitor/ClassNotifications';
 import ManageActivity from './ManageActivity';
-import QRScanner from './QRScanner';
+import QRScannerModern from './QRScannerModern';
 import QRAttendanceManagement from './QRAttendanceManagement';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import http from '../services/http';
@@ -65,7 +65,7 @@ export default function Dashboard() {
       return React.createElement(MonitorDashboard);
     }
     // Student default
-    return React.createElement(DashboardStudentImproved);
+    return React.createElement(DashboardStudentModern);
   };
 
   try {
@@ -91,7 +91,7 @@ export default function Dashboard() {
             React.createElement(Route, { key: 'activities', path: 'activities', element: React.createElement(ActivitiesList) }),
             React.createElement(Route, { key: 'my', path: 'my-activities', element: React.createElement(MyActivities) }),
             React.createElement(Route, { key: 'scores', path: 'scores', element: React.createElement(Scores) }),
-            React.createElement(Route, { key: 'qr-scanner', path: 'qr-scanner', element: React.createElement(QRScanner) }),
+            React.createElement(Route, { key: 'qr-scanner', path: 'qr-scanner', element: React.createElement(QRScannerModern) }),
             // Monitor tools under this layout when accessed via root
             React.createElement(Route, { key: 'create-activity', path: 'activities/create', element: React.createElement(ManageActivity) }),
             React.createElement(Route, { key: 'qr-management', path: 'qr-management', element: React.createElement(QRAttendanceManagement) }),

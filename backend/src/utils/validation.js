@@ -3,7 +3,9 @@ const { z } = require('zod');
 // Các schema xác thực
 const loginSchema = z.object({
   maso: z.string().min(1, 'Mã số là bắt buộc'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+  // Ghi nhớ đăng nhập (tùy chọn)
+  remember: z.boolean().optional()
 });
 
 const registerSchema = z.object({
@@ -12,8 +14,13 @@ const registerSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
   confirmPassword: z.string(),
-  lopId: z.string().uuid('Lớp không hợp lệ').optional(),
-  khoa: z.string().min(1, 'Khoa là bắt buộc').optional()
+  lopId: z.string().uuid('Lớp không hợp lệ').optional().or(z.literal('')), // Cho phép empty string
+  khoa: z.string().min(1, 'Khoa là bắt buộc').optional().or(z.literal('')), // Cho phép empty string như lopId
+  // Thêm các trường sinh viên
+  ngaySinh: z.string().optional(), // ISO date string
+  gioiTinh: z.enum(['nam', 'nu', 'khac']).optional(),
+  diaChi: z.string().optional(),
+  sdt: z.string().max(10, 'Số điện thoại không hợp lệ').optional().or(z.literal('')) // Cho phép empty string
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Mật khẩu xác nhận không khớp",
   path: ["confirmPassword"]
@@ -24,13 +31,20 @@ const updateUserSchema = z.object({
   email: z.string().email('Email không hợp lệ').optional()
 });
 
-// U3 - Quên/Đặt lại mật khẩu
+// U3 - Quên/Đặt lại mật khẩu (OTP-based)
+// Chấp nhận mọi email hợp lệ (không giới hạn domain) để phù hợp với dữ liệu hiện có
 const forgotPasswordSchema = z.object({
-  identifier: z.string().min(3, 'Cần nhập email hoặc mã số')
+  email: z.string().email('Email không hợp lệ')
 });
 
-const resetPasswordSchema = z.object({
-  token: z.string().min(10, 'Token không hợp lệ'),
+const verifyOtpSchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  code: z.string().length(6, 'Mã gồm 6 chữ số').regex(/^\d{6}$/,'Mã OTP không hợp lệ')
+});
+
+const resetWithOtpSchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  code: z.string().length(6, 'Mã gồm 6 chữ số').regex(/^\d{6}$/,'Mã OTP không hợp lệ'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
@@ -83,6 +97,10 @@ const sanitizeInput = (data) => {
   if (typeof data === 'string') {
     return data.trim().replace(/[<>]/g, '');
   }
+  // Preserve arrays as arrays and sanitize each element
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeInput(item));
+  }
   if (typeof data === 'object' && data !== null) {
     const sanitized = {};
     for (const [key, value] of Object.entries(data)) {
@@ -98,7 +116,8 @@ module.exports = {
   registerSchema,
   updateUserSchema,
   forgotPasswordSchema,
-  resetPasswordSchema,
+  verifyOtpSchema,
+  resetWithOtpSchema,
   adminResetPasswordSchema,
   changePasswordSchema,
   validate,

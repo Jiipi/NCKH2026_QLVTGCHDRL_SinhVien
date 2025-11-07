@@ -1,4 +1,9 @@
 require('dotenv').config();
+// Cho phép override biến môi trường từ .env.local nếu tồn tại (không bắt buộc)
+try {
+  require('fs');
+  require('dotenv').config({ path: '.env.local', override: true });
+} catch (_) {}
 
 module.exports = {
   // Server configuration

@@ -164,10 +164,20 @@ class ClassController {
               lop: { select: { ten_lop: true } }
             }
           },
-          hoat_dong: { select: { ten_hd: true, ngay_bd: true, diem_rl: true, dia_diem: true } }
+          hoat_dong: { select: { ten_hd: true, ngay_bd: true, diem_rl: true, dia_diem: true, hinh_anh: true } }
         },
         orderBy: { ngay_dang_ky: 'desc' },
         take: 500 // Increased limit to show more registrations
+      });
+
+      // Normalize image URLs to absolute for FE display
+      const base = `${req.protocol}://${req.get('host')}`;
+      const normalized = registrations.map(r => {
+        try {
+          const imgs = Array.isArray(r?.hoat_dong?.hinh_anh) ? r.hoat_dong.hinh_anh : [];
+          const abs = imgs.map(u => (typeof u === 'string' && u.startsWith('/uploads/')) ? (base + u) : u).filter(Boolean);
+          return { ...r, hoat_dong: { ...r.hoat_dong, hinh_anh: abs } };
+        } catch (_) { return r; }
       });
 
       logInfo('Found registrations', { 
@@ -178,7 +188,7 @@ class ClassController {
       });
 
       return sendResponse(res, 200, ApiResponse.success(
-        registrations,
+        normalized,
         `Tìm thấy ${registrations.length} đăng ký`
       ));
 
@@ -224,7 +234,12 @@ class ClassController {
       });
       // Enforce semester write lock for this class/semester
       try {
-        SemesterClosure.checkWritableForClassSemesterOrThrow({ classId: registration.sinh_vien?.lop?.id, hoc_ky: registration.hoat_dong?.hoc_ky, nam_hoc: registration.hoat_dong?.nam_hoc });
+        SemesterClosure.checkWritableForClassSemesterOrThrow({ 
+          classId: registration.sinh_vien?.lop?.id, 
+          hoc_ky: registration.hoat_dong?.hoc_ky, 
+          nam_hoc: registration.hoat_dong?.nam_hoc,
+          userRole: req.user?.role 
+        });
       } catch (e) {
         if (e && e.status === 423) {
           return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -295,7 +310,12 @@ class ClassController {
       });
       // Enforce semester write lock for this class/semester
       try {
-        SemesterClosure.checkWritableForClassSemesterOrThrow({ classId: registration.sinh_vien?.lop?.id, hoc_ky: registration.hoat_dong?.hoc_ky, nam_hoc: registration.hoat_dong?.nam_hoc });
+        SemesterClosure.checkWritableForClassSemesterOrThrow({ 
+          classId: registration.sinh_vien?.lop?.id, 
+          hoc_ky: registration.hoat_dong?.hoc_ky, 
+          nam_hoc: registration.hoat_dong?.nam_hoc,
+          userRole: req.user?.role 
+        });
       } catch (e) {
         if (e && e.status === 423) {
           return sendResponse(res, 423, ApiResponse.error(e.message, e.details));

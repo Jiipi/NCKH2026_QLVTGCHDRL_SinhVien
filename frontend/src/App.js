@@ -25,8 +25,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import AdminProfile from './pages/admin/AdminProfile';
 import SemesterManagement from './pages/admin/SemesterManagement';
 import ModernTeacherLayout from './components/ModernTeacherLayout';
-import Login from './pages/Login';
-import Register from './pages/Register';
+// Legacy pages removed in favor of modern auth pages
 import Profile from './pages/Profile';
 import UserProfile from './pages/profile/UserProfile';
 // Cleaned: remove StudentPointsModern import if not used elsewhere

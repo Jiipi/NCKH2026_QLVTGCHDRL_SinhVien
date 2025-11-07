@@ -217,13 +217,43 @@ const IntegratedUserManagement = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
+    const user = users.find(u => u.id === userId);
+    const userName = user?.ho_ten || user?.hoten || 'người dùng này';
+    const userRole = user?.vai_tro?.ten_vt || user?.role || '';
+    
+    const confirmMessage = `⚠️ CẢNH BÁO: Hành động này không thể hoàn tác!\n\n` +
+      `Bạn đang xóa: ${userName} (${userRole})\n\n` +
+      `Toàn bộ dữ liệu sau sẽ bị XÓA VĨNH VIỄN:\n` +
+      `✗ Thông tin tài khoản\n` +
+      `✗ Đăng ký hoạt động\n` +
+      `✗ Lịch sử điểm danh\n` +
+      `✗ Điểm rèn luyện\n` +
+      `✗ Thông báo\n` +
+      `✗ Các dữ liệu liên quan khác\n\n` +
+      `Bạn có CHẮC CHẮN muốn tiếp tục?`;
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    // Double confirmation for extra safety
+    const finalConfirm = window.confirm(
+      `XÁC NHẬN LẦN CUỐI:\n\n` +
+      `Xóa ${userName}?\n\n` +
+      `Nhấn OK để XÓA VĨNH VIỄN.`
+    );
+    
+    if (!finalConfirm) return;
     
     try {
-      await http.delete(`/admin/users/${userId}`);
+      const response = await http.delete(`/admin/users/${userId}`);
+      
+      // Hiển thị thông báo thành công
+      alert(`✓ Đã xóa ${userName} và toàn bộ dữ liệu liên quan khỏi hệ thống.`);
+      
       await fetchUsers();
     } catch (error) {
       console.error('Lỗi khi xóa người dùng:', error);
+      const errorMessage = error?.response?.data?.message || 'Không thể xóa người dùng';
+      alert(`✗ LỖI: ${errorMessage}`);
     }
   };
 

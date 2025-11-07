@@ -273,11 +273,11 @@ function StudentSidebar(props) {
   // Student menu structure
   const studentMenu = useMemo(() => {
     return [
-    // Dashboard - Tổng quan
+    // Dashboard - Trang chủ
     {
       key: 'dashboard',
       to: '/student',
-      label: 'Tổng quan',
+      label: 'Trang chủ',
       icon: <Home className="w-5 h-5" />,
       active: getActiveState('/student')
     },

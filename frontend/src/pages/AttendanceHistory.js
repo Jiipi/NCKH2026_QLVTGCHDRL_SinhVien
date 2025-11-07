@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAppStore } from '../store/useAppStore';
 import http from '../services/http';
-import useSemesterOptions from '../hooks/useSemesterOptions';
+import useSemesterData from '../hooks/useSemesterData';
 
 export default function AttendanceHistory() {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -27,7 +27,7 @@ export default function AttendanceHistory() {
 
   const { user } = useAppStore();
   const role = user?.vai_tro || user?.role;
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   // Combined semester picker handler -> updates hoc_ky and nam_hoc
   const onChangeSemesterCombined = (value) => {

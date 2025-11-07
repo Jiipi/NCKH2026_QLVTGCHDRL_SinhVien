@@ -47,6 +47,9 @@ model NguoiDung {
   lan_cuoi_dn         DateTime?         @db.Timestamp(6)
   token_reset         String?           @db.VarChar(255)
   tg_het_han_token    DateTime?         @db.Timestamp(6)
+  // Trường tiếng Việt để quản lý OTP (song song với token_reset để tương thích)
+  ma_xac_minh         String?           @db.VarChar(255)
+  tg_het_han_ma       DateTime?         @db.Timestamp(6)
   anh_dai_dien        String?           @db.VarChar(255)
   diem_danh_thuc_hien DiemDanh[]        @relation("NguoiDiemDanh")
   hoat_dong_tao       HoatDong[]        @relation("NguoiTaoHoatDong")
@@ -190,7 +193,6 @@ model ThongBao {
 
   @@map("thong_bao")
 }
-
 
 enum GioiTinh {
   nam

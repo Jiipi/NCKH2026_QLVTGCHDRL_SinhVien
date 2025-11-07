@@ -9,8 +9,7 @@ import {
 import http from '../../services/http';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
 import SemesterClosureWidget from '../../components/SemesterClosureWidget';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function MonitorDashboard() {
   const navigate = useNavigate();
@@ -27,8 +26,7 @@ export default function MonitorDashboard() {
   });
 
   // Unified semester options from backend
-  const { options: semesterOptions, currentSemester } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {

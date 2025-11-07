@@ -1,3 +1,5 @@
+import http from '../services/http';
+
 /**
  * Get default activity image based on activity type
  * @param {string} activityType - Tên loại hoạt động
@@ -58,6 +60,19 @@ export const getDefaultActivityImage = (activityType) => {
  * @param {string} activityType - Activity type for default image
  * @returns {string} Image URL (uploaded or default)
  */
+
+function prefixUploadsIfNeeded(url) {
+  try {
+    if (typeof url !== 'string' || url.length === 0) return url;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/uploads/')) {
+      const base = String(http.defaults.baseURL || '').replace(/\/?api\/?$/, '');
+      return base + url;
+    }
+  } catch (_) {}
+  return url;
+}
+
 export const getActivityImage = (images, activityType) => {
   // Normalize various possible shapes coming from API/DB
   try {
@@ -88,7 +103,7 @@ export const getActivityImage = (images, activityType) => {
       // Common fields used across code
       first = images.url || images.path || images.src || null;
     }
-    if (first) return first;
+    if (first) return prefixUploadsIfNeeded(first);
   } catch (_) {}
   return getDefaultActivityImage(activityType);
 };
@@ -105,8 +120,8 @@ export const getActivityImages = (images, activityType) => {
       return images
         .map(item => {
           if (!item) return null;
-          if (typeof item === 'string') return item;
-          if (typeof item === 'object') return item.url || item.path || item.src || null;
+          if (typeof item === 'string') return prefixUploadsIfNeeded(item);
+          if (typeof item === 'object') return prefixUploadsIfNeeded(item.url || item.path || item.src || null);
           return null;
         })
         .filter(Boolean);
@@ -118,7 +133,7 @@ export const getActivityImages = (images, activityType) => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
       }
       const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
-      if (parts.length > 0) return parts;
+      if (parts.length > 0) return parts.map(prefixUploadsIfNeeded);
     }
     if (images && typeof images === 'object') {
       const url = images.url || images.path || images.src;

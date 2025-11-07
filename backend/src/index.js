@@ -22,10 +22,16 @@ app.use(corsMw);
 
 // Security middleware with basic CSP
 app.use(helmet({
+  // Relax CORP so resources under /uploads can be used cross-origin by the frontend (e.g., localhost:3000)
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // Disable COEP for dev to avoid requiring corp on all embedded resources
+  crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
+      // Note: CSP applies to documents we serve; in dev, the app runs on a different origin
+      // and its own dev server controls CSP. Keeping this permissive enough for images we host.
       "img-src": ["'self'", 'data:', 'blob:'],
       "style-src": ["'self'", "'unsafe-inline'"],
       "script-src": ["'self'"],
@@ -71,7 +77,9 @@ app.use((req, res, next) => {
 const uploadsPath = path.resolve(__dirname, '../uploads');
 app.use('/uploads', corsMw, express.static(uploadsPath, {
   setHeaders: (res, p) => {
-    // Chỉ đặt cache header; CORS đã do corsMw xử lý theo whitelist
+    // Allow other origins (e.g., localhost:3000) to use these resources without CORP blocking
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // CORS is handled by corsMw; we also add long cache for static files
     res.setHeader('Cache-Control', 'public, max-age=31536000');
   }
 }));

@@ -4,7 +4,7 @@ import http from '../services/http';
 import ClassManagementLayout from '../components/ClassManagementLayout';
 import Header from '../components/Header';
 import { useParams, useLocation } from 'react-router-dom';
-import useSemesterOptions from '../hooks/useSemesterOptions';
+import useSemesterData from '../hooks/useSemesterData';
 
 export default function ManageActivity(){
   // Helpers to prefill học kỳ và năm học (theo thời gian thực)
@@ -60,7 +60,7 @@ export default function ManageActivity(){
   });
   
   // Unified semester options from backend
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
   
   const [types, setTypes] = React.useState([]);
   const [submitting, setSubmitting] = React.useState(false);

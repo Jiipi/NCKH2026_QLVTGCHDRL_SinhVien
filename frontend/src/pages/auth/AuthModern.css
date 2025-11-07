@@ -1,7 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+.auth-container, .auth-container * {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 .auth-container {
-  font-family: "Poppins", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --heading-space: 160px; /* default reserved space for the top heading */
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
@@ -9,9 +16,11 @@
   color: white;
   min-height: 100vh;
   display: flex;
+  flex-direction: column; /* keep heading and box vertically stacked consistently */
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* group1 at top */
   padding: 20px;
+  padding-top: 120px; /* base spacing for heading (overridden per page if needed) */
   position: relative;
 }
 
@@ -26,16 +35,17 @@
 
 .box {
   background-color: transparent;
-  width: 530px;
+  width: 500px;
   height: 500px;
   perspective: 1000px;
   position: relative;
+  margin-top: 18px; /* prevent overlap with heading */
 }
 
 .flip-card-inner {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   text-align: center;
   transition: transform 0.6s;
   transform-style: preserve-3d;
@@ -89,10 +99,11 @@
 .box-signup .inpt {
   width: 100%;
   max-width: 27rem;
-  padding: 16px 14px;
-  font-size: 1.1rem;
+  padding: 14px 14px;
+  font-size: 1.05rem; /* >=16px on most browsers to avoid iOS zoom */
+  line-height: 1.4;
   border-radius: 15px;
-  margin: 10px auto;
+  margin: 10px auto 12px; /* add extra margin to prevent visual overlap */
   background: transparent;
   outline: none;
   color: #f8fafc; /* slate-50 */
@@ -119,10 +130,11 @@ select::placeholder {
 .btn {
   height: 3.2rem;
   width: 100%;
-  max-width: 27rem;
-  margin: 15px auto;
+  max-width: 27rem; /* align with input width */
+  margin: 18px auto 15px; /* a bit more gap from forget row */
   padding: 10px;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  line-height: 1.2;
   letter-spacing: 0.5px;
   border-radius: 50px;
   background: linear-gradient(90deg, #ffffff 0%, #f7f7f7 100%);
@@ -168,8 +180,10 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 15px 0;
+  margin: 15px auto;
   font-size: 0.9rem;
+  width: 100%;
+  max-width: 27rem; /* align with input width */
 }
 
 .forget input[type="checkbox"] {
@@ -216,6 +230,7 @@ label {
   width: 100%;
   max-width: 27rem;
   margin: 0 auto;
+  min-height: 56px; /* keep icon alignment stable across browsers */
 }
 
 .error-message {
@@ -254,20 +269,351 @@ label {
   backdrop-filter: blur(6px);
   background: rgba(2, 6, 23, 0.35); /* slate-950 alpha */
   border: 1px solid rgba(255,255,255,.18);
+  max-width: min(92vw, 980px);
+  white-space: normal;
+  z-index: 10;
+  pointer-events: none;
 }
-.auth-heading .line1 { font-size: clamp(18px, 2.6vw, 28px); display: block; }
-.auth-heading .line2 { font-size: clamp(22px, 3vw, 34px); display: block; font-weight: 900; }
+.auth-heading .line1 { font-size: 24px; display: block; }
+.auth-heading .line2 { font-size: 28px; display: block; font-weight: 900; }
 
-/* Responsive */
+/* group2: content block centered under heading with safe gap */
+.auth-group2 {
+  width: 100%;
+  display: flex;
+  align-items: center;  /* vertical center within the available viewport below the heading */
+  justify-content: center;
+  height: calc(100vh - var(--heading-space));
+  margin-top: var(--group-gap, 0); /* additional gap under the heading if needed */
+}
+
+/* Page title badge (Login / Forgot) */
+.page-title-badge {
+  display: inline-block;
+  margin: 18px auto 16px;
+  padding: 8px 16px;
+  backdrop-filter: blur(6px);
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.2);
+}
+.page-title-badge .title {
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: .5px;
+  color: #fff;
+}
+
+/* spacing between system heading and the title-badge area */
+.auth-container-login .box .page-title-badge,
+.auth-container-forgot .box .page-title-badge {
+  margin-top: 10px;
+}
+
+/* Register form specific: wider container and 2-column layout */
+.auth-container-register {
+  padding-top: 180px !important; /* ensure content starts below floating heading but keep panel inside viewport */
+  justify-content: flex-start !important; /* top-align content */
+}
+.box-register {
+  width: min(94vw, 920px);
+  max-width: 920px;
+  height: auto;
+  min-height: 620px;
+  margin-top: 20px; /* modest spacing under the heading */
+}
+
+/* On register page, let panes flow naturally instead of absolute fill */
+.auth-container-register .box-login,
+.auth-container-register .box-signup {
+  position: relative;
+  height: auto;
+}
+
+.box-register .box-signup {
+  width: 100%;
+  height: 100%;
+  padding: 26px 32px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.register-form-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.register-title {
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  font-weight: 800;
+  font-size: 1.9rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,.35);
+  text-align: center;
+  color: #fff;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input-group {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.input-group .inpt {
+  width: 100%;
+  padding: 12px 42px 12px 14px;
+  font-size: 1rem;
+  line-height: 1.4;
+  border-radius: 15px;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  color: #f8fafc;
+  border: 1px solid rgba(255,255,255,.45);
+  font-weight: 600;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.15);
+}
+
+.input-group .inpt:focus {
+  border: 2px solid cyan;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.3), inset 0 2px 8px rgba(0,0,0,.2);
+}
+
+.input-group .inpt::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+}
+
+.input-group .field-icon {
+  position: absolute;
+  right: 14px;
+  top: 16px;
+  color: rgba(255,255,255,0.7);
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.input-group .field-icon.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.input-group .field-icon.clickable:hover {
+  color: cyan;
+}
+
+.input-full {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.error-message {
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  margin-left: 6px;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.error-full {
+  text-align: center;
+  margin: 8px 0;
+}
+
+.btn-register {
+  height: 3rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 12px auto 6px;
+  padding: 10px;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  border-radius: 50px;
+  background: linear-gradient(90deg, #ffffff 0%, #f7f7f7 100%);
+  color: #0f172a;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s ease;
+  display: block;
+  box-shadow: 0 10px 25px rgba(0,0,0,.15);
+}
+
+.btn-register:hover:not(:disabled) {
+  transform: translateY(-0.3rem);
+  box-shadow: 0 12px 30px rgba(0,0,0,.2);
+}
+
+.btn-register:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.register-link p {
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+
+.register-link a {
+  color: cyan;
+  text-decoration: none;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.register-link a:hover {
+  color: #00ffff;
+  text-decoration: underline;
+}
+
+/* Responsive: Register form - Tablet and below */
+@media (max-width: 1024px) {
+  .box-register {
+    width: min(92vw, 720px);
+  }
+
+  .box-register .box-signup {
+    padding: 22px 26px;
+  }
+
+  .form-row {
+    gap: 16px;
+  }
+
+  .form-column {
+    gap: 10px;
+  }
+
+  .register-title {
+    font-size: 1.7rem;
+    margin-bottom: 16px;
+  }
+}
+
+/* Responsive: Register form - Mobile (single column) */
+@media (max-width: 640px) {
+  .auth-container-register {
+    padding-top: 110px;
+  }
+
+  .box-register {
+    width: min(94vw, 480px);
+    min-height: auto;
+  }
+
+  .box-register .box-signup {
+    padding: 20px 22px;
+  }
+
+  .register-title {
+    font-size: 1.5rem;
+    margin-bottom: 14px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .form-column {
+    gap: 8px;
+  }
+
+  .input-group .inpt {
+    padding: 13px 42px 13px 14px;
+    font-size: 0.95rem;
+  }
+
+  .input-group .field-icon {
+    right: 12px;
+    top: 15px;
+    font-size: 1rem;
+  }
+
+  .btn-register {
+    height: 2.8rem;
+    font-size: 1.05rem;
+    margin: 14px auto 6px;
+  }
+
+  .error-message {
+    font-size: 0.75rem;
+  }
+}
+
+/* If viewport height is short, compress vertical spaces so the register form fits without scrolling */
+@media (max-height: 780px) {
+  .auth-container { padding-top: 120px; }
+  .auth-container-register { padding-top: 140px !important; }
+  .register-title { margin-bottom: 6px; font-size: 1.7rem; }
+  .form-row { gap: 12px; margin-bottom: 4px; }
+  .form-column { gap: 8px; }
+  .input-group .inpt { padding: 10px 40px 10px 12px; }
+  .btn-register { margin-top: 10px; height: 2.8rem; }
+}
+
+@media (max-height: 680px) {
+  .auth-container { padding-top: 100px; }
+  .auth-container-forgot { --heading-space: 170px; --group-gap: 36px; }
+  .register-title { font-size: 1.6rem; }
+  .form-row { gap: 10px; }
+  .form-column { gap: 6px; }
+  .input-group .inpt { padding-top: 9px; padding-bottom: 9px; }
+}
+
+/* Responsive: General auth pages */
 @media (max-width: 600px) {
+  .auth-container { background-attachment: scroll; }
+  .auth-container { padding-top: 100px; }
+  .auth-heading .line1 { font-size: 18px; }
+  .auth-heading .line2 { font-size: 22px; }
   .box {
-    width: 90%;
+    width: min(88vw, 480px);
     height: auto;
-    min-height: 500px;
+    min-height: 440px;
+    margin-top: 12px;
   }
 
   .box .inpt {
-    width: 90%;
+    width: 92%;
     font-size: 1rem;
   }
 
@@ -281,7 +627,7 @@ label {
   }
 
   .btn {
-    width: 90%;
+    width: 92%;
     font-size: 1.1rem;
   }
 
@@ -295,10 +641,12 @@ label {
 @media (max-width: 480px) {
   .auth-container {
     padding: 10px;
+    padding-top: 90px;
   }
 
   .box {
-    width: 95%;
+    width: min(92vw, 440px);
+    margin-top: 10px;
   }
 
   .box .inpt {
@@ -309,5 +657,115 @@ label {
   .btn {
     width: 95%;
     font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-card-inner, .btn { transition: none; }
+  .btn:hover { transform: none; }
+}
+
+/* ---- LOGIN & FORGOT OVERRIDES (similar to register) ---- */
+.auth-container-login,
+.auth-container-forgot {
+  justify-content: flex-start;
+  padding-top: 0; /* handled by heading-space */
+  --heading-space: 180px; /* reserve top space for heading (smaller => group2 centers lower) */
+  --group-gap: 60px; /* extra push below heading */
+}
+
+/* Forgot Password sits a bit lower than Login by default */
+.auth-container-forgot {
+  --heading-space: 190px;
+  --group-gap: 140px; /* push forgot panel further down */
+}
+
+/* Login default spacing (push a bit lower) */
+.auth-container-login {
+  --heading-space: 190px;
+  --group-gap: 140px;
+}
+
+.auth-container-login .box,
+.auth-container-forgot .box {
+  margin-top: 16px;
+}
+
+@media (max-height: 780px) {
+  /* On ~768px tall screens, push panels further down visually */
+  .auth-container-login { --heading-space: 170px; --group-gap: 120px; }
+  .auth-container-forgot { --heading-space: 190px; --group-gap: 120px; }
+}
+
+@media (max-height: 680px) {
+  .auth-container-login { --heading-space: 160px; --group-gap: 110px; }
+  /* Keep Forgot a bit lower even on shorter screens */
+  .auth-container-forgot { --heading-space: 170px; --group-gap: 110px; }
+}
+
+/* Single glass panel like register for Login/Forgot */
+.box-auth { width: min(94vw, 760px); max-width: 760px; }
+.auth-container-login .box-login,
+.auth-container-forgot .box-login {
+  position: relative; /* allow natural height */
+  height: auto;
+  padding: 28px 32px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.auth-form-title {
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  font-weight: 800;
+  font-size: 1.9rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,.35);
+  text-align: center;
+  color: #fff;
+}
+
+/* ---- REGISTER OVERRIDES ---- */
+.auth-container-register .register-form-grid {
+  gap: 18px !important;           /* tạo khoảng cách dọc giữa các block trong form */
+}
+
+.auth-container-register .form-row {
+  column-gap: 24px !important;    /* dãn 2 cột trái/phải */
+}
+
+.auth-container-register .form-column {
+  display: flex;
+  flex-direction: column;
+  row-gap: 14px !important;       /* dãn các ô theo CHIỀU DỌC trong từng cột */
+}
+
+.auth-container-register .box-signup .inpt {
+  margin: 0 !important;           /* bỏ margin auto cũ gây canh giữa */
+}
+
+.auth-container-register .input-group {
+  gap: 6px;                        /* label/error cách input 1 chút */
+}
+
+/* Ô full chiều ngang (địa chỉ) giữ nguyên */
+.input-full { grid-column: 1 / -1; }
+
+/* Fix: Dropdown options in Register become invisible (white-on-white) on Windows/Chromium
+   Ensure the options list uses dark text on light background while keeping the closed select styled. */
+.auth-container-register .box-signup select.inpt option,
+.auth-container-register .box-signup select.inpt optgroup {
+  color: #111827;              /* slate-900 */
+  background-color: #ffffff;   /* force white dropdown panel */
+}
+
+/* High-contrast/forced-colors accessibility: let system manage colors */
+@media (forced-colors: active) {
+  .auth-container-register .box-signup select.inpt option,
+  .auth-container-register .box-signup select.inpt optgroup {
+    color: ButtonText;
+    background-color: Canvas;
   }
 }

@@ -216,10 +216,10 @@ function ConfirmModal() {
 
   return React.createElement(
     'div',
-    { className: 'fixed inset-0 z-50 overflow-y-auto' },
+    { className: 'fixed inset-0 z-50 overflow-y-auto flex items-center justify-center' },
     React.createElement(
       'div',
-      { className: 'flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0' },
+      { className: 'flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0' },
       [
         // Backdrop
         React.createElement(
@@ -230,10 +230,20 @@ function ConfirmModal() {
             onClick: confirmModal.onCancel
           }
         ),
+        // Center alignment helper
+        React.createElement(
+          'span',
+          { 
+            key: 'center-helper',
+            className: 'hidden sm:inline-block sm:align-middle sm:h-screen',
+            'aria-hidden': 'true'
+          },
+          '\u200B'
+        ),
         // Modal
         React.createElement(
           'div',
-          { key: 'modal', className: 'inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full' },
+          { key: 'modal', className: 'inline-block align-middle bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full' },
           [
             React.createElement(
               'div',

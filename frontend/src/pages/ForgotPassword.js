@@ -22,7 +22,8 @@ export default function ForgotPassword() {
     }
     try {
       setIsLoading(true);
-      const res = await http.post('/auth/forgot', { identifier: identifier.trim() });
+  // Backend expects { email }
+  const res = await http.post('/auth/forgot', { email: identifier.trim() });
       const data = res.data?.data || res.data;
       setSuccess('Nếu tài khoản tồn tại, chúng tôi đã gửi hướng dẫn khôi phục.');
       if (data?.token) {
@@ -37,7 +38,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6 relative overflow-hidden animate-page-enter">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6 relative overflow-hidden animate-page-enter font-sans">
       {/* Decorative subtle background accents (still white overall) */}
       <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-blue-50 blur-3xl opacity-60" />
       <div className="pointer-events-none absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-indigo-50 blur-3xl opacity-60" />

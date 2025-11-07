@@ -18,9 +18,8 @@ import { getActivityImage } from '../../utils/activityImages';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import SemesterFilter from '../../components/SemesterFilter';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
 
 export default function ModernActivityApproval() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -67,8 +66,7 @@ export default function ModernActivityApproval() {
   };
 
   // Unified semester options
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
   const loadActivities = async () => {
     try {
@@ -184,6 +182,10 @@ export default function ModernActivityApproval() {
     const matchesSearch = activity.ten_hd.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
+  }).sort((a, b) => {
+    const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+    const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+    return tb - ta; // most recent first
   });
 
   const statusColors = {

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Edit, Trash2, Eye, Plus, Search, Filter, Users, Clock, MapPin, Award, AlertCircle, CheckCircle, XCircle, QrCode, X, Sparkles, TrendingUp, Activity as ActivityIcon, BarChart3, Save } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
+import useSemesterData from '../../hooks/useSemesterData';
 import { useNotification } from '../../contexts/NotificationContext';
 import ActivityQRModal from '../../components/ActivityQRModal';
 import FileUpload from '../../components/FileUpload';
@@ -42,8 +41,7 @@ export default function ClassActivities() {
     endedCount: 0
   });
 
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
   // Status mappings (matching Prisma TrangThaiHoatDong enum)
   const statusLabels = {
@@ -273,15 +271,9 @@ export default function ClassActivities() {
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      const now = new Date();
-      const aDeadline = a.han_dang_ky ? new Date(a.han_dang_ky) : new Date(a.ngay_bd);
-      const bDeadline = b.han_dang_ky ? new Date(b.han_dang_ky) : new Date(b.ngay_bd);
-      const aIsOpen = aDeadline > now && (a.trang_thai === 'da_duyet' || a.trang_thai === 'cho_duyet');
-      const bIsOpen = bDeadline > now && (b.trang_thai === 'da_duyet' || b.trang_thai === 'cho_duyet');
-      
-      if (aIsOpen && !bIsOpen) return -1;
-      if (!aIsOpen && bIsOpen) return 1;
-      return new Date(a.ngay_bd) - new Date(b.ngay_bd);
+      const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+      const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+      return tb - ta; // ưu tiên thao tác mới nhất lên đầu
     });
 
   // Derived counts within the selected semester (activities already filtered by semester from API)

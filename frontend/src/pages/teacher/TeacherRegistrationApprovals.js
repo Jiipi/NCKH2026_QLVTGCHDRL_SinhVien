@@ -4,8 +4,7 @@ import http from '../../services/http';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import SemesterFilter from '../../components/SemesterFilter';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function TeacherRegistrationApprovals() {
   const [registrations, setRegistrations] = useState([]);
@@ -20,8 +19,7 @@ export default function TeacherRegistrationApprovals() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [semester, setSemester] = useState('current');
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState('');
   

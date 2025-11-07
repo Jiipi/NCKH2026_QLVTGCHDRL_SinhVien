@@ -61,8 +61,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'X-Tab-Id'],
-  exposedHeaders: ['X-Tab-Id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'X-Tab-Id', 'X-Dev-Otp-Code'],
+  exposedHeaders: ['X-Tab-Id', 'X-Dev-Otp-Code'],
   optionsSuccessStatus: 204
 };
 

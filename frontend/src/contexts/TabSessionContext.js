@@ -70,6 +70,16 @@ export function TabSessionProvider({ children }) {
     setSessionData(null);
     setIsAuthenticated(false);
     clearAuth();
+    
+    // Clear "remember me" credentials on logout
+    try {
+      localStorage.removeItem('remembered_username');
+      localStorage.removeItem('remembered_password');
+      console.log('[TabSession] Remember me credentials cleared');
+    } catch (err) {
+      console.error('[TabSession] Error clearing remember me:', err);
+    }
+    
     console.log('[TabSession] Logged out from tab:', tabId);
   }, [tabId, clearAuth]);
 
@@ -81,6 +91,16 @@ export function TabSessionProvider({ children }) {
     setSessionData(null);
     setIsAuthenticated(false);
     clearAuth();
+    
+    // Clear "remember me" credentials on logout all
+    try {
+      localStorage.removeItem('remembered_username');
+      localStorage.removeItem('remembered_password');
+      console.log('[TabSession] Remember me credentials cleared (logout all)');
+    } catch (err) {
+      console.error('[TabSession] Error clearing remember me:', err);
+    }
+    
     console.log('[TabSession] Logged out from all tabs');
   }, [clearAuth]);
 
