@@ -246,37 +246,80 @@ export default function Scores(){
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">Điểm rèn luyện</h1>
-            <p className="text-orange-100">Theo dõi và phân tích kết quả rèn luyện của bạn</p>
+      {/* Header - Neo-brutalism Style giống "HOẠT ĐỘNG CỦA TÔI" */}
+      <div className="group relative">
+        <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-3xl"></div>
+        <div className="relative bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 border-4 border-black rounded-3xl p-6 lg:p-8">
+          
+          {/* Tab buttons và count */}
+          <div className="flex items-center gap-4 mb-6">
+            <button className="px-6 py-2.5 bg-black text-yellow-400 rounded-xl font-black text-sm uppercase tracking-wider border-2 border-black hover:bg-gray-900 transition-colors flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              ĐIỂM CỦA TÔI
+            </button>
+            <div className="px-4 py-2 bg-white/20 backdrop-blur-sm border-2 border-white/40 rounded-xl">
+              <span className="text-white font-black text-sm">{stats.totalActivities} HOẠT ĐỘNG</span>
+            </div>
           </div>
-          <div className="min-w-[240px]">
-            <SemesterFilter value={semester} onChange={setSemester} label="" />
+
+          {/* Title and Description */}
+          <div className="mb-8">
+            <h1 className="text-4xl lg:text-5xl font-black text-white uppercase tracking-tight mb-3 flex items-center gap-3">
+              ĐIỂM RÈN LUYỆN
+            </h1>
+            <p className="text-white/90 font-bold text-lg">
+              Theo dõi, quản lý và chỉnh phục các hoạt động rèn luyện bạn đã đăng ký
+            </p>
           </div>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
-            <Trophy className="h-5 w-5 text-white mb-2" />
-            <p className="text-2xl font-bold">{currentScore}</p>
-            <p className="text-xs text-white/80 uppercase">Tổng điểm</p>
+
+          {/* Stats Cards Row - 4 cards màu sắc */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Tổng điểm - VÀNG */}
+            <div className="group/card relative">
+              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
+              <div className="relative bg-yellow-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
+                <Trophy className="h-6 w-6 text-black mb-2" />
+                <p className="text-3xl font-black text-black">{currentScore}</p>
+                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Tổng điểm</p>
+              </div>
+            </div>
+
+            {/* Card 2: Xếp hạng - XANH LÁ */}
+            <div className="group/card relative">
+              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
+              <div className="relative bg-green-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
+                <Medal className="h-6 w-6 text-black mb-2" />
+                <p className="text-3xl font-black text-black">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
+                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Xếp hạng</p>
+              </div>
+            </div>
+
+            {/* Card 3: Hoạt động - XANH DƯƠNG */}
+            <div className="group/card relative">
+              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
+              <div className="relative bg-blue-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
+                <Calendar className="h-6 w-6 text-black mb-2" />
+                <p className="text-3xl font-black text-black">{stats.totalActivities}</p>
+                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Hoạt động</p>
+              </div>
+            </div>
+
+            {/* Card 4: Trung bình - ĐỎ/HỒNG */}
+            <div className="group/card relative">
+              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
+              <div className="relative bg-red-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
+                <TrendingUp className="h-6 w-6 text-black mb-2" />
+                <p className="text-3xl font-black text-black">{stats.averagePoints}</p>
+                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Trung bình</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
-            <Medal className="h-5 w-5 text-white mb-2" />
-            <p className="text-2xl font-bold">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
-            <p className="text-xs text-white/80 uppercase">Xếp hạng</p>
-          </div>
-          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
-            <Calendar className="h-5 w-5 text-white mb-2" />
-            <p className="text-2xl font-bold">{stats.totalActivities}</p>
-            <p className="text-xs text-white/80 uppercase">Hoạt động</p>
-          </div>
-          <div className="bg-white/10 border border-white/20 rounded-xl p-4">
-            <TrendingUp className="h-5 w-5 text-white mb-2" />
-            <p className="text-2xl font-bold">{stats.averagePoints}</p>
-            <p className="text-xs text-white/80 uppercase">Trung bình</p>
+
+          {/* Semester Filter - góc phải */}
+          <div className="absolute top-6 right-6">
+            <div className="bg-white/10 border-2 border-black rounded-xl p-3 backdrop-blur-sm min-w-[200px]">
+              <SemesterFilter value={semester} onChange={setSemester} label="" />
+            </div>
           </div>
         </div>
       </div>
@@ -349,68 +392,6 @@ export default function Scores(){
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Student Info */}
-            <div className="bg-white rounded-xl border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Thông tin sinh viên</h3>
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-gray-600 text-sm">Họ tên</span>
-                  <div className="font-semibold">{data.student_info?.ho_ten}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600 text-sm">MSSV</span>
-                  <div className="font-semibold">{data.student_info?.mssv}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600 text-sm">Lớp</span>
-                  <div className="font-semibold">{data.student_info?.lop}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Breakdown */}
-          <div className="bg-white rounded-xl border p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Phân tích theo tiêu chí</h3>
-              <PieChart className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {stats.categoryStats.map(stat => {
-                const IconComponent = stat.icon;
-                
-                // Create safe CSS classes for each color
-                const bgClass = stat.color === 'blue' ? 'bg-blue-100' :
-                               stat.color === 'red' ? 'bg-red-100' :
-                               stat.color === 'purple' ? 'bg-purple-100' :
-                               stat.color === 'green' ? 'bg-green-100' : 'bg-yellow-100';
-                
-                const textClass = stat.color === 'blue' ? 'text-blue-600' :
-                                 stat.color === 'red' ? 'text-red-600' :
-                                 stat.color === 'purple' ? 'text-purple-600' :
-                                 stat.color === 'green' ? 'text-green-600' : 'text-yellow-600';
-                
-                const percentageTextClass = stat.color === 'blue' ? 'text-blue-600' :
-                                           stat.color === 'red' ? 'text-red-600' :
-                                           stat.color === 'purple' ? 'text-purple-600' :
-                                           stat.color === 'green' ? 'text-green-600' : 'text-yellow-600';
-                
-                return (
-                  <div key={stat.key} className="text-center">
-                    <div className={`mx-auto mb-3 p-3 ${bgClass} rounded-full w-16 h-16 flex items-center justify-center`}>
-                      <IconComponent className={`h-8 w-8 ${textClass}`} />
-                    </div>
-                    <h4 className="font-medium text-gray-900 text-sm mb-2">{stat.name}</h4>
-                    <div className="text-lg font-bold text-gray-900">{stat.points}/{stat.max}</div>
-                    <div className={`text-sm ${percentageTextClass}`}>{stat.percentage}%</div>
-                  </div>
-                );
-              })}
             </div>
           </div>
 

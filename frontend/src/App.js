@@ -31,8 +31,8 @@ import UserProfile from './pages/profile/UserProfile';
 // Cleaned: remove StudentPointsModern import if not used elsewhere
 import ManageActivity from './pages/ManageActivity';
 import ActivityDetail from './pages/student/ActivityDetail';
-import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
-// import StudentDashboardModern from './pages/student/DashboardStudentModern';
+// import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
+import DashboardStudentModern from './pages/student/DashboardStudentModern';
 // import ActivitiesList from './pages/student/ActivitiesList';
 import ActivitiesListModern from './pages/student/ActivitiesListModern';
 // import MyActivities from './pages/student/MyActivities';
@@ -75,7 +75,7 @@ import ForgotPasswordModern from './pages/auth/ForgotPasswordModern';
 import ResetPasswordModern from './pages/auth/ResetPasswordModern';
 
 // Use Neo-brutalism design for student dashboard
-const StudentDashboardModern = DashboardStudentImproved;
+// const StudentDashboardModern = DashboardStudentImproved;
 
 function RoleGuard({ allow, element }) {
   const rawRole = useAppStore(s => s.role);
@@ -246,7 +246,7 @@ function App() {
 
           // Student nested layout - Modern UI
           React.createElement(Route, { key: 'student-root', path: '/student', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG'], element: React.createElement(StudentLayout) }) }, [
-            React.createElement(Route, { key: 'student-index', index: true, element: React.createElement(StudentDashboardModern) }),
+            React.createElement(Route, { key: 'student-index', index: true, element: React.createElement(DashboardStudentModern) }),
             React.createElement(Route, { key: 'student-activities', path: 'activities', element: React.createElement(ActivitiesListModern) }),
             React.createElement(Route, { key: 'student-my-activities', path: 'my-activities', element: React.createElement(MyActivitiesModern) }),
             React.createElement(Route, { key: 'student-scores', path: 'scores', element: React.createElement(Scores) }),
