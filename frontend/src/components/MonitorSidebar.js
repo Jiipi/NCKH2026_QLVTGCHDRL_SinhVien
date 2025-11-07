@@ -230,9 +230,9 @@ export default function MonitorSidebar() {
   const monitorMenu = useMemo(() => {
     return [
       // ====================================
-      // TỔNG QUAN - Đầu tiên
+      // TRANG CHỦ - Đầu tiên
       // ====================================
-      { key: 'dashboard', to: '/monitor', label: 'Tổng quan', icon: <Home className="w-5 h-5" />, active: getActiveState('/monitor') },
+      { key: 'dashboard', to: '/monitor', label: 'Trang chủ', icon: <Home className="w-5 h-5" />, active: getActiveState('/monitor') },
       
       // ====================================
       // PHẦN CÁ NHÂN (Chức năng sinh viên)

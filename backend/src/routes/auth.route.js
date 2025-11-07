@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { auth, requireAdmin } = require('../middlewares/auth');
 const { requirePermission } = require('../middlewares/rbac');
-const { validate, loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, adminResetPasswordSchema, changePasswordSchema } = require('../utils/validation');
+const { validate, loginSchema, registerSchema, forgotPasswordSchema, verifyOtpSchema, resetWithOtpSchema, adminResetPasswordSchema, changePasswordSchema } = require('../utils/validation');
 const { ApiResponse, sendResponse } = require('../utils/response');
 const { logInfo, logError } = require('../utils/logger');
 const config = require('../config/app');
@@ -34,7 +34,7 @@ async function ensureDemoUsersIfNeeded() {
       const hashed = await bcrypt.hash(password, 10);
       return prisma.nguoiDung.create({ data: { ten_dn, email, ho_ten, mat_khau: hashed, vai_tro_id: roleId, trang_thai: 'hoat_dong' } });
     };
-  await upsert('admin', 'admin@dlu.edu.vn', 'Quản Trị Viên', 'Admin@123', rADMIN);
+  await upsert('admin', 'admin@dlu.edu.vn', 'Quản Trị Viên', '123456', rADMIN);
   } catch (_) {}
 }
 // Public: faculties (khoa) and classes (lop)
@@ -61,28 +61,65 @@ router.get('/classes', async (req, res) => {
   }
 });
 
-// Lưu trữ token reset trong bộ nhớ (demo). Trong sản xuất nên dùng Redis/DB
-const resetTokens = new Map(); // token -> userId
-const generateResetToken = (userId) => {
-  const token = Buffer.from(`${userId}.${Date.now()}`).toString('base64url');
-  resetTokens.set(token, { userId, exp: Date.now() + 15 * 60 * 1000 }); // 15 phút
-  return token;
-};
-const consumeResetToken = (token) => {
-  const entry = resetTokens.get(token);
-  if (!entry) return null;
-  if (Date.now() > entry.exp) {
-    resetTokens.delete(token);
-    return null;
-  }
-  resetTokens.delete(token);
-  return entry.userId;
-};
+// OTP flow: in-memory store only (no DB persistence)
+const crypto = require('crypto');
+const { sendMail } = require('../utils/mailer');
+const otpWindowMs = 10 * 60 * 1000; // 10 minutes
+const otpRateLimit = new Map(); // email -> timestamp of last request
+const otpMinIntervalMs = 60 * 1000; // 1 minute between requests
+
+// In-memory OTP storage
+const otpMemory = new Map(); // email -> record
+
+function otpInvalidate(email) {
+  otpMemory.delete(email);
+}
+
+function otpCreate({ user_id, email, code_hash, expires_at, request_ip }) {
+  const rec = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    user_id,
+    email,
+    code_hash,
+    attempts: 0,
+    created_at: new Date(),
+    expires_at,
+    used_at: null,
+    request_ip: request_ip || null,
+  };
+  otpMemory.set(email, rec);
+  return rec;
+}
+
+function otpFindLatestValid(email) {
+  const rec = otpMemory.get(email);
+  if (!rec) return null;
+  if (rec.used_at) return null;
+  if (rec.expires_at <= new Date()) return null;
+  return rec;
+}
+
+function otpIncrementAttempts(email) {
+  const rec = otpMemory.get(email);
+  if (rec) rec.attempts = (rec.attempts || 0) + 1;
+}
+
+function otpMarkUsed(email) {
+  const rec = otpMemory.get(email);
+  if (rec) rec.used_at = new Date();
+}
+
+function randomOtp() {
+  return ('' + Math.floor(100000 + Math.random() * 900000));
+}
+function hash(str) {
+  return crypto.createHash('sha256').update(String(str)).digest('hex');
+}
 
 // Đăng nhập bằng mã số và mật khẩu (kèm rate limit)
 router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
   try {
-    const { maso, password } = req.validatedData;
+    const { maso, password, remember } = req.validatedData;
     logInfo('LOGIN_ATTEMPT', { maso });
 
     // Tìm người dùng theo mã số
@@ -97,7 +134,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
       return sendResponse(res, 401, ApiResponse.unauthorized('Mã số hoặc mật khẩu không đúng'));
     }
 
-  const isPasswordValid = await AuthModel.verifyPasswordAndUpgrade(user, password);
+    const isPasswordValid = await AuthModel.verifyPasswordAndUpgrade(user, password);
     logInfo('LOGIN_PASSWORD_CHECK', { maso, ok: !!isPasswordValid });
     if (!isPasswordValid) {
       return sendResponse(res, 401, ApiResponse.unauthorized('Mã số hoặc mật khẩu không đúng'));
@@ -114,8 +151,9 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
       role: (user.vaiTro?.ten_vt || user.vai_tro?.ten_vt || 'STUDENT').toUpperCase()
     };
 
+    const expiresIn = remember ? (process.env.JWT_EXPIRES_IN_REMEMBER || '30d') : config.jwtExpiresIn;
     const token = jwt.sign(payload, config.jwtSecret, { 
-      expiresIn: config.jwtExpiresIn
+      expiresIn
     });
 
     // Cập nhật thông tin đăng nhập
@@ -140,12 +178,18 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
 // Đăng ký tài khoản mới
 router.post('/register', validate(registerSchema), async (req, res) => {
   try {
-    const { name, maso, email, password, lopId, khoa } = req.validatedData;
+    const { name, maso, email, password, lopId, khoa, ngaySinh, gioiTinh, diaChi, sdt } = req.validatedData;
 
     // Kiểm tra mã số bị trùng
     const existingUser = await AuthModel.timNguoiDungTheoMaso(maso);
     if (existingUser) {
       return sendResponse(res, 400, ApiResponse.validationError([{ field: 'maso', message: 'Mã số đã được sử dụng' }]));
+    }
+
+    // Kiểm tra email bị trùng
+    const existingEmail = await AuthModel.timNguoiDungTheoEmail(email);
+    if (existingEmail) {
+      return sendResponse(res, 400, ApiResponse.validationError([{ field: 'email', message: 'Email đã được sử dụng' }]));
     }
 
     // Lấy lớp để gán: ưu tiên từ payload, nếu không có thì tạo lớp mới hoặc dùng lớp mặc định
@@ -172,13 +216,17 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     // Băm mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Tạo người dùng mới
+    // Tạo người dùng mới với đầy đủ thông tin
     const newUser = await AuthModel.createStudent({
       name,
       maso,
       email,
       hashedPassword,
-      lopId: lopToUse.id
+      lopId: lopToUse.id,
+      ngaySinh,
+      gioiTinh,
+      diaChi,
+      sdt
     });
 
     const payload = {
@@ -201,6 +249,22 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       ip: req.ip 
     });
 
+    // Gửi thông báo phê duyệt cho lớp trưởng và admin (không fail registration nếu lỗi)
+    try {
+      const notificationService = require('../services/notification.service');
+      await notificationService.sendClassApprovalRequest({
+        studentId: newUser.id,
+        studentName: name,
+        studentMSSV: maso,
+        classId: lopToUse.id,
+        className: lopToUse.ten_lop
+      });
+      logInfo('Approval notifications sent', { userId: newUser.id, classId: lopToUse.id });
+    } catch (notifError) {
+      logError('Failed to send approval notifications', notifError, { userId: newUser.id });
+      // Không throw - đăng ký vẫn thành công dù notification bị lỗi
+    }
+
     const dto = AuthModel.toUserDTO(newUser);
     sendResponse(res, 200, ApiResponse.success({ token, user: dto }, 'Đăng ký thành công', 201));
   } catch (error) {
@@ -210,37 +274,103 @@ router.post('/register', validate(registerSchema), async (req, res) => {
 });
 
 // Quên mật khẩu - yêu cầu token để đặt lại
+// Bước 1: Gửi OTP đến email đã đăng ký
 router.post('/forgot', validate(forgotPasswordSchema), async (req, res) => {
   try {
-    const { identifier } = req.validatedData; // email hoặc mã số
-    const user = await AuthModel.findByEmailOrMaso(identifier);
-    if (!user) {
-      // Giả lập trả về thành công để tránh việc dò tài khoản
-      return sendResponse(res, 200, ApiResponse.success(null, 'Nếu tài khoản tồn tại, chúng tôi đã gửi hướng dẫn khôi phục'));
+    const { email } = req.validatedData;
+    // Rate limit per email
+    const last = otpRateLimit.get(email) || 0;
+    if (Date.now() - last < otpMinIntervalMs) {
+      return sendResponse(res, 429, ApiResponse.error('Vui lòng đợi trước khi yêu cầu lại mã'));
     }
-    const token = generateResetToken(user.id);
-    // Demo: trả về token trực tiếp. Trong thực tế: gửi email chứa liên kết đặt lại mật khẩu
-    logInfo('Generated reset token', { userId: user.id });
-    sendResponse(res, 200, ApiResponse.success({ token }, 'Tạo token khôi phục thành công'));
+    otpRateLimit.set(email, Date.now());
+
+    // Tìm user theo email (chỉ email, không cho phép maso ở bước này)
+    const user = await AuthModel.timNguoiDungTheoEmail(email);
+    // Luôn trả 200 để tránh dò email; nhưng chỉ gửi khi tồn tại
+  let devOtp = null;
+  if (user) {
+      const code = randomOtp();
+      const codeHash = hash(code);
+      // invalidate previous codes for this email and create new one (DB or memory)
+      await otpInvalidate(email);
+      await otpCreate({
+        user_id: user.id,
+        email,
+        code_hash: codeHash,
+        expires_at: new Date(Date.now() + otpWindowMs),
+        request_ip: req.ip || null
+      });
+
+      // Dev-only helper: log OTP code so tests can read it from logs
+      if ((process.env.NODE_ENV || 'development') !== 'production') {
+        try {
+          logInfo('DEV_OTP_CODE', { email, code });
+        } catch (_) {}
+      }
+
+      // Gửi email thật nếu cấu hình SMTP
+      const html = `
+        <p>Xin chào ${user.ho_ten || user.ten_dn},</p>
+        <p>Mã xác minh đặt lại mật khẩu của bạn là:</p>
+        <h2 style=\"letter-spacing:4px\">${code}</h2>
+        <p>Mã có hiệu lực trong 10 phút. Không chia sẻ mã cho bất kỳ ai.</p>
+      `;
+      const text = `Ma xac minh dat lai mat khau: ${code} (hieu luc 10 phut)`;
+      try { await sendMail({ to: email, subject: 'Mã xác minh đặt lại mật khẩu', html, text }); } catch (_) {}
+      logInfo('OTP_SENT', { email, userId: user.id });
+
+      // Expose OTP in dev/test only to help E2E
+      if ((process.env.NODE_ENV || 'development') !== 'production') {
+        devOtp = code;
+        try { res.set('X-Dev-Otp-Code', code); } catch (_) {}
+      }
+    } else {
+      // Helpful server-side log only; client response remains generic
+      logInfo('OTP_SKIPPED_USER_NOT_FOUND', { email });
+    }
+    const data = devOtp ? { devOtp } : null;
+    return sendResponse(res, 200, ApiResponse.success(data, 'Nếu email hợp lệ, mã xác minh đã được gửi.'));
   } catch (error) {
-    logError('Forgot password error', error);
+    logError('Forgot password (OTP) error', error);
     sendResponse(res, 500, ApiResponse.error('Lỗi server, vui lòng thử lại sau'));
   }
 });
 
-// Đặt lại mật khẩu bằng token
-router.post('/reset', validate(resetPasswordSchema), async (req, res) => {
+// Bước 2: Xác minh OTP
+router.post('/forgot/verify', validate(verifyOtpSchema), async (req, res) => {
   try {
-    const { token, password } = req.validatedData;
-    const userId = consumeResetToken(token);
-    if (!userId) {
-      return sendResponse(res, 401, ApiResponse.unauthorized('Token không hợp lệ hoặc đã hết hạn'));
+    const { email, code } = req.validatedData;
+    const record = otpFindLatestValid(email);
+    if (!record) return sendResponse(res, 401, ApiResponse.unauthorized('Mã không hợp lệ hoặc đã hết hạn'));
+    if (record.attempts >= 5) return sendResponse(res, 429, ApiResponse.error('Thử sai quá nhiều lần, vui lòng yêu cầu mã mới'));
+    if (record.code_hash !== hash(code)) {
+      otpIncrementAttempts(email);
+      return sendResponse(res, 401, ApiResponse.unauthorized('Mã không đúng'));
+    }
+    return sendResponse(res, 200, ApiResponse.success(null, 'Xác minh thành công'));
+  } catch (error) {
+    logError('Verify OTP error', error);
+    sendResponse(res, 500, ApiResponse.error('Lỗi server, vui lòng thử lại sau'));
+  }
+});
+
+// Bước 3: Đặt lại mật khẩu bằng email + code (không dùng link token)
+router.post('/reset', validate(resetWithOtpSchema), async (req, res) => {
+  try {
+    const { email, code, password } = req.validatedData;
+    const record = otpFindLatestValid(email);
+    if (!record) return sendResponse(res, 401, ApiResponse.unauthorized('Mã không hợp lệ hoặc đã hết hạn'));
+    if (record.code_hash !== hash(code)) {
+      otpIncrementAttempts(email);
+      return sendResponse(res, 401, ApiResponse.unauthorized('Mã không đúng'));
     }
     const hashed = await AuthModel.bamMatKhau(password);
-    await AuthModel.updatePasswordById(userId, hashed);
-    sendResponse(res, 200, ApiResponse.success(null, 'Đặt lại mật khẩu thành công'));
+    await AuthModel.updatePasswordById(record.user_id, hashed);
+    otpMarkUsed(email);
+    return sendResponse(res, 200, ApiResponse.success(null, 'Đặt lại mật khẩu thành công'));
   } catch (error) {
-    logError('Reset password error', error);
+    logError('Reset password (OTP) error', error);
     sendResponse(res, 500, ApiResponse.error('Lỗi server, vui lòng thử lại sau'));
   }
 });
@@ -263,11 +393,11 @@ router.post('/admin/reset', auth, requireAdmin, validate(adminResetPasswordSchem
 router.post('/change', auth, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.validatedData;
-  const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
+    const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
     if (!user) {
       return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
     }
-  const ok = await AuthModel.verifyPasswordAndUpgrade(user, currentPassword);
+    const ok = await AuthModel.verifyPasswordAndUpgrade(user, currentPassword);
     if (!ok) {
       return sendResponse(res, 401, ApiResponse.unauthorized('Mật khẩu hiện tại không đúng'));
     }
@@ -323,7 +453,7 @@ router.put('/contacts', auth, async (req, res) => {
     }
 
     // Trả lại profile mới với contacts đã cập nhật
-  const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
+    const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
     const dto = AuthModel.toUserDTO(user);
     sendResponse(res, 200, ApiResponse.success(dto, 'Cập nhật thông tin liên hệ thành công'));
   } catch (error) {
@@ -417,7 +547,7 @@ router.get('/demo-accounts', async (req, res) => {
 
     // Plaintext demo passwords corresponding to seed for display only
     const passwordMap = {
-      admin: 'Admin@123',
+      admin: '123456',
       gv001: 'Teacher@123',
       lt001: 'Monitor@123',
       '2021003': 'Student@123',

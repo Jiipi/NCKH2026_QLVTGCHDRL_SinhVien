@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, RefreshCw, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
 import http from '../../services/http';
 import { getStudentAvatar, getAvatarGradient } from '../../utils/avatarUtils';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassStudents() {
   const [students, setStudents] = useState([]);
@@ -31,7 +31,7 @@ export default function ClassStudents() {
   const [showDetails, setShowDetails] = useState(null);
 
   // Unified semester options
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   useEffect(() => {
     loadStudents();

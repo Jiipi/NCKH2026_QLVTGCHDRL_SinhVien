@@ -9,8 +9,7 @@ import http from '../../services/http';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
 import ActivityQRModal from '../../components/ActivityQRModal';
 import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function MonitorMyActivities() {
   const [viewMode, setViewMode] = useState('available'); // available | pending | approved | completed
@@ -38,8 +37,7 @@ export default function MonitorMyActivities() {
   
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
   
   const { showSuccess, showError, confirm } = useNotification();
 

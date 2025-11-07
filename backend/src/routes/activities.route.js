@@ -1,4 +1,3 @@
-// src/routes/activities.route.js
 const { Router } = require('express');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
@@ -6,6 +5,7 @@ const { Prisma } = require('@prisma/client');
 const { auth, requireAdmin } = require('../middlewares/auth');
 const { enforceUserWritable } = require('../middlewares/semesterLock.middleware');
 const { requirePermission } = require('../middlewares/rbac');
+const { canRegisterActivity } = require('../middleware/classActivityAccess');
 const { prisma } = require('../config/database');
 const { ApiResponse, sendResponse } = require('../utils/response');
 const { logError, logInfo } = require('../utils/logger');
@@ -13,6 +13,58 @@ const { parseSemesterString, buildSemesterFilter, determineSemesterFromDate } = 
 const SemesterClosure = require('../services/semesterClosure.service');
 
 const router = Router();
+
+function toStringArray(value) {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .map((v) => {
+      if (typeof v === 'string') return v;
+      if (v && typeof v === 'object') {
+        if (typeof v.url === 'string') return v.url;
+        if (typeof v.src === 'string') return v.src;
+        if (typeof v.path === 'string') return v.path;
+      }
+      return null;
+    })
+    .filter(Boolean);
+}
+
+// Normalize any URL pointing to uploads into a stable stored form (relative path)
+function normalizeUploadPath(s) {
+  if (typeof s !== 'string') return s;
+  const idx = s.indexOf('/uploads/');
+  if (idx >= 0) return s.slice(idx);
+  return s;
+}
+
+// Map inputs to string array and normalize to '/uploads/...' where applicable
+function toStringArrayNormalized(value) {
+  const arr = toStringArray(value);
+  if (!Array.isArray(arr)) return arr;
+  const seen = new Set();
+  const result = [];
+  for (const s of arr) {
+    const norm = normalizeUploadPath(s);
+    if (typeof norm === 'string' && norm.length > 0 && !seen.has(norm)) {
+      seen.add(norm);
+      result.push(norm);
+    }
+  }
+  return result;
+}
+
+function toAbsoluteUploadUrl(req, url) {
+  try {
+    if (typeof url !== 'string' || url.length === 0) return url;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/uploads/')) {
+      const proto = req?.protocol || 'http';
+      const host = req?.get && req.get('host');
+      if (host) return `${proto}://${host}${url}`;
+    }
+  } catch (_) {}
+  return url;
+}
 
 // Helper: Generate unique 32-char QR token for activity attendance
 function generateUniqueQRToken() {
@@ -73,12 +125,17 @@ router.get('/', auth, requirePermission('activities.view'), async (req, res) => 
     
     // Lọc theo trạng thái thời gian cơ bản
     if (status === 'open') {
+      // Đang mở đăng ký: đã duyệt + còn hạn đăng ký + CHƯA BẮT ĐẦU
       where.trang_thai = 'da_duyet';
       where.han_dk = { gte: now };
+      where.ngay_bd = { gt: now }; // Chưa bắt đầu
     } else if (status === 'soon') {
+      // Sắp diễn ra: đã duyệt + ĐANG DIỄN RA (đã bắt đầu nhưng chưa kết thúc)
       where.trang_thai = 'da_duyet';
-      where.ngay_bd = { gte: now };
+      where.ngay_bd = { lte: now }; // Đã bắt đầu
+      where.ngay_kt = { gte: now }; // Chưa kết thúc
     } else if (status === 'closed') {
+      // Đã kết thúc
       where.ngay_kt = { lt: now };
     }
     // Lọc theo trạng thái chính xác
@@ -450,7 +507,7 @@ router.get('/', auth, requirePermission('activities.view'), async (req, res) => 
         dia_diem: hd.dia_diem || null,
         don_vi_to_chuc: hd.don_vi_to_chuc || null,
         sl_toi_da: hd.sl_toi_da,
-        hinh_anh: hd.hinh_anh || [],
+        hinh_anh: Array.isArray(hd.hinh_anh) ? hd.hinh_anh.map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || ''))) : [],
         tep_dinh_kem: hd.tep_dinh_kem || [],
         // Existing flag: activity was created by a student in the class or its homeroom teacher
         is_class_activity: createdByClassOrHomeroom,
@@ -522,7 +579,7 @@ router.get('/:id', auth, requirePermission('activities.view'), async (req, res) 
       don_vi_to_chuc: hd.don_vi_to_chuc || null,
       yeu_cau_tham_gia: hd.yeu_cau_tham_gia || null,
       sl_toi_da: hd.sl_toi_da,
-      hinh_anh: hd.hinh_anh || [],
+      hinh_anh: Array.isArray(hd.hinh_anh) ? hd.hinh_anh.map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || ''))) : [],
       tep_dinh_kem: hd.tep_dinh_kem || [],
       is_registered,
       registration_status,
@@ -603,7 +660,7 @@ router.post('/', auth, requirePermission('activities.create'), enforceUserWritab
     const nam_hoc = inferred.nam_hoc;
     // Enforce semester write lock for student/monitor based on provided semester fields
     try {
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky, nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky, nam_hoc, userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -642,14 +699,14 @@ router.put('/:id', auth, requirePermission('activities.update'), enforceUserWrit
     // Enforce semester write lock for student/monitor using existing activity semester fields
     try {
       const norm = normalizeActivitySemesterFields(existing);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
       }
       throw e;
     }
-    const { ten_hd, mo_ta, loai_hd_id, diem_rl, dia_diem, ngay_bd, ngay_kt, han_dk, sl_toi_da, don_vi_to_chuc, yeu_cau_tham_gia, trang_thai, hinh_anh, tep_dinh_kem } = req.body || {};
+  const { ten_hd, mo_ta, loai_hd_id, diem_rl, dia_diem, ngay_bd, ngay_kt, han_dk, sl_toi_da, don_vi_to_chuc, yeu_cau_tham_gia, trang_thai, hinh_anh, tep_dinh_kem } = req.body || {};
     
     console.log('🔍 UPDATE Activity - Request body:', req.body);
     console.log('🔍 hinh_anh received:', hinh_anh);
@@ -661,14 +718,25 @@ router.put('/:id', auth, requirePermission('activities.update'), enforceUserWrit
       return sendResponse(res, 400, ApiResponse.validationError([{ field: 'ngay_bd', message: 'Ngày bắt đầu phải trước ngày kết thúc' }]));
     }
     
+    // Safely coerce numeric fields to avoid Decimal errors when FE sends '' or null
+    const parsedScore = (typeof diem_rl === 'number') ? diem_rl : (diem_rl === '' || diem_rl === null || typeof diem_rl === 'undefined') ? undefined : Number(diem_rl);
+    const parsedCapacity = (typeof sl_toi_da === 'number') ? sl_toi_da : (sl_toi_da === '' || sl_toi_da === null || typeof sl_toi_da === 'undefined') ? undefined : Number(sl_toi_da);
+    const safeLoaiId = (typeof loai_hd_id === 'string' && loai_hd_id.trim() !== '') ? loai_hd_id : undefined;
+    // Normalize media arrays; treat empty array as "no change" to avoid accidental wipe
+    const removeAllImages = req.body?.remove_all_images === true || req.body?.remove_all_images === '1';
+    const normalizedImages = typeof hinh_anh !== 'undefined' ? toStringArrayNormalized(hinh_anh) : undefined;
+    const normalizedAttachments = typeof tep_dinh_kem !== 'undefined' ? toStringArrayNormalized(tep_dinh_kem) : undefined;
+
     const updateData = {
-      ten_hd, mo_ta, loai_hd_id, diem_rl: typeof diem_rl !== 'undefined' ? new Prisma.Decimal(diem_rl) : undefined,
+      ten_hd, mo_ta, loai_hd_id: safeLoaiId,
+      diem_rl: (typeof parsedScore === 'number' && Number.isFinite(parsedScore)) ? new Prisma.Decimal(parsedScore) : undefined,
       dia_diem, ngay_bd: ngay_bd ? new Date(ngay_bd) : undefined, ngay_kt: ngay_kt ? new Date(ngay_kt) : undefined,
       han_dk: typeof han_dk !== 'undefined' ? (han_dk ? new Date(han_dk) : null) : undefined,
-      sl_toi_da, don_vi_to_chuc, yeu_cau_tham_gia,
+      sl_toi_da: (typeof parsedCapacity === 'number' && Number.isFinite(parsedCapacity)) ? parsedCapacity : undefined,
+      don_vi_to_chuc, yeu_cau_tham_gia,
       trang_thai: isTeacherOrAdmin(role) && trang_thai ? trang_thai : undefined,
-      hinh_anh: typeof hinh_anh !== 'undefined' ? hinh_anh : undefined,
-      tep_dinh_kem: typeof tep_dinh_kem !== 'undefined' ? tep_dinh_kem : undefined
+      hinh_anh: removeAllImages ? [] : (typeof normalizedImages !== 'undefined' ? (normalizedImages.length > 0 ? normalizedImages : undefined) : undefined),
+      tep_dinh_kem: typeof normalizedAttachments !== 'undefined' ? (normalizedAttachments.length > 0 ? normalizedAttachments : undefined) : undefined
     };
     
     console.log('🔍 Update data to be sent to DB:', updateData);
@@ -681,8 +749,17 @@ router.put('/:id', auth, requirePermission('activities.update'), enforceUserWrit
     console.log('🔍 Updated activity from DB:', updated);
     console.log('🔍 Updated hinh_anh:', updated.hinh_anh);
     console.log('🔍 Updated tep_dinh_kem:', updated.tep_dinh_kem);
-    
-    sendResponse(res, 200, ApiResponse.success(updated, 'Cập nhật hoạt động thành công'));
+    // Map media to absolute URLs in response (DB keeps relative)
+    const updatedResponse = {
+      ...updated,
+      hinh_anh: Array.isArray(updated.hinh_anh)
+        ? updated.hinh_anh.map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || '')))
+        : [],
+      tep_dinh_kem: Array.isArray(updated.tep_dinh_kem)
+        ? updated.tep_dinh_kem.map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || '')))
+        : []
+    };
+    sendResponse(res, 200, ApiResponse.success(updatedResponse, 'Cập nhật hoạt động thành công'));
   } catch (error) {
     console.error('❌ Update activity error:', error);
     logError('Update activity error', error);
@@ -713,7 +790,7 @@ router.patch('/:id/images/reorder', auth, requirePermission('activities.update')
     // Enforce semester write lock for student/monitor
     try {
       const norm = normalizeActivitySemesterFields(existing);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -727,17 +804,18 @@ router.patch('/:id/images/reorder', auth, requirePermission('activities.update')
         { field: 'hinh_anh', message: 'hinh_anh phải là array' }
       ]));
     }
+  const normalized = toStringArrayNormalized(hinh_anh);
     
     // Cập nhật thứ tự ảnh
     const updated = await prisma.hoatDong.update({
       where: { id },
-      data: { hinh_anh }
+      data: { hinh_anh: normalized }
     });
     
     console.log('✅ Images reordered successfully:', updated.hinh_anh);
     
     sendResponse(res, 200, ApiResponse.success(
-      { hinh_anh: updated.hinh_anh },
+      { hinh_anh: (updated.hinh_anh || []).map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || ''))) },
       'Cập nhật thứ tự ảnh thành công. Ảnh đầu tiên là ảnh nền.'
     ));
   } catch (error) {
@@ -751,7 +829,7 @@ router.patch('/:id/images/reorder', auth, requirePermission('activities.update')
 router.patch('/:id/images/set-cover', auth, requirePermission('activities.update'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { imageUrl } = req.body; // URL của ảnh muốn đặt làm ảnh nền
+  const { imageUrl } = req.body; // URL của ảnh muốn đặt làm ảnh nền
     
     console.log('🖼️ Set cover image request:', { id, imageUrl });
     
@@ -770,7 +848,7 @@ router.patch('/:id/images/set-cover', auth, requirePermission('activities.update
     // Enforce semester write lock for student/monitor
     try {
       const norm = normalizeActivitySemesterFields(existing);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -789,14 +867,16 @@ router.patch('/:id/images/set-cover', auth, requirePermission('activities.update
     const currentImages = existing.hinh_anh || [];
     
     // Kiểm tra ảnh có tồn tại trong mảng không
-    if (!currentImages.includes(imageUrl)) {
+    const target = normalizeUploadPath(imageUrl);
+    if (!toStringArrayNormalized(currentImages).includes(target)) {
       return sendResponse(res, 400, ApiResponse.validationError([
         { field: 'imageUrl', message: 'Ảnh không tồn tại trong hoạt động' }
       ]));
     }
     
     // Di chuyển ảnh lên vị trí đầu tiên
-    const newImages = [imageUrl, ...currentImages.filter(img => img !== imageUrl)];
+  const current = toStringArrayNormalized(currentImages) || [];
+  const newImages = [target, ...current.filter(img => img !== target)];
     
     // Cập nhật database
     const updated = await prisma.hoatDong.update({
@@ -807,7 +887,7 @@ router.patch('/:id/images/set-cover', auth, requirePermission('activities.update
     console.log('✅ Cover image set successfully:', updated.hinh_anh);
     
     sendResponse(res, 200, ApiResponse.success(
-      { hinh_anh: updated.hinh_anh },
+      { hinh_anh: (updated.hinh_anh || []).map(u => toAbsoluteUploadUrl(req, typeof u === 'string' ? u : (u?.url || u?.path || u?.src || ''))) },
       'Đã đặt ảnh nền thành công'
     ));
   } catch (error) {
@@ -831,7 +911,7 @@ router.delete('/:id', auth, requirePermission('activities.delete'), enforceUserW
     // Enforce semester write lock for student/monitor
     try {
       const norm = normalizeActivitySemesterFields(existing);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -850,7 +930,7 @@ router.delete('/:id', auth, requirePermission('activities.delete'), enforceUserW
 });
 
 // Sinh viên/Lớp trưởng đăng ký tham gia hoạt động
-router.post('/:id/register', auth, requirePermission('registrations.register'), enforceUserWritable, async (req, res) => {
+router.post('/:id/register', auth, canRegisterActivity, requirePermission('registrations.register'), enforceUserWritable, async (req, res) => {
   try {
     const role = String(req.user?.role || '').toUpperCase();
     if (!['SINH_VIEN', 'STUDENT', 'LOP_TRUONG'].includes(role)) {
@@ -862,7 +942,7 @@ router.post('/:id/register', auth, requirePermission('registrations.register'), 
     // Enforce semester write lock for student/monitor based on activity semester
     try {
       const norm = normalizeActivitySemesterFields(hd);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -941,7 +1021,7 @@ router.post('/:id/cancel', auth, requirePermission('registrations.cancel'), enfo
     // Enforce semester write lock for student/monitor based on activity semester
     try {
       const norm = normalizeActivitySemesterFields(reg.hoat_dong);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -1025,7 +1105,7 @@ router.post('/registrations/:regId/approve', auth, requirePermission('registrati
     if (regForSem?.hoat_dong) {
       try {
         const norm = normalizeActivitySemesterFields(regForSem.hoat_dong);
-        await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+        await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
       } catch (e) {
         if (e && e.status === 423) {
           return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -1109,7 +1189,7 @@ router.post('/registrations/:regId/reject', auth, requirePermission('registratio
     if (regForSem?.hoat_dong) {
       try {
         const norm = normalizeActivitySemesterFields(regForSem.hoat_dong);
-        await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+        await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
       } catch (e) {
         if (e && e.status === 423) {
           return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -1162,7 +1242,7 @@ router.post('/registrations/:regId/cancel', auth, requirePermission('registratio
     // Enforce semester write lock for student based on activity semester
     try {
       const norm = normalizeActivitySemesterFields(reg.hoat_dong);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (e && e.status === 423) {
         return sendResponse(res, 423, ApiResponse.error(e.message, e.details));
@@ -1300,7 +1380,7 @@ router.post('/attendance/scan', auth, requirePermission('attendance.mark'), enfo
     // Enforce semester write lock for student/monitor based on activity semester
     try {
       const norm = normalizeActivitySemesterFields(activity);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       // Lenient mode for attendance: nếu bị 423 nhưng học kỳ hiện tại đang hoạt động theo cấu hình hệ thống,
       // hoặc không xác định được trạng thái, cho phép tiếp tục để tránh block nhầm.
@@ -1439,7 +1519,7 @@ router.post('/:id/attendance', auth, requirePermission('attendance.mark'), enfor
     // Enforce semester write lock for student/monitor based on activity semester
     try {
       const norm = normalizeActivitySemesterFields(activity);
-      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc });
+      await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId: req.user.sub, hoc_ky: norm.hoc_ky, nam_hoc: norm.nam_hoc , userRole: req.user?.role });
     } catch (e) {
       if (!(e && e.status === 423)) throw e;
       // allow continue

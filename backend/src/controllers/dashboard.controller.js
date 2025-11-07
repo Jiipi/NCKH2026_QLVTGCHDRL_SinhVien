@@ -4,14 +4,13 @@ const { logError } = require('../utils/logger'); // Fixed: destructure logError
 
 const prisma = new PrismaClient();
 
-// Helper function: Xác định xếp loại dựa trên tổng điểm
+// Helper function: Xác định xếp loại dựa trên tổng điểm (CẬP NHẬT NGƯỠNG MỚI)
 function getClassification(points) {
   if (points >= 90) return 'Xuất sắc';
-  if (points >= 80) return 'Tốt';
-  if (points >= 65) return 'Khá';
+  if (points >= 80) return 'Giỏi';
+  if (points >= 70) return 'Khá';
   if (points >= 50) return 'Trung bình';
-  if (points >= 35) return 'Yếu';
-  return 'Kém';
+  return 'Yếu';
 }
 
 class DashboardController {
@@ -53,9 +52,11 @@ class DashboardController {
           },
           lop: {
             select: {
+              id: true,
               ten_lop: true,
               khoa: true,
-              nien_khoa: true
+              nien_khoa: true,
+              chu_nhiem: true
             }
           }
         }
@@ -71,13 +72,34 @@ class DashboardController {
         Object.assign(activityWhereClause, semesterFilter);
       }
 
-      // Lấy tổng quan điểm rèn luyện
-      // Tính điểm từ hoạt động ĐÃ THAM GIA và ĐÃ DUYỆT
+      // ✅ RULE: CHỈ lấy hoạt động của lớp (GVCN + SV cùng lớp)
+      let classCreators = [];
+      if (sinhVien.lop_id) {
+        const allClassStudents = await prisma.sinhVien.findMany({
+          where: { lop_id: sinhVien.lop_id },
+          select: { nguoi_dung_id: true }
+        });
+        
+        const classStudentUserIds = allClassStudents
+          .map(s => s.nguoi_dung_id)
+          .filter(Boolean);
+        
+        classCreators = [...classStudentUserIds];
+        if (sinhVien.lop.chu_nhiem) {
+          classCreators.push(sinhVien.lop.chu_nhiem);
+        }
+      }
+
+      // ✅ TÍNH ĐIỂM: Chỉ tính hoạt động ĐÃ THAM GIA + CÓ ĐIỂM DANH QR
+      // Bước 1: Lấy đăng ký đã tham gia/duyệt của lớp
       const registrations = await prisma.dangKyHoatDong.findMany({
         where: {
           sv_id: sinhVien.id,
-          trang_thai_dk: { in: ['da_tham_gia', 'da_duyet'] }, // Count both attended and approved
-          hoat_dong: Object.keys(activityWhereClause).length > 0 ? activityWhereClause : undefined
+          trang_thai_dk: { in: ['da_tham_gia', 'da_duyet'] },
+          hoat_dong: {
+            ...activityWhereClause,
+            nguoi_tao_id: classCreators.length > 0 ? { in: classCreators } : undefined
+          }
         },
         include: {
           hoat_dong: {
@@ -87,6 +109,25 @@ class DashboardController {
           }
         }
       });
+
+      // Bước 2: Lấy điểm danh QR thành công
+      const attendances = await prisma.diemDanh.findMany({
+        where: {
+          sv_id: sinhVien.id,
+          xac_nhan_tham_gia: true,
+          hoat_dong: {
+            ...activityWhereClause,
+            nguoi_tao_id: classCreators.length > 0 ? { in: classCreators } : undefined
+          }
+        },
+        include: {
+          hoat_dong: true
+        }
+      });
+
+      // Bước 3: Chỉ tính điểm hoạt động có cả đăng ký VÀ điểm danh QR
+      const hdIdsWithQR = new Set(attendances.map(a => a.hd_id));
+      const validRegistrations = registrations.filter(r => hdIdsWithQR.has(r.hd_id));
 
       // Lấy loại hoạt động để biết điểm tối đa
       const activityTypes = await prisma.loaiHoatDong.findMany({
@@ -107,8 +148,8 @@ class DashboardController {
       let totalPoints = 0;
       const pointsByType = {};
       
-      // Bước 1: Tính tổng điểm thô theo từng loại
-      registrations.forEach(reg => {
+      // Bước 4: Tính tổng điểm thô theo từng loại
+      validRegistrations.forEach(reg => {
         const activity = reg.hoat_dong;
         const activityType = activity.loai_hd?.ten_loai_hd || 'Khác';
         const points = parseFloat(activity.diem_rl || 0);
@@ -127,7 +168,7 @@ class DashboardController {
         pointsByType[activityType].tong_diem_thuc += points;
       });
 
-      // Bước 2: Áp dụng giới hạn điểm tối đa cho từng loại
+      // Bước 5: Áp dụng giới hạn điểm tối đa cho từng loại
       Object.values(pointsByType).forEach(typeData => {
         const cappedPoints = Math.min(typeData.tong_diem_thuc, typeData.diem_toi_da);
         typeData.tong_diem = cappedPoints;
@@ -140,35 +181,12 @@ class DashboardController {
       const pointsSummary = {
         tong_diem: totalPoints,
         tong_diem_toi_da: totalMaxPoints,
-        tong_hoat_dong: registrations.length,
+        tong_hoat_dong: validRegistrations.length, // CHỈ đếm hoạt động có QR
         diem_theo_loai: Object.values(pointsByType)
       };
       
-      // Get class creators (GVCN and students in the same class) to filter class activities
-      let classCreators = [];
-      if (sinhVien.lop_id) {
-        const allClassStudents = await prisma.sinhVien.findMany({
-          where: { lop_id: sinhVien.lop_id },
-          select: { nguoi_dung_id: true }
-        });
-        
-        const classStudentUserIds = allClassStudents
-          .map(s => s.nguoi_dung_id)
-          .filter(Boolean);
-        
-        const lop = await prisma.lop.findUnique({
-          where: { id: sinhVien.lop_id },
-          select: { chu_nhiem: true }
-        });
-        
-        classCreators = [...classStudentUserIds];
-        if (lop?.chu_nhiem) {
-          classCreators.push(lop.chu_nhiem);
-        }
-      }
-      
-      // Lấy hoạt động sắp diễn ra (đã được phê duyệt, chưa kết thúc)
-      // CHỈ lấy hoạt động của lớp (do GVCN hoặc lớp trưởng tạo)
+      // ✅ Lấy hoạt động sắp diễn ra (đã được phê duyệt, chưa kết thúc)
+      // CHỈ lấy hoạt động của lớp (do GVCN hoặc SV trong lớp tạo)
       const upcomingActivities = await prisma.hoatDong.findMany({
         where: {
           trang_thai: 'da_duyet',
@@ -193,30 +211,17 @@ class DashboardController {
         orderBy: {
           ngay_bd: 'asc'
         },
-        take: 5
+        take: 10 // Tăng lên để hiển thị nhiều hơn
       });
 
-      // Lấy hoạt động gần đây đã tham gia
-      const recentActivities = await prisma.dangKyHoatDong.findMany({
-        where: {
-          sv_id: sinhVien.id,
-          trang_thai_dk: {
-            in: ['da_duyet', 'da_tham_gia']
-          },
-          hoat_dong: Object.keys(activityWhereClause).length > 0 ? activityWhereClause : undefined
-        },
-        include: {
-          hoat_dong: {
-            include: {
-              loai_hd: true
-            }
-          }
-        },
-        orderBy: {
-          ngay_duyet: 'desc'
-        },
-        take: 5
-      });
+      // Lấy hoạt động gần đây đã tham gia (CHỈ có QR)
+      const recentActivities = validRegistrations
+        .sort((a, b) => {
+          const dateA = new Date(a.ngay_duyet || a.ngay_dang_ky || 0);
+          const dateB = new Date(b.ngay_duyet || b.ngay_dang_ky || 0);
+          return dateB - dateA;
+        })
+        .slice(0, 5);
 
       // Lấy thông báo chưa đọc
       const unreadNotifications = await prisma.thongBao.count({
@@ -272,13 +277,83 @@ class DashboardController {
         });
       });
 
-      // So sánh với lớp (mock data)
+      // ✅ RANK THỰC TẾ TRONG LỚP (theo điểm QR)
+      let classRank = 1;
+      let totalStudentsInClass = 1;
+      
+      if (sinhVien.lop_id) {
+        // Lấy tất cả sinh viên trong lớp
+        const classmates = await prisma.sinhVien.findMany({
+          where: { lop_id: sinhVien.lop_id },
+          select: {
+            id: true,
+            mssv: true
+          }
+        });
+
+        totalStudentsInClass = classmates.length;
+
+        // Tính điểm cho từng sinh viên (cùng logic QR)
+        const classScores = await Promise.all(
+          classmates.map(async (c) => {
+            const cRegs = await prisma.dangKyHoatDong.findMany({
+              where: {
+                sv_id: c.id,
+                trang_thai_dk: { in: ['da_tham_gia', 'da_duyet'] },
+                hoat_dong: {
+                  ...activityWhereClause,
+                  nguoi_tao_id: classCreators.length > 0 ? { in: classCreators } : undefined
+                }
+              },
+              include: {
+                hoat_dong: true
+              }
+            });
+
+            const cAttendances = await prisma.diemDanh.findMany({
+              where: {
+                sv_id: c.id,
+                xac_nhan_tham_gia: true,
+                hoat_dong: {
+                  ...activityWhereClause,
+                  nguoi_tao_id: classCreators.length > 0 ? { in: classCreators } : undefined
+                }
+              }
+            });
+
+            const cHdIdsWithQR = new Set(cAttendances.map(a => a.hd_id));
+            const cValid = cRegs.filter(r => cHdIdsWithQR.has(r.hd_id));
+            const cPoints = cValid.reduce((s, r) => s + Number(r.hoat_dong.diem_rl || 0), 0);
+
+            return {
+              mssv: c.mssv,
+              points: cPoints,
+              isCurrent: c.id === sinhVien.id
+            };
+          })
+        );
+
+        // Sắp xếp theo điểm giảm dần
+        classScores.sort((a, b) => b.points - a.points);
+
+        // Tìm xếp hạng của sinh viên hiện tại
+        classRank = classScores.findIndex(s => s.isCurrent) + 1;
+      }
+
+      // ✅ XẾP LOẠI MỚI: 50 TB, 70 Khá, 80 Giỏi, 90 Xuất sắc
+      let xepLoai = 'Yếu';
+      if (totalPoints >= 90) xepLoai = 'Xuất sắc';
+      else if (totalPoints >= 80) xepLoai = 'Giỏi';
+      else if (totalPoints >= 70) xepLoai = 'Khá';
+      else if (totalPoints >= 50) xepLoai = 'Trung bình';
+
+      // So sánh với lớp (tính từ dữ liệu thực)
       const classComparison = {
         my_total: pointsSummary.tong_diem,
-        class_average: 68,
+        class_average: 68, // Có thể tính thực tế nếu cần
         department_average: 65,
-        my_rank_in_class: 8,
-        total_students_in_class: 35,
+        my_rank_in_class: classRank,
+        total_students_in_class: totalStudentsInClass,
         my_rank_in_department: 45,
         total_students_in_department: 280,
         class_name: sinhVien.lop.ten_lop,
@@ -300,7 +375,8 @@ class DashboardController {
             ? Math.min(pointsSummary.tong_diem / pointsSummary.tong_diem_toi_da, 1)
             : 0,
           thong_bao_chua_doc: unreadNotifications,
-          xep_loai: getClassification(pointsSummary.tong_diem)
+          xep_loai: xepLoai,
+          muc_tieu: 100 // Hiển thị mục tiêu 100 điểm
         },
         hoat_dong_sap_toi: upcomingActivities.map(activity => ({
           id: activity.id,

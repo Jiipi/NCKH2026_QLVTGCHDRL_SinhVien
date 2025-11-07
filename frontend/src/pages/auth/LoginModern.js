@@ -17,6 +17,21 @@ export default function LoginModern() {
   const [errors, setErrors] = React.useState({});
   const [isLoading, setIsLoading] = React.useState(false);
 
+  // Load saved remember settings: only username + remember flag (no password)
+  React.useEffect(() => {
+    try {
+      const savedUsername = localStorage.getItem('remember_username');
+      const savedRemember = localStorage.getItem('remember_flag');
+      setFormData(prev => ({
+        ...prev,
+        username: savedUsername || '',
+        remember: savedRemember === '1'
+      }));
+    } catch (err) {
+      console.error('Error loading saved remember settings:', err);
+    }
+  }, []);
+
   function handleInputChange(e) {
     const name = e.target.name;
     const value = e.target.value;
@@ -53,7 +68,8 @@ export default function LoginModern() {
     try {
       var res = await http.post('/auth/login', { 
         maso: String(formData.username || '').trim(), 
-        password: formData.password 
+        password: formData.password,
+        remember: !!formData.remember
       });
       var data = res.data?.data || res.data;
       var token = data?.token || data?.data?.token;
@@ -66,6 +82,17 @@ export default function LoginModern() {
           window.localStorage.setItem('token', token);
           window.localStorage.setItem('user', JSON.stringify(user));
         } catch(_) {}
+        
+        // Handle "Remember Me": save only username + remember flag (no password)
+        try {
+          if (formData.remember) {
+            localStorage.setItem('remember_username', formData.username || '');
+            localStorage.setItem('remember_flag', '1');
+          } else {
+            localStorage.removeItem('remember_username');
+            localStorage.removeItem('remember_flag');
+          }
+        } catch (_) {}
         try { setAuth({ token, user, role }); } catch(_) {}
         var target = '/';
         if (role === 'ADMIN') target = '/admin';
@@ -94,7 +121,7 @@ export default function LoginModern() {
 
   return (
     <div
-      className="auth-container"
+      className="auth-container auth-container-login"
       style={{
         backgroundImage: `url(${process.env.PUBLIC_URL || ''}/images/VNUR.jpg)`
       }}
@@ -103,12 +130,13 @@ export default function LoginModern() {
         <span className="line1">HỆ THỐNG QUẢN LÝ</span>
         <span className="line2">HOẠT ĐỘNG RÈN LUYỆN CỦA SINH VIÊN</span>
       </div>
-      <div className="box">
-        <div className="flip-card-inner">
-          <div className="box-login">
+      <div className="auth-group2">
+        <div className="box box-auth">
+          <div className="flip-card-inner">
+            <div className="box-login">
             <ul>
               <form onSubmit={handleSubmit}>
-                <h1>ĐĂNG NHẬP</h1>
+                <h1 className="auth-form-title">ĐĂNG NHẬP</h1>
                 <div className="email-login">
                   <input 
                     className="inpt" 
@@ -142,15 +170,18 @@ export default function LoginModern() {
                 </div>
                 {errors.password && <div className="error-message">{errors.password}</div>}
 
-                <div className="forget">
-                  <input 
-                    type="checkbox" 
-                    name="remember" 
-                    id="checkbox"
-                    checked={formData.remember}
-                    onChange={(e) => setFormData(p => ({ ...p, remember: e.target.checked }))}
-                  />
-                  <label htmlFor="checkbox">Ghi nhớ đăng nhập</label>
+                <div className="forget" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      name="remember" 
+                      id="checkbox"
+                      checked={formData.remember}
+                      onChange={(e) => setFormData(p => ({ ...p, remember: e.target.checked }))}
+                      style={{ width: 16, height: 16, marginRight: 6 }}
+                    />
+                    <label htmlFor="checkbox" style={{ margin: 0 }}>Ghi nhớ đăng nhập</label>
+                  </div>
                   <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Quên mật khẩu?</a>
                 </div>
 
@@ -164,6 +195,7 @@ export default function LoginModern() {
                 <p>Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a></p>
               </div>
             </ul>
+            </div>
           </div>
         </div>
       </div>

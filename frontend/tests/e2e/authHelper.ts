@@ -4,7 +4,8 @@ interface DemoAccount { username: string; email?: string; password?: string; rol
 
 interface LoginResult { token: string; user: any; role: string; }
 
-const api = () => process.env.E2E_API_URL || 'http://localhost:3001/api';
+// Prefer direct backend if provided; otherwise use frontend proxy /api to work in Docker dev
+const api = () => process.env.E2E_API_URL || `${process.env.E2E_BASE_URL || 'http://localhost:3000'}/api`;
 
 export async function fetchDemoAccounts() {
   const ctx = await request.newContext();
@@ -37,32 +38,54 @@ const ROLE_SYNONYMS: Record<string,string[]> = {
 };
 
 export async function loginByAPI(role: string): Promise<LoginResult> {
-  const accounts = await fetchDemoAccounts();
+  const accounts = await fetchDemoAccounts().catch(() => [] as DemoAccount[]);
   const desired = normalizeRole(role);
   const roleSyns = new Set((ROLE_SYNONYMS[desired] || [desired]).map(s => s.toUpperCase()));
-  // Prefer matching by role/roleCode first
-  let target = accounts.find(a => roleSyns.has(normalizeRole(a.role)) || roleSyns.has(normalizeRole(a.roleCode)));
-  if (!target) {
-    const candidates = ROLE_USERNAME_MAP[desired] || [];
-    target = accounts.find(a => candidates.includes(a.username));
+
+  // Build candidate usernames
+  const fromAccountsByRole = accounts
+    .filter(a => roleSyns.has(normalizeRole(a.role)) || roleSyns.has(normalizeRole(a.roleCode)))
+    .map(a => a.username);
+  const fallbackUsernames = ROLE_USERNAME_MAP[desired] || [];
+  const candidateUsernames = Array.from(new Set([...fromAccountsByRole, ...fallbackUsernames]));
+  if (!candidateUsernames.length) {
+    throw new Error(`No demo account candidate for role ${role}. Accounts received: ${accounts.map(a=>a.username).join(', ')}`);
   }
-  if (!target) throw new Error(`No demo account available for role ${role}. Accounts received: ${accounts.map(a=>`${a.username}:${a.role||a.roleCode||''}`).join(', ')}`);
-  if (!target.password) throw new Error(`Demo account missing password for ${target.username}`);
+
+  // Candidate passwords: prefer per-account password, then common defaults
+  const commonPasswords = ['123456','Admin@123','Teacher@123','Monitor@123','Student@123'];
+  const perAccountPasswords = new Map<string, string[]>();
+  for (const a of accounts) {
+    const list = [] as string[];
+    if (a.password) list.push(a.password);
+    perAccountPasswords.set(a.username, list);
+  }
 
   const ctx = await request.newContext();
-  const res = await ctx.post(`${api()}/auth/login`, {
-    data: { maso: target.username, password: target.password }
-  });
-  if (!res.ok()) throw new Error(`Login failed for ${target.username}: ${res.status()} ${res.statusText()}`);
-  const body = await res.json();
-  const token = body?.data?.token || body?.token;
-  const user = body?.data?.user || body?.user;
-  const roleDetected = normalizeRole(user?.role || user?.roleCode);
-  if (!roleSyns.has(roleDetected)) {
-    console.warn(`[authHelper] Logged in as ${target.username} but role is ${roleDetected}, expected ${desired}`);
+  let lastErr: any;
+  for (const u of candidateUsernames) {
+    const pwList = Array.from(new Set([...(perAccountPasswords.get(u) || []), ...commonPasswords]));
+    for (const p of pwList) {
+      try {
+        const res = await ctx.post(`${api()}/auth/login`, { data: { maso: u, password: p } });
+        if (!res.ok()) throw new Error(`${res.status()} ${res.statusText()}`);
+        const body = await res.json();
+        const token = body?.data?.token || body?.token;
+        const user = body?.data?.user || body?.user;
+        if (!token || !user) throw new Error('No token/user in response');
+        const roleDetected = normalizeRole(user?.role || user?.roleCode);
+        if (!roleSyns.has(roleDetected)) {
+          console.warn(`[authHelper] Logged in as ${u} but role is ${roleDetected}, expected ${desired}`);
+        }
+        await ctx.dispose();
+        return { token, user, role: roleDetected };
+      } catch (e) {
+        lastErr = e;
+      }
+    }
   }
   await ctx.dispose();
-  return { token, user, role: roleDetected };
+  throw new Error(`Login by API failed for role ${role}. Tried users: ${candidateUsernames.join(', ')}. Last error: ${lastErr}`);
 }
 
 export async function injectSession(page: Page, login: LoginResult) {

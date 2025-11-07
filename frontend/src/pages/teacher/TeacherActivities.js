@@ -4,9 +4,8 @@ import {
   CheckCircle, XCircle, AlertCircle, Filter, RefreshCw, LayoutGrid, List
 } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import SemesterFilter from '../../components/SemesterFilter';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
 import { getActivityImage } from '../../utils/activityImages';
 
 const TeacherActivities = () => {
@@ -35,8 +34,7 @@ const TeacherActivities = () => {
   };
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable, status: semesterStatus } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable, status: semesterStatus } = useSemesterData(semester);
 
   useEffect(() => {
     // Initial load / when semester or pagination changes
@@ -114,6 +112,10 @@ const TeacherActivities = () => {
     
     const matchesType = !typeFilter || activity.loai_hd_id === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
+  }).sort((a, b) => {
+    const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+    const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+    return tb - ta; // newest first
   });
 
   // Fallback client-side pagination to ensure render <= limit items

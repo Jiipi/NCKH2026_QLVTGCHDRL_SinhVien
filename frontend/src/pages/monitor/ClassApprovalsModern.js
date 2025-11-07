@@ -5,8 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
 import { getUserAvatar } from '../../utils/avatarUtils';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
-import useSemesterGuard from '../../hooks/useSemesterGuard';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassApprovalsModern() {
   const [registrations, setRegistrations] = useState([]);
@@ -20,6 +19,9 @@ export default function ClassApprovalsModern() {
   const [activityDetailId, setActivityDetailId] = useState(null); // For modal
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // For modal
   const { showSuccess, showError, showWarning, confirm } = useNotification();
+  // Pagination state (align with teacher approvals)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
 
   // Semester state (align with MonitorMyActivities)
   const getCurrentSemesterValue = () => {
@@ -32,8 +34,7 @@ export default function ClassApprovalsModern() {
   };
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterOptions();
-  const { isWritable } = useSemesterGuard(semester);
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
   const [scrollDown, setScrollDown] = useState(false);
 
   // Status mappings (matching Prisma enum TrangThaiDangKy)
@@ -53,6 +54,7 @@ export default function ClassApprovalsModern() {
 
   useEffect(() => {
     loadRegistrations();
+    setPage(1); // reset page when semester changes
   }, [semester]);
 
   useEffect(() => {
@@ -225,7 +227,17 @@ export default function ClassApprovalsModern() {
     }
     
     return matchesSearch && matchesViewMode;
+  }).sort((a, b) => {
+    const ta = new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0).getTime();
+    const tb = new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0).getTime();
+    return tb - ta; // newest action first
   });
+
+  // Client-side pagination similar to teacher page
+  const effectiveTotal = filteredRegistrations.length;
+  const startIdx = (page - 1) * limit;
+  const endIdx = startIdx + limit;
+  const pageItems = filteredRegistrations.slice(startIdx, endIdx);
 
   const stats = {
     total: registrations.length,
@@ -643,9 +655,9 @@ export default function ClassApprovalsModern() {
         )}
 
         {/* Registrations Grid */}
-        {filteredRegistrations.length > 0 ? (
+        {effectiveTotal > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredRegistrations.map(reg => (
+            {pageItems.map(reg => (
               <RegistrationCard key={reg.id} registration={reg} />
             ))}
           </div>
@@ -675,6 +687,43 @@ export default function ClassApprovalsModern() {
                   : viewMode === 'completed' ? 'Chưa có đăng ký nào hoàn thành'
                   : 'Chưa có sinh viên nào đăng ký hoạt động'}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {effectiveTotal > 0 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-600">
+              Đang hiển thị {effectiveTotal ? Math.min(startIdx + 1, effectiveTotal) : 0} - {Math.min(endIdx, effectiveTotal)} / {effectiveTotal}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
+              >
+                Trước
+              </button>
+              <div className="text-sm text-gray-600">Trang {page} / {Math.max(1, Math.ceil(effectiveTotal / limit))}</div>
+              <button
+                disabled={page >= Math.ceil(effectiveTotal / limit)}
+                onClick={() => setPage(p => Math.min(Math.ceil(effectiveTotal / limit) || 1, p + 1))}
+                className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(effectiveTotal / limit) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
+              >
+                Tiếp
+              </button>
+              <select
+                value={limit}
+                onChange={e => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
+                className="ml-2 px-2 py-1.5 rounded-lg border border-gray-300"
+                title="Số đăng ký mỗi trang"
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+              </select>
             </div>
           </div>
         )}

@@ -307,11 +307,11 @@ function TeacherSidebar(props) {
   // IMPORTANT: Include 'path' in dependencies to re-calculate when URL changes
   const teacherMenu = useMemo(() => {
     return [
-    // Dashboard - Tổng quan
+    // Dashboard - Trang chủ
     {
       key: 'dashboard',
       to: '/teacher',
-      label: 'Tổng quan',
+      label: 'Trang chủ',
       icon: <Home className="w-5 h-5" />,
       active: getActiveState('/teacher')
     },

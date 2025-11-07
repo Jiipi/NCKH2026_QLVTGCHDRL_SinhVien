@@ -129,6 +129,27 @@ async function getUserClassId(userId) {
   return sv?.lop_id || null;
 }
 
+// Derive the target year from hoc_ky and nam_hoc robustly.
+// - Normal: nam_hoc like 'YYYY-YYYY+1' -> HK1 => year1, HK2 => year2
+// - Corrupt/misaligned: if difference != 1, try to use active semester year when it appears inside nam_hoc
+function deriveYear(hoc_ky, nam_hoc) {
+  const match = (nam_hoc || '').match(/(\d{4})-(\d{4})/);
+  if (!match) return null;
+  const y1 = parseInt(match[1], 10);
+  const y2 = parseInt(match[2], 10);
+  if (y2 - y1 === 1) {
+    return hoc_ky === 'hoc_ky_1' ? String(y1) : String(y2);
+  }
+  // Fallback: look at active semester metadata and prefer that year if present in the string
+  const active = readActiveSemesterFromMetadata();
+  if (active && active.startsWith(`${hoc_ky}-`)) {
+    const activeYear = active.split('-')[1];
+    if ((nam_hoc || '').includes(activeYear)) return activeYear;
+  }
+  // Final fallback: pick closer side consistent with hoc_ky
+  return hoc_ky === 'hoc_ky_1' ? String(y1) : String(y2);
+}
+
 const SemesterClosureService = {
   semesterKeyFromInfo,
   getCurrentSemesterInfo,
@@ -148,21 +169,36 @@ const SemesterClosureService = {
     const state = readState(classId, semInfo) || { error: 'state_corrupted' };
     return { semInfo, state };
   },
-  checkWritableForClassSemesterOrThrow({ classId, hoc_ky, nam_hoc }) {
+  checkWritableForClassSemesterOrThrow({ classId, hoc_ky, nam_hoc, userRole = null }) {
     // Determine semester/year key strictly from provided fields
     const pair = (nam_hoc || '').match(/(\d{4})-(\d{4})/);
     if (!classId || !hoc_ky || !pair) return; // cannot evaluate, allow
-    const year = hoc_ky === 'hoc_ky_1' ? pair[1] : pair[2];
+    const year = deriveYear(hoc_ky, nam_hoc);
     const semInfo = { semester: hoc_ky, year };
+    const debug = process.env.DEBUG_SEMESTER === '1';
+    if (debug) {
+      console.log('[SemesterLock][ClassCheck] input:', { classId, hoc_ky, nam_hoc, userRole });
+      console.log('[SemesterLock][ClassCheck] computed semInfo:', semInfo);
+    }
     
     // Check if this semester is globally active (metadata uses value `${hoc_ky}-${year}`)
     const activeSemester = readActiveSemesterFromMetadata();
     const currentValue = `${hoc_ky}-${year}`;
     const isGloballyActive = activeSemester === currentValue;
+    if (debug) {
+      console.log('[SemesterLock][ClassCheck] metadata.active_semester:', activeSemester, 'currentValue:', currentValue, 'isGloballyActive:', isGloballyActive);
+    }
     
     // If globally active, allow all operations
     if (isGloballyActive) {
+      if (debug) console.log('[SemesterLock][ClassCheck] allow: globally active');
       return; // Allow operations on globally active semester
+    }
+    
+    // ADMIN always bypasses lock checks for non-active semesters
+    if (userRole && (userRole === 'ADMIN' || userRole === 'admin')) {
+      if (debug) console.log('[SemesterLock][ClassCheck] allow: admin bypass');
+      return; // Admin can work on any semester
     }
     
     // Otherwise, check class-level lock state
@@ -171,14 +207,17 @@ const SemesterClosureService = {
     if (state && (state.state === 'LOCKED_SOFT' || state.state === 'LOCKED_HARD')) {
       const hard = state.state === 'LOCKED_HARD';
       const softExpired = state.state === 'LOCKED_SOFT' && state.grace_until && new Date(state.grace_until) < new Date();
-      if (hard || softExpired || state.state === 'LOCKED_SOFT') {
+      if (debug) console.log('[SemesterLock][ClassCheck] state:', state, 'hard:', hard, 'softExpired:', softExpired);
+      if (hard || softExpired) {
         const label = semesterKeyFromInfo(semInfo);
         const err = new Error(`SEMESTER_CLOSED_${state.state}`);
         err.status = 423; // Locked
         err.details = { classId, semester: label, state: state.state };
+        if (debug) console.log('[SemesterLock][ClassCheck] block -> throw 423', err.details);
         throw err;
       }
     }
+    if (debug) console.log('[SemesterLock][ClassCheck] allow: not locked');
   },
   async proposeClose({ classId, actorId, semesterStr }) {
     const semInfo = semesterStr ? (parseSemesterString(semesterStr) || getCurrentSemesterInfo()) : getCurrentSemesterInfo();
@@ -247,30 +286,50 @@ const SemesterClosureService = {
     state.version = (state.version || 1) + 1;
     return writeState(classId, semInfo, state);
   },
-  async enforceWritableForUserSemesterOrThrow({ userId, hoc_ky, nam_hoc }) {
+  async enforceWritableForUserSemesterOrThrow({ userId, hoc_ky, nam_hoc, userRole = null }) {
     const classId = await getUserClassId(userId);
     if (!classId) return; // non-student actions
     // Determine semester/year key strictly from provided fields
     const pair = (nam_hoc || '').match(/(\d{4})-(\d{4})/);
     if (!hoc_ky || !pair) return; // cannot evaluate, allow
-    const year = hoc_ky === 'hoc_ky_1' ? pair[1] : pair[2];
+    const year = deriveYear(hoc_ky, nam_hoc);
     const semInfo = { semester: hoc_ky, year };
+    const debug = process.env.DEBUG_SEMESTER === '1';
+    if (debug) {
+      console.log('[SemesterLock][UserCheck] input:', { userId, classId, hoc_ky, nam_hoc, userRole });
+      console.log('[SemesterLock][UserCheck] computed semInfo:', semInfo);
+    }
+    
     // Globally active allows writes regardless of class lock state
     const activeSemester = readActiveSemesterFromMetadata();
-    if (activeSemester && activeSemester === `${hoc_ky}-${year}`) return;
+    if (debug) console.log('[SemesterLock][UserCheck] metadata.active_semester:', activeSemester, 'currentValue:', `${hoc_ky}-${year}`);
+    if (activeSemester && activeSemester === `${hoc_ky}-${year}`) {
+      if (debug) console.log('[SemesterLock][UserCheck] allow: globally active');
+      return;
+    }
+    
+    // ADMIN always bypasses lock checks
+    if (userRole && (userRole === 'ADMIN' || userRole === 'admin')) {
+      if (debug) console.log('[SemesterLock][UserCheck] allow: admin bypass');
+      return; // Admin can work on any semester
+    }
+    
     const state = readState(classId, semInfo);
     // Allow writes during CLOSING; only block when soft/hard locked
     if (state && (state.state === 'LOCKED_SOFT' || state.state === 'LOCKED_HARD')) {
       const hard = state.state === 'LOCKED_HARD';
       const softExpired = state.state === 'LOCKED_SOFT' && state.grace_until && new Date(state.grace_until) < new Date();
-      if (hard || softExpired || state.state === 'LOCKED_SOFT') {
+      if (debug) console.log('[SemesterLock][UserCheck] state:', state, 'hard:', hard, 'softExpired:', softExpired);
+      if (hard || softExpired) {
         const label = semesterKeyFromInfo(semInfo);
         const err = new Error(`SEMESTER_CLOSED_${state.state}`);
         err.status = 423; // Locked
         err.details = { classId, semester: label, state: state.state };
+        if (debug) console.log('[SemesterLock][UserCheck] block -> throw 423', err.details);
         throw err;
       }
     }
+    if (debug) console.log('[SemesterLock][UserCheck] allow: not locked');
   }
 };
 

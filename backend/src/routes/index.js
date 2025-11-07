@@ -13,6 +13,7 @@ const studentPoints = require('./student-points.route');
 const classRoutes = require('./class.route');
 const upload = require('./upload.route');
 const semesters = require('./semesters.route');
+const search = require('./search.route');
 
 const router = Router();
 
@@ -27,6 +28,9 @@ router.use('/users', users);
 
 // Admin routes - comprehensive management
 router.use('/admin', admin);
+
+// Search routes (đã đăng nhập)
+router.use('/search', authMiddleware, search);
 
 // Dashboard routes (đã đăng nhập mới truy cập)
 router.use('/dashboard', authMiddleware, dashboard);

@@ -13,7 +13,8 @@ async function enforceAdminWritable(req, res, next) {
   try {
     const { hoc_ky, nam_hoc } = extractSemester(req);
     const classId = req.body?.lop_id || req.body?.classId || req.query?.classId || null;
-    await SemesterClosure.checkWritableForClassSemesterOrThrow({ classId, hoc_ky, nam_hoc });
+    const userRole = req.user?.role || null;
+    await SemesterClosure.checkWritableForClassSemesterOrThrow({ classId, hoc_ky, nam_hoc, userRole });
     return next();
   } catch (err) {
     const code = err.status || 423;
@@ -26,7 +27,8 @@ async function enforceUserWritable(req, res, next) {
   try {
     const { hoc_ky, nam_hoc } = extractSemester(req);
     const userId = req.user?.sub || req.user?.id;
-    await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId, hoc_ky, nam_hoc });
+    const userRole = req.user?.role || null;
+    await SemesterClosure.enforceWritableForUserSemesterOrThrow({ userId, hoc_ky, nam_hoc, userRole });
     return next();
   } catch (err) {
     const code = err.status || 423;

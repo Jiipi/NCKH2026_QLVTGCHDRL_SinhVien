@@ -12,7 +12,13 @@ import {
   Menu,
   X,
   ChevronDown,
-  GraduationCap
+  GraduationCap,
+  Clock,
+  MapPin,
+  Users,
+  BookOpen,
+  Building2,
+  Loader2
 } from 'lucide-react';
 import http from '../services/http';
 import { useAppStore } from '../store/useAppStore';
@@ -21,6 +27,7 @@ import { useMultiSession } from '../hooks/useMultiSession';
 import SessionMonitor from './SessionMonitor';
 import sessionStorageManager from '../services/sessionStorageManager';
 import { getUserAvatar, getAvatarGradient } from '../utils/avatarUtils';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function ModernHeader({ isMobile, onMenuClick }) {
   const navigate = useNavigate();
@@ -30,8 +37,13 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   const [notificationOpen, setNotificationOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState([]);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState(null);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [theme, setTheme] = React.useState(() => {
-    return localStorage.getItem('theme') || 'light';
+    // Mỗi tab có theme riêng, không đồng bộ giữa các tab
+    return sessionStorage.getItem('theme') || 'light';
   });
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [detail, setDetail] = React.useState(null);
@@ -39,6 +51,8 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   const dropdownRef = React.useRef(null);
   const buttonRef = React.useRef(null);
   const notifRef = React.useRef(null);
+  const searchRef = React.useRef(null);
+  const searchInputRef = React.useRef(null);
   
   // Lấy role từ store (ưu tiên role từ store để tránh nhầm hiển thị)
   const { user } = useAppStore();
@@ -63,7 +77,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                            normalizedRole.includes('LOP') ||
                            normalizedRole.includes('LỚP');
 
-  // Theme toggle
+  // Theme toggle - Mỗi tab độc lập, không đồng bộ giữa các tab
   React.useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -71,7 +85,8 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('theme', theme);
+    // Lưu vào sessionStorage thay vì localStorage để mỗi tab riêng biệt
+    sessionStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -172,6 +187,61 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
   }, []);
+
+  // Handle click outside to close dropdowns
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close notification dropdown if click outside
+      if (notificationOpen && notifRef.current && !notifRef.current.contains(event.target)) {
+        setNotificationOpen(false);
+      }
+      
+      // Close profile dropdown if click outside
+      if (profileOpen && dropdownRef.current && buttonRef.current) {
+        if (!dropdownRef.current.contains(event.target) && !buttonRef.current.contains(event.target)) {
+          setProfileOpen(false);
+        }
+      }
+
+      // Close search dropdown if click outside
+      if (searchOpen && searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [notificationOpen, profileOpen, searchOpen]);
+
+  // Debounced search effect
+  React.useEffect(() => {
+    if (debouncedSearch && debouncedSearch.trim().length >= 2) {
+      performSearch(debouncedSearch);
+    } else {
+      setSearchResults(null);
+      setSearchOpen(false);
+    }
+  }, [debouncedSearch]);
+
+  const performSearch = async (query) => {
+    try {
+      setSearchLoading(true);
+      const response = await http.get('/search', { params: { q: query } });
+      const data = response?.data?.data || {};
+      setSearchResults(data);
+      setSearchOpen(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults(null);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const isAuthenticated = Boolean(tokenInStore || sessionStorageManager.getToken());
 
@@ -305,8 +375,11 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
+    // Search is handled by debounced effect, form submit just focuses first result
+    if (searchOpen && searchResults && searchResults.total > 0) {
+      // Close dropdown and clear search
+      setSearchOpen(false);
+      setSearchQuery('');
     }
   };
 
@@ -337,21 +410,22 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       {/* Top gradient line */}
       <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
       
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          {/* Mobile Menu Button - Left side on mobile only */}
-          {isMobile && onMenuClick && (
-            <button
-              onClick={onMenuClick}
-              className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors touch-target"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-            </button>
-          )}
+      <div className="w-full px-2 sm:px-4">
+        <div className="relative flex h-16 items-center justify-between">
+          {/* Left: Mobile Menu + Logo - BÁM SÁT góc trái */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Mobile Menu Button */}
+            {isMobile && onMenuClick && (
+              <button
+                onClick={onMenuClick}
+                className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors touch-target"
+                aria-label="Open menu"
+              >
+                <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              </button>
+            )}
 
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-4">
+            {/* Logo & Brand */}
             <Link to="/" className="flex items-center gap-3 group">
               <div className={`relative p-2 bg-gradient-to-br ${getRoleColor()} rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105`}>
                 <GraduationCap className="h-6 w-6 text-white" />
@@ -364,23 +438,275 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
             </Link>
           </div>
 
-          {/* Search bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-4">
-            <div className="relative w-full group">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm hoạt động, sinh viên..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-              />
-            </div>
-          </form>
+          {/* Center: Search bar - Desktop - CHÍNH GIỮA tuyệt đối */}
+          <div ref={searchRef} className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-2 pointer-events-none">
+            <div className="relative w-full">
+              <form onSubmit={handleSearch} className="w-full">
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
+                  {searchLoading && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-500 animate-spin pointer-events-none" />
+                  )}
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => { if (searchResults && searchResults.total > 0) setSearchOpen(true); }}
+                    placeholder="Tìm kiếm hoạt động..."
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 pointer-events-auto"
+                  />
+                </div>
+              </form>
 
-          {/* Right section */}
+              {/* Search Results Dropdown */}
+              {searchOpen && searchResults && searchResults.total > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden max-h-[500px] overflow-y-auto pointer-events-auto z-50">
+                  
+                  {/* Activities */}
+                  {searchResults.activities && searchResults.activities.length > 0 && (
+                    <div className="border-b border-gray-200 dark:border-slate-700">
+                      <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <BookOpen className="h-4 w-4" />
+                          Hoạt động ({searchResults.activities.length})
+                        </h3>
+                      </div>
+                      {searchResults.activities.map((activity) => (
+                        <div
+                          key={activity.id}
+                          onClick={() => {
+                            // Điều hướng theo ngữ cảnh tab tương ứng
+                            if (activity.isMine) {
+                              if (isTeacherContext) {
+                                navigate('/teacher/activities');
+                              } else if (isAdminContext) {
+                                navigate('/admin/activities');
+                              } else if (isMonitorContext) {
+                                navigate('/monitor/my-activities');
+                              } else {
+                                navigate('/student/my-activities');
+                              }
+                            } else {
+                              // Không thuộc "của tôi": mở trang danh sách hoạt động đúng theo vai trò
+                              if (isTeacherContext) {
+                                navigate('/teacher/activities');
+                              } else if (isAdminContext) {
+                                navigate('/admin/activities');
+                              } else {
+                                // Sinh viên/Lớp trưởng
+                                navigate('/student/activities');
+                              }
+                            }
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
+                        >
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                            {activity.ten_hd}
+                            {activity.isMine && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">Của tôi</span>
+                            )}
+                          </h4>
+                          {activity.mo_ta && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
+                              {activity.mo_ta}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {activity.dia_diem && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {activity.dia_diem}
+                              </span>
+                            )}
+                            {activity.ngay_bd && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}
+                              </span>
+                            )}
+                            {activity.diem_rl && (
+                              <span className="font-semibold text-green-600 dark:text-green-400">
+                                +{activity.diem_rl} điểm
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Students */}
+                  {searchResults.students && searchResults.students.length > 0 && (
+                    <div className="border-b border-gray-200 dark:border-slate-700">
+                      <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Sinh viên ({searchResults.students.length})
+                        </h3>
+                      </div>
+                      {searchResults.students.map((student) => (
+                        <div
+                          key={student.id_nd}
+                          onClick={() => {
+                            if (isAdminContext) {
+                              navigate(`/admin/students/${student.id_nd}`);
+                            } else if (isTeacherContext || isMonitorContext) {
+                              navigate(`/teacher/students/${student.id_nd}`);
+                            }
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const avatar = getUserAvatar(student.nguoi_dung);
+                              return avatar.hasValidAvatar ? (
+                                <img src={avatar.src} alt={avatar.alt} className="w-10 h-10 rounded-lg object-cover" />
+                              ) : (
+                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || '')} flex items-center justify-center text-white font-bold text-sm`}>
+                                  {avatar.fallback}
+                                </div>
+                              );
+                            })()}
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                                {student.nguoi_dung?.ho_ten}
+                              </h4>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {student.ma_sv} • {student.lop?.ten_lop}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Classes */}
+                  {searchResults.classes && searchResults.classes.length > 0 && (
+                    <div className="border-b border-gray-200 dark:border-slate-700">
+                      <div className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Lớp học ({searchResults.classes.length})
+                        </h3>
+                      </div>
+                      {searchResults.classes.map((cls) => (
+                        <div
+                          key={cls.id}
+                          onClick={() => {
+                            if (isAdminContext) {
+                              navigate(`/admin/classes/${cls.id}`);
+                            } else if (isTeacherContext) {
+                              navigate(`/teacher/classes/${cls.id}`);
+                            }
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
+                        >
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {cls.ten_lop}
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {cls.khoa?.ten_khoa} • {cls._count?.sinh_vien || 0} sinh viên
+                          </p>
+                          {cls.gvcn?.ho_ten && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              GVCN: {cls.gvcn.ho_ten}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Teachers */}
+                  {searchResults.teachers && searchResults.teachers.length > 0 && (
+                    <div className="border-b border-gray-200 dark:border-slate-700">
+                      <div className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Giảng viên ({searchResults.teachers.length})
+                        </h3>
+                      </div>
+                      {searchResults.teachers.map((teacher) => (
+                        <div
+                          key={teacher.id}
+                          onClick={() => {
+                            navigate(`/admin/teachers/${teacher.id}`);
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const avatar = getUserAvatar(teacher);
+                              return avatar.hasValidAvatar ? (
+                                <img src={avatar.src} alt={avatar.alt} className="w-10 h-10 rounded-lg object-cover" />
+                              ) : (
+                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getAvatarGradient(teacher.ho_ten || '')} flex items-center justify-center text-white font-bold text-sm`}>
+                                  {avatar.fallback}
+                                </div>
+                              );
+                            })()}
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                                {teacher.ho_ten}
+                              </h4>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {teacher.email}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Faculties */}
+                  {searchResults.faculties && searchResults.faculties.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Khoa ({searchResults.faculties.length})
+                        </h3>
+                      </div>
+                      {searchResults.faculties.map((faculty) => (
+                        <div
+                          key={faculty.id}
+                          onClick={() => {
+                            navigate(`/admin/faculties/${faculty.id}`);
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
+                        >
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {faculty.ten_khoa}
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {faculty.ma_khoa} • {faculty._count?.lop_hoc || 0} lớp • {faculty._count?.sinh_vien || 0} sinh viên
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Actions + Avatar - BÁM SÁT góc phải */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               
               {/* Theme Toggle */}
               <button

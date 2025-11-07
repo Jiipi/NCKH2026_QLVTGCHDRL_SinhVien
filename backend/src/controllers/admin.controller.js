@@ -616,13 +616,17 @@ class AdminController {
     }
   }
 
-  // Xóa người dùng
+  // Xóa người dùng hoàn toàn khỏi hệ thống
   static async deleteUser(req, res) {
     try {
       const { id } = req.params;
 
       const existingUser = await prisma.nguoiDung.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+          vai_tro: true,
+          sinh_vien: true
+        }
       });
 
       if (!existingUser) {
@@ -634,27 +638,188 @@ class AdminController {
         return sendResponse(res, 400, ApiResponse.error('Không thể xóa tài khoản của chính mình'));
       }
 
-      // Delete related records first (sinh_vien if exists)
-      await prisma.sinhVien.deleteMany({
-        where: { nguoi_dung_id: id }
+      // Xóa hoàn toàn tất cả dữ liệu liên quan đến user trong một transaction
+      await prisma.$transaction(async (tx) => {
+        const sinhVienId = existingUser.sinh_vien?.id;
+
+        // 1. Xóa các đăng ký hoạt động nếu là sinh viên
+        if (sinhVienId) {
+          await tx.dangKyHoatDong.deleteMany({
+            where: { sv_id: sinhVienId }
+          });
+
+          // 2. Xóa điểm danh
+          await tx.diemDanh.deleteMany({
+            where: { sv_id: sinhVienId }
+          });
+
+          // 3. Xóa lịch sử điểm rèn luyện (nếu có bảng này)
+          // await tx.lichSuDiem.deleteMany({
+          //   where: { sv_id: sinhVienId }
+          // });
+        }
+
+        // 4. Xóa thông báo liên quan (người gửi và người nhận)
+        await tx.thongBao.deleteMany({
+          where: {
+            OR: [
+              { nguoi_gui_id: id },
+              { nguoi_nhan_id: id }
+            ]
+          }
+        });
+
+        // 5. Cập nhật lớp nếu user là lớp trưởng
+        if (sinhVienId) {
+          await tx.lop.updateMany({
+            where: { lop_truong: sinhVienId },
+            data: { lop_truong: null }
+          });
+        }
+
+        // 6. Cập nhật lớp nếu user là chủ nhiệm
+        // NOTE: chu_nhiem là required trong schema, không thể set null
+        // Thay vào đó, tìm admin/giảng viên khác để thay thế
+        const classesAsHeadTeacher = await tx.lop.findMany({
+          where: { chu_nhiem: id },
+          select: { id: true, ten_lop: true }
+        });
+
+        if (classesAsHeadTeacher.length > 0) {
+          // Tìm admin/giảng viên khác để thay thế
+          const replacementTeacher = await tx.nguoiDung.findFirst({
+            where: {
+              vai_tro: {
+                ten_vt: { in: ['ADMIN', 'Admin', 'GIẢNG_VIÊN', 'Giảng viên'] }
+              },
+              id: { not: id },
+              trang_thai: 'hoat_dong'
+            },
+            select: { id: true, ho_ten: true }
+          });
+
+          if (replacementTeacher) {
+            // Chuyển sang giảng viên/admin khác
+            await tx.lop.updateMany({
+              where: { chu_nhiem: id },
+              data: { chu_nhiem: replacementTeacher.id }
+            });
+            logInfo('Transferred class head teacher', {
+              from: id,
+              to: replacementTeacher.id,
+              classCount: classesAsHeadTeacher.length
+            });
+          } else {
+            // Không có người thay thế, không thể xóa user này
+            throw new Error(
+              `Không thể xóa user vì đang là chủ nhiệm ${classesAsHeadTeacher.length} lớp ` +
+              `(${classesAsHeadTeacher.map(c => c.ten_lop).join(', ')}) ` +
+              `và không có giảng viên khác để thay thế. Vui lòng chuyển chủ nhiệm trước khi xóa.`
+            );
+          }
+        }
+
+        // 7. Xóa hoạt động do user tạo (hoặc chuyển cho admin khác)
+        // Có thể chọn xóa hoặc chuyển ownership
+        const createdActivities = await tx.hoatDong.count({
+          where: { nguoi_tao_id: id }
+        });
+
+        if (createdActivities > 0) {
+          // Tìm một admin khác để chuyển ownership
+          const otherAdmin = await tx.nguoiDung.findFirst({
+            where: {
+              vai_tro: {
+                ten_vt: { in: ['ADMIN', 'Admin'] }
+              },
+              id: { not: id },
+              trang_thai: 'hoat_dong'
+            },
+            select: { id: true }
+          });
+
+          if (otherAdmin) {
+            // Chuyển ownership cho admin khác
+            await tx.hoatDong.updateMany({
+              where: { nguoi_tao_id: id },
+              data: { nguoi_tao_id: otherAdmin.id }
+            });
+          } else {
+            // Nếu không có admin khác, xóa hoạt động
+            await tx.hoatDong.deleteMany({
+              where: { nguoi_tao_id: id }
+            });
+          }
+        }
+
+        // 8. Xử lý điểm danh do user thực hiện (người điểm danh)
+        // NOTE: nguoi_diem_danh_id là required, không thể set null
+        // Có 2 options: Xóa hoặc chuyển sang admin khác
+        const attendanceRecordsByUser = await tx.diemDanh.count({
+          where: { nguoi_diem_danh_id: id }
+        });
+
+        if (attendanceRecordsByUser > 0) {
+          // Tìm admin/giảng viên khác để chuyển
+          const replacementChecker = await tx.nguoiDung.findFirst({
+            where: {
+              vai_tro: {
+                ten_vt: { in: ['ADMIN', 'Admin', 'GIẢNG_VIÊN', 'Giảng viên'] }
+              },
+              id: { not: id },
+              trang_thai: 'hoat_dong'
+            },
+            select: { id: true }
+          });
+
+          if (replacementChecker) {
+            // Chuyển sang người khác
+            await tx.diemDanh.updateMany({
+              where: { nguoi_diem_danh_id: id },
+              data: { nguoi_diem_danh_id: replacementChecker.id }
+            });
+          } else {
+            // Không có người thay thế, XÓA các bản ghi điểm danh này
+            // (vì không thể để nguoi_diem_danh_id = null)
+            await tx.diemDanh.deleteMany({
+              where: { nguoi_diem_danh_id: id }
+            });
+            logInfo('Deleted attendance records with no replacement', {
+              count: attendanceRecordsByUser
+            });
+          }
+        }
+
+        // 9. Xóa bản ghi sinh viên
+        if (sinhVienId) {
+          await tx.sinhVien.delete({
+            where: { id: sinhVienId }
+          });
+        }
+
+        // 10. Cuối cùng, xóa user
+        await tx.nguoiDung.delete({
+          where: { id }
+        });
       });
 
-      // Delete user
-      await prisma.nguoiDung.delete({
-        where: { id }
-      });
-
-      logInfo('User deleted successfully', { 
+      logInfo('User deleted completely from system', { 
         adminId: req.user.id, 
         deletedUserId: id,
-        deletedUserMaso: existingUser.ten_dn
+        deletedUserMaso: existingUser.ten_dn,
+        deletedUserRole: existingUser.vai_tro?.ten_vt,
+        hadSinhVien: !!existingUser.sinh_vien
       });
 
-      return sendResponse(res, 200, ApiResponse.success('Xóa người dùng thành công'));
+      return sendResponse(res, 200, ApiResponse.success(null, 'Đã xóa người dùng và toàn bộ dữ liệu liên quan khỏi hệ thống'));
 
     } catch (error) {
-      logError('Error deleting user', { error: error.message, userId: req.user?.id });
-      return sendResponse(res, 500, ApiResponse.error('Lỗi xóa người dùng'));
+      logError('Error deleting user completely', { 
+        error: error.message, 
+        stack: error.stack,
+        userId: req.user?.id 
+      });
+      return sendResponse(res, 500, ApiResponse.error(`Lỗi xóa người dùng: ${error.message}`));
     }
   }
 

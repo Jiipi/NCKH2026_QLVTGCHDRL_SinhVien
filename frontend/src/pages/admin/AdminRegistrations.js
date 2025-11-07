@@ -9,7 +9,7 @@ import { getUserAvatar } from '../../utils/avatarUtils';
 import { getBestActivityImage } from '../../utils/activityImages';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
 import ConfirmModal from '../../components/ConfirmModal';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 
 const AdminRegistrations = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -39,7 +39,7 @@ const AdminRegistrations = () => {
     return `hoc_ky_1-${currentYear}`;
   };
   const [semester, setSemester] = useState(getCurrentSemesterValue());
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
   const [confirmApprove, setConfirmApprove] = useState({ isOpen: false, registrationId: null });
   const [confirmReject, setConfirmReject] = useState({ isOpen: false, registrationId: null });
   const [rejectReason, setRejectReason] = useState('');

@@ -2,7 +2,7 @@ import React from 'react';
 import http from '../services/http';
 import Header from '../components/Header';
 import StudentSidebar from '../components/StudentSidebar';
-import useSemesterOptions from '../hooks/useSemesterOptions';
+import useSemesterData from '../hooks/useSemesterData';
 
 export default function ProfilePage(){
   const [profile, setProfile] = React.useState(null);
@@ -16,7 +16,7 @@ export default function ProfilePage(){
   const [activityFilters, setActivityFilters] = React.useState({ semester: '', status: '' });
   const [loading, setLoading] = React.useState(false);
   const [activitiesLoading, setActivitiesLoading] = React.useState(false);
-  const { options: semesterOptions } = useSemesterOptions();
+  const { options: semesterOptions } = useSemesterData();
 
   React.useEffect(function load(){
     let mounted = true;

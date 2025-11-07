@@ -2,12 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSafeNavigate from '../../hooks/useSafeNavigate';
 import { 
-  Calendar, Award, TrendingUp, Bell, Clock, MapPin, Users, ChevronRight, 
-  Star, BookOpen, Target, Activity, BarChart3, Medal, Trophy, Sparkles,
-  Zap, TrendingDown, Eye, Plus, RefreshCw, Filter
+  Calendar, TrendingUp, Clock, MapPin, ChevronRight, 
+  Star, Activity, BarChart3, Medal, Trophy, Sparkles,
+  Zap, TrendingDown, Filter
 } from 'lucide-react';
 import http from '../../services/http';
-import useSemesterOptions from '../../hooks/useSemesterOptions';
+import useSemesterData from '../../hooks/useSemesterData';
 import SemesterFilter from '../../components/SemesterFilter';
 
 export default function DashboardStudentModern() {
@@ -22,8 +22,23 @@ export default function DashboardStudentModern() {
   const [userProfile, setUserProfile] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const [semester, setSemester] = React.useState('');
-  const { options: semesterOptions } = useSemesterOptions();
+  const [semester, setSemester] = React.useState(() => {
+    try { return sessionStorage.getItem('current_semester') || ''; } catch (_) { return ''; }
+  });
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Sync with backend-reported current semester like monitor dashboard
+  React.useEffect(() => {
+    if (currentSemester && currentSemester !== semester) {
+      setSemester(currentSemester);
+    }
+  }, [currentSemester]);
+
+  React.useEffect(() => {
+    if (semester) {
+      try { sessionStorage.setItem('current_semester', semester); } catch (_) {}
+    }
+  }, [semester]);
 
   const parseSemesterToLegacy = React.useCallback((value) => {
     const m = String(value || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
@@ -59,10 +74,14 @@ export default function DashboardStudentModern() {
         apiData = dashboardRes.value.data.data || {};
         
         if (apiData.tong_quan) {
-          totalPoints = apiData.tong_quan.tong_diem || 0;
+          totalPoints = Number(apiData.tong_quan.tong_diem || 0);
+          // Thống nhất logic như dashboard lớp trưởng: % hoàn thành dựa trên điểm đạt / mục tiêu
+          const target = Number(apiData.tong_quan.muc_tieu || 100);
+          const percent = target > 0 ? (totalPoints / target) * 100 : 0;
+          const percentFixed = Math.round(Math.min(percent, 100) * 10) / 10; // 1 chữ số thập phân, tối đa 100%
           setSummary({
-            totalPoints: totalPoints,
-            progress: apiData.tong_quan.ti_le_hoan_thanh || 0,
+            totalPoints: Math.round(totalPoints * 10) / 10,
+            progress: percentFixed,
             targetPoints: 100,
             activitiesJoined: apiData.tong_quan.tong_hoat_dong || 0
           });
@@ -77,8 +96,9 @@ export default function DashboardStudentModern() {
         }
       }
 
+      let myData = [];
       if (myActivitiesRes.status === 'fulfilled') {
-        const myData = myActivitiesRes.value.data?.success && Array.isArray(myActivitiesRes.value.data.data)
+        myData = myActivitiesRes.value.data?.success && Array.isArray(myActivitiesRes.value.data.data)
           ? myActivitiesRes.value.data.data
           : Array.isArray(myActivitiesRes.value.data)
             ? myActivitiesRes.value.data
@@ -90,6 +110,48 @@ export default function DashboardStudentModern() {
         const profileData = profileRes.value.data?.data || profileRes.value.data || {};
         setUserProfile(profileData);
       }
+
+      // Derive total points strictly for the selected semester
+      try {
+        const hkMatch = (registration) => {
+          if (!semester) return true;
+          const m = String(semester).match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
+          if (!m) return true;
+          const hk = m[1];
+          const y = parseInt(m[2], 10);
+          const nh = hk === 'hoc_ky_1' ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+          const a = registration?.hoat_dong || registration?.activity || {};
+          if (a.hoc_ky && a.nam_hoc) {
+            return a.hoc_ky === hk && a.nam_hoc === nh;
+          }
+          return true; // nếu thiếu thông tin, tạm thời chấp nhận
+        };
+        const getStatus = (r) => (r?.registration_status || r?.trang_thai_dk || r?.status || r?.trang_thai || '').toLowerCase();
+        const isAttended = (r) => {
+          // CHỈ tính khi đã tham gia thật sự
+          if (r?.is_attended === true || r?.attended === true) return true;
+          const st = getStatus(r);
+          return st === 'da_tham_gia';
+        };
+        const getPoints = (r) => Number(r?.diem_rl || r?.hoat_dong?.diem_rl || r?.activity?.diem_rl || r?.points || 0);
+        const participated = (myData || []).filter(r => hkMatch(r) && (isAttended(r) || getPoints(r) > 0));
+        // Nếu chỉ tính đã tham gia: loại bỏ các bản ghi chỉ có điểm nhưng chưa tham gia
+        const sumFromActivities = participated
+          .filter(isAttended)
+          .reduce((s, r) => s + getPoints(r), 0);
+        // Nếu có dữ liệu danh sách, luôn dùng tổng theo học kỳ để đảm bảo chính xác
+        if ((myData || []).length > 0) {
+          totalPoints = sumFromActivities;
+          const target = 100;
+          const percentFixed = Math.round(Math.min((totalPoints / target) * 100, 100) * 10) / 10;
+          setSummary(prev => ({
+            ...prev,
+            totalPoints: Math.round(totalPoints * 10) / 10,
+            progress: percentFixed,
+            activitiesJoined: participated.length
+          }));
+        }
+      } catch (_) {}
 
       const criteriaProgress = apiData.tien_do_tieu_chi || [
         { id: 1, ten_tieu_chi: 'Ý thức và kết quả học tập', diem_hien_tai: totalPoints ? Math.floor(totalPoints * 0.4) : 0, diem_toi_da: 25, mau_sac: '#3B82F6', icon: '📚' },
@@ -123,6 +185,12 @@ export default function DashboardStudentModern() {
   const classification = getClassification(summary.totalPoints);
   const ClassIcon = classification.icon;
 
+  const formatNumber = (n) => {
+    const num = Number(n || 0);
+    // Hiển thị .0 đến 1 chữ số, bỏ .0 nếu là số nguyên
+    return (Math.round(num * 10) / 10).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  };
+
   return (
     <div className="space-y-6">
       {/* Hero Header */}
@@ -150,7 +218,7 @@ export default function DashboardStudentModern() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/80 text-sm mb-1">Tổng điểm</p>
-                  <p className="text-3xl font-bold text-white">{summary.totalPoints}</p>
+                  <p className="text-3xl font-bold text-white">{formatNumber(summary.totalPoints)}</p>
                   <p className="text-white/60 text-xs mt-1">/ {summary.targetPoints} điểm</p>
                 </div>
                 <div className="bg-white/20 rounded-full p-3">
@@ -180,7 +248,7 @@ export default function DashboardStudentModern() {
                     {classification.text}
                     <ClassIcon className="h-6 w-6" />
                   </p>
-                  <p className="text-white/60 text-xs mt-1">{summary.progress}% hoàn thành</p>
+                  <p className="text-white/60 text-xs mt-1">{formatNumber(summary.progress)}% hoàn thành</p>
                 </div>
                 <div className="bg-white/20 rounded-full p-3">
                   <TrendingUp className="h-8 w-8 text-white" />
@@ -367,44 +435,7 @@ export default function DashboardStudentModern() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => navigate('/student/activities')}
-              className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <Calendar className="h-8 w-8 mb-3" />
-              <p className="font-semibold text-lg">Xem hoạt động</p>
-            </button>
-
-            <button
-              onClick={() => navigate('/student/my-activities')}
-              className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 text-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <Award className="h-8 w-8 mb-3" />
-              <p className="font-semibold text-lg">Hoạt động của tôi</p>
-            </button>
-
-            <button
-              onClick={() => navigate('/student/scores')}
-              className="group relative overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <Trophy className="h-8 w-8 mb-3" />
-              <p className="font-semibold text-lg">Điểm rèn luyện</p>
-            </button>
-
-            <button
-              onClick={() => navigate('/student/qr-scanner')}
-              className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-2xl p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <Target className="h-8 w-8 mb-3" />
-              <p className="font-semibold text-lg">Điểm danh QR</p>
-            </button>
-          </div>
+          {/* Quick Actions removed as requested */}
         </>
       )}
     </div>
