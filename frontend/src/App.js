@@ -31,8 +31,9 @@ import UserProfile from './pages/profile/UserProfile';
 // Cleaned: remove StudentPointsModern import if not used elsewhere
 import ManageActivity from './pages/ManageActivity';
 import ActivityDetail from './pages/student/ActivityDetail';
-// import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
-import StudentDashboardModern from './pages/student/DashboardStudentModern';
+import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
+// import StudentDashboardModern from './pages/student/DashboardStudentModern';
+const StudentDashboardModern = DashboardStudentImproved; // Use Neo-brutalism design
 // import ActivitiesList from './pages/student/ActivitiesList';
 import ActivitiesListModern from './pages/student/ActivitiesListModern';
 // import MyActivities from './pages/student/MyActivities';
