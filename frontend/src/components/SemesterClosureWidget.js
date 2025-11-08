@@ -141,6 +141,58 @@ export default function SemesterClosureWidget({ compact = false, onChanged, clas
   const canSoftLock = enableSoftLock && info.state?.state === 'CLOSING';
   const canHardLock = enableHardLock && ['LOCKED_SOFT', 'CLOSING'].includes(info.state?.state);
 
+  // Compact mode for integration into filter card
+  if (compact && className.includes('!p-0')) {
+    return (
+      <div className={`${className}`}>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-600" />
+            <div>
+              <div className="text-xs text-gray-500 font-medium">Học kỳ hiện tại</div>
+              <div className="font-bold text-gray-900 text-sm">{formatSemester(info.semester)}</div>
+            </div>
+          </div>
+          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${stateMeta.bg} ${stateMeta.color}`}>
+            {stateMeta.icon}
+            <span>{stateMeta.text}</span>
+          </div>
+        </div>
+        {(canPropose || canSoftLock || canRollback || canHardLock) && (
+          <div className="flex items-center gap-2">
+            {info.state?.state === 'LOCKED_SOFT' && info.state?.grace_until && (
+              <div className="text-xs text-gray-600 flex-1">
+                Có thể hủy trước: <span className="font-medium">{new Date(info.state.grace_until).toLocaleString('vi-VN')}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              {canPropose && (
+                <button onClick={proposeClose} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-60 border-2 border-black shadow-sm">
+                  Đề xuất đóng học kỳ
+                </button>
+              )}
+              {canSoftLock && (
+                <button onClick={softLock} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60 border-2 border-black shadow-sm">
+                  Chốt mềm 72h
+                </button>
+              )}
+              {canRollback && (
+                <button onClick={rollback} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-600 hover:bg-gray-700 text-white disabled:opacity-60 border-2 border-black shadow-sm">
+                  Hủy chốt mềm
+                </button>
+              )}
+              {canHardLock && (
+                <button onClick={hardLock} disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60 border-2 border-black shadow-sm">
+                  Xác nhận đóng học kỳ
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
   <div className={`rounded-2xl border ${compact ? 'p-3' : 'p-4 bg-white'} ${className}`}>
       <div className="flex items-center justify-between gap-3">

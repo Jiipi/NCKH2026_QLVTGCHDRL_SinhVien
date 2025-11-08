@@ -141,124 +141,193 @@ export default function ClassNotifications() {
   const maxChars = 500;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Modern Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
+      <div className="relative min-h-[280px]">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
+        </div>
+
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
+        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
+
+        {/* Main Content Container with Glassmorphism */}
+        <div className="relative z-10 p-8">
+          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
+            
+            {/* Top Bar with Badge */}
+            <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                  <Bell className="h-8 w-8 text-white" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
+                  <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
+                    🔔 THÔNG BÁO
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white drop-shadow-lg">Gửi Thông Báo</h1>
-                  <p className="text-indigo-100 mt-1">Gửi thông báo tới sinh viên trong lớp</p>
+                <div className="h-8 w-1 bg-white/40"></div>
+                <div className="text-white/90 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    {stats.total} ĐÃ GỬI
+                  </div>
                 </div>
               </div>
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl hover:bg-indigo-50 transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 font-semibold"
+                className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 font-semibold text-sm"
               >
-                <Clock className="h-5 w-5" />
-                {showHistory ? 'Ẩn lịch sử' : 'Xem lịch sử'}
+                <Clock className="h-4 w-4" />
+                {showHistory ? 'Ẩn lịch sử' : 'Lịch sử'}
               </button>
             </div>
-          </div>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <Sparkles className="h-5 w-5 opacity-50" />
+            {/* Main Title Section */}
+            <div className="mb-8">
+              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">G</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ử</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">I</span>
+                <span className="inline-block mx-2">•</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ô</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">G</span>
+                <br />
+                <span className="relative inline-block mt-2">
+                  <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
+                    BÁO
+                  </span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
+                </span>
+              </h1>
+              
+              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
+                Gửi thông báo và cập nhật quan trọng đến sinh viên trong lớp
+              </p>
             </div>
-            <div className="text-3xl font-bold mb-1">{stats.total}</div>
-            <div className="text-indigo-100 text-sm font-medium">Tổng thông báo</div>
-          </div>
 
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Zap className="h-6 w-6" />
-              </div>
-              <TrendingUp className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.thisWeek}</div>
-            <div className="text-emerald-100 text-sm font-medium">Tuần này</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Users className="h-6 w-6" />
-              </div>
-              <Target className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.classScope}</div>
-            <div className="text-amber-100 text-sm font-medium">Toàn lớp</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Activity className="h-6 w-6" />
-              </div>
-              <Filter className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.activityScope}</div>
-            <div className="text-rose-100 text-sm font-medium">Theo hoạt động</div>
-          </div>
-        </div>
-
-        {/* Alert Messages */}
-        {error && (
-          <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl p-4 flex items-center text-red-700 shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="p-2 bg-red-100 rounded-xl mr-3">
-              <AlertCircle className="h-5 w-5" />
-            </div>
-            <span className="font-medium">{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 flex items-center text-green-700 shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="p-2 bg-green-100 rounded-xl mr-3">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <span className="font-medium">{success}</span>
-          </div>
-        )}
-
-        {/* Templates */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-600" />
-            Mẫu thông báo nhanh
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            {templates.map(template => (
-              <button
-                key={template.id}
-                onClick={() => applyTemplate(template)}
-                className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100 rounded-xl hover:border-indigo-300 hover:shadow-lg transition-all text-left group"
-              >
-                <div className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-indigo-600 transition-colors">
-                  {template.name}
+            {/* Stats Bar with Brutalist Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1 - Total */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-gradient-to-br from-cyan-400 to-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <MessageSquare className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.total}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG</p>
                 </div>
-                <div className="text-xs text-gray-600 line-clamp-2">
-                  {template.message}
+              </div>
+
+              {/* Card 2 - This Week */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Zap className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.thisWeek}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TUẦN NÀY</p>
                 </div>
-              </button>
-            ))}
+              </div>
+
+              {/* Card 3 - Class Scope */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Users className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.classScope}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TOÀN LỚP</p>
+                </div>
+              </div>
+
+              {/* Card 4 - Activity Scope */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-pink-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Activity className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.activityScope}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Main Form */}
-        <form onSubmit={handleSend} className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6 space-y-6">
+        {/* Custom CSS for animations */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes grid-move {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(-20px) rotate(45deg); }
+          }
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+          }
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+        `}} />
+      </div>
+
+      {/* Alert Messages */}
+      {error && (
+        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl p-4 flex items-center text-red-700 shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="p-2 bg-red-100 rounded-xl mr-3">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+          <span className="font-medium">{error}</span>
+        </div>
+      )}
+      {success && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 flex items-center text-green-700 shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="p-2 bg-green-100 rounded-xl mr-3">
+            <CheckCircle className="h-5 w-5" />
+          </div>
+          <span className="font-medium">{success}</span>
+        </div>
+      )}
+
+      {/* Templates */}
+      <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Sparkles className="h-5 w-5 text-purple-600" />
+          <h3 className="text-lg font-black text-gray-900 uppercase tracking-wide">Mẫu thông báo nhanh</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {templates.map(template => (
+            <button
+              key={template.id}
+              onClick={() => applyTemplate(template)}
+              className="group relative p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl hover:border-indigo-400 hover:shadow-lg transition-all text-left"
+            >
+              <div className="font-bold text-gray-900 text-sm mb-1 group-hover:text-indigo-600 transition-colors">
+                {template.name}
+              </div>
+              <div className="text-xs text-gray-600 line-clamp-2">
+                {template.message}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Form */}
+      <form onSubmit={handleSend} className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8 space-y-6">
           <div>
             <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
               <MessageSquare className="h-4 w-4 text-indigo-600" />
@@ -342,60 +411,77 @@ export default function ClassNotifications() {
           </div>
         </form>
 
-        {/* History Section */}
-        {showHistory && sentHistory.length > 0 && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Clock className="h-6 w-6 text-indigo-600" />
-              Lịch sử gửi thông báo
-            </h3>
-            <div className="space-y-3">
-              {sentHistory.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleNotificationClick(item)}
-                  className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-indigo-50 rounded-xl border border-gray-200 hover:shadow-md transition-all cursor-pointer hover:border-indigo-300"
-                >
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${
+      {/* History Section */}
+      {showHistory && sentHistory.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <Clock className="h-6 w-6 text-indigo-600" />
+            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-wide">Lịch sử gửi</h3>
+          </div>
+          <div className="space-y-4">
+            {sentHistory.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => handleNotificationClick(item)}
+                className="group relative cursor-pointer"
+              >
+                {/* Brutalist shadow */}
+                <div className={`absolute inset-0 transform translate-x-2 translate-y-2 rounded-xl ${
+                  item.scope === 'class' ? 'bg-indigo-400' : 'bg-green-400'
+                }`}></div>
+                
+                {/* Main card */}
+                <div className={`relative flex items-center gap-4 p-5 rounded-xl border-4 border-black transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 ${
+                  item.scope === 'class' 
+                    ? 'bg-gradient-to-r from-indigo-100 to-purple-100' 
+                    : 'bg-gradient-to-r from-green-100 to-emerald-100'
+                }`}>
+                  {/* Icon badge */}
+                  <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center border-4 border-black ${
                     item.scope === 'class' 
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-500' 
-                      : 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                      ? 'bg-indigo-400' 
+                      : 'bg-green-400'
                   }`}>
                     {item.scope === 'class' ? (
-                      <Users className="h-6 w-6 text-white" />
+                      <Users className="h-6 w-6 text-black" />
                     ) : (
-                      <Activity className="h-6 w-6 text-white" />
+                      <Activity className="h-6 w-6 text-black" />
                     )}
                   </div>
+                  
+                  {/* Content */}
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{item.title}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
+                    <p className="font-black text-gray-900 text-base mb-2">{item.title}</p>
+                    <div className="flex items-center flex-wrap gap-3">
+                      <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {new Date(item.date).toLocaleDateString('vi-VN')}
                       </span>
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
+                      <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {item.recipients} người nhận
+                        {item.recipients} người
                       </span>
-                      <span className={`text-xs px-2 py-1 rounded-lg font-semibold ${
+                      <span className={`text-xs px-2 py-1 rounded-lg font-black border-2 ${
                         item.scope === 'class'
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-indigo-200 text-indigo-900 border-indigo-400'
+                          : 'bg-green-200 text-green-900 border-green-400'
                       }`}>
-                        {item.scope === 'class' ? '🎓 Toàn lớp' : '📋 Theo hoạt động'}
+                        {item.scope === 'class' ? '🎓 TOÀN LỚP' : '📋 HOẠT ĐỘNG'}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                  
+                  {/* Status badge */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-400 text-black rounded-lg text-xs font-black border-2 border-black">
                     <CheckCircle className="h-4 w-4" />
-                    Đã gửi
+                    ĐÃ GỬI
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
         {/* Detail Modal */}
         {showDetailModal && selectedNotification && (
@@ -534,7 +620,6 @@ export default function ClassNotifications() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

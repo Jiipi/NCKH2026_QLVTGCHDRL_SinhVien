@@ -889,8 +889,6 @@ export default function MyActivitiesModern() {
               <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Tổng: <strong className="text-purple-600">{totalActivities}</strong></span>
-              <div className="h-4 w-px bg-gray-300"></div>
               {/* Toggle view mode button */}
               <button
                 onClick={() => setStatusViewMode(statusViewMode === 'pills' ? 'dropdown' : statusViewMode === 'dropdown' ? 'compact' : 'pills')}

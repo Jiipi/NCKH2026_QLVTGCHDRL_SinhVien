@@ -6,7 +6,7 @@ import ActivitiesList from './student/ActivitiesList';
 import MyActivities from './student/MyActivities';
 import Scores from './student/Scores';
 import MonitorDashboard from './monitor/MonitorDashboard';
-import ClassActivities from './monitor/ClassActivities';
+import ClassActivities from './monitor/ClassActivitiesModern';
 import ClassApprovals from './monitor/ClassApprovals';
 import ClassStudents from './monitor/ClassStudents';
 import ClassReports from './monitor/ClassReports';

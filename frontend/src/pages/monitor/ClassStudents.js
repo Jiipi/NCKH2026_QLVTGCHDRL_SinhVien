@@ -201,51 +201,51 @@ export default function ClassStudents() {
           </div>
         )}
 
-        <div className="p-6 relative z-10">
-          {/* Student Header */}
-          <div className="flex items-start gap-4 mb-4">
+        <div className="p-4 relative z-10">
+          {/* Student Header - Compact */}
+          <div className="flex items-start gap-3 mb-3">
             <div className="flex-shrink-0">
               {avatar.hasValidAvatar ? (
                 <img
                   src={avatar.src}
                   alt={avatar.alt}
-                  className="w-20 h-20 rounded-2xl object-cover shadow-lg ring-4 ring-white"
+                  className="w-16 h-16 rounded-xl object-cover shadow-md ring-2 ring-white"
                 />
               ) : (
-                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || student.mssv)} flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-4 ring-white`}>
+                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || student.mssv)} flex items-center justify-center text-white font-bold text-xl shadow-md ring-2 ring-white`}>
                   {avatar.fallback}
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">
+              <h3 className="text-base font-bold text-gray-900 mb-1 truncate">
                 {student.nguoi_dung.ho_ten}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                <User className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-0.5">
+                <User className="h-3 w-3" />
                 <span className="font-medium">MSSV: {student.mssv}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <Mail className="h-3 w-3" />
                 <span className="truncate">{student.nguoi_dung.email}</span>
               </div>
             </div>
             {!isTopRanked && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-sm font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                 #{student.rank}
               </span>
             )}
           </div>
 
-          {/* Points Display */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-4 border border-indigo-100">
+          {/* Points Display - Compact */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 mb-3 border border-indigo-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Điểm rèn luyện</span>
-              <span className={`text-3xl font-bold ${getPointsColor(student.totalPoints)}`}>
+              <span className="text-xs font-medium text-gray-600">Điểm rèn luyện</span>
+              <span className={`text-2xl font-bold ${getPointsColor(student.totalPoints)}`}>
                 {student.totalPoints}
               </span>
             </div>
-            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
               <div 
                 className={`absolute top-0 left-0 h-full bg-gradient-to-r ${getProgressColor(student.totalPoints)} transition-all duration-500 rounded-full`}
                 style={{ width: `${progressPercent}%` }}
@@ -255,41 +255,41 @@ export default function ClassStudents() {
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0</span>
-              <span>100 điểm</span>
+              <span>100</span>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-white/60 rounded-xl p-3 border border-gray-100">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Activity className="h-4 w-4 text-blue-600" />
+          {/* Stats Grid - Compact */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="p-1.5 bg-blue-50 rounded-md">
+                  <Activity className="h-3 w-3 text-blue-600" />
                 </div>
                 <span className="text-xs text-gray-500 font-medium">Hoạt động</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{student.activitiesJoined}</p>
+              <p className="text-lg font-bold text-gray-900">{student.activitiesJoined}</p>
             </div>
 
-            <div className="bg-white/60 rounded-xl p-3 border border-gray-100">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <Target className="h-4 w-4 text-purple-600" />
+            <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="p-1.5 bg-purple-50 rounded-md">
+                  <Target className="h-3 w-3 text-purple-600" />
                 </div>
-                <span className="text-xs text-gray-500 font-medium">Mục tiêu</span>
+                <span className="text-xs text-gray-500 font-medium">Còn lại</span>
               </div>
-              <p className="text-xl font-bold text-gray-900">{Math.max(0, 100 - student.totalPoints)}</p>
+              <p className="text-lg font-bold text-gray-900">{Math.max(0, 100 - student.totalPoints)}</p>
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Action Button - Compact */}
           <button
             onClick={() => setShowDetails(student)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-indigo-200 hover:shadow-xl font-semibold"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-xs"
           >
-            <Eye className="h-5 w-5" />
+            <Eye className="h-3.5 w-3.5" />
             Xem chi tiết
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -310,20 +310,44 @@ export default function ClassStudents() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Modern Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
+      <div className="relative min-h-[280px]">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
+        </div>
+
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
+        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
+
+        {/* Main Content Container with Glassmorphism */}
+        <div className="relative z-10 p-8">
+          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
+            
+            {/* Top Bar with Badge */}
+            <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                  <Users className="h-8 w-8 text-white" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50 animate-pulse"></div>
+                  <div className="relative bg-black text-cyan-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-cyan-400">
+                    👥 SINH VIÊN
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white drop-shadow-lg">Sinh Viên Lớp</h1>
-                  <p className="text-indigo-100 mt-1">Theo dõi thành tích và tiến độ của sinh viên</p>
+                <div className="h-8 w-1 bg-white/40"></div>
+                <div className="text-white/90 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    {stats.total} SINH VIÊN
+                  </div>
                 </div>
               </div>
               <button
@@ -334,44 +358,94 @@ export default function ClassStudents() {
                 Xuất Excel
               </button>
             </div>
+
+            {/* Main Title Section */}
+            <div className="mb-8">
+              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">S</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">I</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
+                <span className="inline-block mx-2">•</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">V</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">I</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ê</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
+                <br />
+                <span className="relative inline-block mt-2">
+                  <span className="relative z-10 text-cyan-400 drop-shadow-[0_0_30px_rgba(34,211,238,0.5)]">
+                    LỚP HỌC
+                  </span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-cyan-400/30 blur-sm"></div>
+                </span>
+              </h1>
+              
+              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
+                Theo dõi thành tích và tiến độ rèn luyện của sinh viên trong lớp
+              </p>
+            </div>
+
+            {/* Stats Bar with Brutalist Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card 1 - Total */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-gradient-to-br from-cyan-400 to-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Users className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.total}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG SINH VIÊN</p>
+                </div>
+              </div>
+
+              {/* Card 2 - Top Performers */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Star className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.topPerformers}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">XUẤT SẮC</p>
+                </div>
+              </div>
+
+              {/* Card 3 - Average */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <BarChart3 className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.avgPoints}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐIỂM TB</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.total}</div>
-            <div className="text-indigo-100 text-sm font-medium">Tổng sinh viên</div>
-          </div>
+        {/* Custom CSS for animations */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes grid-move {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(-20px) rotate(45deg); }
+          }
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+          }
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+        `}} />
+      </div>
 
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Star className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.topPerformers}</div>
-            <div className="text-emerald-100 text-sm font-medium">Xuất sắc</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.avgPoints}</div>
-            <div className="text-blue-100 text-sm font-medium">Điểm TB</div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
+      {/* Filters */}
+      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+        <div className="p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -381,7 +455,7 @@ export default function ClassStudents() {
                   placeholder="Tìm kiếm sinh viên, MSSV, email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
+                  className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:border-blue-300 bg-white"
                 />
               </div>
             </div>
@@ -390,7 +464,7 @@ export default function ClassStudents() {
               <select
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white font-medium"
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white font-medium"
               >
                 {semesterOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -404,7 +478,7 @@ export default function ClassStudents() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white font-medium"
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white font-medium"
               >
                 <option value="points_desc">⭐ Điểm cao nhất</option>
                 <option value="points_asc">📉 Điểm thấp nhất</option>
@@ -416,22 +490,23 @@ export default function ClassStudents() {
 
             <button
               onClick={loadStudents}
-              className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold flex items-center gap-2"
+              className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold flex items-center gap-2 text-sm"
             >
-              <RefreshCw className="h-5 w-5" />
+              <RefreshCw className="h-4 w-4" />
               Làm mới
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Students Grid */}
-        {filteredStudents.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredStudents.map(student => (
-              <StudentCard key={student.id} student={student} />
-            ))}
-          </div>
-        ) : (
+      {/* Students Grid - Compact */}
+      {filteredStudents.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredStudents.map(student => (
+            <StudentCard key={student.id} student={student} />
+          ))}
+        </div>
+      ) : (
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-300 p-16 text-center">
             <div className="max-w-md mx-auto">
               <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -444,7 +519,6 @@ export default function ClassStudents() {
             </div>
           </div>
         )}
-      </div>
 
       {/* Detail Modal */}
       {showDetails && (
