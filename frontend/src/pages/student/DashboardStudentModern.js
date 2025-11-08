@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, Trophy, Clock, QrCode, Star, TrendingUp,
@@ -401,104 +401,97 @@ export default function DashboardStudentModern() {
               
               {/* Card TỔNG ĐIỂM RÈN LUYỆN - ở trên, rộng */}
               <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl"></div>
-                <div className="relative bg-gradient-to-br from-pink-400 via-purple-500 to-purple-600 border-4 border-black p-5 rounded-2xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-white/90 font-black text-xs uppercase tracking-wider mb-2">TỔNG ĐIỂM RÈN LUYỆN</p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-5xl font-black text-white">{formatNumber(summary.totalPoints)}</p>
-                        <p className="text-xl font-bold text-white/70">/100</p>
+                <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
+                <div className="relative bg-gradient-to-br from-pink-400 via-purple-500 to-purple-600 border-4 border-black p-3 rounded-xl transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5">
+                  <p className="text-white/90 font-black text-[10px] uppercase tracking-wider mb-1">TỔNG ĐIỂM RÈN LUYỆN</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-4xl font-black text-white">{formatNumber(summary.totalPoints)}</p>
+                    <p className="text-sm font-bold text-white/70">/100</p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="relative h-2 bg-white/20 rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-1000"
+                          style={{ width: `${Math.min(summary.progress, 100)}%` }}
+                        ></div>
                       </div>
                     </div>
-                    
-                    <div className="text-right">
-                      <p className="text-white/80 text-xs font-bold mb-1">TIẾN ĐỘ</p>
-                      <p className="text-white font-black text-3xl">{formatNumber(summary.progress)}%</p>
-                    </div>
-                  </div>
-                  
-                  {/* Progress bar */}
-                  <div className="mt-4">
-                    <div className="relative h-2 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-1000"
-                        style={{ width: `${Math.min(summary.progress, 100)}%` }}
-                      ></div>
-                    </div>
+                    <p className="text-white font-black text-lg ml-2">
+                      <span className="text-[10px] font-bold text-white/80">TIẾN ĐỘ </span>
+                      {formatNumber(summary.progress)}%
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* 4 Cards nhỏ - Grid 2x2 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
               
               {/* Card 1: Activities Joined - VÀNG */}
               <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl"></div>
-                <div className="relative bg-yellow-400 border-4 border-black rounded-2xl p-5 transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <Calendar className="w-7 h-7 text-black" />
-                    <div className="bg-black text-yellow-400 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider">
+                <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
+                <div className="relative bg-yellow-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <Calendar className="w-5 h-5 text-black" />
+                    <div className="bg-black text-yellow-400 px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-wider">
                       THAM GIA
                     </div>
                   </div>
-                  <p className="text-4xl font-black text-black mb-1">{summary.activitiesJoined}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
+                  <p className="text-3xl font-black text-black mb-0.5">{summary.activitiesJoined}</p>
+                  <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
                 </div>
               </div>
 
               {/* Card 2: Upcoming - HỒNG */}
               <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl"></div>
-                <div className="relative bg-pink-400 border-4 border-black rounded-2xl p-5 transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <Clock className="w-7 h-7 text-black" />
-                    <div className="bg-black text-pink-400 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider">
+                <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
+                <div className="relative bg-pink-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <Clock className="w-5 h-5 text-black" />
+                    <div className="bg-black text-pink-400 px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-wider">
                       SẮP TỚI
                     </div>
                   </div>
-                  <p className="text-4xl font-black text-black mb-1">{summary.activitiesUpcoming}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
+                  <p className="text-3xl font-black text-black mb-0.5">{summary.activitiesUpcoming}</p>
+                  <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
                 </div>
               </div>
 
               {/* Card 3: Class Rank - XANH DƯƠNG */}
               <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl"></div>
-                <div className="relative bg-blue-400 border-4 border-black rounded-2xl p-5 transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <Trophy className="w-7 h-7 text-white" />
-                    <Star className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
+                <div className="relative bg-blue-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <Trophy className="w-5 h-5 text-white" />
+                    <Star className="w-4 h-4 text-white" />
                   </div>
-                  <p className="text-4xl font-black text-white mb-1">{summary.classRank}/{summary.totalStudents}</p>
-                  <p className="text-xs font-black text-white/70 uppercase tracking-wider">HẠNG LỚP</p>
+                  <p className="text-3xl font-black text-white mb-0.5">{summary.classRank}/{summary.totalStudents}</p>
+                  <p className="text-[10px] font-black text-white/80 uppercase tracking-wider">HẠNG LỚP</p>
                 </div>
               </div>
 
               {/* Card 4: Goal - XANH LÁ */}
               <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl"></div>
-                <div className="relative bg-green-400 border-4 border-black rounded-2xl p-5 transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <Target className="w-7 h-7 text-black" />
-                    <div className="bg-black text-green-400 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider">
+                <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
+                <div className="relative bg-green-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <Target className="w-5 h-5 text-black" />
+                    <div className="bg-black text-green-400 px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-wider">
                       MỤC TIÊU
                     </div>
                   </div>
                   {summary.goalPoints > 0 ? (
                     <>
-                      <p className="text-3xl font-black text-black mb-1">
-                        {summary.goalPoints}
-                      </p>
-                      <p className="text-[10px] font-black text-black/80 uppercase tracking-wide leading-tight">
+                      <p className="text-2xl font-black text-black mb-0.5">{summary.goalPoints}</p>
+                      <p className="text-[9px] font-black text-black/80 uppercase tracking-wide leading-tight line-clamp-2">
                         {summary.goalText}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-2xl font-black text-black mb-1">🎉</p>
-                      <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ ĐẠT XUẤT SẮC</p>
+                      <p className="text-2xl font-black text-black mb-0.5">🎉</p>
+                      <p className="text-[9px] font-black text-black/70 uppercase tracking-wider">ĐÃ ĐẠT XUẤT SẮC</p>
                     </>
                   )}
                 </div>

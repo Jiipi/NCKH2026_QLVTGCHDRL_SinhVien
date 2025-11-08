@@ -117,12 +117,14 @@
   border: 2px solid cyan;
 }
 
-input::placeholder {
+/* Scope placeholder color to auth pages only to avoid affecting app-wide inputs */
+.auth-container input::placeholder {
   color: rgba(255, 255, 255, 0.85);
   font-size: 1rem;
 }
 
-select::placeholder {
+/* Scope select placeholder on auth pages */
+.auth-container select::placeholder {
   color: rgba(255, 255, 255, 0.7);
   font-size: 1.1rem;
 }

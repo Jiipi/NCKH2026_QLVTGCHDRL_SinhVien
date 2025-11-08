@@ -31,6 +31,7 @@ export default function QRScannerModern() {
   const barcodeDetectorRef = useRef(null);
   const zxingReaderRef = useRef(null);
   const zxingCleanupRef = useRef(null);
+  const zxingControlsRef = useRef(null);
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const scanningActiveRef = useRef(false);
@@ -225,8 +226,8 @@ export default function QRScannerModern() {
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
       const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (res, err) => {
         // CRITICAL: Check if scanning is still active before processing
-        if (!scanningActiveRef.current) {
-          console.log('🛑 ZXing callback ignored - camera stopped');
+        if (!scanningActiveRef.current || !zxingControlsRef.current) {
+          // Silently ignore - don't log to reduce console spam
           return;
         }
         
@@ -241,7 +242,7 @@ export default function QRScannerModern() {
         }
         if (res && res.getText) {
           const text = res.getText();
-          if (text && scanningActiveRef.current) {
+          if (text && scanningActiveRef.current && zxingControlsRef.current) {
             if (requestAnimationFrameIdRef.current) {
               cancelAnimationFrame(requestAnimationFrameIdRef.current);
               requestAnimationFrameIdRef.current = null;
@@ -251,7 +252,10 @@ export default function QRScannerModern() {
           }
         }
       });
+      zxingControlsRef.current = controls;
       zxingCleanupRef.current = () => { 
+        // Clear controls ref FIRST to prevent callback from running
+        zxingControlsRef.current = null;
         try { 
           console.log('🛑 ZXing cleanup: stopping controls');
           controls?.stop?.(); 
@@ -304,7 +308,10 @@ export default function QRScannerModern() {
   const stopCamera = ({ preserveStarting = false } = {}) => {
     console.log('🛑 stopCamera called');
     
-    // CRITICAL: Set scanningActiveRef to false FIRST to prevent ZXing from restarting
+    // CRITICAL: Clear ZXing controls ref FIRST to prevent callbacks
+    zxingControlsRef.current = null;
+    
+    // CRITICAL: Set scanningActiveRef to false to prevent ZXing from restarting
     scanningActiveRef.current = false;
     detectionInProgressRef.current = false;
     lastFrameProcessTimeRef.current = 0;
@@ -318,6 +325,16 @@ export default function QRScannerModern() {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    
+    // CRITICAL: Clear video srcObject IMMEDIATELY to stop ZXing from accessing it
+    if (videoRef.current) {
+      try { 
+        videoRef.current.pause?.(); 
+      } catch(_) {}
+      try { 
+        videoRef.current.srcObject = null; 
+      } catch(_) {}
     }
     
     // Stop ZXing reader FIRST and completely
@@ -740,10 +757,13 @@ export default function QRScannerModern() {
         intervalRef.current = null;
       }
       
+      // Clear ZXing controls ref to prevent callbacks
+      zxingControlsRef.current = null;
       if (zxingCleanupRef.current) {
         try { zxingCleanupRef.current(); } catch(_) {}
         zxingCleanupRef.current = null;
       }
+      zxingReaderRef.current = null;
       
       // Collect and stop all tracks
       const allTracks = [];

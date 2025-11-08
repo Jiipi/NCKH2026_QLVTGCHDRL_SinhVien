@@ -511,102 +511,289 @@ export default function ClassApprovalsModern() {
     );
   }
 
+  // Calculate stats
+  const totalRegistrations = filteredRegistrations.length;
+  const pendingCount = filteredRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length;
+  const approvedCount = filteredRegistrations.filter(r => r.trang_thai_dk === 'da_duyet').length;
+  const completedCount = filteredRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia').length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Modern Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                <UserCheck className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white drop-shadow-lg">Phê Duyệt Đăng Ký</h1>
-                <p className="text-indigo-100 mt-1">Quản lý và phê duyệt đăng ký tham gia hoạt động</p>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
+      <div className="relative min-h-[280px]">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
         </div>
 
-        {/* Filters Row */}
-        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-4">
-          <div className="flex items-center gap-4">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            <span className="text-sm font-semibold text-gray-700">Học kỳ:</span>
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="flex-1 max-w-xs px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white font-medium text-gray-700 hover:border-blue-300 cursor-pointer"
-            >
-              {semesterOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
+        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
 
-            {/* Status dropdown aligned right */}
-            <div className="ml-auto flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
-              <select
-                value={viewMode}
-                onChange={(e) => { setViewMode(e.target.value); setSelectedIds([]); }}
-                className="w-56 px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-white"
-              >
-                <option value="all">Tất cả ({stats.total})</option>
-                <option value="pending">Chờ duyệt ({stats.pending})</option>
-                <option value="approved">Đã duyệt ({stats.approved})</option>
-                <option value="rejected">Từ chối ({stats.rejected})</option>
-                <option value="completed">Hoàn thành ({stats.participated})</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {(() => {
-            const cards = [
-              { key: 'total', label: 'Tổng đăng ký', value: stats.total, color: 'from-indigo-500 to-purple-500', Icon: Users },
-              { key: 'pending', label: 'Chờ duyệt', value: stats.pending, color: 'from-amber-500 to-orange-500', Icon: Clock },
-              { key: 'approved', label: 'Đã duyệt', value: stats.approved, color: 'from-emerald-500 to-teal-500', Icon: CheckCircle },
-              { key: 'rejected', label: 'Từ chối', value: stats.rejected, color: 'from-rose-500 to-pink-500', Icon: XCircle },
-              { key: 'completed', label: 'Hoàn thành', value: stats.participated, color: 'from-blue-500 to-cyan-500', Icon: Sparkles }
-            ];
-            const toRender = viewMode === 'all' ? cards : cards.filter(c => c.key === viewMode);
-            return toRender.map((c, i) => (
-              <div key={i} className={`bg-gradient-to-br ${c.color} rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                    <c.Icon className="h-6 w-6" />
+        {/* Main Content Container with Glassmorphism */}
+        <div className="relative z-10 p-8">
+          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
+            
+            {/* Top Bar with Badge */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-400 blur-xl opacity-50 animate-pulse"></div>
+                  <div className="relative bg-black text-green-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-green-400">
+                    ✓ PHÊ DUYỆT
                   </div>
                 </div>
-                <div className="text-3xl font-bold mb-1">{c.value}</div>
-                <div className="text-white/90 text-sm font-medium">{c.label}</div>
+                <div className="h-8 w-1 bg-white/40"></div>
+                <div className="text-white/90 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    {totalRegistrations} ĐĂNG KÝ
+                  </div>
+                </div>
               </div>
-            ));
-          })()}
+            </div>
+
+            {/* Main Title Section */}
+            <div className="mb-8">
+              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">P</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ê</span>
+                <span className="inline-block mx-2">•</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">D</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Y</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ệ</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
+                <br />
+                <span className="relative inline-block mt-2">
+                  <span className="relative z-10 text-green-400 drop-shadow-[0_0_30px_rgba(74,222,128,0.5)]">
+                    ĐĂNG KÝ
+                  </span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-green-400/30 blur-sm"></div>
+                </span>
+              </h1>
+              
+              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
+                Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên
+              </p>
+            </div>
+
+            {/* Stats Bar with Brutalist Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1 - Total */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-gradient-to-br from-cyan-400 to-teal-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Users className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{totalRegistrations}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG ĐĂNG KÝ</p>
+                </div>
+              </div>
+
+              {/* Card 2 - Pending */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Clock className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{pendingCount}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">CHỜ DUYỆT</p>
+                </div>
+              </div>
+
+              {/* Card 3 - Approved */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <CheckCircle className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{approvedCount}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ DUYỆT</p>
+                </div>
+              </div>
+
+              {/* Card 4 - Completed */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Trophy className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{completedCount}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ THAM GIA</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Removed separate view mode block; integrated into filters row above */}
+        {/* Custom CSS for animations */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes grid-move {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(-20px) rotate(45deg); }
+          }
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+          }
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+        `}} />
+      </div>
 
-        {/* Search */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+      {/* Search and Filter Section */}
+      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+        <div className="p-6">
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               placeholder="Tìm kiếm sinh viên, MSSV, email, hoạt động..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
+              className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:border-blue-300"
             />
           </div>
-        </div>
 
-        {/* Bulk Action Toolbar - Only show for pending view */}
+          {/* Semester Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border-2 border-blue-200 rounded-xl">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
+              <select
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="border-none bg-transparent text-sm font-semibold text-gray-900 focus:ring-0 focus:outline-none cursor-pointer"
+              >
+                {semesterOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Tabs */}
+      <div className="relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
+        
+        <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setViewMode('all'); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'all'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              Tất cả
+              {stats.total > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {stats.total}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { setViewMode('pending'); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'pending'
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              Chờ duyệt
+              {stats.pending > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {stats.pending}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { setViewMode('approved'); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'approved'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <CheckCircle className="h-4 w-4" />
+              Đã duyệt
+              {stats.approved > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {stats.approved}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { setViewMode('completed'); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'completed'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Trophy className="h-4 w-4" />
+              Đã tham gia
+              {stats.participated > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {stats.participated}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { setViewMode('rejected'); setSelectedIds([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'rejected'
+                  ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <XCircle className="h-4 w-4" />
+              Từ chối
+              {stats.rejected > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {stats.rejected}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bulk Action Toolbar - Only show for pending view */}
         {viewMode === 'pending' && filteredRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length > 0 && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -654,7 +841,8 @@ export default function ClassApprovalsModern() {
           </div>
         )}
 
-        {/* Registrations Grid */}
+      {/* Registrations Grid */}
+      <div>
         {effectiveTotal > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {pageItems.map(reg => (
