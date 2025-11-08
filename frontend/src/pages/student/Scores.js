@@ -2,82 +2,132 @@ import React from 'react';
 import { TrendingUp, Calendar, Target, BookOpen, Users, Heart, Trophy, Medal, BarChart3, PieChart, RefreshCw, AlertCircle } from 'lucide-react';
 import http from '../../services/http';
 import SemesterFilter from '../../components/SemesterFilter';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function Scores(){
-  // Unified semester value like: hoc_ky_1-2025 | hoc_ky_2-2025
-  const getDefaultSemester = () => {
-    const y = new Date().getFullYear();
-    const m = new Date().getMonth() + 1;
-    if (m >= 7 && m <= 11) return `hoc_ky_1-${y}`;
-    if (m === 12) return `hoc_ky_2-${y}`;
-    if (m >= 1 && m <= 4) return `hoc_ky_2-${y - 1}`;
-    return `hoc_ky_1-${y}`;
-  };
-  const [semester, setSemester] = React.useState(getDefaultSemester());
+  // Use useSemesterData hook to get semester options and current semester from API
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+  
+  // Track if user has manually selected a semester
+  const [userSelectedSemester, setUserSelectedSemester] = React.useState(() => {
+    try {
+      return !!sessionStorage.getItem('current_semester');
+    } catch (_) {
+      return false;
+    }
+  });
+  
+  // Initialize semester from sessionStorage or currentSemester from API
+  const [semester, setSemester] = React.useState(() => {
+    try {
+      const stored = sessionStorage.getItem('current_semester');
+      if (stored) {
+        return stored;
+      }
+      return '';
+    } catch (_) {
+      return '';
+    }
+  });
+  
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
+  // Sync semester with currentSemester from API ONLY on initial load (if user hasn't selected one)
+  React.useEffect(() => {
+    if (currentSemester && !userSelectedSemester && !semester) {
+      setSemester(currentSemester);
+    }
+  }, [currentSemester, userSelectedSemester, semester]);
+
+  // Handle semester change from user selection
+  const handleSemesterChange = React.useCallback((newSemester) => {
+    console.log('🔄 Semester changed from', semester, 'to', newSemester);
+    if (newSemester !== semester) {
+      setSemester(newSemester);
+      setUserSelectedSemester(true); // Mark that user has manually selected
+      setData(null); // Immediately clear old data
+      try {
+        sessionStorage.setItem('current_semester', newSemester);
+      } catch (_) {}
+    }
+  }, [semester]);
+
+  // Save semester to sessionStorage when it changes (but don't override user selection)
+  React.useEffect(() => {
+    if (semester && userSelectedSemester) {
+      try {
+        sessionStorage.setItem('current_semester', semester);
+      } catch (_) {}
+    }
+  }, [semester, userSelectedSemester]);
+
   // Keep only unified semester value; backend supports `semester` directly
 
   const loadScores = React.useCallback(async function() {
-    if (!semester) return;
+    if (!semester) {
+      console.log('⚠️ No semester selected, clearing data');
+      setData(null); // Clear data if no semester selected
+      return;
+    }
     
+    console.log('🔄 loadScores called for semester:', semester);
     setLoading(true);
     setError('');
+    setData(null); // Clear old data when loading new semester to prevent showing stale data
     
     try {
       const params = { semester };
       
+      console.log('📊 API Request - Loading scores for semester:', semester);
+      console.log('📊 API Request params:', params);
+      
       const response = await http.get('/dashboard/scores/detailed', { params });
       
-      setData(response.data.data); // Extract data from API response wrapper
-    } catch (err) {
-      console.error('❌ Error loading scores:', err);
-      console.error('Error details:', err.response?.data || err.message);
-      setError('Không thể tải dữ liệu điểm. Đang hiển thị dữ liệu mẫu.');
-      // Fallback to sample data
-      setData({
-        student_info: {
-          ho_ten: "Nguyễn Văn A",
-          mssv: "2021001234", 
-          lop: "CNTT01"
-        },
-        summary: {
-          total_score: 85,
-          total_activities: 12,
-          average_points: 7.1,
-          rank_in_class: 5,
-          total_students_in_class: 45
-        },
-        criteria_breakdown: [
-          { key: 'hoc_tap', name: 'Ý thức và kết quả học tập', current: 20, max: 25, percentage: 80 },
-          { key: 'noi_quy', name: 'Ý thức chấp hành nội quy', current: 25, max: 25, percentage: 100 },
-          { key: 'tinh_nguyen', name: 'Hoạt động phong trào', current: 15, max: 20, percentage: 75 },
-          { key: 'cong_dan', name: 'Quan hệ với cộng đồng', current: 20, max: 25, percentage: 80 },
-          { key: 'khen_thuong', name: 'Thành tích đặc biệt', current: 5, max: 5, percentage: 100 }
-        ],
-        activities: [
-          {
-            id: 1,
-            ten_hd: "Hội thảo công nghệ AI",
-            loai: "Học tập và nghiên cứu khoa học",
-            diem: 8,
-            ngay_bd: "2024-01-15",
-            trang_thai: "da_dien_ra"
-          },
-          {
-            id: 2,
-            ten_hd: "Hiến máu nhân đạo",
-            loai: "Tình nguyện và từ thiện",
-            diem: 5,
-            ngay_bd: "2024-02-20",
-            trang_thai: "da_dien_ra"
+      console.log('✅ API Response received for semester:', semester);
+      console.log('✅ Response data:', response.data);
+      console.log('✅ Extracted data:', response.data.data);
+      
+      // Verify the data structure
+      if (response.data && response.data.data) {
+        const extractedData = response.data.data;
+        console.log('✅ Summary for semester', semester, ':', extractedData.summary);
+        console.log('✅ Total score:', extractedData.summary?.total_score);
+        console.log('✅ Total activities:', extractedData.summary?.total_activities);
+        console.log('✅ Average points:', extractedData.summary?.average_points);
+        console.log('✅ Rank in class:', extractedData.summary?.rank_in_class);
+        console.log('✅ Activities count:', extractedData.activities?.length || 0);
+        console.log('✅ First activity:', extractedData.activities?.[0]);
+        console.log('✅ Last activity:', extractedData.activities?.[extractedData.activities?.length - 1]);
+        
+        // Check if data is actually different
+        if (data) {
+          const oldScore = data.summary?.total_score;
+          const newScore = extractedData.summary?.total_score;
+          if (oldScore === newScore) {
+            console.warn('⚠️ WARNING: Data appears to be the same! Old score:', oldScore, 'New score:', newScore);
+            console.warn('⚠️ This suggests the backend may not be filtering by semester correctly.');
+          } else {
+            console.log('✅ Data is different! Old score:', oldScore, 'New score:', newScore);
           }
-        ]
-      });
+        }
+        
+        setData(extractedData); // Extract data from API response wrapper
+      } else {
+        console.warn('⚠️ Unexpected response structure:', response.data);
+        setData(response.data.data || response.data); // Try both structures
+      }
+    } catch (err) {
+      console.error('❌ Error loading scores for semester:', semester);
+      console.error('❌ Error object:', err);
+      console.error('❌ Error response:', err.response);
+      console.error('❌ Error details:', err.response?.data || err.message);
+      setError(`Không thể tải dữ liệu điểm cho học kỳ ${semester}. Vui lòng thử lại.`);
+      setData(null); // Clear data on error - don't show fallback data
     } finally {
       setLoading(false);
+      console.log('✅ loadScores completed for semester:', semester);
     }
   }, [semester]);
 
@@ -126,56 +176,77 @@ export default function Scores(){
   }, [data]);
 
   function ScoreCard({ activity }) {
+    // Parse date from activity
     const date = activity.ngay_bd ? new Date(activity.ngay_bd) : new Date();
+    const formattedDate = date.toLocaleDateString('vi-VN', { 
+      day: '2-digit', 
+      month: 'numeric', 
+      year: 'numeric' 
+    });
     
-    // Determine category based on activity type
-    let categoryConfig;
-    const loai = (activity.loai || '').toLowerCase();
+    // Get activity type/category - check multiple possible fields
+    const activityType = activity.loai 
+      || activity.loai_hd?.ten_loai_hd 
+      || activity.ten_loai 
+      || activity.category 
+      || 'Hoạt động';
     
-    if (loai.includes('học') || loai.includes('giáo dục')) {
-      categoryConfig = { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: BookOpen, color: 'blue' };
-    } else if (loai.includes('tình nguyện') || loai.includes('phong trào')) {
-      categoryConfig = { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: Heart, color: 'red' };
-    } else if (loai.includes('văn hóa') || loai.includes('thể thao')) {
-      categoryConfig = { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: Users, color: 'purple' };
-    } else {
-      categoryConfig = { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: Trophy, color: 'green' };
-    }
-
-    const CategoryIcon = categoryConfig.icon;
-
-    // Create safe CSS classes to avoid dynamic Tailwind issues
-    const iconBgClass = categoryConfig.color === 'blue' ? 'bg-blue-100' :
-                       categoryConfig.color === 'red' ? 'bg-red-100' :
-                       categoryConfig.color === 'purple' ? 'bg-purple-100' : 'bg-green-100';
+    // Get activity name
+    const activityName = activity.ten_hd || activity.name || 'Hoạt động';
     
-    const tagBgClass = categoryConfig.color === 'blue' ? 'bg-blue-100' :
-                      categoryConfig.color === 'red' ? 'bg-red-100' :
-                      categoryConfig.color === 'purple' ? 'bg-purple-100' : 'bg-green-100';
+    // Get points - check multiple possible fields
+    const points = activity.diem 
+      || activity.diem_rl 
+      || activity.points 
+      || 0;
+    
+    // Get status - check multiple possible fields
+    const status = activity.trang_thai 
+      || activity.trang_thai_dk 
+      || activity.status 
+      || 'da_tham_gia';
+    
+    // Determine status text
+    const statusText = status === 'da_tham_gia' || status === 'da_dien_ra' || status === 'participated' 
+      ? 'Đã tham gia' 
+      : status === 'da_duyet' || status === 'approved'
+      ? 'Đã duyệt'
+      : status === 'cho_duyet' || status === 'pending'
+      ? 'Chờ duyệt'
+      : 'Đã tham gia';
 
     return (
-      <div className={`${categoryConfig.bg} ${categoryConfig.border} border rounded-lg p-4`}>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2 ${iconBgClass} rounded-lg`}>
-              <CategoryIcon className={`h-6 w-6 ${categoryConfig.text}`} />
+      <div className="bg-green-50 border border-green-100 rounded-xl p-4 hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Icon and Activity Info */}
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            {/* Trophy Icon */}
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Trophy className="h-6 w-6 text-green-600" />
+              </div>
             </div>
-            <div>
-              <h3 className="font-medium text-gray-900">{activity.ten_hd}</h3>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className={`px-2 py-1 text-xs rounded-full ${tagBgClass} ${categoryConfig.text}`}>
-                  {activity.loai || 'Khác'}
-                </span>
-                <span className="text-sm text-gray-500">{date.toLocaleDateString('vi-VN')}</span>
+            
+            {/* Activity Details */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">
+                {activityName}
+              </h3>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="truncate">{activityType}</span>
+                <span className="text-gray-400">•</span>
+                <span className="flex-shrink-0">{formattedDate}</span>
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-lg font-semibold text-gray-900">
-              +{activity.diem || 0} điểm
+          
+          {/* Right: Points and Status */}
+          <div className="flex-shrink-0 text-right">
+            <div className="text-lg font-bold text-gray-900 mb-1">
+              +{points} điểm
             </div>
-            <div className="text-sm text-gray-500">
-              {activity.trang_thai === 'da_dien_ra' ? 'Đã tham gia' : 'Đã đăng ký'}
+            <div className="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              {statusText}
             </div>
           </div>
         </div>
@@ -219,6 +290,15 @@ export default function Scores(){
     );
   }
 
+  // Calculate values from data - these will update when semester changes
+  // MUST be called before any early returns to follow React Hooks rules
+  const targetScore = 100;
+  const currentScore = data?.summary?.total_score || 0;
+  const progressPercentage = React.useMemo(() => {
+    if (!data || !data.summary) return 0;
+    return Math.min((currentScore / targetScore) * 100, 100);
+  }, [data, currentScore, targetScore]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -229,7 +309,7 @@ export default function Scores(){
               <p className="text-orange-100">Theo dõi và phân tích kết quả rèn luyện của bạn</p>
             </div>
             <div className="min-w-[240px]">
-              <SemesterFilter value={semester} onChange={setSemester} label="" />
+              <SemesterFilter value={semester} onChange={handleSemesterChange} label="" />
             </div>
           </div>
         </div>
@@ -240,88 +320,144 @@ export default function Scores(){
     );
   }
 
-  const targetScore = 100;
-  const currentScore = data?.summary?.total_score || 0;
-  const progressPercentage = Math.min((currentScore / targetScore) * 100, 100);
-
   return (
     <div className="space-y-6">
-      {/* Header - Neo-brutalism Style giống "HOẠT ĐỘNG CỦA TÔI" */}
-      <div className="group relative">
-        <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-3xl"></div>
-        <div className="relative bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 border-4 border-black rounded-3xl p-6 lg:p-8">
-          
-          {/* Tab buttons và count */}
-          <div className="flex items-center gap-4 mb-6">
-            <button className="px-6 py-2.5 bg-black text-yellow-400 rounded-xl font-black text-sm uppercase tracking-wider border-2 border-black hover:bg-gray-900 transition-colors flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              ĐIỂM CỦA TÔI
-            </button>
-            <div className="px-4 py-2 bg-white/20 backdrop-blur-sm border-2 border-white/40 rounded-xl">
-              <span className="text-white font-black text-sm">{stats.totalActivities} HOẠT ĐỘNG</span>
-            </div>
-          </div>
+      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
+      <div className="relative min-h-[280px]">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-500"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
+        </div>
 
-          {/* Title and Description */}
-          <div className="mb-8">
-            <h1 className="text-4xl lg:text-5xl font-black text-white uppercase tracking-tight mb-3 flex items-center gap-3">
-              ĐIỂM RÈN LUYỆN
-            </h1>
-            <p className="text-white/90 font-bold text-lg">
-              Theo dõi, quản lý và chỉnh phục các hoạt động rèn luyện bạn đã đăng ký
-            </p>
-          </div>
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
+        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
 
-          {/* Stats Cards Row - 4 cards màu sắc */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Tổng điểm - VÀNG */}
-            <div className="group/card relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
-              <div className="relative bg-yellow-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
-                <Trophy className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{currentScore}</p>
-                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Tổng điểm</p>
+        {/* Main Content Container with Glassmorphism */}
+        <div className="relative z-10 p-8">
+          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
+            
+            {/* Top Bar with Badge and Action */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
+                  <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
+                    ⚡ ĐIỂM RÈN LUYỆN
+                  </div>
+                </div>
+                <div className="h-8 w-1 bg-white/40"></div>
+                <div className="text-white/90 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    ĐANG CẬP NHẬT
+                  </div>
+                </div>
+              </div>
+              {/* Semester Filter - góc phải */}
+              <div className="bg-white/10 border-2 border-white/30 rounded-xl p-3 backdrop-blur-sm min-w-[200px]">
+                <SemesterFilter value={semester} onChange={handleSemesterChange} label="" />
               </div>
             </div>
 
-            {/* Card 2: Xếp hạng - XANH LÁ */}
-            <div className="group/card relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
-              <div className="relative bg-green-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
-                <Medal className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
-                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Xếp hạng</p>
-              </div>
+            {/* Main Title Section */}
+            <div className="mb-8">
+              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Đ</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">I</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ể</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">M</span>
+                <span className="inline-block mx-2">•</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">R</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">È</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
+                <br />
+                <span className="relative inline-block mt-2">
+                  <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
+                    LUYỆN
+                  </span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
+                </span>
+              </h1>
+              
+              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
+                Theo dõi, quản lý và phân tích kết quả rèn luyện của bạn một cách chi tiết
+              </p>
             </div>
 
-            {/* Card 3: Hoạt động - XANH DƯƠNG */}
-            <div className="group/card relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
-              <div className="relative bg-blue-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
-                <Calendar className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.totalActivities}</p>
-                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Hoạt động</p>
+            {/* Stats Bar with Brutalist Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Tổng điểm - VÀNG */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Trophy className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{currentScore}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG ĐIỂM</p>
+                </div>
               </div>
-            </div>
 
-            {/* Card 4: Trung bình - ĐỎ/HỒNG */}
-            <div className="group/card relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-2xl"></div>
-              <div className="relative bg-red-400 border-4 border-black rounded-2xl p-5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform">
-                <TrendingUp className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.averagePoints}</p>
-                <p className="text-xs font-black text-black/80 uppercase tracking-wider">Trung bình</p>
+              {/* Card 2: Xếp hạng - XANH LÁ */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Medal className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">XẾP HẠNG</p>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Semester Filter - góc phải */}
-          <div className="absolute top-6 right-6">
-            <div className="bg-white/10 border-2 border-black rounded-xl p-3 backdrop-blur-sm min-w-[200px]">
-              <SemesterFilter value={semester} onChange={setSemester} label="" />
+              {/* Card 3: Hoạt động - XANH DƯƠNG */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Calendar className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.totalActivities}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">HOẠT ĐỘNG</p>
+                </div>
+              </div>
+
+              {/* Card 4: Trung bình - ĐỎ/HỒNG */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-pink-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <TrendingUp className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{stats.averagePoints.toFixed(1)}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TRUNG BÌNH</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Custom CSS for animations */}
+        <style jsx>{`
+          @keyframes grid-move {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(-20px) rotate(45deg); }
+          }
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+          }
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+        `}</style>
       </div>
 
       {/* Error Alert */}
@@ -339,9 +475,9 @@ export default function Scores(){
       {/* Summary Stats */}
       {data && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Overall Progress */}
-            <div className="bg-white rounded-xl border p-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Tổng điểm học kỳ</h3>
                 <Target className="h-6 w-6 text-orange-600" />
@@ -353,7 +489,7 @@ export default function Scores(){
                 <div className="text-3xl font-bold text-gray-900 mb-2">
                   {currentScore}/{targetScore}
                 </div>
-                <p className="text-gray-600">điểm rèn luyện</p>
+                <p className="text-gray-600 mb-2">điểm rèn luyện</p>
                 {data.summary?.xep_loai && (
                   <div className="mt-2">
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
@@ -371,7 +507,7 @@ export default function Scores(){
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white rounded-xl border p-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Thống kê nhanh</h3>
                 <BarChart3 className="h-6 w-6 text-blue-600" />
@@ -379,16 +515,16 @@ export default function Scores(){
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Hoạt động tham gia</span>
-                  <span className="font-semibold">{stats.totalActivities}</span>
+                  <span className="font-semibold text-gray-900">{stats.totalActivities}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Điểm trung bình</span>
-                  <span className="font-semibold">{stats.averagePoints}</span>
+                  <span className="font-semibold text-gray-900">{stats.averagePoints.toFixed(1)}</span>
                 </div>
                 {data.summary?.rank_in_class && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Xếp hạng lớp</span>
-                    <span className="font-semibold">{data.summary.rank_in_class}/{data.summary.total_students_in_class}</span>
+                    <span className="font-semibold text-gray-900">{data.summary.rank_in_class}/{data.summary.total_students_in_class || 1}</span>
                   </div>
                 )}
               </div>
@@ -396,23 +532,49 @@ export default function Scores(){
           </div>
 
           {/* Activity History */}
-          <div className="bg-white rounded-xl border p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Lịch sử hoạt động</h3>
-              <Calendar className="h-6 w-6 text-indigo-600" />
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="h-6 w-6 text-indigo-600" />
+                Lịch sử hoạt động
+              </h3>
+              {data.activities?.length > 0 && (
+                <span className="text-sm text-gray-500">
+                  {data.activities.length} hoạt động
+                </span>
+              )}
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {data.activities?.length > 0 ? (
-                data.activities.map(activity => (
-                  <ScoreCard key={activity.id} activity={activity} />
+                data.activities.map((activity, index) => (
+                  <ScoreCard key={activity.id || index} activity={activity} />
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Chưa có hoạt động nào trong kỳ này</p>
+                <div className="text-center py-12 text-gray-500">
+                  <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-600 font-medium">Chưa có hoạt động nào trong kỳ này</p>
+                  <p className="text-sm text-gray-400 mt-2">Các hoạt động bạn đã tham gia sẽ hiển thị ở đây</p>
                 </div>
               )}
             </div>
+            
+            {/* Custom Scrollbar Styles */}
+            <style jsx>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                width: 8px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: #f1f5f9;
+                border-radius: 4px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+              }
+            `}</style>
           </div>
 
           {/* Class Rankings */}

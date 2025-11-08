@@ -214,6 +214,9 @@ export default function QRScannerModern() {
 
   // Initialize ZXing Browser QR reader (best-in-class open source)
   async function setupZXing() {
+    // Don't setup if camera is being stopped
+    if (!scanningActiveRef.current) return;
+    
     try {
       // Lazy load @zxing/browser to avoid build issues
       const { BrowserQRCodeReader } = await import('@zxing/browser');
@@ -221,8 +224,14 @@ export default function QRScannerModern() {
       zxingReaderRef.current = reader;
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
       const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (res, err) => {
+        // CRITICAL: Check if scanning is still active before processing
+        if (!scanningActiveRef.current) {
+          console.log('🛑 ZXing callback ignored - camera stopped');
+          return;
+        }
+        
         // CRITICAL: ZXing may replace the video stream, so re-register tracks
-        if (videoRef.current?.srcObject instanceof MediaStream) {
+        if (videoRef.current?.srcObject instanceof MediaStream && scanningActiveRef.current) {
           const zxStream = videoRef.current.srcObject;
           if (zxStream !== streamRef.current) {
             console.log('⚠️ ZXing replaced stream, re-registering tracks');
@@ -232,7 +241,7 @@ export default function QRScannerModern() {
         }
         if (res && res.getText) {
           const text = res.getText();
-          if (text) {
+          if (text && scanningActiveRef.current) {
             if (requestAnimationFrameIdRef.current) {
               cancelAnimationFrame(requestAnimationFrameIdRef.current);
               requestAnimationFrameIdRef.current = null;
@@ -242,9 +251,23 @@ export default function QRScannerModern() {
           }
         }
       });
-      zxingCleanupRef.current = () => { try { controls?.stop?.(); } catch(_) {} try { reader?.dispose?.(); } catch(_) {} };
+      zxingCleanupRef.current = () => { 
+        try { 
+          console.log('🛑 ZXing cleanup: stopping controls');
+          controls?.stop?.(); 
+        } catch(e) { 
+          console.warn('ZXing controls stop error:', e);
+        } 
+        try { 
+          console.log('🛑 ZXing cleanup: disposing reader');
+          reader?.dispose?.(); 
+        } catch(e) { 
+          console.warn('ZXing reader dispose error:', e);
+        } 
+      };
     } catch (e) {
       // Ignore if CDN blocked or unsupported
+      console.warn('ZXing setup failed:', e);
       zxingReaderRef.current = null;
     }
   }
@@ -280,6 +303,8 @@ export default function QRScannerModern() {
   // Stop camera with proper cleanup
   const stopCamera = ({ preserveStarting = false } = {}) => {
     console.log('🛑 stopCamera called');
+    
+    // CRITICAL: Set scanningActiveRef to false FIRST to prevent ZXing from restarting
     scanningActiveRef.current = false;
     detectionInProgressRef.current = false;
     lastFrameProcessTimeRef.current = 0;
@@ -295,95 +320,101 @@ export default function QRScannerModern() {
       intervalRef.current = null;
     }
     
-    // Stop ZXing reader first
+    // Stop ZXing reader FIRST and completely
     if (zxingCleanupRef.current) { 
       try { 
         console.log('🛑 Cleaning up ZXing');
         zxingCleanupRef.current(); 
-      } catch(_) {} 
+      } catch(e) {
+        console.warn('ZXing cleanup error:', e);
+      } 
       zxingCleanupRef.current = null; 
     }
     zxingReaderRef.current = null;
     
-    // Turn off torch before stopping tracks
-    const tracksToStop = [];
-    
-    // Collect all tracks from activeTracksRef
-    activeTracksRef.current.forEach((track) => {
-      if (track) tracksToStop.push(track);
-    });
-    
-    // Collect tracks from streamRef
-    if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach(track => {
-          if (track && !tracksToStop.includes(track)) {
-            tracksToStop.push(track);
-          }
-        });
-      } catch (_) {}
-    }
-    
-    // Collect tracks from video element
-    if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
-      try {
-        videoRef.current.srcObject.getTracks().forEach(track => {
-          if (track && !tracksToStop.includes(track)) {
-            tracksToStop.push(track);
-          }
-        });
-      } catch (_) {}
-    }
-    
-    // Turn off torch and stop all tracks
-    console.log(`🛑 Stopping ${tracksToStop.length} track(s)`);
-    tracksToStop.forEach((track) => {
-      if (!track) return;
-      try {
-        // First turn off torch if available
-        const capabilities = track.getCapabilities?.() || {};
-        if (capabilities.torch) {
-          console.log('💡 Turning off torch');
-          track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-        }
-      } catch (_) {}
+    // Use setTimeout to ensure ZXing cleanup completes before stopping tracks
+    // This prevents ZXing from restarting the stream
+    setTimeout(() => {
+      // Turn off torch before stopping tracks
+      const tracksToStop = [];
       
-      try { 
-        track.enabled = false; 
-        console.log(`🛑 Track disabled: ${track.kind}`);
-      } catch (_) {}
+      // Collect all tracks from activeTracksRef
+      activeTracksRef.current.forEach((track) => {
+        if (track) tracksToStop.push(track);
+      });
       
-      try { 
-        track.stop(); 
-        console.log(`🛑 Track stopped: ${track.kind}`);
-      } catch (_) {}
-    });
-    
-    // Clear refs
-    activeTracksRef.current.clear();
-    streamRef.current = null;
-    
-    // Clean up video element
-    if (videoRef.current) {
-      try { videoRef.current.pause?.(); } catch(_) {}
-      try { videoRef.current.onloadedmetadata = null; } catch(_) {}
-      try { videoRef.current.onerror = null; } catch(_) {}
-      try { videoRef.current.srcObject = null; } catch(_) {}
-      try { videoRef.current.removeAttribute('src'); } catch (_) {}
-      try { videoRef.current.load?.(); } catch (_) {}
-      console.log('🛑 Video element cleaned');
-    }
-    
-    barcodeDetectorRef.current = null;
-    
-    setIsScanning(false);
-    setTorchOn(false);
-    setHasTorch(false);
-    if (!preserveStarting) {
-      setIsStarting(false);
-    }
-    
-    console.log('✅ stopCamera complete');
+      // Collect tracks from streamRef
+      if (streamRef.current) {
+        try {
+          streamRef.current.getTracks().forEach(track => {
+            if (track && !tracksToStop.includes(track)) {
+              tracksToStop.push(track);
+            }
+          });
+        } catch (_) {}
+      }
+      
+      // Collect tracks from video element
+      if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
+        try {
+          videoRef.current.srcObject.getTracks().forEach(track => {
+            if (track && !tracksToStop.includes(track)) {
+              tracksToStop.push(track);
+            }
+          });
+        } catch (_) {}
+      }
+      
+      // Turn off torch and stop all tracks
+      console.log(`🛑 Stopping ${tracksToStop.length} track(s)`);
+      tracksToStop.forEach((track) => {
+        if (!track) return;
+        try {
+          // First turn off torch if available
+          const capabilities = track.getCapabilities?.() || {};
+          if (capabilities.torch) {
+            console.log('💡 Turning off torch');
+            track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+          }
+        } catch (_) {}
+        
+        try { 
+          track.enabled = false; 
+          console.log(`🛑 Track disabled: ${track.kind}`);
+        } catch (_) {}
+        
+        try { 
+          track.stop(); 
+          console.log(`🛑 Track stopped: ${track.kind}`);
+        } catch (_) {}
+      });
+      
+      // Clear refs
+      activeTracksRef.current.clear();
+      streamRef.current = null;
+      
+      // Clean up video element
+      if (videoRef.current) {
+        try { videoRef.current.pause?.(); } catch(_) {}
+        try { videoRef.current.onloadedmetadata = null; } catch(_) {}
+        try { videoRef.current.onerror = null; } catch(_) {}
+        try { videoRef.current.srcObject = null; } catch(_) {}
+        try { videoRef.current.removeAttribute('src'); } catch (_) {}
+        try { videoRef.current.load?.(); } catch (_) {}
+        console.log('🛑 Video element cleaned');
+      }
+      
+      barcodeDetectorRef.current = null;
+      
+      setIsScanning(false);
+      setTorchOn(false);
+      setHasTorch(false);
+      if (!preserveStarting) {
+        setIsStarting(false);
+      }
+      
+      console.log('✅ stopCamera complete - all tracks stopped');
+    }, 100); // Small delay to ensure ZXing cleanup completes
   };
 
   // Toggle torch/flash if supported
