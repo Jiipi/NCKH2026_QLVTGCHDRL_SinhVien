@@ -446,17 +446,39 @@ router.get('/scores/detailed', auth, async (req, res) => {
     
     // Chuẩn hóa bộ lọc kỳ/năm (tùy chọn)
     let semesterEnum;
-    const rawSemester = (semester || hoc_ky || '').toString().toLowerCase();
-    if (rawSemester === '1' || rawSemester === 'hoc_ky_1' || rawSemester === 'hk1') {
-      semesterEnum = 'hoc_ky_1';
-    } else if (rawSemester === '2' || rawSemester === 'hoc_ky_2' || rawSemester === 'hk2') {
-      semesterEnum = 'hoc_ky_2';
+    let selectedYear;
+    
+    // Parse unified format: "hoc_ky_1-2025" or "hoc_ky_2-2025"
+    const rawSemester = (semester || hoc_ky || '').toString();
+    const semesterMatch = rawSemester.match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
+    
+    if (semesterMatch) {
+      // New unified format: "hoc_ky_1-2025"
+      semesterEnum = semesterMatch[1]; // "hoc_ky_1" or "hoc_ky_2"
+      const year = parseInt(semesterMatch[2], 10); // 2025
+      // Convert to nam_hoc format: hoc_ky_1-2025 -> 2025-2026, hoc_ky_2-2025 -> 2024-2025
+      selectedYear = semesterEnum === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+    } else {
+      // Legacy format support
+      const rawSemesterLower = rawSemester.toLowerCase();
+      if (rawSemesterLower === '1' || rawSemesterLower === 'hoc_ky_1' || rawSemesterLower === 'hk1') {
+        semesterEnum = 'hoc_ky_1';
+      } else if (rawSemesterLower === '2' || rawSemesterLower === 'hoc_ky_2' || rawSemesterLower === 'hk2') {
+        semesterEnum = 'hoc_ky_2';
+      }
+      selectedYear = (year || nam_hoc) ? String(year || nam_hoc) : undefined;
     }
-    const selectedYear = (year || nam_hoc) ? String(year || nam_hoc) : undefined;
 
     const activityRelationFilter = {};
     if (semesterEnum) activityRelationFilter.hoc_ky = semesterEnum;
     if (selectedYear) activityRelationFilter.nam_hoc = selectedYear;
+    
+    console.log('🔍 Backend semester filter:', {
+      rawSemester,
+      semesterEnum,
+      selectedYear,
+      activityRelationFilter
+    });
 
     // Lấy đăng ký đã tham gia/đã duyệt (lọc theo kỳ/năm nếu có)
     const registrationsPromise = prisma.dangKyHoatDong.findMany({
