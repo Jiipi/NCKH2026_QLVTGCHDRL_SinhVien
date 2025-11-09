@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
+import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy, ArrowUp, ArrowDown, SlidersHorizontal, RefreshCw, Grid3X3, List, X } from 'lucide-react';
 import http from '../../services/http';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
@@ -18,6 +18,11 @@ export default function ClassApprovalsModern() {
   const [selectedIds, setSelectedIds] = useState([]); // Track selected registration IDs
   const [activityDetailId, setActivityDetailId] = useState(null); // For modal
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // For modal
+  const [displayViewMode, setDisplayViewMode] = useState('grid'); // 'grid' or 'list'
+  const [statusViewMode, setStatusViewMode] = useState('pills'); // 'pills' | 'dropdown' | 'compact'
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ type: '', from: '', to: '', minPoints: '', maxPoints: '', mssv: '' });
+  const [activityTypes, setActivityTypes] = useState([]);
   const { showSuccess, showError, showWarning, confirm } = useNotification();
   // Pagination state (align with teacher approvals)
   const [page, setPage] = useState(1);
@@ -54,8 +59,52 @@ export default function ClassApprovalsModern() {
 
   useEffect(() => {
     loadRegistrations();
+    loadActivityTypes();
     setPage(1); // reset page when semester changes
   }, [semester]);
+
+  // Load activity types for filter
+  const loadActivityTypes = async () => {
+    try {
+      const response = await http.get('/activities/types/list');
+      const types = response.data?.data || [];
+      setActivityTypes(types);
+    } catch (err) {
+      console.error('Error loading activity types:', err);
+      setActivityTypes([]);
+    }
+  };
+
+  // Format date helper
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+      return new Date(dateStr).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '—';
+    }
+  };
+
+  // Helper functions for filters
+  function getActiveFilterCount() {
+    let count = 0;
+    if (filters.type) count++;
+    if (filters.from) count++;
+    if (filters.to) count++;
+    if (filters.minPoints) count++;
+    if (filters.maxPoints) count++;
+    if (filters.mssv) count++;
+    return count;
+  }
+
+  function clearAllFilters() {
+    setFilters({ type: '', from: '', to: '', minPoints: '', maxPoints: '', mssv: '' });
+    setSearchTerm('');
+  }
 
   useEffect(() => {
     const onScroll = () => {
@@ -223,10 +272,73 @@ export default function ClassApprovalsModern() {
         matchesViewMode = reg.trang_thai_dk === 'da_tham_gia';
         break;
       default:
-        matchesViewMode = true;
+        // Default to pending if viewMode is invalid
+        matchesViewMode = reg.trang_thai_dk === 'cho_duyet';
     }
     
-    return matchesSearch && matchesViewMode;
+    // Advanced filters
+    let matchesType = true;
+    let matchesDateFrom = true;
+    let matchesDateTo = true;
+    let matchesPointsMin = true;
+    let matchesPointsMax = true;
+    let matchesMSSV = true;
+
+    // Filter by type (using ID)
+    if (filters.type) {
+      const filterValue = filters.type;
+      const filterId = parseInt(filterValue);
+      
+      if (isNaN(filterId)) {
+        // Filter by name
+        const activityTypeName = activity?.loai_hd?.ten_loai_hd || '';
+        matchesType = activityTypeName.toLowerCase() === filterValue.toLowerCase();
+      } else {
+        // Filter by ID
+        const activityTypeId = activity?.loai_hd_id || activity?.loai_hd?.id;
+        const activityId = activityTypeId ? parseInt(activityTypeId) : null;
+        matchesType = activityId !== null && activityId === filterId;
+      }
+    }
+
+    // Filter by date range (activity start date)
+    if (filters.from) {
+      const fromDate = new Date(filters.from);
+      const activityDate = activity?.ngay_bd ? new Date(activity.ngay_bd) : null;
+      matchesDateFrom = activityDate && activityDate >= fromDate;
+    }
+
+    if (filters.to) {
+      const toDate = new Date(filters.to);
+      toDate.setHours(23, 59, 59, 999);
+      const activityDate = activity?.ngay_bd ? new Date(activity.ngay_bd) : null;
+      matchesDateTo = activityDate && activityDate <= toDate;
+    }
+
+    // Filter by points range
+    if (filters.minPoints) {
+      const minPoints = parseFloat(filters.minPoints);
+      if (!isNaN(minPoints)) {
+        const points = parseFloat(activity?.diem_rl) || 0;
+        matchesPointsMin = points >= minPoints;
+      }
+    }
+
+    if (filters.maxPoints) {
+      const maxPoints = parseFloat(filters.maxPoints);
+      if (!isNaN(maxPoints)) {
+        const points = parseFloat(activity?.diem_rl) || 0;
+        matchesPointsMax = points <= maxPoints;
+      }
+    }
+
+    // Filter by MSSV
+    if (filters.mssv) {
+      const mssv = reg.sinh_vien?.mssv || '';
+      matchesMSSV = mssv.toLowerCase().includes(filters.mssv.toLowerCase());
+    }
+    
+    return matchesSearch && matchesViewMode && matchesType && matchesDateFrom && matchesDateTo && matchesPointsMin && matchesPointsMax && matchesMSSV;
   }).sort((a, b) => {
     const ta = new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0).getTime();
     const tb = new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0).getTime();
@@ -254,93 +366,238 @@ export default function ClassApprovalsModern() {
     const activityImage = getBestActivityImage(activity);
     const isSelected = selectedIds.includes(registration.id);
 
+    // LIST MODE - Compact horizontal layout (matching ClassActivities style)
+    if (displayViewMode === 'list') {
     return (
-      <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${
-        isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
-      } ${isSelected ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`}>
-        
-        {/* Activity Name Header - NEW */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3">
-          <h3 className="text-white font-bold text-lg truncate" title={activity?.ten_hd}>
-            {activity?.ten_hd || 'Hoạt động'}
-          </h3>
+        <div className={`group relative ${isSelected ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`}>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200"></div>
+          
+          <div className={`relative bg-white border-2 rounded-xl hover:shadow-lg transition-all duration-200 ${
+            isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
+          }`}>
+            <div className="flex items-stretch gap-4 p-4">
+              {/* Compact Image */}
+              <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                <img 
+                  src={activityImage} 
+                  alt={activity?.ten_hd || 'Hoạt động'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="absolute top-2 left-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[registration.trang_thai_dk]}`}>
+                    {statusLabels[registration.trang_thai_dk]}
+                  </span>
         </div>
-
-        {/* Activity Image */}
-        <div className="relative w-full h-40 overflow-hidden">
-          {/* Checkbox for pending items - in bottom left corner */}
+                {activity?.diem_rl && (
+                  <div className="absolute bottom-2 left-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/90 backdrop-blur-sm text-white shadow-sm text-xs font-bold">
+                      <Award className="h-3 w-3" />
+                      +{activity.diem_rl}
+                    </span>
+                  </div>
+                )}
+                {/* Checkbox for pending items */}
           {isPending && (
-            <div className="absolute bottom-4 left-4 z-20">
-              <label className="flex items-center gap-2 cursor-pointer bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg hover:bg-white transition-all">
+                  <div className="absolute bottom-2 right-2 z-20">
+                    <label className="flex items-center gap-1 cursor-pointer bg-white/95 backdrop-blur-sm rounded px-2 py-1 shadow-lg hover:bg-white transition-all" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => handleToggleSelect(registration.id)}
-                  className="w-5 h-5 rounded border-2 cursor-pointer accent-blue-600"
+                        className="w-4 h-4 rounded border-2 cursor-pointer accent-blue-600"
                   onClick={(e) => e.stopPropagation()}
                 />
-                <span className="text-sm font-semibold text-gray-700">Chọn</span>
               </label>
             </div>
           )}
-          
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-2">
+                    {activity?.ten_hd || 'Hoạt động'}
+                  </h3>
+                  
+                  {/* Student Info */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {(() => {
+                      const avatar = getUserAvatar(student);
+                      return avatar.hasValidAvatar ? (
+                        <img 
+                          src={avatar.src} 
+                          alt={avatar.alt}
+                          className="w-8 h-8 rounded-lg object-cover shadow-sm ring-1 ring-white"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm ring-1 ring-white">
+                          {avatar.fallback}
+                        </div>
+                      );
+                    })()}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{student?.ho_ten || 'Không rõ tên'}</p>
+                      <p className="text-xs text-gray-600 truncate">MSSV: {registration.sinh_vien?.mssv}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-gray-600 truncate">
+                        {activity?.loai_hd?.ten_loai_hd || 'Chưa phân loại'}
+                      </span>
+                    </div>
+                    {activity?.ngay_bd && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                      </div>
+                    )}
+                    {activity?.dia_diem && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col justify-center gap-2 flex-shrink-0">
+                {isPending && registration.canProcess !== false && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(registration)}
+                      disabled={processing}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Duyệt
+                    </button>
+                    <button
+                      onClick={() => handleReject(registration)}
+                      disabled={processing}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Từ chối
+                    </button>
+                  </>
+                )}
+                {!isPending && (
+                  <button
+                    onClick={() => {
+                      setActivityDetailId(activity?.id);
+                      setIsDetailModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Chi tiết
+                  </button>
+                )}
+                {isPending && registration.canProcess === false && (
+                  <button
+                    onClick={() => {
+                      setActivityDetailId(activity?.id);
+                      setIsDetailModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Chi tiết
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // GRID MODE - Compact vertical layout (matching ClassActivities style)
+    return (
+      <div className={`group relative h-full ${isSelected ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`}>
+        <div className={`relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full ${
+          isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : ''
+        }`}>
+          {/* Activity Image - Compact */}
+          <div className="relative w-full h-36 overflow-hidden">
           <img 
             src={activityImage} 
             alt={activity?.ten_hd || 'Hoạt động'}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           
-          {/* Priority badge */}
-          {isPending && (
-            <div className="absolute top-4 right-4">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 backdrop-blur-sm">
-                <AlertCircle className="h-4 w-4 animate-pulse" />
-                <span className="text-sm font-bold">Chờ duyệt</span>
+            {/* Status Badge on Image - Compact */}
+            <div className="absolute top-2 left-2">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[registration.trang_thai_dk]}`}>
+                {statusLabels[registration.trang_thai_dk]}
+              </span>
               </div>
-            </div>
-          )}
-          
-          {/* Activity type badge */}
-          {activity?.loai_hd?.ten_loai_hd && (
-            <div className="absolute top-4 left-4">
-              <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-indigo-700 rounded-full text-xs font-semibold shadow-lg">
-                {activity.loai_hd.ten_loai_hd}
+            
+            {/* Points Badge on Image - Compact */}
+            {activity?.diem_rl && (
+              <div className="absolute bottom-2 right-2">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/95 backdrop-blur-sm text-white rounded-lg text-xs font-bold shadow-md">
+                  <Award className="h-3 w-3" />
+                  +{activity.diem_rl}
               </span>
             </div>
           )}
           
-          {/* Points badge */}
-          <div className="absolute bottom-4 right-4">
-            <span className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/90 backdrop-blur-sm text-white rounded-full text-sm font-bold shadow-lg">
-              <Award className="h-4 w-4" />
-              +{activity?.diem_rl || 0}
-            </span>
+            {/* Checkbox for pending items */}
+            {isPending && (
+              <div className="absolute bottom-2 left-2 z-20">
+                <label className="flex items-center gap-1 cursor-pointer bg-white/95 backdrop-blur-sm rounded px-2 py-1 shadow-lg hover:bg-white transition-all" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelect(registration.id)}
+                    className="w-4 h-4 rounded border-2 cursor-pointer accent-blue-600"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </label>
           </div>
+            )}
         </div>
         
-        {/* Decorative gradient overlay */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-        <div className="p-6 relative z-10">
-          {/* Status Badge */}
-          <div className="mb-4">
-            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border ${statusColors[registration.trang_thai_dk]} whitespace-nowrap`}>
-              {statusLabels[registration.trang_thai_dk]}
+          {/* Content - Compact */}
+          <div className="flex-1 p-4 space-y-3 relative z-10">
+            {/* Header - Compact */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
+                {activity?.ten_hd || 'Hoạt động'}
+              </h3>
+              
+              {/* Category tag - Compact */}
+              {activity?.loai_hd?.ten_loai_hd && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+                  <Calendar className="h-3 w-3" />
+                  {activity.loai_hd.ten_loai_hd}
             </span>
+              )}
           </div>
 
-          {/* Student Info */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-4 border border-indigo-100">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
+            {/* Student Info - Compact */}
+            <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
                 {(() => {
                   const avatar = getUserAvatar(student);
                   return avatar.hasValidAvatar ? (
                     <img 
                       src={avatar.src} 
                       alt={avatar.alt}
-                      className="w-12 h-12 rounded-xl object-cover shadow-lg ring-2 ring-white"
+                    className="w-10 h-10 rounded-lg object-cover shadow-sm ring-1 ring-white"
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.style.display = 'none';
@@ -348,151 +605,82 @@ export default function ClassApprovalsModern() {
                       }}
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-white">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-1 ring-white">
                       {avatar.fallback}
                     </div>
                   );
                 })()}
-              </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-900 mb-1 truncate">
-                  {student?.ho_ten || 'Không rõ tên'}
-                </h4>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <FileText className="h-3 w-3" />
-                  <span className="font-medium">MSSV: {registration.sinh_vien?.mssv}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="h-3 w-3" />
-                  <span className="truncate">{student?.email}</span>
-                </div>
-              </div>
+                <p className="text-xs font-semibold text-gray-900 truncate">{student?.ho_ten || 'Không rõ tên'}</p>
+                <p className="text-xs text-gray-600 truncate">MSSV: {registration.sinh_vien?.mssv}</p>
             </div>
           </div>
 
-          {/* Activity Details */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-indigo-600" />
+            {/* Compact Meta Info */}
+            <div className="space-y-1.5">
+              {activity?.ngay_bd && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 font-medium">Ngày</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {activity?.ngay_bd ? new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                <Clock className="h-4 w-4 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 font-medium">Giờ</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {activity?.ngay_bd ? new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                </p>
-              </div>
-            </div>
+              )}
 
             {activity?.dia_diem && (
-              <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2 col-span-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-rose-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 font-medium">Địa điểm</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {activity.dia_diem}
-                  </p>
-                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-600 truncate">{activity.dia_diem}</span>
               </div>
             )}
           </div>
-
-          {/* Processed By Info - Show who processed this */}
-          {registration.processedBy && !isPending && (
-            <div className={`mb-4 p-3 rounded-lg border-l-4 ${
-              registration.processedBy === 'teacher' 
-                ? 'bg-blue-50 border-blue-500' 
-                : 'bg-green-50 border-green-500'
-            }`}>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <CheckCircle className={`h-4 w-4 ${
-                  registration.processedBy === 'teacher' ? 'text-blue-600' : 'text-green-600'
-                }`} />
-                <span className={registration.processedBy === 'teacher' ? 'text-blue-700' : 'text-green-700'}>
-                  Đã xử lý bởi: {registration.processedBy === 'teacher' ? 'Giảng viên' : 'Lớp trưởng'}
-                </span>
               </div>
-              {registration.ghi_chu && (
-                <p className="text-xs text-gray-600 mt-1 ml-6">{registration.ghi_chu}</p>
-              )}
-            </div>
-          )}
 
-          {/* Actions */}
+          {/* Compact Actions */}
+          <div className="p-3 pt-0 mt-auto flex gap-2">
           {isPending && registration.canProcess !== false && (
-            <div className="flex items-center gap-3">
+              <>
               <button
                 onClick={() => handleApprove(registration)}
                 disabled={processing}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 shadow-lg shadow-emerald-200 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="h-5 w-5" />
-                Phê duyệt
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Duyệt
               </button>
               <button
                 onClick={() => handleReject(registration)}
                 disabled={processing}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:from-rose-600 hover:to-pink-600 transition-all duration-200 shadow-lg shadow-rose-200 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <XCircle className="h-5 w-5" />
+                  <XCircle className="h-3.5 w-3.5" />
                 Từ chối
               </button>
-            </div>
+              </>
           )}
-
           {!isPending && (
-            <div className="space-y-2">
-              {/* Detail button for all non-pending registrations */}
               <button
                 onClick={() => {
                   setActivityDetailId(activity?.id);
                   setIsDetailModalOpen(true);
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <FileText className="h-4 w-4" />
-                Xem chi tiết hoạt động
+                <Eye className="h-3.5 w-3.5" />
+                Chi tiết
               </button>
-            </div>
           )}
-
-          {/* Blocked by other role */}
           {isPending && registration.canProcess === false && (
-            <div className="space-y-2">
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-lg">
-                <div className="flex items-center gap-2 text-sm font-semibold text-yellow-700">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Giảng viên đang xử lý</span>
-                </div>
-                <p className="text-xs text-gray-600 mt-1">Bạn không thể duyệt đăng ký này</p>
-              </div>
-              {/* Detail button */}
               <button
                 onClick={() => {
                   setActivityDetailId(activity?.id);
                   setIsDetailModalOpen(true);
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <FileText className="h-4 w-4" />
-                Xem chi tiết hoạt động
+                <Eye className="h-3.5 w-3.5" />
+                Chi tiết
               </button>
-            </div>
           )}
+          </div>
         </div>
       </div>
     );
@@ -587,18 +775,8 @@ export default function ClassApprovalsModern() {
             </div>
 
             {/* Stats Bar with Brutalist Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1 - Total */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-gradient-to-br from-cyan-400 to-teal-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Users className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{totalRegistrations}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG ĐĂNG KÝ</p>
-                </div>
-              </div>
-
-              {/* Card 2 - Pending */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card 1 - Pending */}
               <div className="group relative">
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
@@ -671,8 +849,10 @@ export default function ClassApprovalsModern() {
             />
           </div>
 
-          {/* Semester Filter */}
+          {/* Bộ lọc và Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
+              {/* Semester Filter */}
             <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border-2 border-blue-200 rounded-xl">
               <Calendar className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
@@ -688,40 +868,212 @@ export default function ClassApprovalsModern() {
                 ))}
               </select>
             </div>
+
+              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+
+              {/* Advanced Filter Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium border-2 border-gray-200 hover:border-gray-300"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <span className="text-sm">Lọc nâng cao</span>
+                {getActiveFilterCount() > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded-full min-w-[20px] text-center">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
+                <span className={`text-xs transform transition-transform ${showFilters ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+
+              {/* Clear filters button */}
+              {getActiveFilterCount() > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 font-medium border-2 border-red-200 hover:border-red-300"
+                  title="Xóa tất cả bộ lọc"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span className="text-sm">Xóa lọc</span>
+                </button>
+              )}
+            </div>
+            
+            {/* Right side: View mode toggle */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+                <button
+                  onClick={() => setDisplayViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+                    displayViewMode === 'grid' 
+                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Hiển thị dạng lưới"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Lưới</span>
+                </button>
+                <button
+                  onClick={() => setDisplayViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+                    displayViewMode === 'list' 
+                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Hiển thị dạng danh sách"
+                >
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">Danh sách</span>
+                </button>
           </div>
         </div>
       </div>
 
-      {/* Status Tabs */}
+          {/* Advanced Filters */}
+          {showFilters && (
+            <div className="mt-6 p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-blue-600" />
+                  Bộ lọc nâng cao
+                </h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Đóng"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Loại hoạt động */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Loại hoạt động
+                  </label>
+                  <select
+                    value={filters.type}
+                    onChange={e => setFilters({ ...filters, type: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                  >
+                    <option value="">Tất cả loại</option>
+                    {activityTypes.map(type => {
+                      const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
+                      const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
+                      const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
+                      return (
+                        <option key={typeKey} value={typeValue}>{typeName}</option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* MSSV */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    MSSV
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.mssv}
+                    onChange={e => setFilters({ ...filters, mssv: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    placeholder="Nhập MSSV"
+                  />
+                </div>
+
+                {/* Từ ngày */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Từ ngày
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.from}
+                    onChange={e => setFilters({ ...filters, from: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                  />
+                </div>
+
+                {/* Đến ngày */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Đến ngày
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.to}
+                    onChange={e => setFilters({ ...filters, to: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                  />
+                </div>
+
+                {/* Điểm RL tối thiểu */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Điểm RL tối thiểu
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={filters.minPoints}
+                    onChange={e => setFilters({ ...filters, minPoints: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    placeholder="0"
+                  />
+                </div>
+
+                {/* Điểm RL tối đa */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Điểm RL tối đa
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={filters.maxPoints}
+                    onChange={e => setFilters({ ...filters, maxPoints: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                    placeholder="Không giới hạn"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Status Tabs - Multiple View Modes */}
       <div className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
         
         <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+          {/* Header với View Mode Toggle */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
               <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
             </div>
+            <div className="flex items-center gap-2">
+              {/* Toggle view mode button */}
+              <button
+                onClick={() => setStatusViewMode(statusViewMode === 'pills' ? 'dropdown' : statusViewMode === 'dropdown' ? 'compact' : 'pills')}
+                className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                title="Chuyển chế độ hiển thị"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
+          {/* Pills Mode (Default) */}
+          {statusViewMode === 'pills' && (
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => { setViewMode('all'); setSelectedIds([]); }}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                viewMode === 'all'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Filter className="h-4 w-4" />
-              Tất cả
-              {stats.total > 0 && (
-                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                  {stats.total}
-                </span>
-              )}
-            </button>
-            
             <button
               onClick={() => { setViewMode('pending'); setSelectedIds([]); }}
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
@@ -790,6 +1142,96 @@ export default function ClassApprovalsModern() {
               )}
             </button>
           </div>
+          )}
+
+          {/* Dropdown Mode */}
+          {statusViewMode === 'dropdown' && (
+            <div className="flex items-center gap-3">
+              <select
+                value={viewMode}
+                onChange={e => { setViewMode(e.target.value); setSelectedIds([]); }}
+                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
+              >
+                <option value="pending">Chờ duyệt ({stats.pending})</option>
+                <option value="approved">Đã duyệt ({stats.approved})</option>
+                <option value="completed">Đã tham gia ({stats.participated})</option>
+                <option value="rejected">Từ chối ({stats.rejected})</option>
+              </select>
+              {(() => {
+                const configs = {
+                  pending: { icon: Clock, gradient: 'from-yellow-500 to-orange-500', count: stats.pending },
+                  approved: { icon: CheckCircle, gradient: 'from-green-500 to-emerald-500', count: stats.approved },
+                  completed: { icon: Trophy, gradient: 'from-blue-600 to-indigo-600', count: stats.participated },
+                  rejected: { icon: XCircle, gradient: 'from-red-500 to-rose-500', count: stats.rejected }
+                };
+                const currentConfig = configs[viewMode] || configs.pending;
+                const CurrentIcon = currentConfig?.icon || Filter;
+                return (
+                  <div className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${currentConfig?.gradient || 'from-gray-400 to-gray-500'} text-white rounded-xl shadow-md`}>
+                    <CurrentIcon className="h-4 w-4" />
+                    <span className="font-bold text-sm">{currentConfig?.count || 0}</span>
+        </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Compact Mode - Horizontal bar with badges */}
+          {statusViewMode === 'compact' && (
+            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+              <button
+                onClick={() => { setViewMode('pending'); setSelectedIds([]); }}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'pending' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Chờ duyệt"
+              >
+                <Clock className={`h-5 w-5 ${viewMode === 'pending' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${viewMode === 'pending' ? 'text-purple-600' : 'text-gray-600'}`}>
+                  {stats.pending}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => { setViewMode('approved'); setSelectedIds([]); }}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'approved' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Đã duyệt"
+              >
+                <CheckCircle className={`h-5 w-5 ${viewMode === 'approved' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${viewMode === 'approved' ? 'text-purple-600' : 'text-gray-600'}`}>
+                  {stats.approved}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => { setViewMode('completed'); setSelectedIds([]); }}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'completed' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Đã tham gia"
+              >
+                <Trophy className={`h-5 w-5 ${viewMode === 'completed' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${viewMode === 'completed' ? 'text-purple-600' : 'text-gray-600'}`}>
+                  {stats.participated}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => { setViewMode('rejected'); setSelectedIds([]); }}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'rejected' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Từ chối"
+              >
+                <XCircle className={`h-5 w-5 ${viewMode === 'rejected' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${viewMode === 'rejected' ? 'text-purple-600' : 'text-gray-600'}`}>
+                  {stats.rejected}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -841,10 +1283,10 @@ export default function ClassApprovalsModern() {
           </div>
         )}
 
-      {/* Registrations Grid */}
+        {/* Registrations Grid/List */}
       <div>
         {effectiveTotal > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
             {pageItems.map(reg => (
               <RegistrationCard key={reg.id} registration={reg} />
             ))}

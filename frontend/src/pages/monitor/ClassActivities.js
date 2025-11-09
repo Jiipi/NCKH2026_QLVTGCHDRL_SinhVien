@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Edit, Trash2, Eye, Plus, Search, Filter, Users, Clock, MapPin, Award, AlertCircle, CheckCircle, XCircle, QrCode, X, Sparkles, TrendingUp, Activity as ActivityIcon, Save, SlidersHorizontal, RefreshCw, Grid3X3, List, Trophy } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import http from '../../services/http';
 import useSemesterData from '../../hooks/useSemesterData';
 import { useNotification } from '../../contexts/NotificationContext';
 import ActivityQRModal from '../../components/ActivityQRModal';
+import ActivityDetailModal from '../../components/ActivityDetailModal';
 import FileUpload from '../../components/FileUpload';
 import { getActivityImage } from '../../utils/activityImages';
 
 export default function ClassActivities() {
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning, confirm } = useNotification();
-  const [activities, setActivities] = useState([]);
+  const [activities, setActivities] = useState([]); // Hoạt động của lớp (do lớp tạo)
+  const [availableActivities, setAvailableActivities] = useState([]); // Hoạt động có sẵn để đăng ký (như sinh viên)
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('cho_duyet'); // Default: 'cho_duyet'
   const [error, setError] = useState('');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [displayViewMode, setDisplayViewMode] = useState('grid'); // 'grid' or 'list'
+  const [statusViewMode, setStatusViewMode] = useState('pills'); // 'pills' | 'dropdown' | 'compact'
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
   const [activityTypes, setActivityTypes] = useState([]);
@@ -48,14 +53,16 @@ export default function ClassActivities() {
 
   // Status mappings (matching Prisma TrangThaiHoatDong enum)
   const statusLabels = {
+  'co_san': 'Hoạt động có sẵn',
     'cho_duyet': 'Chờ duyệt',
     'da_duyet': 'Đã duyệt',
-    'tu_choi': 'Từ chối',
+    'tu_choi': 'Bị từ chối',
     'da_huy': 'Đã hủy',
-    'ket_thuc': 'Kết thúc'
+    'ket_thuc': 'Đã tham gia'
   };
 
   const statusColors = {
+  'co_san': 'bg-emerald-50 text-emerald-700 border-emerald-200',
     'cho_duyet': 'bg-amber-50 text-amber-700 border-amber-200',
     'da_duyet': 'bg-emerald-50 text-emerald-700 border-emerald-200',
     'tu_choi': 'bg-rose-50 text-rose-700 border-rose-200',
@@ -65,9 +72,34 @@ export default function ClassActivities() {
 
   useEffect(() => {
     loadActivities();
+    loadAvailableActivities(); // Load hoạt động có sẵn để đăng ký
     loadDashboardStats(); // ✅ Load dashboard stats for accurate counts
     loadActivityTypes();
   }, [semester]); // ✅ Add semester dependency
+
+  // Load hoạt động có sẵn để đăng ký (giống role sinh viên)
+  const loadAvailableActivities = async () => {
+    try {
+      const params = { 
+        semester: semester || undefined,
+        limit: 'all'
+      };
+      
+      const response = await http.get('/activities', { params });
+      const responseData = response.data?.data || response.data || {};
+      const items = responseData.items || responseData.data || responseData || [];
+      const activitiesArray = Array.isArray(items) ? items : [];
+      
+      // Filter: chỉ lấy hoạt động thuộc lớp (is_class_activity = true)
+      const classActivities = activitiesArray.filter(a => a.is_class_activity === true);
+      
+      setAvailableActivities(classActivities);
+      console.log('📋 Loaded available activities for registration:', classActivities.length);
+    } catch (err) {
+      console.error('Error loading available activities:', err);
+      setAvailableActivities([]);
+    }
+  };
 
   // Load activity types for filter
   const loadActivityTypes = async () => {
@@ -75,6 +107,17 @@ export default function ClassActivities() {
       const response = await http.get('/activities/types/list');
       const types = response.data?.data || [];
       setActivityTypes(types);
+      
+      // Debug: Log activity types structure
+      console.log('🔍 Loaded activity types:', types.length, 'types');
+      if (types.length > 0) {
+        console.log('🔍 First type structure:', {
+          type: types[0],
+          id: types[0]?.id,
+          ten_loai_hd: types[0]?.ten_loai_hd,
+          name: types[0]?.name
+        });
+      }
     } catch (err) {
       console.error('Error loading activity types:', err);
       setActivityTypes([]);
@@ -115,6 +158,7 @@ export default function ClassActivities() {
       const response = await http.get(`/activities?semester=${semester}&limit=all`);
       
       // Backend returns: { success: true, data: { items: [...], total, page, limit }, message: "..." }
+
       const responseData = response.data?.data || response.data || {};
       
       // Extract items array from response
@@ -131,6 +175,19 @@ export default function ClassActivities() {
         da_huy: activitiesArray.filter(a => a.trang_thai === 'da_huy').length,
         ket_thuc: activitiesArray.filter(a => a.trang_thai === 'ket_thuc').length
       });
+      
+      // Debug: Log first activity's type structure
+      if (activitiesArray.length > 0) {
+        const firstActivity = activitiesArray[0];
+        console.log('🔍 First activity type structure:', {
+          loai_hd_id: firstActivity.loai_hd_id,
+          loai_hd: firstActivity.loai_hd,
+          loai_hd_id_type: typeof firstActivity.loai_hd_id,
+          loai_hd_type: typeof firstActivity.loai_hd,
+          loai_hd_is_object: typeof firstActivity.loai_hd === 'object',
+          loai_hd_id_from_object: firstActivity.loai_hd?.id
+        });
+      }
       
       setActivities(activitiesArray);
       setError('');
@@ -236,23 +293,40 @@ export default function ClassActivities() {
     }
   };
 
-  const handleViewDetails = async (activity) => {
-    // Open small in-page modal with activity details instead of navigating away
-    try {
-      const response = await http.get(`/activities/${activity.id}`);
-      const activityData = response.data?.data || response.data;
-      setSelectedActivity(activityData);
-      setEditMode(false); // view-only mode
-      setShowEditModal(true);
-    } catch (err) {
-      console.error('Error loading activity details:', err);
-      showError('Không thể tải chi tiết hoạt động', 'Lỗi');
-    }
+  const handleViewDetails = (activity) => {
+    setSelectedActivity(activity.id);
+    setShowDetailModal(true);
   };
 
   const handleShowQR = (activity) => {
     setSelectedActivity(activity);
     setShowQRModal(true);
+  };
+
+  // Allow monitor to register to available class activities (same flow as student role)
+  const handleRegister = async (activityId, activityName) => {
+    const confirmed = await confirm({
+      title: 'Xác nhận đăng ký',
+      message: `Bạn có chắc muốn đăng ký tham gia "${activityName}"?`,
+      confirmText: 'Đăng ký',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await http.post(`/activities/${activityId}/register`);
+      if (res?.data?.success) {
+        showSuccess('Đăng ký thành công');
+      } else {
+        showSuccess(res?.data?.message || 'Đăng ký thành công');
+      }
+      // Reload to refresh availability and counts
+      await loadActivities();
+      await loadAvailableActivities(); // Reload danh sách hoạt động có sẵn
+    } catch (err) {
+      const firstValidation = err?.response?.data?.errors?.[0]?.message;
+      const errorMsg = firstValidation || err?.response?.data?.message || err?.message || 'Đăng ký thất bại';
+      showError(errorMsg);
+    }
   };
 
   // Helper functions for filters
@@ -269,12 +343,49 @@ export default function ClassActivities() {
     setSearchTerm('');
   }
 
+  // Helpers for availability calculation - hoisted to component scope
+  const parseDateSafe = (d) => { try { return d ? new Date(d) : null; } catch(_) { return null; } };
+  const isClassActivity = (a) => a?.is_class_activity === true || a?.pham_vi === 'lop' || a?.lop_id != null;
+  
+  // ✅ Tab "Có sẵn" hiển thị hoạt động CÓ SẴN ĐỂ ĐĂNG KÝ (giống logic sinh viên)
+  // - Đã duyệt (da_duyet)
+  // - Chưa kết thúc
+  // - Còn chỗ trống (nếu có giới hạn)
+  // - Chưa đăng ký hoặc đã bị từ chối
+  const isAvailable = (a) => {
+    if (!a) return false;
+    
+    // ✅ Chỉ hiển thị hoạt động ĐÃ DUYỆT
+    if (a.trang_thai !== 'da_duyet') return false;
+    
+    const now = new Date();
+    const endDate = parseDateSafe(a.ngay_kt);
+    
+    // ✅ Loại bỏ hoạt động đã kết thúc
+    if (endDate && endDate < now) return false;
+    
+    // ✅ Kiểm tra còn chỗ trống (nếu có giới hạn số lượng)
+    const capacity = a.so_luong_toi_da ?? a.sl_toi_da ?? null;
+    const registeredCount = a.registrationCount ?? a.so_dang_ky ?? a._count?.dang_ky_hd ?? 0;
+    const isFull = capacity !== null ? Number(registeredCount) >= Number(capacity) : false;
+    if (isFull) return false;
+    
+    // ✅ Cho phép đăng ký nếu chưa đăng ký hoặc đã bị từ chối trước đó
+    // Lớp trưởng có thể đăng ký lại nếu đã bị từ chối
+    const notRegisteredOrRejected = (!a.is_registered) || a.registration_status === 'tu_choi';
+    return notRegisteredOrRejected;
+  };
+
   // Filter and sort activities with advanced filters
-  const filteredActivities = activities
+  const filteredActivities = (statusFilter === 'co_san' ? availableActivities : activities)
     .filter(activity => {
       const matchesSearch = activity.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || activity.trang_thai === statusFilter;
+      
+      // Tab "Có sẵn": chỉ hiển thị hoạt động đã duyệt (ẩn cho_duyet giống role sinh viên)
+      // Tab khác: lọc theo trạng thái hiện tại
+      const matchesStatus = statusFilter === 'all' 
+        || (statusFilter === 'co_san' ? activity.trang_thai === 'da_duyet' : activity.trang_thai === statusFilter);
       
       // Advanced filters
       let matchesType = true;
@@ -282,7 +393,51 @@ export default function ClassActivities() {
       let matchesDateTo = true;
 
       if (filters.type) {
-        matchesType = activity.loai_hd_id === parseInt(filters.type);
+        // Filter by ID - compare as numbers
+        const filterValue = filters.type;
+        const filterId = parseInt(filterValue);
+        
+        if (isNaN(filterId)) {
+          // If filter value is not a number, skip type filtering
+          matchesType = true;
+        } else {
+          // Try multiple ways to get activity type ID
+          let activityTypeId = null;
+          
+          // Method 1: Direct loai_hd_id field
+          if (activity.loai_hd_id !== undefined && activity.loai_hd_id !== null) {
+            activityTypeId = activity.loai_hd_id;
+          }
+          // Method 2: From loai_hd object's id property
+          else if (activity.loai_hd && typeof activity.loai_hd === 'object' && activity.loai_hd.id !== undefined) {
+            activityTypeId = activity.loai_hd.id;
+          }
+          // Method 3: If loai_hd is a number/string, try to parse it
+          else if (activity.loai_hd !== undefined && activity.loai_hd !== null) {
+            const parsed = parseInt(activity.loai_hd);
+            if (!isNaN(parsed)) {
+              activityTypeId = parsed;
+            }
+          }
+          
+          // Convert to number for comparison
+          const activityId = activityTypeId !== null ? parseInt(activityTypeId) : null;
+          
+          // Compare as numbers
+          matchesType = activityId !== null && activityId === filterId;
+          
+          // Debug log for mismatches (only log once per filter change)
+          if (!matchesType && activityId !== null) {
+            console.log('🔍 Filter mismatch:', {
+              filterId,
+              activityId,
+              activityTypeId,
+              loai_hd_id: activity.loai_hd_id,
+              loai_hd: activity.loai_hd,
+              activityName: activity.ten_hd
+            });
+          }
+        }
       }
 
       if (filters.from) {
@@ -310,36 +465,342 @@ export default function ClassActivities() {
   // ✅ DEPRECATED: Use dashboardStats instead for accurate counts
   // These counts are for local filtering only (status tabs)
   const localApprovedCount = activities.filter(a => a.trang_thai === 'da_duyet').length;
+  const localAvailableCount = availableActivities.filter(a => a.trang_thai === 'da_duyet').length; // Chỉ hoạt động đã duyệt
   const localPendingCount = activities.filter(a => a.trang_thai === 'cho_duyet').length;
   const localEndedCount = activities.filter(a => a.trang_thai === 'ket_thuc').length;
   
   // ✅ Use dashboard stats for display (accurate count from backend)
   const approvedCount = dashboardStats.approvedCount || localApprovedCount;
+  const availableCount = localAvailableCount;
   const pendingCount = localPendingCount; // Keep local count for pending
   const endedCount = dashboardStats.endedCount || localEndedCount;
   const totalApprovedAndEnded = dashboardStats.totalActivities || (approvedCount + endedCount);
 
+  // Format date helper
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+      return new Date(dateStr).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '—';
+    }
+  };
+
   const ActivityCard = ({ activity }) => {
     const now = new Date();
     const deadline = activity.han_dang_ky ? new Date(activity.han_dang_ky) : new Date(activity.ngay_bd);
-    const isRegistrationOpen = deadline > now && (activity.trang_thai === 'da_duyet' || activity.trang_thai === 'cho_duyet');
+    const startDate = activity.ngay_bd ? new Date(activity.ngay_bd) : null;
+    const endDate = activity.ngay_kt ? new Date(activity.ngay_kt) : null;
+    const isPast = endDate ? (endDate < now) : false;
+    const isUpcoming = startDate ? (startDate > now) : false;
+    const isOngoing = startDate && endDate ? (startDate <= now && endDate >= now) : false;
+    const isDeadlinePast = activity.han_dk ? (new Date(activity.han_dang_ky).getTime() < now.getTime()) : (deadline ? deadline < now : false);
+    const isAfterStart = startDate ? (now.getTime() >= startDate.getTime()) : false;
+    const capacity = activity.so_luong_toi_da ?? activity.sl_toi_da ?? null;
+    const registeredCount = activity.registrationCount ?? activity.so_dang_ky ?? activity._count?.dang_ky_hd ?? null;
+    const isFull = capacity !== null && registeredCount !== null ? Number(registeredCount) >= Number(capacity) : false;
+    const canRegister = activity.trang_thai === 'da_duyet' && !isPast && !isDeadlinePast && !isAfterStart 
+      && (!activity.is_registered || activity.registration_status === 'tu_choi') && !isFull;
+    const isRegistrationOpen = canRegister;
     
+    // LIST MODE - Compact horizontal layout
+    if (displayViewMode === 'list') {
+      return (
+        <div className="group relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200"></div>
+          
+          <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
+            <div className="flex items-stretch gap-4 p-4">
+              {/* Compact Image */}
+              <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                <img 
+                  src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+                  alt={activity.ten_hd}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="absolute top-2 left-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[activity.trang_thai]}`}>
+                    {statusLabels[activity.trang_thai]}
+                  </span>
+                </div>
+                {activity.diem_rl && (
+                  <div className="absolute bottom-2 left-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/90 backdrop-blur-sm text-white shadow-sm text-xs font-bold">
+                      <Award className="h-3 w-3" />
+                      +{activity.diem_rl}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-2">
+                    {activity.ten_hd}
+                  </h3>
+                  
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-gray-600 truncate">
+                        {activity.loai_hd?.ten_loai_hd || 'Chưa phân loại'}
+                      </span>
+                    </div>
+                    {activity.ngay_bd && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                      </div>
+                    )}
+                    {activity.dia_diem && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                      </div>
+                    )}
+                    {activity.registrationCount !== undefined && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <Users className="h-3.5 w-3.5 text-indigo-500" />
+                        <span className="text-gray-600">
+                          {activity.registrationCount || 0} đăng ký
+                          {activity.so_luong_toi_da && ` / ${activity.so_luong_toi_da} tối đa`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col justify-center gap-2 flex-shrink-0">
+                {statusFilter === 'co_san' && isRegistrationOpen && (
+                  <button
+                    onClick={() => handleRegister(activity.id, activity.ten_hd)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[110px]"
+                    title="Đăng ký hoạt động"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Đăng ký
+                  </button>
+                )}
+                <button
+                  onClick={() => handleViewDetails(activity)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
+                >
+                  <Eye className="h-4 w-4" />
+                  Chi tiết
+                </button>
+                
+                {/* Tab "Có sẵn" - KHÔNG hiển thị QR/Sửa/Xóa */}
+                {statusFilter !== 'co_san' && activity.trang_thai === 'da_duyet' && (
+                  <button
+                    onClick={() => handleShowQR(activity)}
+                    disabled={!isWritable}
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${isWritable ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    title="QR Code"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    QR
+                  </button>
+                )}
+                
+                {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+                  <button
+                    onClick={() => handleEditActivity(activity)}
+                    disabled={!isWritable}
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${isWritable ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white hover:from-amber-500 hover:to-orange-500 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    title="Chỉnh sửa"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Sửa
+                  </button>
+                )}
+                
+                {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+                  <button
+                    onClick={() => handleDeleteActivity(activity)}
+                    disabled={!isWritable}
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    title="Xóa"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Xóa
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // GRID MODE - Compact vertical layout
+    // ✅ Tab "Có sẵn" sử dụng thiết kế giống sinh viên với header gradient
+    if (statusFilter === 'co_san') {
+      return (
+        <div className="group relative h-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
+          
+          <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
+            {/* Header với gradient background - Giống sinh viên */}
+            <div className={`relative h-24 overflow-hidden ${
+              activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tình nguyện') || activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tinh nguyen')
+                ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500'
+                : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500'
+            }`}>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              
+              {/* Status badge - Top left */}
+              <div className="absolute top-2 left-2">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm text-emerald-700 shadow-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  {activity.trang_thai === 'da_duyet' ? 'Đã mở' : (statusLabels[activity.trang_thai] || 'Đã mở')}
+                </span>
+              </div>
+              
+              {/* Points badge - Top right */}
+              {activity.diem_rl && (
+                <div className="absolute top-2 right-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/95 backdrop-blur-sm text-white shadow-md text-xs font-bold">
+                    <Award className="h-3 w-3" />
+                    +{activity.diem_rl}
+                  </span>
+                </div>
+              )}
+              
+              {/* Activity type - Center */}
+              <div className="absolute bottom-2 left-2 right-2">
+                <div className="text-white">
+                  <div className="text-lg font-black mb-0.5 line-clamp-1">
+                    {activity.loai_hd?.ten_loai_hd?.toUpperCase() || 'HOẠT ĐỘNG'}
+                  </div>
+                  <div className="text-xs font-medium text-white/90 line-clamp-1">
+                    {activity.loai_hd?.ten_loai_hd === 'Tình nguyện' 
+                      ? 'Hoạt động cộng đồng và từ thiện'
+                      : activity.loai_hd?.ten_loai_hd === 'Hoạt động rèn luyện'
+                      ? 'Phát triển kỹ năng toàn diện'
+                      : 'Hoạt động rèn luyện'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content - White background */}
+            <div className="flex-1 p-4 space-y-3">
+              {/* Activity Title */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-1.5 leading-tight">
+                  {activity.ten_hd}
+                </h3>
+                {activity.loai_hd?.ten_loai_hd && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+                    <Calendar className="h-3 w-3" />
+                    {activity.loai_hd.ten_loai_hd}
+                  </span>
+                )}
+              </div>
+
+              {/* Meta Info */}
+              <div className="space-y-1.5">
+                {activity.ngay_bd && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">
+                        {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                      <p className="text-gray-500">
+                        {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {activity.dia_diem && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Status & Time */}
+              <div className="flex flex-col gap-1">
+                <span className={`text-xs font-semibold ${
+                  isPast ? 'text-slate-500' : isOngoing ? 'text-emerald-600' : isUpcoming ? 'text-blue-600' : 'text-slate-500'
+                }`}>
+                  • {isPast ? 'Đã kết thúc' : isOngoing ? 'Đang diễn ra' : isUpcoming ? 'Sắp diễn ra' : 'Chưa xác định'}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-3 pt-0 mt-auto flex gap-2">
+              {canRegister && (
+                <button
+                  onClick={() => handleRegister(activity.id, activity.ten_hd)}
+                  disabled={!isWritable}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  title={activity.registration_status === 'tu_choi' ? 'Đăng ký lại' : 'Đăng ký'}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  {activity.registration_status === 'tu_choi' ? 'ĐK lại' : 'Đăng ký'}
+                </button>
+              )}
+              <button
+                onClick={() => handleViewDetails(activity)}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 ${canRegister ? '' : 'flex-1'}`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Chi tiết
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // GRID MODE - Compact vertical layout cho các tab khác
     return (
-      <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${
-        isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : 'border-gray-200 hover:border-indigo-200'
+      <div className={`group relative h-full bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col ${
+        isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : ''
       }`}>
         {/* Activity Image - Compact */}
         <div className="relative w-full h-36 overflow-hidden">
           <img 
             src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
             alt={activity.ten_hd}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           
-          {/* Featured badge for open registration - moved on top of image */}
+          {/* Status Badge on Image - Compact */}
+          <div className="absolute top-2 left-2">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[activity.trang_thai]}`}>
+              {statusLabels[activity.trang_thai]}
+            </span>
+          </div>
+          
+          {/* Points Badge on Image - Compact */}
+          {activity.diem_rl && (
+            <div className="absolute bottom-2 right-2">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/95 backdrop-blur-sm text-white rounded-lg text-xs font-bold shadow-md">
+                <Award className="h-3 w-3" />
+                +{activity.diem_rl}
+              </span>
+            </div>
+          )}
+          
+          {/* Featured badge for open registration */}
           {isRegistrationOpen && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute bottom-2 left-2">
               <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 backdrop-blur-sm">
                 <Sparkles className="h-3 w-3 animate-pulse" />
                 <span className="text-xs font-bold">Mở ĐK</span>
@@ -347,115 +808,78 @@ export default function ClassActivities() {
             </div>
           )}
         </div>
-        
-        {/* Decorative gradient overlay */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-        <div className="p-4 relative z-10">
-          {/* Header */}
-          <div className="mb-4">
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 flex-1">
-                {activity.ten_hd}
-              </h3>
-              <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border ${statusColors[activity.trang_thai]} whitespace-nowrap`}>
-                {statusLabels[activity.trang_thai]}
-              </span>
-            </div>
+        <div className="flex-1 p-4 space-y-3 relative z-10">
+          {/* Header - Compact */}
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
+              {activity.ten_hd}
+            </h3>
             
-            {/* Category tag */}
+            {/* Category tag - Compact */}
             {activity.loai_hd?.ten_loai_hd && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-                <Filter className="h-3 w-3 mr-1" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+                <Calendar className="h-3 w-3" />
                 {activity.loai_hd.ten_loai_hd}
               </span>
             )}
           </div>
 
-          {/* Description */}
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed">{activity.mo_ta || 'Không có mô tả'}</p>
+          {/* Compact Meta Info */}
+          <div className="space-y-1.5">
+            {activity.ngay_bd && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-900 font-medium">
+                  {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+            )}
 
-          {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-indigo-600" />
+            {activity.dia_diem && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{activity.dia_diem}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 font-medium">Ngày</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                </p>
-              </div>
-            </div>
+            )}
 
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                <Clock className="h-4 w-4 text-purple-600" />
+            {activity.diem_rl && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Award className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                <span className="text-gray-900 font-medium">+{activity.diem_rl} điểm</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 font-medium">Giờ</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            </div>
+            )}
 
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-rose-600" />
+            {activity.registrationCount !== undefined && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5 text-indigo-500 flex-shrink-0" />
+                <span className="text-gray-600">
+                  {activity.registrationCount || 0} đăng ký
+                  {activity.so_luong_toi_da && ` / ${activity.so_luong_toi_da} tối đa`}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 font-medium">Địa điểm</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {activity.dia_diem}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-2 border border-emerald-100">
-              <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <Award className="h-4 w-4 text-emerald-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-emerald-600 font-medium">Điểm RL</p>
-                <p className="text-sm font-bold text-emerald-700 truncate">
-                  {activity.diem_rl} điểm
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Registration Stats */}
-          <div className="flex items-center justify-between py-3 px-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-indigo-600" />
-              <span className="text-sm font-medium text-gray-700">
-                <span className="font-bold text-indigo-600">{activity.registrationCount || 0}</span> sinh viên đăng ký
-              </span>
-            </div>
-            {activity.so_luong_toi_da && (
-              <span className="text-xs text-gray-500">
-                / {activity.so_luong_toi_da} tối đa
-              </span>
             )}
           </div>
 
-          {/* Action Buttons - Compact */}
-          <div className="flex items-center gap-2">
+          {/* Compact Actions */}
+          <div className="p-3 pt-0 mt-auto flex gap-2">
             <button
               onClick={() => handleViewDetails(activity)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md font-medium text-xs"
-              title="Xem chi tiết"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
             >
               <Eye className="h-3.5 w-3.5" />
               Chi tiết
             </button>
             
-            {(activity.trang_thai === 'da_duyet') && (
+            {/* Tab khác - Hiển thị QR/Sửa/Xóa */}
+            {statusFilter !== 'co_san' && activity.trang_thai === 'da_duyet' && (
               <button
                 onClick={() => handleShowQR(activity)}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-xs shadow-md ${isWritable ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 disabled={!isWritable}
                 title="QR Code"
               >
@@ -463,11 +887,11 @@ export default function ClassActivities() {
               </button>
             )}
             
-            {/* Chỉ cho phép sửa khi trạng thái "Chờ duyệt" */}
-            {activity.trang_thai === 'cho_duyet' && (
+            {/* Chỉ cho phép sửa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
+            {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
               <button
                 onClick={() => handleEditActivity(activity)}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-xs shadow-md ${isWritable ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white hover:from-amber-500 hover:to-orange-500' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white hover:from-amber-500 hover:to-orange-500 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 disabled={!isWritable}
                 title="Chỉnh sửa"
               >
@@ -475,11 +899,11 @@ export default function ClassActivities() {
               </button>
             )}
             
-            {/* Chỉ cho phép xóa khi trạng thái "Chờ duyệt" */}
-            {activity.trang_thai === 'cho_duyet' && (
+            {/* Chỉ cho phép xóa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
+            {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
               <button
                 onClick={() => handleDeleteActivity(activity)}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-xs shadow-md ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 disabled={!isWritable}
                 title="Xóa vĩnh viễn"
               >
@@ -778,11 +1202,15 @@ export default function ClassActivities() {
                     className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                   >
                     <option value="">Tất cả loại</option>
-                    {activityTypes.map(type => (
-                      <option key={type.id} value={type.id}>
-                        {type.ten_loai_hd}
-                      </option>
-                    ))}
+                    {activityTypes.map(type => {
+                      const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
+                      // Always use ID as value for consistent filtering
+                      const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
+                      const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
+                      return (
+                        <option key={typeKey} value={typeValue}>{typeName}</option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -817,84 +1245,218 @@ export default function ClassActivities() {
         </div>
       </div>
 
-      {/* Status Tabs - Xóa tab "Tất cả" */}
+      {/* Status Tabs - Multiple View Modes */}
       <div className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
         
         <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+          {/* Header với View Mode Toggle */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
               <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
             </div>
+            <div className="flex items-center gap-2">
+              {/* Toggle view mode button */}
+              <button
+                onClick={() => setStatusViewMode(statusViewMode === 'pills' ? 'dropdown' : statusViewMode === 'dropdown' ? 'compact' : 'pills')}
+                className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                title="Chuyển chế độ hiển thị"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
+          
+          {/* Pills Mode (Default) */}
+          {statusViewMode === 'pills' && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setStatusFilter('co_san')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                  statusFilter === 'co_san'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <UserPlus className="h-4 w-4" />
+                Có sẵn
+                {availableCount > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {availableCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setStatusFilter('cho_duyet')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                  statusFilter === 'cho_duyet'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                Chờ duyệt
+                {activities.filter(a => a.trang_thai === 'cho_duyet').length > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {activities.filter(a => a.trang_thai === 'cho_duyet').length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setStatusFilter('da_duyet')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                  statusFilter === 'da_duyet'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <CheckCircle className="h-4 w-4" />
+                Đã duyệt
+                {activities.filter(a => a.trang_thai === 'da_duyet').length > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {activities.filter(a => a.trang_thai === 'da_duyet').length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setStatusFilter('ket_thuc')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                  statusFilter === 'ket_thuc'
+                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Award className="h-4 w-4" />
+                Đã tham gia
+                {activities.filter(a => a.trang_thai === 'ket_thuc').length > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {activities.filter(a => a.trang_thai === 'ket_thuc').length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setStatusFilter('tu_choi')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
+                  statusFilter === 'tu_choi'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <XCircle className="h-4 w-4" />
+                Bị từ chối
+                {activities.filter(a => a.trang_thai === 'tu_choi').length > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {activities.filter(a => a.trang_thai === 'tu_choi').length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setStatusFilter('cho_duyet')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                statusFilter === 'cho_duyet'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Clock className="h-4 w-4" />
-              Chờ duyệt
-              {activities.filter(a => a.trang_thai === 'cho_duyet').length > 0 && (
-                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+          {/* Dropdown Mode */}
+          {statusViewMode === 'dropdown' && (
+            <div className="flex items-center gap-3">
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
+              >
+                <option value="co_san">Có sẵn ({availableCount})</option>
+                <option value="cho_duyet">Chờ duyệt ({activities.filter(a => a.trang_thai === 'cho_duyet').length})</option>
+                <option value="da_duyet">Đã duyệt ({activities.filter(a => a.trang_thai === 'da_duyet').length})</option>
+                <option value="ket_thuc">Đã tham gia ({activities.filter(a => a.trang_thai === 'ket_thuc').length})</option>
+                <option value="tu_choi">Bị từ chối ({activities.filter(a => a.trang_thai === 'tu_choi').length})</option>
+              </select>
+              {(() => {
+                const configs = {
+                  co_san: { icon: UserPlus, gradient: 'from-emerald-500 to-green-500', count: availableCount },
+                  cho_duyet: { icon: Clock, gradient: 'from-amber-500 to-orange-500', count: activities.filter(a => a.trang_thai === 'cho_duyet').length },
+                  da_duyet: { icon: CheckCircle, gradient: 'from-emerald-500 to-teal-500', count: activities.filter(a => a.trang_thai === 'da_duyet').length },
+                  ket_thuc: { icon: Award, gradient: 'from-violet-500 to-purple-500', count: activities.filter(a => a.trang_thai === 'ket_thuc').length },
+                  tu_choi: { icon: XCircle, gradient: 'from-red-500 to-rose-500', count: activities.filter(a => a.trang_thai === 'tu_choi').length }
+                };
+                const currentConfig = configs[statusFilter] || configs.cho_duyet;
+                const CurrentIcon = currentConfig?.icon || Clock;
+                return (
+                  <div className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${currentConfig?.gradient || 'from-gray-400 to-gray-500'} text-white rounded-xl shadow-md`}>
+                    <CurrentIcon className="h-4 w-4" />
+                    <span className="font-bold text-sm">{currentConfig?.count || 0}</span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Compact Mode - Horizontal bar with badges */}
+          {statusViewMode === 'compact' && (
+            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+              <button
+                onClick={() => setStatusFilter('co_san')}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  statusFilter === 'co_san' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Có sẵn"
+              >
+                <UserPlus className={`h-5 w-5 ${statusFilter === 'co_san' ? 'text-emerald-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${statusFilter === 'co_san' ? 'text-emerald-600' : 'text-gray-600'}`}>
+                  {availableCount}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('cho_duyet')}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Chờ duyệt"
+              >
+                <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
                   {activities.filter(a => a.trang_thai === 'cho_duyet').length}
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => setStatusFilter('da_duyet')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                statusFilter === 'da_duyet'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <CheckCircle className="h-4 w-4" />
-              Đã duyệt
-              {activities.filter(a => a.trang_thai === 'da_duyet').length > 0 && (
-                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+              </button>
+              
+              <button
+                onClick={() => setStatusFilter('da_duyet')}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Đã duyệt"
+              >
+                <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
                   {activities.filter(a => a.trang_thai === 'da_duyet').length}
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => setStatusFilter('ket_thuc')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                statusFilter === 'ket_thuc'
-                  ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Award className="h-4 w-4" />
-              Kết thúc
-              {activities.filter(a => a.trang_thai === 'ket_thuc').length > 0 && (
-                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+              </button>
+              
+              <button
+                onClick={() => setStatusFilter('ket_thuc')}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Đã tham gia"
+              >
+                <Award className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-600'}`}>
                   {activities.filter(a => a.trang_thai === 'ket_thuc').length}
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => setStatusFilter('tu_choi')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                statusFilter === 'tu_choi'
-                  ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <XCircle className="h-4 w-4" />
-              Từ chối
-              {activities.filter(a => a.trang_thai === 'tu_choi').length > 0 && (
-                <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+              </button>
+              
+              <button
+                onClick={() => setStatusFilter('tu_choi')}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
+                  statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                }`}
+                title="Bị từ chối"
+              >
+                <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
+                <span className={`text-xs font-bold ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-600'}`}>
                   {activities.filter(a => a.trang_thai === 'tu_choi').length}
                 </span>
-              )}
-            </button>
-          </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1308,6 +1870,18 @@ export default function ClassActivities() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Activity Detail Modal */}
+      {showDetailModal && selectedActivity && (
+        <ActivityDetailModal
+          activityId={selectedActivity}
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedActivity(null);
+          }}
+        />
       )}
 
       {/* QR Code Modal */}

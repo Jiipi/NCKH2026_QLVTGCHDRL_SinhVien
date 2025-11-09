@@ -126,7 +126,7 @@ export default function ClassApprovals() {
       activity?.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       reg.sinh_vien?.mssv?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by view mode
+    // Filter by view mode - always require a specific status
     let matchesViewMode = false;
     switch (viewMode) {
       case 'pending':
@@ -139,7 +139,8 @@ export default function ClassApprovals() {
         matchesViewMode = reg.trang_thai_dk === 'tu_choi';
         break;
       default:
-        matchesViewMode = true;
+        // No "all" option - default to pending
+        matchesViewMode = reg.trang_thai_dk === 'cho_duyet';
     }
     
     return matchesSearch && matchesViewMode;
@@ -371,17 +372,7 @@ export default function ClassApprovals() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.total}</div>
-            <div className="text-indigo-100 text-sm font-medium">Tổng đăng ký</div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">

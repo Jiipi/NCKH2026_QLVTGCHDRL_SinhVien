@@ -522,25 +522,25 @@ export default function DashboardStudentModern() {
           {/* Hoạt động sắp tới + Hoạt động gần đây - Grid 2 cột */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Upcoming Activities - Hoạt động sắp tới */}
-            {upcoming.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm">
-                    <Calendar className="w-5 h-5" />
-                    Hoạt động sắp tới
-                  </div>
-                  <button
-                    onClick={() => navigate('/student/activities')}
-                    className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
-                  >
-                    Xem tất cả →
-                  </button>
+            {/* Upcoming Activities - Hoạt động sắp tới (Always render with placeholder) */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm">
+                  <Calendar className="w-5 h-5" />
+                  Hoạt động sắp tới
                 </div>
-                
-                {/* Scrollable list */}
-                <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
-                  {upcoming.map((activity, idx) => {
+                <button
+                  onClick={() => navigate('/student/activities')}
+                  className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
+                >
+                  Xem tất cả →
+                </button>
+              </div>
+              
+              {/* Scrollable list or empty state */}
+              <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
+                {upcoming.length > 0 ? (
+                  upcoming.map((activity, idx) => {
                     const activityData = activity.activity || activity;
                     const daysUntil = activity.ngay_bd 
                       ? Math.ceil((new Date(activity.ngay_bd) - new Date()) / (1000 * 60 * 60 * 24))
@@ -577,10 +577,18 @@ export default function DashboardStudentModern() {
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  })
+                ) : (
+                  <div className="text-center py-10">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600 mb-3">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Chưa có hoạt động sắp tới</p>
+                    <p className="text-gray-600 text-sm">Chọn học kỳ khác hoặc kiểm tra sau</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Recent Activities - Hoạt động gần đây */}
             <div className="bg-white rounded-2xl p-6 shadow-lg">
