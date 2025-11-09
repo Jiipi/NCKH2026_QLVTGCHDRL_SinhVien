@@ -5,43 +5,36 @@ import {
   Award, Target, Zap, CheckCircle, Filter, Medal,
   Activity, BarChart3, Sparkles, ChevronRight, X, MapPin, Users
 } from 'lucide-react';
-import http from '../../services/http';
 import useSemesterData from '../../hooks/useSemesterData';
+import useDashboardData from '../../hooks/useDashboardData';
 import SemesterFilter from '../../components/SemesterFilter';
 
 export default function DashboardStudentModern() {
   const navigate = useNavigate();
   
-  const [summary, setSummary] = React.useState({ 
-    totalPoints: 0, 
-    progress: 0, 
-    targetPoints: 100, 
-    activitiesJoined: 0,
-    activitiesUpcoming: 0,
-    classRank: 1,
-    totalStudents: 53,
-    goalText: 'Cần 27 điểm để đạt điểm trung bình',
-    goalPoints: 27
-  });
-  const [upcoming, setUpcoming] = React.useState([]);
-  const [recentActivities, setRecentActivities] = React.useState([]);
-  const [myActivitiesData, setMyActivitiesData] = React.useState({ 
-    all: [], 
-    pending: [], 
-    approved: [], 
-    joined: [], 
-    rejected: [] 
-  });
-  const [recentFilter, setRecentFilter] = React.useState('all'); // 'all', 'pending', 'approved', 'joined', 'rejected'
-  const [selectedActivity, setSelectedActivity] = React.useState(null);
-  const [showSummaryModal, setShowSummaryModal] = React.useState(false);
-  const [userProfile, setUserProfile] = React.useState(null);
-  const [studentInfo, setStudentInfo] = React.useState({ mssv: '', ten_lop: '' });
-  const [loading, setLoading] = React.useState(true);
+  // Semester state synced with session
   const [semester, setSemester] = React.useState(() => {
     try { return sessionStorage.getItem('current_semester') || ''; } catch (_) { return ''; }
   });
   const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Recent activities filter state
+  const [recentFilter, setRecentFilter] = React.useState('all'); // 'all', 'pending', 'approved', 'joined', 'rejected'
+  const [recentActivities, setRecentActivities] = React.useState([]);
+  
+  // Modal states
+  const [selectedActivity, setSelectedActivity] = React.useState(null);
+  const [showSummaryModal, setShowSummaryModal] = React.useState(false);
+
+  // ✅ USE SHARED HOOK - Replaces 247 lines of manual state + fetch logic
+  const { 
+    upcoming, 
+    myActivities, 
+    summary, 
+    userProfile, 
+    studentInfo, 
+    loading 
+  } = useDashboardData({ semester, role: 'student' });
 
   React.useEffect(() => {
     if (currentSemester && currentSemester !== semester) {
@@ -55,51 +48,7 @@ export default function DashboardStudentModern() {
     }
   }, [semester]);
 
-  const parseSemesterToLegacy = React.useCallback((value) => {
-    const m = String(value || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!m) return { hoc_ky: '', nam_hoc: '' };
-    const hoc_ky = m[1];
-    const y = parseInt(m[2], 10);
-    const nam_hoc = hoc_ky === 'hoc_ky_1' ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-    return { hoc_ky, nam_hoc };
-  }, []);
-
-  // Calculate goal text and points needed
-  const calculateGoal = React.useCallback((totalPoints) => {
-    const points = Math.round(totalPoints);
-    if (points < 50) {
-      const needed = 50 - points;
-      return {
-        goalText: `Cần ${needed} điểm để đạt trung bình`,
-        goalPoints: needed
-      };
-    } else if (points >= 50 && points < 70) {
-      const needed = 70 - points;
-      return {
-        goalText: `Cần ${needed} điểm để đạt khá`,
-        goalPoints: needed
-      };
-    } else if (points >= 70 && points < 80) {
-      const needed = 80 - points;
-      return {
-        goalText: `Cần ${needed} điểm để đạt giỏi`,
-        goalPoints: needed
-      };
-    } else if (points >= 80 && points < 100) {
-      const needed = 100 - points;
-      return {
-        goalText: `Cần ${needed} điểm để đạt xuất sắc`,
-        goalPoints: needed
-      };
-    } else {
-      return {
-        goalText: 'Đã đạt xuất sắc!',
-        goalPoints: 0
-      };
-    }
-  }, []);
-
-  // Get classification
+  // Get classification helper (UI logic)
   const getClassification = React.useCallback((points) => {
     if (points >= 90) return { text: 'Xuất sắc', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' };
     if (points >= 80) return { text: 'Tốt', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
@@ -108,173 +57,27 @@ export default function DashboardStudentModern() {
     return { text: 'Yếu', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' };
   }, []);
 
-  const loadDashboardData = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      const legacy = parseSemesterToLegacy(semester);
-      const params = {};
-      if (semester) {
-        params.semester = semester;
-        if (legacy.hoc_ky) params.hoc_ky = legacy.hoc_ky;
-        if (legacy.nam_hoc) params.nam_hoc = legacy.nam_hoc;
-      }
-      
-      const [dashboardRes, myActivitiesRes, profileRes, scoresRes] = await Promise.allSettled([
-        http.get('/dashboard/student', { params }),
-        http.get('/dashboard/activities/me', { params }),
-        http.get('/users/profile').catch(() => http.get('/auth/profile')),
-        http.get('/scores', { params }).catch(() => Promise.resolve({ data: { data: {} } }))
-      ]);
-      
-      let apiData = {};
-      let totalPoints = 0;
-      let activitiesJoined = 0;
-      let activitiesUpcoming = 0;
-      let classRank = 1;
-      let totalStudents = 53;
-
-      // ✅ SỬ DỤNG DỮ LIỆU TỪ API - Backend đã tính đúng theo lớp và học kỳ
-      if (dashboardRes.status === 'fulfilled') {
-        apiData = dashboardRes.value.data.data || {};
-        
-        // Lấy thông tin sinh viên từ API
-        if (apiData.sinh_vien) {
-          setStudentInfo({
-            mssv: apiData.sinh_vien.mssv || '',
-            ten_lop: apiData.sinh_vien.lop?.ten_lop || ''
-          });
-        }
-        
-        // Lấy tổng điểm từ API (đã được tính đúng theo lớp và học kỳ)
-        if (apiData.tong_quan) {
-          totalPoints = Number(apiData.tong_quan.tong_diem || 0);
-          activitiesJoined = apiData.tong_quan.tong_hoat_dong || 0;
-          
-          const target = Number(apiData.tong_quan.muc_tieu || 100);
-          const percentFixed = Math.round(Math.min((totalPoints / target) * 100, 100) * 10) / 10;
-          
-          // Calculate goal
-          const goal = calculateGoal(totalPoints);
-          
-          setSummary(prev => ({
-            ...prev,
-            totalPoints: Math.round(totalPoints * 10) / 10,
-            progress: percentFixed,
-            targetPoints: target,
-            activitiesJoined: activitiesJoined,
-            goalText: goal.goalText,
-            goalPoints: goal.goalPoints
-          }));
-        }
-        
-        if (apiData.hoat_dong_sap_toi) {
-          setUpcoming(apiData.hoat_dong_sap_toi);
-          activitiesUpcoming = apiData.hoat_dong_sap_toi.length;
-          setSummary(prev => ({ ...prev, activitiesUpcoming }));
-        }
-        
-        // Không dùng apiData.hoat_dong_gan_day nữa, sẽ lấy từ MyActivities
-        
-        // Lấy hạng lớp từ API response
-        if (apiData.so_sanh_lop) {
-          classRank = apiData.so_sanh_lop.my_rank_in_class || 1;
-          totalStudents = apiData.so_sanh_lop.total_students_in_class || 53;
-          setSummary(prev => ({
-            ...prev,
-            classRank,
-            totalStudents
-          }));
-        }
-      }
-
-      // Fallback: Get class ranking from scores API if not in dashboard response
-      if (classRank === 1 && scoresRes.status === 'fulfilled') {
-        const scoresData = scoresRes.value.data?.data || scoresRes.value.data || {};
-        if (scoresData.summary) {
-          const fallbackRank = scoresData.summary.rank_in_class || 1;
-          const fallbackTotal = scoresData.summary.total_students_in_class || 53;
-          if (fallbackRank !== 1 || fallbackTotal !== 53) {
-            setSummary(prev => ({
-              ...prev,
-              classRank: fallbackRank,
-              totalStudents: fallbackTotal
-            }));
-          }
-        }
-      }
-
-      // ✅ Lấy dữ liệu từ MyActivities và lọc theo status
-      if (myActivitiesRes.status === 'fulfilled') {
-        const myData = myActivitiesRes.value.data?.success && Array.isArray(myActivitiesRes.value.data.data)
-          ? myActivitiesRes.value.data.data
-          : Array.isArray(myActivitiesRes.value.data)
-            ? myActivitiesRes.value.data
-            : [];
-        
-        // Lọc theo status
-        const pending = myData.filter(x => {
-          const status = (x.trang_thai_dk || x.status || '').toLowerCase();
-          return status === 'cho_duyet' || status === 'pending';
-        });
-        const approved = myData.filter(x => {
-          const status = (x.trang_thai_dk || x.status || '').toLowerCase();
-          return status === 'da_duyet' || status === 'approved';
-        });
-        const joined = myData.filter(x => {
-          const status = (x.trang_thai_dk || x.status || '').toLowerCase();
-          return status === 'da_tham_gia' || status === 'participated' || status === 'attended';
-        });
-        const rejected = myData.filter(x => {
-          const status = (x.trang_thai_dk || x.status || '').toLowerCase();
-          return status === 'tu_choi' || status === 'rejected';
-        });
-        
-        setMyActivitiesData({
-          all: myData,
-          pending,
-          approved,
-          joined,
-          rejected
-        });
-      }
-
-      if (profileRes.status === 'fulfilled') {
-        const profileData = profileRes.value.data?.data || profileRes.value.data || {};
-        setUserProfile(profileData);
-      }
-    } catch (err) {
-      console.error('Error loading dashboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [semester, parseSemesterToLegacy, calculateGoal]);
-
-  // Update recent activities khi filter thay đổi
+  // Update recent activities when filter changes
   React.useEffect(() => {
     let filtered = [];
     switch (recentFilter) {
       case 'pending':
-        filtered = myActivitiesData.pending;
+        filtered = myActivities.pending;
         break;
       case 'approved':
-        filtered = myActivitiesData.approved;
+        filtered = myActivities.approved;
         break;
       case 'joined':
-        filtered = myActivitiesData.joined;
+        filtered = myActivities.joined;
         break;
       case 'rejected':
-        filtered = myActivitiesData.rejected;
+        filtered = myActivities.rejected;
         break;
       default:
-        filtered = myActivitiesData.all;
+        filtered = myActivities.all;
     }
     setRecentActivities(filtered);
-  }, [recentFilter, myActivitiesData]);
-
-  React.useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+  }, [recentFilter, myActivities]);
 
   const classification = getClassification(summary.totalPoints);
   const formatNumber = (n) => {
@@ -615,7 +418,7 @@ export default function DashboardStudentModern() {
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Tất cả ({myActivitiesData.all.length})
+                  Tất cả ({myActivities.all.length})
                 </button>
                 <button
                   onClick={() => setRecentFilter('pending')}
@@ -625,7 +428,7 @@ export default function DashboardStudentModern() {
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Chờ duyệt ({myActivitiesData.pending.length})
+                  Chờ duyệt ({myActivities.pending.length})
                 </button>
                 <button
                   onClick={() => setRecentFilter('approved')}
@@ -635,7 +438,7 @@ export default function DashboardStudentModern() {
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Đã duyệt ({myActivitiesData.approved.length})
+                  Đã duyệt ({myActivities.approved.length})
                 </button>
                 <button
                   onClick={() => setRecentFilter('joined')}
@@ -645,7 +448,7 @@ export default function DashboardStudentModern() {
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Đã tham gia ({myActivitiesData.joined.length})
+                  Đã tham gia ({myActivities.joined.length})
                 </button>
                 <button
                   onClick={() => setRecentFilter('rejected')}
@@ -655,7 +458,7 @@ export default function DashboardStudentModern() {
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  Bị từ chối ({myActivitiesData.rejected.length})
+                  Bị từ chối ({myActivities.rejected.length})
                 </button>
               </div>
               

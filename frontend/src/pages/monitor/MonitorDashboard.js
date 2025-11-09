@@ -3,20 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, Activity, AlertCircle, Trophy, MapPin, Filter, Zap, Target, Star, Sparkles, CheckCircle, XCircle
 } from 'lucide-react';
-import http from '../../services/http';
 import ActivityDetailModal from '../../components/ActivityDetailModal';
 import SemesterClosureWidget from '../../components/SemesterClosureWidget';
 import useSemesterData from '../../hooks/useSemesterData';
+import useDashboardData from '../../hooks/useDashboardData';
 import SemesterFilter from '../../components/SemesterFilter';
 
 export default function MonitorDashboard() {
   const navigate = useNavigate();
-  const [dashboard, setDashboard] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [monitorName, setMonitorName] = useState('Lớp trưởng');
+  
+  // Modal states
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'recent'
   
   // Semester filter synced with backend current + session cache
@@ -27,6 +25,18 @@ export default function MonitorDashboard() {
 
   // Unified semester options from backend
   const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+
+  // ✅ USE SHARED HOOK - Replaces ~200 lines of manual state + fetch logic
+  const { 
+    upcoming,
+    myActivities, 
+    summary, 
+    userProfile, 
+    topStudents,
+    classSummary,
+    approvals,
+    loading 
+  } = useDashboardData({ semester, role: 'monitor' });
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {
@@ -42,236 +52,7 @@ export default function MonitorDashboard() {
     }
   }, [semester]);
 
-  useEffect(() => {
-    try {
-      const cached = window.localStorage.getItem('user');
-      if (cached) {
-        const u = JSON.parse(cached);
-        setMonitorName(u?.ho_ten || u?.name || 'Lớp trưởng');
-        setUserProfile(u);
-      }
-    } catch (_) {}
-    if (!semester) return;
-    loadDashboard();
-  }, [semester]); // Reload when semester changes
-
-  const loadDashboard = async () => {
-    try {
-      setLoading(true);
-      // Always send semester parameter
-      const params = { semester };
-      
-      // Load student + class + registrations + students list (for rank) + current profile + all activities (fallback)
-      const [classDashboardRes, studentDashboardRes, myActivitiesRes, registrationsRes, studentsRes, profileRes, activitiesRes] = await Promise.all([
-        http.get('/class/dashboard', { params }),
-        http.get('/dashboard/student', { params }).catch(() => ({ data: { data: null } })),
-        http.get('/dashboard/activities/me', { params }).catch(() => ({ data: { data: [] } })),
-        http.get('/class/registrations', { params: { status: 'all', semester } }).catch(() => ({ data: { data: [] } })),
-        http.get('/class/students', { params: { semester, page: 1, limit: 2000 } }).catch(() => ({ data: { data: [] } })),
-        http.get('/users/profile').catch(() => http.get('/auth/profile')),
-        http.get('/activities', { params: { semester, limit: 'all' } }).catch(() => ({ data: { data: [] } }))
-      ]);
-      
-      const classDataRaw = classDashboardRes?.data?.data || {};
-      const studentDataRaw = studentDashboardRes?.data?.data || {};
-      const profileDataRaw = profileRes?.data?.data || profileRes?.data || null;
-
-      // Ensure greeting and avatar use the actual logged-in user
-      if (profileDataRaw) {
-        const displayName = profileDataRaw.ho_ten || profileDataRaw.name || profileDataRaw.full_name || 'Lớp trưởng';
-        setMonitorName(displayName);
-        setUserProfile(profileDataRaw);
-        try { window.localStorage.setItem('user', JSON.stringify(profileDataRaw)); } catch (_) {}
-      }
-
-  // Normalize class summary structure
-  const classSummary = classDataRaw?.summary || classDataRaw?.tong_quan_lop || {};
-  const topStudentsRaw = classDataRaw?.topStudents || classDataRaw?.top_sinh_vien || [];
-
-      // Helpers: filter by selected semester and class scope
-      const filterBySemester = (item) => {
-        if (!item) return false;
-        const semKeys = ['semester', 'hoc_ky', 'hocKy', 'sem'];
-        for (const k of semKeys) {
-          if (Object.prototype.hasOwnProperty.call(item, k) && item[k]) {
-            return item[k] === semester;
-          }
-        }
-        // If no semester info on item, accept it (backend likely pre-filtered)
-        return true;
-      };
-      const isClassActivity = (a) => (a?.is_class_activity === true) || (a?.pham_vi === 'lop') || (a?.lop_id != null);
-
-    // Build upcomingActivities: đơn giản lấy giống tab "Có sẵn" của trang Hoạt động lớp
-    // Nghĩa là: tất cả hoạt động phạm vi lớp (is_class_activity=true) và trạng thái đã duyệt (da_duyet)
-    // KHÔNG thêm điều kiện về hạn đăng ký, chưa đăng ký, hết chỗ, hay thời gian.
-    // Build recentApprovals from personal activities (/dashboard/activities/me) like student "Hoạt động của tôi"
-  let upcomingActivities = [];
-  let recentApprovals = [];
-      try {
-        // Extract activities array exactly like ClassActivities does
-        const responseData = activitiesRes?.data?.data || activitiesRes?.data || {};
-        const items = responseData.items || responseData.data || responseData || [];
-        const activitiesArray = Array.isArray(items) ? items : [];
-        
-        console.log('🔍 MonitorDashboard activities raw:', activitiesArray.length, 'items');
-        console.log('🔍 First activity sample:', activitiesArray[0]);
-        
-        // Filter: chỉ lấy hoạt động thuộc lớp (is_class_activity = true) - EXACTLY like ClassActivities
-        const classActivities = activitiesArray.filter(a => a.is_class_activity === true);
-        
-        console.log('🔍 Class activities filtered:', classActivities.length);
-        
-        // Filter approved (da_duyet) - matching the tab "Có sẵn" second filter
-        const allActs = classActivities.filter(a => a.trang_thai === 'da_duyet');
-        
-        console.log('🔍 Approved class activities:', allActs.length);
-
-        // Upcoming: đơn giản = tất cả hoạt động lớp đã duyệt (giống tab "Có sẵn" hiển thị)
-        // Sort theo ngày bắt đầu tăng dần (nếu thiếu thì theo ngày kết thúc, nếu thiếu nữa thì để cuối)
-        const parseDateSafeLocal = (d) => { if (!d) return null; const dt = new Date(d); return isNaN(dt.getTime()) ? null : dt; };
-        upcomingActivities = allActs
-          .sort((a, b) => {
-            const aStart = parseDateSafeLocal(a.ngay_bd) || parseDateSafeLocal(a.ngay_kt) || new Date(8640000000000000);
-            const bStart = parseDateSafeLocal(b.ngay_bd) || parseDateSafeLocal(b.ngay_kt) || new Date(8640000000000000);
-            return aStart - bStart;
-          })
-          .slice(0, 50); // lấy tối đa 50 cho an toàn
-
-        // ✅ "Hoạt động gần đây": Lấy từ "Hoạt động của tôi" giống như form sinh viên
-        // Sử dụng /dashboard/activities/me (myActivitiesRes) - backend đã filter theo semester
-        const myActsRaw = (myActivitiesRes?.data?.success && Array.isArray(myActivitiesRes.data.data))
-          ? myActivitiesRes.data.data
-          : (Array.isArray(myActivitiesRes?.data?.data))
-            ? myActivitiesRes.data.data
-            : (Array.isArray(myActivitiesRes?.data))
-              ? myActivitiesRes.data
-              : (studentDataRaw?.dang_ky_ca_nhan || studentDataRaw?.registrations || []);
-        
-        const myActs = Array.isArray(myActsRaw) ? myActsRaw : [];
-        
-        console.log('🔍 My activities raw:', myActs.length, 'items');
-        
-        // Lấy TẤT CẢ hoạt động của tôi, không filter status (giống student dashboard)
-        // Student dashboard sẽ filter theo tab, nhưng ở đây ta hiển thị tất cả
-        recentApprovals = myActs
-          .sort((a, b) => {
-            const ta = parseDateSafeLocal(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tham_gia || a.ngay_bd || 0)?.getTime() || 0;
-            const tb = parseDateSafeLocal(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tham_gia || b.ngay_bd || 0)?.getTime() || 0;
-            return tb - ta; // mới nhất trước
-          })
-          .slice(0, 20);
-      } catch (e) {
-        console.warn('Custom build upcoming/recent failed:', e);
-      }
-
-      // Normalize student personal dashboard fields
-  const tongQuan = studentDataRaw?.tong_quan || {};
-      const soSanhLop = studentDataRaw?.so_sanh_lop || {};
-  const hdSapToi = (studentDataRaw?.hoat_dong_sap_toi || []).filter(filterBySemester);
-  const dangKyCaNhanRaw = studentDataRaw?.dang_ky_ca_nhan || studentDataRaw?.registrations || [];
-  const dangKyCaNhan = (Array.isArray(dangKyCaNhanRaw) ? dangKyCaNhanRaw : []).filter(filterBySemester);
-
-      // Pending personal registrations (cho_duyet)
-      const pendingPersonal = Array.isArray(dangKyCaNhan)
-        ? dangKyCaNhan.filter(r => r.trang_thai_dk === 'cho_duyet')
-        : [];
-
-      // Activities joined personal (đã tham gia) - count only class scope if field shows
-      const joinedPersonal = Array.isArray(dangKyCaNhan)
-        ? dangKyCaNhan.filter(r => r.trang_thai_dk === 'da_tham_gia')
-        : [];
-
-      // Registrations for class approvals (single source with approvals form)
-      const regsDataRaw = registrationsRes?.data?.data || registrationsRes?.data || [];
-      const registrations = Array.isArray(regsDataRaw?.items) ? regsDataRaw.items : (Array.isArray(regsDataRaw) ? regsDataRaw : []);
-      const classPendingCount = registrations.filter(r => r.trang_thai_dk === 'cho_duyet').length;
-
-      // Students list for accurate rank
-      const studentsRaw = studentsRes?.data?.data || studentsRes?.data || [];
-      const students = Array.isArray(studentsRaw?.items) ? studentsRaw.items : (Array.isArray(studentsRaw) ? studentsRaw : []);
-
-      // Compute monitor rank from students list when possible
-      let computedRank = soSanhLop.my_rank_in_class || null;
-      let totalStudentsComputed = classSummary.totalStudents || students.length || soSanhLop.total_students_in_class || 0;
-      try {
-        const meProfile = profileDataRaw || userProfile;
-        if (students.length > 0 && meProfile) {
-          const myKeys = new Set([
-            String(meProfile?.mssv || ''),
-            String(meProfile?.id || ''),
-            String(meProfile?.nguoi_dung_id || ''),
-            String(meProfile?.email || '').toLowerCase(),
-          ].filter(Boolean));
-
-          // Normalize items to have comparable keys
-          const items = students.map((s, idx) => ({
-            id: String(s.id || s.user_id || s.nguoi_dung_id || ''),
-            mssv: String(s.mssv || s.sinh_vien?.mssv || s.nguoi_dung?.mssv || ''),
-            email: String(s.email || s.nguoi_dung?.email || '').toLowerCase(),
-            points: Number(s.points || s.totalPoints || s.tong_diem || 0),
-            rank: Number(s.rank || s.xep_hang || 0)
-          }));
-
-          // Prefer provided rank if present
-          let my = items.find(s => myKeys.has(s.mssv) || myKeys.has(s.id) || (s.email && myKeys.has(s.email)));
-          if (my && my.rank) {
-            computedRank = my.rank;
-          } else {
-            // Compute by sorting
-            const sorted = items
-              .slice()
-              .sort((a, b) => (b.points || 0) - (a.points || 0));
-            const idx = sorted.findIndex(s => myKeys.has(s.mssv) || myKeys.has(s.id) || (s.email && myKeys.has(s.email)));
-            if (idx >= 0) computedRank = idx + 1;
-          }
-          totalStudentsComputed = items.length || totalStudentsComputed;
-        }
-      } catch (e) {
-        console.warn('Rank compute fallback:', e);
-      }
-
-      // Goal like Student dashboard: points needed to next classification
-      const calculateGoal = (points) => {
-        const p = Number(points || 0);
-        if (p < 50) return { goalPoints: Math.max(0, Math.ceil(50 - p)), goalText: `Cần ${Math.max(0, Math.ceil(50 - p))} điểm để đạt Trung bình` };
-        if (p < 65) return { goalPoints: Math.max(0, Math.ceil(65 - p)), goalText: `Cần ${Math.max(0, Math.ceil(65 - p))} điểm để đạt Khá` };
-        if (p < 80) return { goalPoints: Math.max(0, Math.ceil(80 - p)), goalText: `Cần ${Math.max(0, Math.ceil(80 - p))} điểm để đạt Tốt` };
-        if (p < 90) return { goalPoints: Math.max(0, Math.ceil(90 - p)), goalText: `Cần ${Math.max(0, Math.ceil(90 - p))} điểm để đạt Xuất sắc` };
-        return { goalPoints: 0, goalText: 'ĐÃ ĐẠT XUẤT SẮC' };
-      };
-
-      const goal = calculateGoal(tongQuan.tong_diem || 0);
-
-      const monitorStats = {
-        totalPoints: tongQuan.tong_diem || 0,
-        activitiesJoined: joinedPersonal.length || tongQuan.tong_hoat_dong || 0,
-        pendingActivities: pendingPersonal.length,
-        classRank: computedRank || 1,
-        totalStudentsInClass: totalStudentsComputed || classSummary.totalStudents || 1,
-        goalPoints: goal.goalPoints,
-        goalText: goal.goalText
-      };
-
-      console.log('✅ Class Summary:', classSummary);
-      console.log('📊 Monitor Stats (personal):', monitorStats);
-      console.log('🔍 JoinedPersonal/PendingPersonal counts:', joinedPersonal.length, pendingPersonal.length);
-
-      setDashboard({
-        summary: { ...classSummary },
-        upcomingActivities,
-        recentApprovals,
-        topStudents: topStudentsRaw,
-        approvals: { pending: classPendingCount, total: registrations.length },
-        monitorStats
-      });
-    } catch (err) {
-      console.error('❌ Error loading monitor dashboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Event handlers
   const handleActivityClick = (activityId) => {
     setSelectedActivity(activityId);
     setShowActivityModal(true);
@@ -296,6 +77,7 @@ export default function MonitorDashboard() {
     return semester;
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
@@ -307,35 +89,27 @@ export default function MonitorDashboard() {
     );
   }
 
-  if (!dashboard) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Không thể tải dữ liệu dashboard</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { summary, upcomingActivities, recentApprovals, topStudents, monitorStats } = dashboard;
+  // Derive display values from hook data
+  const monitorName = userProfile?.ho_ten || userProfile?.name || 'Lớp trưởng';
+  const upcomingActivities = upcoming || [];
+  const recentApprovals = myActivities?.all || [];
   
-  // Monitor's PERSONAL stats (as a student in the class) - FROM STUDENT DASHBOARD
-  const monitorPoints = Math.round(monitorStats?.totalPoints || 0);
-  const activitiesJoined = monitorStats?.activitiesJoined || 0;
-  const pendingActivities = monitorStats?.pendingActivities || 0;
-  const classRank = monitorStats?.classRank || 1;
-  const goalPoints = monitorStats?.goalPoints || 0;
-  const goalText = monitorStats?.goalText || '';
+  // Monitor's PERSONAL stats (summary from hook)
+  const monitorPoints = Math.round(summary?.totalPoints || 0);
+  const activitiesJoined = summary?.activitiesJoined || 0;
+  const pendingActivities = myActivities?.pending?.length || 0;
+  const classRank = summary?.classRank || 1;
+  const goalPoints = summary?.goalPoints || 0;
+  const goalText = summary?.goalText || '';
   
   // Progress based on monitor's personal points
   const progressPercent = Math.min(Math.round((monitorPoints / 100) * 100), 100);
   const totalPointsProgress = Math.min((monitorPoints / 100) * 100, 100);
   
-  // Class-level stats - FROM CLASS DASHBOARD (with computed fallbacks)
-  const totalStudents = monitorStats?.totalStudentsInClass || summary?.totalStudents || 0;
-  const pendingApprovals = (dashboard?.approvals?.pending ?? summary?.pendingApprovals) || 0; // align with approvals page
-  const totalActivities = summary?.totalActivitiesCount || summary?.approvedCount || 0; // Approved class activities
+  // Class-level stats - FROM CLASS DASHBOARD
+  const totalStudents = summary?.totalStudents || classSummary?.totalStudents || 0;
+  const pendingApprovals = approvals?.pending || 0;
+  const totalActivities = classSummary?.totalActivitiesCount || classSummary?.approvedCount || 0;
   
   // Get classification based on MONITOR'S personal points
   const getClassification = (points) => {
