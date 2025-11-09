@@ -92,17 +92,20 @@ async function getStudentInfo(userId) {
  * @returns {Promise<boolean>}
  */
 async function canAccessClassActivities(userId, userRole, lopId) {
+  // Normalize role to uppercase
+  const role = String(userRole || '').toUpperCase();
+  
   // Admin has full access
-  if (userRole === 'admin') return true;
+  if (role === 'ADMIN') return true;
   
   // Student or Class Monitor
-  if (userRole === 'sinh_vien' || userRole === 'lop_truong') {
+  if (role === 'SINH_VIEN' || role === 'STUDENT' || role === 'LOP_TRUONG') {
     const student = await getStudentInfo(userId);
     return student && student.lop_id === lopId;
   }
   
   // Teacher (GVCN)
-  if (userRole === 'giao_vien') {
+  if (role === 'GIAO_VIEN' || role === 'GIANG_VIEN' || role === 'TEACHER') {
     const teacherClasses = await getTeacherClasses(userId);
     return teacherClasses.includes(lopId);
   }
@@ -117,7 +120,7 @@ async function canAccessClassActivities(userId, userRole, lopId) {
 async function injectClassActivityFilter(req, res, next) {
   try {
     const userId = req.user?.sub;
-    const userRole = req.user?.role;
+    const userRole = String(req.user?.role || '').toUpperCase(); // ✅ Normalize
     
     if (!userId || !userRole) {
       return res.status(401).json({ 
@@ -127,7 +130,7 @@ async function injectClassActivityFilter(req, res, next) {
     }
     
     // Admin: no filter, can see all activities
-    if (userRole === 'admin') {
+    if (userRole === 'ADMIN') {
       req.classActivityFilter = {};
       req.classCreators = [];
       req.userClassId = null;
@@ -135,7 +138,7 @@ async function injectClassActivityFilter(req, res, next) {
     }
     
     // Student or Class Monitor: filter by their class
-    if (userRole === 'sinh_vien' || userRole === 'lop_truong') {
+    if (userRole === 'SINH_VIEN' || userRole === 'STUDENT' || userRole === 'LOP_TRUONG') {
       const student = await getStudentInfo(userId);
       
       if (!student || !student.lop_id) {
@@ -159,7 +162,7 @@ async function injectClassActivityFilter(req, res, next) {
     }
     
     // Teacher (GVCN): filter by their classes
-    if (userRole === 'giao_vien') {
+    if (userRole === 'GIAO_VIEN' || userRole === 'GIANG_VIEN' || userRole === 'TEACHER') {
       const teacherClasses = await getTeacherClasses(userId);
       
       if (teacherClasses.length === 0) {
@@ -214,8 +217,8 @@ async function injectClassActivityFilter(req, res, next) {
 async function canRegisterActivity(req, res, next) {
   try {
     const userId = req.user?.sub;
-    const userRole = req.user?.role;
-    const activityId = parseInt(req.params.id || req.body.hd_id);
+    const userRole = String(req.user?.role || '').toUpperCase(); // ✅ Normalize to uppercase
+    const activityId = req.params.id || req.body.hd_id; // ✅ FIXED: UUID is string, not number
     
     if (!activityId) {
       return res.status(400).json({ 
@@ -225,7 +228,7 @@ async function canRegisterActivity(req, res, next) {
     }
     
     // Admin can register anyone
-    if (userRole === 'admin') {
+    if (userRole === 'ADMIN') {
       return next();
     }
     
@@ -247,7 +250,7 @@ async function canRegisterActivity(req, res, next) {
     }
     
     // Student/Monitor: check if activity is from their class
-    if (userRole === 'sinh_vien' || userRole === 'lop_truong') {
+    if (userRole === 'SINH_VIEN' || userRole === 'STUDENT' || userRole === 'LOP_TRUONG') {
       const student = await getStudentInfo(userId);
       
       if (!student || !student.lop_id) {
@@ -271,7 +274,7 @@ async function canRegisterActivity(req, res, next) {
     }
     
     // Teacher: can approve registrations for their class activities
-    if (userRole === 'giao_vien') {
+    if (userRole === 'GIAO_VIEN' || userRole === 'GIANG_VIEN' || userRole === 'TEACHER') {
       const teacherClasses = await getTeacherClasses(userId);
       
       if (teacherClasses.length === 0) {

@@ -192,6 +192,12 @@ export default function ActivitiesListModern() {
         }
       })
       .catch(err => {
+        console.error('❌ Register Error Full:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          message: err.message,
+          errors: err.response?.data?.errors
+        });
         const firstValidation = err?.response?.data?.errors?.[0]?.message;
         const errorMsg = firstValidation || err?.response?.data?.message || err?.message || 'Đăng ký thất bại';
         showError(errorMsg);
