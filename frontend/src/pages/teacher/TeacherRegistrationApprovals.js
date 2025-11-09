@@ -384,11 +384,9 @@ export default function TeacherRegistrationApprovals() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           {(() => {
-            const totalAll = (counts.cho_duyet || 0) + (counts.da_duyet || 0) + (counts.tu_choi || 0) + (counts.da_tham_gia || 0);
             const cards = [
-              { key: 'all', label: 'Tổng đăng ký', value: totalAll, color: 'from-white/20 to-white/10' },
               { key: 'cho_duyet', label: 'Chờ duyệt', value: counts.cho_duyet, color: 'from-yellow-400/30 to-amber-400/20' },
               { key: 'da_duyet', label: 'Đã duyệt', value: counts.da_duyet, color: 'from-emerald-400/30 to-green-400/20' },
               { key: 'tu_choi', label: 'Từ chối', value: counts.tu_choi, color: 'from-rose-400/30 to-red-400/20' },
@@ -451,7 +449,6 @@ export default function TeacherRegistrationApprovals() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="cho_duyet">Chờ duyệt</option>
-              <option value="all">Tất cả trạng thái</option>
               <option value="da_duyet">Đã duyệt</option>
               <option value="tu_choi">Từ chối</option>
               <option value="da_tham_gia">Đã tham gia</option>
