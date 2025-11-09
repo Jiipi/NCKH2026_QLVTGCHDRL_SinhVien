@@ -4,40 +4,14 @@ import {
   Users, Activity, CheckCircle, Clock, Settings, BarChart3,
   UserCheck, AlertCircle
 } from 'lucide-react';
-import http from '../../services/http';
+import { useAdminDashboard } from '../../hooks/useDashboardData';
 
 // Khôi phục giao diện Dashboard cũ (đơn giản)
 const SimpleAdminDashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalActivities: 0,
-    pendingApprovals: 0,
-    activeUsers: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const response = await http.get('/admin/dashboard');
-      const data = response.data?.data || {};
-      setStats({
-        totalUsers: data.totalUsers || 0,
-        totalActivities: data.totalActivities || 0,
-        pendingApprovals: data.pendingApprovals || 0,
-        activeUsers: data.activeUsers || 0
-      });
-    } catch (error) {
-      console.error('Lỗi khi tải dữ liệu dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // ✅ USE ADMIN DASHBOARD HOOK - Replaces manual fetch logic
+  const { stats, loading } = useAdminDashboard();
 
   if (loading) {
     return (

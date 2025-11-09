@@ -24,6 +24,7 @@ import {
 import http from '../../services/http';
 import SemesterClosureWidget from '../../components/SemesterClosureWidget';
 import useSemesterData from '../../hooks/useSemesterData';
+import { useTeacherDashboard } from '../../hooks/useDashboardData';
 import { 
   MobileOptimizedStatCard, 
   MobileOptimizedActionCard, 
@@ -193,19 +194,8 @@ function ActivityCard({ activity, onSelect, onApprove, onReject }) {
 
 export default function ModernTeacherDashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ 
-    totalActivities: 0, 
-    pendingApprovals: 0, 
-    totalStudents: 0, 
-    avgClassScore: 0,
-    participationRate: 0,
-    approvedThisWeek: 0
-  });
-  const [recentActivities, setRecentActivities] = useState([]);
-  const [recentNotifications, setRecentNotifications] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  
+  // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('teacher-sidebar-collapsed');
     return stored === 'true';
@@ -220,17 +210,23 @@ export default function ModernTeacherDashboard() {
   // Unified semester options from backend
   const { options: semesterOptions, currentSemester } = useSemesterData();
 
+  // ✅ USE TEACHER DASHBOARD HOOK - Replaces ~40 lines of manual fetch logic
+  const { 
+    stats, 
+    recentActivities, 
+    recentNotifications, 
+    classes, 
+    loading, 
+    error,
+    refresh: loadDashboardData
+  } = useTeacherDashboard({ semester });
+
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {
     if (currentSemester && currentSemester !== semester) {
       setSemester(currentSemester);
     }
   }, [currentSemester]);
-
-  useEffect(() => { 
-    if (!semester) return;
-    loadDashboardData(); 
-  }, [semester]);
 
   // Listen for sidebar state changes
   useEffect(() => {
@@ -242,51 +238,6 @@ export default function ModernTeacherDashboard() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Use new dashboard endpoint with semester filter
-      const dashboardRes = await http.get('/teacher/dashboard', {
-        params: { semester }
-      }).catch(() => ({ data: { data: {
-        summary: {
-          totalActivities: 0,
-          pendingApprovals: 0,
-          totalStudents: 0,
-          avgClassScore: 0,
-          participationRate: 0,
-          approvedThisWeek: 0
-        },
-        pendingActivities: [],
-        recentNotifications: [],
-        classes: []
-      } } }));
-      
-      const dashboardData = dashboardRes.data?.data || {};
-      const summary = dashboardData.summary || {};
-      
-      setStats({
-        totalActivities: summary.totalActivities || 0,
-        pendingApprovals: summary.pendingApprovals || 0,
-        totalStudents: summary.totalStudents || 0,
-        avgClassScore: summary.avgClassScore || 0,
-        participationRate: summary.participationRate || 0,
-        approvedThisWeek: summary.approvedThisWeek || 0
-      });
-      
-      setRecentActivities(dashboardData.pendingActivities || []);
-      setRecentNotifications(dashboardData.recentNotifications || []);
-      setClasses(dashboardData.classes || []);
-      
-    } catch (err) {
-      console.error('Error loading dashboard:', err);
-      setError('Không thể tải dữ liệu dashboard');
-    } finally { 
-      setLoading(false); 
-    }
-  };
 
   // Load classes for banner (removed as already loaded in dashboard)
   // useEffect(() => {
