@@ -83,7 +83,7 @@ export default function Scores(){
       console.log('📊 API Request - Loading scores for semester:', semester);
       console.log('📊 API Request params:', params);
       
-      const response = await http.get('/dashboard/scores/detailed', { params });
+      const response = await http.get('/v2/dashboard/scores/detailed', { params });
       
       console.log('✅ API Response received for semester:', semester);
       console.log('✅ Response data:', response.data);
@@ -93,18 +93,21 @@ export default function Scores(){
       if (response.data && response.data.data) {
         const extractedData = response.data.data;
         console.log('✅ Summary for semester', semester, ':', extractedData.summary);
-        console.log('✅ Total score:', extractedData.summary?.total_score);
-        console.log('✅ Total activities:', extractedData.summary?.total_activities);
+        // Backend returns Vietnamese field names: tong_diem, tong_hoat_dong, etc.
+        console.log('✅ Total score:', extractedData.summary?.tong_diem);
+        console.log('✅ Total activities:', extractedData.summary?.tong_hoat_dong);
         console.log('✅ Average points:', extractedData.summary?.average_points);
-        console.log('✅ Rank in class:', extractedData.summary?.rank_in_class);
+        // Backend returns my_rank_in_class, not rank
+        console.log('✅ Rank in class:', extractedData.class_rankings?.my_rank_in_class);
+        console.log('✅ Total in class:', extractedData.class_rankings?.total_students_in_class);
         console.log('✅ Activities count:', extractedData.activities?.length || 0);
         console.log('✅ First activity:', extractedData.activities?.[0]);
         console.log('✅ Last activity:', extractedData.activities?.[extractedData.activities?.length - 1]);
         
         // Check if data is actually different
         if (data) {
-          const oldScore = data.summary?.total_score;
-          const newScore = extractedData.summary?.total_score;
+          const oldScore = data.summary?.tong_diem;
+          const newScore = extractedData.summary?.tong_diem;
           if (oldScore === newScore) {
             console.warn('⚠️ WARNING: Data appears to be the same! Old score:', oldScore, 'New score:', newScore);
             console.warn('⚠️ This suggests the backend may not be filtering by semester correctly.');
@@ -170,8 +173,11 @@ export default function Scores(){
 
     return {
       categoryStats,
-      totalActivities: data.summary?.total_activities || 0,
-      averagePoints: data.summary?.average_points || 0
+      // Backend returns Vietnamese keys
+      totalActivities: data.summary?.tong_hoat_dong || 0,
+      averagePoints: data.summary?.tong_hoat_dong > 0 
+        ? (data.summary?.tong_diem / data.summary?.tong_hoat_dong) 
+        : 0
     };
   }, [data]);
 
@@ -293,7 +299,8 @@ export default function Scores(){
   // Calculate values from data - these will update when semester changes
   // MUST be called before any early returns to follow React Hooks rules
   const targetScore = 100;
-  const currentScore = data?.summary?.total_score || 0;
+  // Backend returns Vietnamese keys: tong_diem instead of total_score
+  const currentScore = data?.summary?.tong_diem || 0;
   const progressPercentage = React.useMemo(() => {
     if (!data || !data.summary) return 0;
     return Math.min((currentScore / targetScore) * 100, 100);
@@ -409,7 +416,10 @@ export default function Scores(){
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
                   <Medal className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{data?.summary?.rank_in_class ? `#${data.summary.rank_in_class}` : '-'}</p>
+                  {/* Backend returns my_rank_in_class in class_rankings object */}
+                  <p className="text-3xl font-black text-black">
+                    {data?.class_rankings?.my_rank_in_class ? `#${data.class_rankings.my_rank_in_class}` : '-'}
+                  </p>
                   <p className="text-xs font-black text-black/70 uppercase tracking-wider">XẾP HẠNG</p>
                 </div>
               </div>
@@ -521,10 +531,13 @@ export default function Scores(){
                   <span className="text-gray-600">Điểm trung bình</span>
                   <span className="font-semibold text-gray-900">{stats.averagePoints.toFixed(1)}</span>
                 </div>
-                {data.summary?.rank_in_class && (
+                {/* Backend returns my_rank_in_class and total_students_in_class */}
+                {data.class_rankings?.my_rank_in_class && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Xếp hạng lớp</span>
-                    <span className="font-semibold text-gray-900">{data.summary.rank_in_class}/{data.summary.total_students_in_class || 1}</span>
+                    <span className="font-semibold text-gray-900">
+                      {data.class_rankings.my_rank_in_class}/{data.class_rankings.total_students_in_class || 1}
+                    </span>
                   </div>
                 )}
               </div>

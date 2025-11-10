@@ -53,7 +53,7 @@ export default function ActivitiesListModern() {
   React.useEffect(() => {
     loadActivities();
     loadActivityTypes();
-    http.get('/auth/profile')
+    http.get('/v2/profile')
       .then(res => {
         const p = res.data?.data || res.data || {};
         const r = String(p?.role || p?.vai_tro?.ten_vt || '').toLowerCase();
@@ -67,7 +67,7 @@ export default function ActivitiesListModern() {
   }, [pagination.page, pagination.limit]);
 
   function loadActivityTypes() {
-    http.get('/activities/types/list')
+    http.get('/v2/activity-types')
       .then(res => {
         if (res.data?.success && res.data?.data) {
           setActivityTypes(res.data.data);

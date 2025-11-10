@@ -26,10 +26,11 @@ import AdminProfile from './pages/admin/AdminProfile';
 import SemesterManagement from './pages/admin/SemesterManagement';
 import ModernTeacherLayout from './components/ModernTeacherLayout';
 // Legacy pages removed in favor of modern auth pages
-import Profile from './pages/Profile';
+// Domain grouped imports (refactored) - use explicit index.js to avoid case conflicts on Linux
+import { Profile } from './pages/profile/index.js';
 import UserProfile from './pages/profile/UserProfile';
 // Cleaned: remove StudentPointsModern import if not used elsewhere
-import ManageActivity from './pages/ManageActivity';
+import { ManageActivity } from './pages/activity/index.js';
 import ActivityDetail from './pages/student/ActivityDetail';
 // import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
 import DashboardStudentModern from './pages/student/DashboardStudentModern';
@@ -39,13 +40,11 @@ import ActivitiesListModern from './pages/student/ActivitiesListModern';
 import MyActivitiesModern from './pages/student/MyActivitiesModern';
 import StudentProfile from './pages/student/StudentProfile';
 import Scores from './pages/student/Scores';
-import QRScannerModern from './pages/QRScannerModern';
-import QRAttendanceManagement from './pages/QRAttendanceManagement';
+import { QRScannerModern, QRAttendanceManagement } from './pages/qr/index.js';
 import ModernTeacherDashboard from './pages/teacher/ModernTeacherDashboard';
 import TeacherProfile from './pages/teacher/TeacherProfile';
 import TeacherPreferences from './pages/teacher/TeacherPreferences';
 import ModernActivityApproval from './pages/teacher/ModernActivityApproval';
-import TeacherRegistrationApprovalsModern from './pages/teacher/TeacherRegistrationApprovalsModern';
 import TeacherRegistrationApprovals from './pages/teacher/TeacherRegistrationApprovals';
 import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
 import ImportStudents from './pages/teacher/ImportStudents';
@@ -66,8 +65,7 @@ import ClassNotifications from './pages/monitor/ClassNotifications';
 import { useAppStore } from './store/useAppStore';
 import { NotificationProvider } from './contexts/NotificationContext';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import { ForgotPassword, ResetPassword } from './pages/auth/legacy/index.js';
 // Modern auth pages
 import LoginModern from './pages/auth/LoginModern';
 import RegisterModern from './pages/auth/RegisterModern';

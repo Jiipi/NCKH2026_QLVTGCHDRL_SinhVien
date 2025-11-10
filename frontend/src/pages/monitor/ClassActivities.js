@@ -29,6 +29,8 @@ export default function ClassActivities() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
   const [activityTypes, setActivityTypes] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [availablePagination, setAvailablePagination] = useState({ page: 1, limit: 20, total: 0 });
 
   // ✅ Add semester filter
   const getCurrentSemesterValue = () => {
@@ -75,29 +77,33 @@ export default function ClassActivities() {
     loadAvailableActivities(); // Load hoạt động có sẵn để đăng ký
     loadDashboardStats(); // ✅ Load dashboard stats for accurate counts
     loadActivityTypes();
-  }, [semester]); // ✅ Add semester dependency
+  }, [semester, pagination.page, pagination.limit, availablePagination.page, availablePagination.limit]); // ✅ Add pagination dependencies
 
   // Load hoạt động có sẵn để đăng ký (giống role sinh viên)
   const loadAvailableActivities = async () => {
     try {
       const params = { 
         semester: semester || undefined,
-        limit: 'all'
+        page: availablePagination.page,
+        limit: availablePagination.limit
       };
       
       const response = await http.get('/activities', { params });
       const responseData = response.data?.data || response.data || {};
       const items = responseData.items || responseData.data || responseData || [];
+      const total = responseData.total || (Array.isArray(items) ? items.length : 0);
       const activitiesArray = Array.isArray(items) ? items : [];
       
       // Filter: chỉ lấy hoạt động thuộc lớp (is_class_activity = true)
       const classActivities = activitiesArray.filter(a => a.is_class_activity === true);
       
       setAvailableActivities(classActivities);
-      console.log('📋 Loaded available activities for registration:', classActivities.length);
+      setAvailablePagination(prev => ({ ...prev, total }));
+      console.log('📋 Loaded available activities for registration:', classActivities.length, '/', total);
     } catch (err) {
       console.error('Error loading available activities:', err);
       setAvailableActivities([]);
+      setAvailablePagination(prev => ({ ...prev, total: 0 }));
     }
   };
 
@@ -152,22 +158,26 @@ export default function ClassActivities() {
   const loadActivities = async () => {
     try {
       setLoading(true);
-      // ✅ Add semester parameter
-      // Backend now returns ALL statuses for lop_truong and giang_vien (including cho_duyet)
-      // Frontend will filter by statusFilter state
-      const response = await http.get(`/activities?semester=${semester}&limit=all`);
+      // ✅ Add semester and pagination parameters
+      const params = {
+        semester: semester || undefined,
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      
+      const response = await http.get('/activities', { params });
       
       // Backend returns: { success: true, data: { items: [...], total, page, limit }, message: "..." }
-
       const responseData = response.data?.data || response.data || {};
       
       // Extract items array from response
       const activities = responseData.items || responseData.data || responseData || [];
+      const total = responseData.total || (Array.isArray(activities) ? activities.length : 0);
       
       // Ensure it's an array
       const activitiesArray = Array.isArray(activities) ? activities : [];
       
-      console.log('📊 Loaded activities:', activitiesArray.length, 'items');
+      console.log('📊 Loaded activities:', activitiesArray.length, 'items, total:', total);
       console.log('📊 Status breakdown:', {
         cho_duyet: activitiesArray.filter(a => a.trang_thai === 'cho_duyet').length,
         da_duyet: activitiesArray.filter(a => a.trang_thai === 'da_duyet').length,
@@ -190,12 +200,14 @@ export default function ClassActivities() {
       }
       
       setActivities(activitiesArray);
+      setPagination(prev => ({ ...prev, total }));
       setError('');
     } catch (err) {
       console.error('Error loading class activities:', err);
       showError('Không thể tải danh sách hoạt động', 'Lỗi tải dữ liệu');
       setError('Không thể tải danh sách hoạt động');
       setActivities([]);
+      setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
       setLoading(false);
     }
@@ -492,18 +504,18 @@ export default function ClassActivities() {
 
   const ActivityCard = ({ activity }) => {
     const now = new Date();
-    const deadline = activity.han_dang_ky ? new Date(activity.han_dang_ky) : new Date(activity.ngay_bd);
+    const deadline = activity.han_dk ? new Date(activity.han_dk) : null;
     const startDate = activity.ngay_bd ? new Date(activity.ngay_bd) : null;
     const endDate = activity.ngay_kt ? new Date(activity.ngay_kt) : null;
     const isPast = endDate ? (endDate < now) : false;
     const isUpcoming = startDate ? (startDate > now) : false;
     const isOngoing = startDate && endDate ? (startDate <= now && endDate >= now) : false;
-    const isDeadlinePast = activity.han_dk ? (new Date(activity.han_dang_ky).getTime() < now.getTime()) : (deadline ? deadline < now : false);
+    const isDeadlinePast = deadline ? deadline < now : false;
     const isAfterStart = startDate ? (now.getTime() >= startDate.getTime()) : false;
     const capacity = activity.so_luong_toi_da ?? activity.sl_toi_da ?? null;
     const registeredCount = activity.registrationCount ?? activity.so_dang_ky ?? activity._count?.dang_ky_hd ?? null;
     const isFull = capacity !== null && registeredCount !== null ? Number(registeredCount) >= Number(capacity) : false;
-    const canRegister = activity.trang_thai === 'da_duyet' && !isPast && !isDeadlinePast && !isAfterStart 
+    const canRegister = activity.trang_thai === 'da_duyet' && !isPast && !isDeadlinePast 
       && (!activity.is_registered || activity.registration_status === 'tu_choi') && !isFull;
     const isRegistrationOpen = canRegister;
     
@@ -1895,6 +1907,62 @@ export default function ClassActivities() {
             setSelectedActivity(null);
           }}
         />
+      )}
+
+      {/* Pagination Controls for Activities */}
+      {statusFilter !== 'co_san' && pagination.total > pagination.limit && (
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl mt-6">
+          <div className="text-sm text-gray-600">
+            Hiển thị <span className="font-semibold">{Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}</span> - <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> trong tổng số <span className="font-semibold">{pagination.total}</span> hoạt động
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+              disabled={pagination.page <= 1}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
+              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
+            </span>
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: Math.min(Math.ceil(pagination.total / pagination.limit), prev.page + 1) }))}
+              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls for Available Activities */}
+      {statusFilter === 'co_san' && availablePagination.total > availablePagination.limit && (
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl mt-6">
+          <div className="text-sm text-gray-600">
+            Hiển thị <span className="font-semibold">{Math.min((availablePagination.page - 1) * availablePagination.limit + 1, availablePagination.total)}</span> - <span className="font-semibold">{Math.min(availablePagination.page * availablePagination.limit, availablePagination.total)}</span> trong tổng số <span className="font-semibold">{availablePagination.total}</span> hoạt động
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAvailablePagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+              disabled={availablePagination.page <= 1}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
+              Trang {availablePagination.page} / {Math.ceil(availablePagination.total / availablePagination.limit)}
+            </span>
+            <button
+              onClick={() => setAvailablePagination(prev => ({ ...prev, page: Math.min(Math.ceil(availablePagination.total / availablePagination.limit), prev.page + 1) }))}
+              disabled={availablePagination.page >= Math.ceil(availablePagination.total / availablePagination.limit)}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

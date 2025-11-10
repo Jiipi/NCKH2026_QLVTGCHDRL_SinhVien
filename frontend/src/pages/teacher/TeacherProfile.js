@@ -42,7 +42,7 @@ export default function TeacherProfile() {
       setLoading(true);
       let response;
       try {
-        response = await http.get('/users/profile');
+        response = await http.get('/v2/profile');
       } catch (e) {
         response = await http.get('/auth/profile');
       }
@@ -86,7 +86,7 @@ export default function TeacherProfile() {
         anh_dai_dien: formData.anh_dai_dien
       };
       
-      await http.put('/users/profile', updateData);
+      await http.put('/v2/profile', updateData);
       setEditing(false);
       loadProfile();
       

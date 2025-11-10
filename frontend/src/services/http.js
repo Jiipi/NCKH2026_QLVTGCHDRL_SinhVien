@@ -130,6 +130,82 @@ http.interceptors.request.use(
         }
       }
       
+      // ================== LEGACY ADMIN ENDPOINT MIGRATION ==================
+      // Auto-rewrite deprecated /admin/* endpoints to new /v2/* paths during V2 rollout.
+      if (typeof config.url === 'string' && config.url.startsWith('/admin')) {
+        const originalUrl = config.url;
+        const rewrite = (from, to) => {
+          if (config.url === from) config.url = to;
+          else if (config.url.startsWith(from + '?')) config.url = to + config.url.slice(from.length);
+        };
+        const rewriteStarts = (fromPrefix, toPrefix) => {
+          if (config.url.startsWith(fromPrefix)) config.url = toPrefix + config.url.slice(fromPrefix.length);
+        };
+
+        // Dashboard (admin overview)
+        rewrite('/admin/dashboard', '/v2/dashboard/admin');
+
+        // Users list/detail/create/update/delete
+        rewriteStarts('/admin/users/', '/v2/admin/users/');
+  rewrite('/admin/users', '/v2/admin/users');
+
+        // User points detailed report
+        config.url = config.url.replace(/^\/admin\/users\/(\d+|[^\/]+)\/points(\?|$)/, (_m, id, tail) => `/v2/admin/reports/users/${id}/points${tail || ''}`);
+
+        // Roles
+        rewriteStarts('/admin/roles/', '/v2/roles/');
+        rewrite('/admin/roles', '/v2/roles');
+
+        // Classes listing used for targeting and management
+  rewrite('/admin/classes', '/v2/admin/reports/classes');
+
+        // Attendance report
+  rewrite('/admin/attendance', '/v2/admin/reports/attendance');
+
+        // Activities CRUD and actions
+        config.url = config.url.replace(/^\/admin\/activities\/(\d+|[^\/]+)\/(approve|reject)(\?|$)/, (_m, id, action, tail) => `/v2/activities/${id}/${action}${tail || ''}`);
+        rewriteStarts('/admin/activities/', '/v2/activities/');
+  rewrite('/admin/activities', '/v2/activities');
+
+        // Activity types
+        rewriteStarts('/admin/activity-types/', '/v2/activity-types/');
+  rewrite('/admin/activity-types', '/v2/activity-types');
+
+        // Broadcast notifications
+        rewrite('/admin/notifications/broadcast/stats', '/v2/broadcast/stats');
+        rewrite('/admin/notifications/broadcast/history', '/v2/broadcast/history');
+        if (config.method === 'post' && config.url === '/admin/notifications/broadcast') {
+          config.url = '/v2/broadcast';
+        }
+
+  // Registrations (now migrated to V2 aliases)
+  rewriteStarts('/admin/registrations/', '/v2/admin/registrations/');
+  rewrite('/admin/registrations', '/v2/admin/registrations');
+  // Bulk (exact path)
+  if (config.url === '/admin/registrations/bulk') config.url = '/v2/admin/registrations/bulk';
+
+  // Reports overview & exports
+        rewriteStarts('/admin/reports/export/', '/v2/admin/reports/export/');
+        rewrite('/admin/reports/overview', '/v2/admin/reports/overview');
+        rewrite('/admin/reports/export/activities', '/v2/admin/reports/export/activities');
+        rewrite('/admin/reports/export/registrations', '/v2/admin/reports/export/registrations');
+
+        if (originalUrl !== config.url && process.env.NODE_ENV === 'development') {
+          console.log('[HTTP] Rewrote legacy admin URL ->', originalUrl, '=>', config.url);
+        }
+      }
+
+      // Teacher-specific legacy routes
+      if (typeof config.url === 'string' && config.url.startsWith('/teacher/activity-types')) {
+        const originalUrl2 = config.url;
+        const rewriteStarts2 = (fromPrefix, toPrefix) => { if (config.url.startsWith(fromPrefix)) config.url = toPrefix + config.url.slice(fromPrefix.length); };
+        rewriteStarts2('/teacher/activity-types/', '/v2/activity-types/');
+        if (config.url === '/teacher/activity-types') config.url = '/v2/activity-types';
+        if (originalUrl2 !== config.url && process.env.NODE_ENV === 'development') {
+          console.log('[HTTP] Rewrote legacy teacher URL ->', originalUrl2, '=>', config.url);
+        }
+      }
+      
       // Get token from tab-scoped session storage
       var token = sessionStorageManager.getToken();
       // Get tabId

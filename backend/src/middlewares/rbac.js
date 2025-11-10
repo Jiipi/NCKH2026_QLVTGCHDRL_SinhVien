@@ -158,7 +158,9 @@ async function loadRolePermissionsFromDB(roleName) {
     const pick = candidates
       .map(r => ({ r, list: Array.isArray(r.quyen_han) ? r.quyen_han : [] }))
       .sort((a, b) => (b.list.length || 0) - (a.list.length || 0))[0];
-    const found = !!pick && (pick.list.length > 0);
+    // FIX: Role found in DB should be authoritative even if permissions are empty
+    // This prevents fallback to STATIC_PERMISSIONS when admin removes all perms from a role
+    const found = !!pick; // True if role exists in DB, regardless of permission count
     const list = found ? pick.list : [];
     const set = new Set(list);
     rolePermCache[key] = { perms: set, ts: now, found };
@@ -344,11 +346,80 @@ const SystemPolicies = {
   canViewLogs: requirePermission('system.logs')
 };
 
+// Class monitor middleware - checks if user is a class monitor and loads their class
+async function isClassMonitor(req, res, next) {
+  try {
+    const userId = req.user?.sub;
+    const userRole = req.user?.role;
+
+    // Only allow LOP_TRUONG role
+    if (normalizeRoleName(userRole) !== 'LOP_TRUONG') {
+      return sendResponse(res, 403, ApiResponse.forbidden('Chỉ lớp trưởng mới có quyền truy cập'));
+    }
+
+    // Find the student record for this user
+    const sv = await prisma.sinhVien.findFirst({
+      where: { nguoi_dung_id: String(userId) },
+      select: { id: true }
+    });
+
+    if (!sv) {
+      return sendResponse(res, 403, ApiResponse.forbidden('Không tìm thấy hồ sơ sinh viên cho tài khoản này'));
+    }
+
+    // Find the class where this student is assigned as class monitor
+    const lop = await prisma.lop.findFirst({
+      where: { lop_truong: sv.id },
+      select: { id: true, ten_lop: true }
+    });
+
+    if (!lop) {
+      return sendResponse(res, 403, ApiResponse.forbidden('Bạn chưa được gán làm lớp trưởng của lớp nào'));
+    }
+
+    // Attach class monitor info to request
+    req.classMonitor = { lop_id: lop.id, ten_lop: lop.ten_lop, sinh_vien_id: sv.id };
+    next();
+  } catch (error) {
+    logError('isClassMonitor middleware error', error, { userId: req.user?.sub });
+    return sendResponse(res, 500, ApiResponse.error('Lỗi kiểm tra quyền lớp trưởng'));
+  }
+}
+
+// Helper function for requireRole
+function requireRole(allowedRoles) {
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  
+  return (req, res, next) => {
+    const userRole = req.user?.role;
+    const normalized = normalizeRoleName(userRole);
+    
+    // Check if user's role matches any allowed role
+    const hasRole = roles.some(role => normalizeRoleName(role) === normalized);
+    
+    if (!hasRole) {
+      logInfo('Role access denied', {
+        userId: req.user?.sub,
+        userRole,
+        allowedRoles: roles,
+        ip: req.ip
+      });
+      return sendResponse(res, 403, ApiResponse.forbidden(
+        `Bạn không có quyền truy cập. Vai trò yêu cầu: ${roles.join(', ')}`
+      ));
+    }
+    
+    next();
+  };
+}
+
 module.exports = {
   STATIC_PERMISSIONS,
   requirePermission,
   requireOwnership,
   requireClassAccess,
+  requireRole,
+  isClassMonitor,
   ActivityPolicies,
   RegistrationPolicies,
   UserPolicies,

@@ -53,7 +53,7 @@ export default function MonitorMyProfile() {
       const timestamp = new Date().getTime();
       let response;
       try {
-        response = await http.get(`/users/profile?_t=${timestamp}`);
+        response = await http.get(`/v2/profile?_t=${timestamp}`);
       } catch (e) {
         response = await http.get(`/auth/profile?_t=${timestamp}`);
       }
@@ -110,7 +110,7 @@ export default function MonitorMyProfile() {
 
   const loadStats = async () => {
     try {
-      const response = await http.get('/dashboard/activities/me');
+      const response = await http.get('/v2/dashboard/activities/me');
       const registrations = response.data?.data || [];
       
       const totalActivities = registrations.length;
@@ -134,7 +134,7 @@ export default function MonitorMyProfile() {
         anh_dai_dien: formData.anh_dai_dien || undefined
       };
       
-      await http.put('/users/profile', updateData);
+      await http.put('/v2/profile', updateData);
       setEditing(false);
       loadProfile();
       

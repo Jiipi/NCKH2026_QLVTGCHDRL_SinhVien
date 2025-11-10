@@ -98,10 +98,10 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     const token = sessionStorageManager.getToken();
     if (token) {
       // ALWAYS fetch fresh profile from API (không lấy từ session cũ)
-      http.get('/users/profile')
+      http.get('/v2/profile')
         .then(response => {
           const payload = (response?.data?.data || response?.data) || null;
-          console.log('✅ ModernHeader profile loaded from /users/profile:', {
+          console.log('✅ ModernHeader profile loaded from /v2/profile:', {
             ho_ten: payload?.ho_ten,
             ten_dn: payload?.ten_dn,
             email: payload?.email,
@@ -117,34 +117,13 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
           }
         })
         .catch(error => {
-          console.error('Failed to load from /users/profile, trying /auth/profile:', error?.response?.status);
-          // Fallback to /auth/profile
-          http.get('/auth/profile')
-            .then(response => {
-              const payload = (response?.data?.data || response?.data) || null;
-              console.log('✅ ModernHeader profile loaded from /auth/profile:', {
-                ho_ten: payload?.ho_ten,
-                ten_dn: payload?.ten_dn,
-                email: payload?.email,
-                anh_dai_dien: payload?.anh_dai_dien,
-                vai_tro: payload?.vai_tro
-              });
-              setProfile(payload);
-              if (payload) {
-                // Clear localStorage cache cũ (nếu có)
-                localStorage.removeItem('profile');
-                // Update session with fresh data
-                sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.vai_tro?.ten_vt || payload?.role || payload?.roleCode });
-              }
-            })
-            .catch(err => {
-              console.error('Failed to load profile (modern header):', err?.response?.status || err?.message);
-              if (err?.response?.status === 401) {
-                sessionStorageManager.clearSession();
-                localStorage.removeItem('profile'); // Clear cache
-                setProfile(null);
-              }
-            });
+          console.error('Failed to load from /v2/profile:', error?.response?.status);
+          // Clear invalid session
+          if (error?.response?.status === 401) {
+            sessionStorageManager.clearSession();
+            localStorage.removeItem('profile');
+            setProfile(null);
+          }
         });
       loadNotifications();
     } else {
@@ -247,7 +226,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const loadNotifications = async () => {
     try {
-      const response = await http.get('/notifications?limit=10');
+      const response = await http.get('/v2/notifications?limit=10');
       const data = response?.data?.data || response?.data || {};
       
       if (data.notifications && Array.isArray(data.notifications)) {
@@ -324,7 +303,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? { ...n, unread: false } : n
       ));
-      await http.put(`/notifications/${notificationId}/read`);
+      await http.put(`/v2/notifications/${notificationId}/read`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -333,7 +312,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   const markAllAsRead = async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-      await http.put('/notifications/mark-all-read');
+      await http.put('/v2/notifications/mark-all-read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       loadNotifications();
@@ -342,7 +321,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const openDetail = async (id) => {
     try {
-      const res = await http.get(`/notifications/${id}`);
+      const res = await http.get(`/v2/notifications/${id}`);
       const d = res?.data?.data || res?.data || null;
       if (d) {
         setDetail({

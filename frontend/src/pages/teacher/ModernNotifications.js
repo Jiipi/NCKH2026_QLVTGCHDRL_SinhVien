@@ -38,7 +38,7 @@ export default function ModernNotifications() {
 
   const loadSentHistory = async () => {
     try {
-      const response = await http.get('/notifications/sent');
+      const response = await http.get('/v2/notifications/sent');
       const data = response.data?.data || response.data;
       
       if (data.history && Array.isArray(data.history)) {
@@ -78,7 +78,7 @@ export default function ModernNotifications() {
 
   const handleNotificationClick = async (notification) => {
     try {
-      const response = await http.get(`/notifications/sent/${notification.id}`);
+      const response = await http.get(`/v2/notifications/sent/${notification.id}`);
       const data = response.data?.data || response.data;
       setSelectedNotification(data);
       setShowDetailModal(true);
@@ -118,7 +118,7 @@ export default function ModernNotifications() {
         muc_do_uu_tien: 'trung_binh',
         phuong_thuc_gui: 'trong_he_thong'
       };
-      await http.post('/notifications', payload);
+      await http.post('/v2/notifications', payload);
       showSuccess('Đã gửi thông báo thành công! 🎉');
       setTitle('');
       setMessage('');

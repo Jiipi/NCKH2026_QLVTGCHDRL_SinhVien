@@ -27,7 +27,7 @@ export default function MonitorMyCertificates() {
 
   const loadCertificates = () => {
     setLoading(true);
-    http.get('/dashboard/activities/me')
+    http.get('/v2/dashboard/activities/me')
       .then(res => {
         const data = res.data?.data || [];
         // Only show completed activities

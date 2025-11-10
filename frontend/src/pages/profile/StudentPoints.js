@@ -41,7 +41,7 @@ export default function StudentPoints() {
       }
       
       // Load points summary
-      const summaryResponse = await http.get('/student-points/summary', { params });
+      const summaryResponse = await http.get('/v2/points/summary', { params });
       const summaryData = summaryResponse?.data?.data || summaryResponse?.data;
       
       // Transform backend response to frontend format
@@ -82,7 +82,7 @@ export default function StudentPoints() {
       }
       
       // Load points detail
-  const detailResponse = await http.get('/student-points/detail', { params });
+  const detailResponse = await http.get('/v2/points/detail', { params });
       const detailData = detailResponse?.data?.data?.data || detailResponse?.data?.data || [];
       
       // Transform detail data to expected format
@@ -97,7 +97,7 @@ export default function StudentPoints() {
       setPointsDetail(transformedDetail);
       
       // Load attendance history  
-  const attendanceResponse = await http.get('/student-points/attendance-history', { params });
+  const attendanceResponse = await http.get('/v2/points/attendance-history', { params });
       const attendanceData = attendanceResponse?.data?.data?.data || attendanceResponse?.data?.data || [];
       
       // Transform attendance data to expected format
@@ -141,7 +141,7 @@ export default function StudentPoints() {
         if (legacy.hoc_ky) params.hoc_ky = legacy.hoc_ky;
         if (legacy.nam_hoc) params.nam_hoc = legacy.nam_hoc;
       }
-      const response = await http.get('/student-points/report', { 
+      const response = await http.get('/v2/points/report', { 
         params,
         responseType: 'blob'
       });
