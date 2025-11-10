@@ -1,0 +1,323 @@
+{
+  "timestamp": "2025-11-10T09:52:43.824Z",
+  "summary": {
+    "totalFiles": 94,
+    "totalLines": 21933,
+    "avgLines": 233,
+    "categories": {
+      "excellent": 72,
+      "acceptable": 11,
+      "needsWork": 8,
+      "critical": 3
+    }
+  },
+  "needsMigration": [
+    {
+      "path": "routes\\teacher.route.js",
+      "lines": 2030,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\teacher.route.js"
+    },
+    {
+      "path": "routes\\activities.route.js",
+      "lines": 1591,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\activities.route.js"
+    },
+    {
+      "path": "controllers\\admin.controller.js",
+      "lines": 1527,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.controller.js"
+    },
+    {
+      "path": "routes\\dashboard.route.js",
+      "lines": 942,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\dashboard.route.js"
+    },
+    {
+      "path": "controllers\\class.controller.js",
+      "lines": 881,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\class.controller.js"
+    },
+    {
+      "path": "routes\\semesters.route.js",
+      "lines": 848,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\semesters.route.js"
+    },
+    {
+      "path": "models\\auth.model.js",
+      "lines": 682,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\models\\auth.model.js"
+    },
+    {
+      "path": "controllers\\dashboard.controller.js",
+      "lines": 648,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\dashboard.controller.js"
+    },
+    {
+      "path": "controllers\\notifications.controller.js",
+      "lines": 614,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\notifications.controller.js"
+    },
+    {
+      "path": "routes\\auth.route.js",
+      "lines": 587,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\auth.route.js"
+    },
+    {
+      "path": "controllers\\student-points.controller.js",
+      "lines": 538,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\student-points.controller.js"
+    }
+  ],
+  "allFiles": [
+    {
+      "path": "routes\\teacher.route.js",
+      "lines": 2030,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\teacher.route.js"
+    },
+    {
+      "path": "routes\\activities.route.js",
+      "lines": 1591,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\activities.route.js"
+    },
+    {
+      "path": "controllers\\admin.controller.js",
+      "lines": 1527,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.controller.js"
+    },
+    {
+      "path": "routes\\dashboard.route.js",
+      "lines": 942,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\dashboard.route.js"
+    },
+    {
+      "path": "controllers\\class.controller.js",
+      "lines": 881,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\class.controller.js"
+    },
+    {
+      "path": "routes\\semesters.route.js",
+      "lines": 848,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\semesters.route.js"
+    },
+    {
+      "path": "models\\auth.model.js",
+      "lines": 682,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\models\\auth.model.js"
+    },
+    {
+      "path": "controllers\\dashboard.controller.js",
+      "lines": 648,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\dashboard.controller.js"
+    },
+    {
+      "path": "controllers\\notifications.controller.js",
+      "lines": 614,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\notifications.controller.js"
+    },
+    {
+      "path": "routes\\auth.route.js",
+      "lines": 587,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\auth.route.js"
+    },
+    {
+      "path": "controllers\\student-points.controller.js",
+      "lines": 538,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\student-points.controller.js"
+    },
+    {
+      "path": "controllers\\users.controller.js",
+      "lines": 454,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\users.controller.js"
+    },
+    {
+      "path": "modules\\notifications\\notifications.service.js",
+      "lines": 420,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\notifications\\notifications.service.js"
+    },
+    {
+      "path": "modules\\registrations\\registrations.service.js",
+      "lines": 366,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\registrations\\registrations.service.js"
+    },
+    {
+      "path": "middlewares\\rbac.js",
+      "lines": 358,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\middlewares\\rbac.js"
+    },
+    {
+      "path": "modules\\activities\\activities.service.js",
+      "lines": 354,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\activities\\activities.service.js"
+    },
+    {
+      "path": "modules\\notifications\\notifications.repo.js",
+      "lines": 349,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\notifications\\notifications.repo.js"
+    },
+    {
+      "path": "services\\semesterClosure.service.js",
+      "lines": 337,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\services\\semesterClosure.service.js"
+    },
+    {
+      "path": "middleware\\classActivityAccess.js",
+      "lines": 330,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\middleware\\classActivityAccess.js"
+    },
+    {
+      "path": "controllers\\admin.notifications.controller.js",
+      "lines": 307,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.notifications.controller.js"
+    },
+    {
+      "path": "routes\\temp_part1.js",
+      "lines": 306,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\routes\\temp_part1.js"
+    },
+    {
+      "path": "utils\\excelParser.js",
+      "lines": 302,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\utils\\excelParser.js"
+    },
+    {
+      "path": "controllers\\search.controller.js",
+      "lines": 293,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\search.controller.js"
+    },
+    {
+      "path": "modules\\registrations\\registrations.repo.js",
+      "lines": 281,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\registrations\\registrations.repo.js"
+    },
+    {
+      "path": "controllers\\upload.controller.js",
+      "lines": 277,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\upload.controller.js"
+    },
+    {
+      "path": "modules\\teachers\\teachers.routes.js",
+      "lines": 260,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\teachers\\teachers.routes.js"
+    },
+    {
+      "path": "modules\\users\\users.service.js",
+      "lines": 247,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\users\\users.service.js"
+    },
+    {
+      "path": "controllers\\admin.roles.controller.js",
+      "lines": 240,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.roles.controller.js"
+    },
+    {
+      "path": "modules\\activities\\activities.repo.js",
+      "lines": 230,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\activities\\activities.repo.js"
+    },
+    {
+      "path": "modules\\notifications\\notifications.routes.js",
+      "lines": 230,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\notifications\\notifications.routes.js"
+    },
+    {
+      "path": "modules\\teachers\\teachers.service.js",
+      "lines": 230,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\teachers\\teachers.service.js"
+    },
+    {
+      "path": "modules\\teachers\\teachers.repo.js",
+      "lines": 229,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\teachers\\teachers.repo.js"
+    },
+    {
+      "path": "controllers\\admin.registrations.controller.js",
+      "lines": 225,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.registrations.controller.js"
+    },
+    {
+      "path": "shared\\scopes\\scopeBuilder.js",
+      "lines": 220,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\shared\\scopes\\scopeBuilder.js"
+    },
+    {
+      "path": "modules\\classes\\classes.service.js",
+      "lines": 210,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\classes\\classes.service.js"
+    },
+    {
+      "path": "modules\\classes\\classes.repo.js",
+      "lines": 205,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\classes\\classes.repo.js"
+    },
+    {
+      "path": "modules\\users\\users.repo.js",
+      "lines": 202,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\users\\users.repo.js"
+    },
+    {
+      "path": "controllers\\admin.reports.controller.js",
+      "lines": 175,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\controllers\\admin.reports.controller.js"
+    },
+    {
+      "path": "utils\\semester.js",
+      "lines": 175,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\utils\\semester.js"
+    },
+    {
+      "path": "shared\\factories\\crudRouter.js",
+      "lines": 172,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\shared\\factories\\crudRouter.js"
+    },
+    {
+      "path": "shared\\policies\\index.js",
+      "lines": 168,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\shared\\policies\\index.js"
+    },
+    {
+      "path": "index.js",
+      "lines": 165,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\index.js"
+    },
+    {
+      "path": "modules\\registrations\\registrations.routes.js",
+      "lines": 148,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\registrations\\registrations.routes.js"
+    },
+    {
+      "path": "middlewares\\classMonitor.js",
+      "lines": 129,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\middlewares\\classMonitor.js"
+    },
+    {
+      "path": "modules\\activities\\activities.routes.js",
+      "lines": 128,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\activities\\activities.routes.js"
+    },
+    {
+      "path": "utils\\validation.js",
+      "lines": 126,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\utils\\validation.js"
+    },
+    {
+      "path": "shared\\errors\\AppError.js",
+      "lines": 123,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\shared\\errors\\AppError.js"
+    },
+    {
+      "path": "middlewares\\upload.js",
+      "lines": 115,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\middlewares\\upload.js"
+    },
+    {
+      "path": "middlewares\\auth.js",
+      "lines": 114,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\middlewares\\auth.js"
+    },
+    {
+      "path": "modules\\classes\\classes.routes.js",
+      "lines": 108,
+      "fullPath": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\src\\modules\\classes\\classes.routes.js"
+    }
+  ]
+}

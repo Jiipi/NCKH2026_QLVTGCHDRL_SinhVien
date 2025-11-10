@@ -27,6 +27,7 @@ export default function MonitorMyActivities() {
   const [showFilters, setShowFilters] = useState(false);
   const [displayViewMode, setDisplayViewMode] = useState('grid'); // grid | list
   const [statusViewMode, setStatusViewMode] = useState('pills'); // pills | dropdown | compact
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
   
   // ✅ Add semester filter - sync with sessionStorage
   const [semester, setSemester] = useState(() => {
@@ -64,7 +65,7 @@ export default function MonitorMyActivities() {
 
   useEffect(() => {
     loadMyRegistrations();
-  }, [viewMode, searchText, filters, semester]); // ✅ Add semester dependency
+  }, [viewMode, searchText, filters, semester, pagination.page, pagination.limit]); // ✅ Add pagination dependencies
 
   // Load activity types for filter
   function loadActivityTypes() {
@@ -79,12 +80,21 @@ export default function MonitorMyActivities() {
   // Load my registrations
   function loadMyRegistrations() {
     setLoading(true);
-    // ✅ Add semester parameter
-    http.get(`/dashboard/activities/me?semester=${semester}`)
+    // ✅ Add semester and pagination parameters
+    const params = {
+      semester: semester || undefined,
+      page: pagination.page,
+      limit: pagination.limit
+    };
+    
+    http.get('/v2/dashboard/activities/me', { params })
       .then(res => {
-        const data = res.data?.data || [];
+        const responseData = res.data?.data || res.data || {};
+        const data = responseData.items || responseData.data || responseData || [];
+        const total = responseData.total || (Array.isArray(data) ? data.length : 0);
+        
         console.log('📊 My Registrations API Response:', data);
-        console.log(`📝 Total registrations: ${data.length}`);
+        console.log(`📝 Total registrations: ${total}, Page: ${pagination.page}`);
         
         // Log each registration
         data.forEach((reg, index) => {
@@ -98,6 +108,7 @@ export default function MonitorMyActivities() {
         console.log(`✅ Class Activity Counts: Pending=${pending}, Approved=${approved}, Completed=${completed}`);
         
         setMyRegistrations(Array.isArray(data) ? data : []);
+        setPagination(prev => ({ ...prev, total }));
         
         // Calculate total points from completed activities (for selected semester)
         const points = data
@@ -105,7 +116,10 @@ export default function MonitorMyActivities() {
           .reduce((sum, reg) => sum + (parseFloat(reg.hoat_dong?.diem_rl) || 0), 0);
         setTotalPoints(points);
       })
-      .catch(() => setMyRegistrations([]))
+      .catch(() => {
+        setMyRegistrations([]);
+        setPagination(prev => ({ ...prev, total: 0 }));
+      })
       .finally(() => setLoading(false));
   }
 
@@ -122,7 +136,7 @@ export default function MonitorMyActivities() {
     
     if (!confirmed) return;
     
-    http.post(`/activities/${hdId}/cancel`)
+    http.post(`/v2/registrations/${hdId}/cancel`)
       .then(res => {
         if (res.data?.success) {
           showSuccess('Hủy đăng ký thành công');
@@ -423,7 +437,7 @@ export default function MonitorMyActivities() {
                       
                       {canCancel && (
                         <button
-                          onClick={() => handleCancel(activity.id, activity.ten_hd)}
+                          onClick={() => handleCancel(reg.id, activity.ten_hd)}
                           disabled={!isWritable}
                           className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                         >
@@ -539,7 +553,7 @@ export default function MonitorMyActivities() {
 
                   {canCancel && (
                     <button
-                      onClick={() => handleCancel(activity.id, activity.ten_hd)}
+                      onClick={() => handleCancel(reg.id, activity.ten_hd)}
                       disabled={!isWritable}
                       className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     >
@@ -1090,6 +1104,34 @@ export default function MonitorMyActivities() {
 
       {/* Content - Activity Cards */}
       {renderMyRegistrations()}
+
+      {/* Pagination Controls */}
+      {pagination.total > pagination.limit && (
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+          <div className="text-sm text-gray-600">
+            Hiển thị <span className="font-semibold">{Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}</span> - <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> trong tổng số <span className="font-semibold">{pagination.total}</span> hoạt động
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+              disabled={pagination.page <= 1}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
+              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
+            </span>
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: Math.min(Math.ceil(pagination.total / pagination.limit), prev.page + 1) }))}
+              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
+              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showDetailModal && (

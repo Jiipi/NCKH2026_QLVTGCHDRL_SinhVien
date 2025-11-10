@@ -16,6 +16,7 @@ export default function MonitorDashboard() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'recent'
+  const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'cho_duyet' | 'da_duyet' | 'da_tham_gia' | 'tu_choi'
   
   // Semester filter synced with backend current + session cache
   const [semester, setSemester] = useState(() => {
@@ -93,7 +94,24 @@ export default function MonitorDashboard() {
   const monitorName = userProfile?.ho_ten || userProfile?.name || 'Lớp trưởng';
   const upcomingActivities = upcoming || [];
   const recentApprovals = myActivities?.all || [];
-  
+
+  // Helpers for recent filter
+  const normalizeStatus = (a) => {
+    const s = (a?.trang_thai_dk || a?.status || a?.trang_thai || '').toLowerCase();
+    if (s === 'pending') return 'cho_duyet';
+    if (s === 'approved') return 'da_duyet';
+    if (s === 'participated' || s === 'attended') return 'da_tham_gia';
+    return s || 'unknown';
+  };
+  const recentCounts = {
+    all: recentApprovals.length,
+    cho_duyet: recentApprovals.filter(a => normalizeStatus(a) === 'cho_duyet').length,
+    da_duyet: recentApprovals.filter(a => normalizeStatus(a) === 'da_duyet').length,
+    da_tham_gia: recentApprovals.filter(a => normalizeStatus(a) === 'da_tham_gia').length,
+    tu_choi: recentApprovals.filter(a => normalizeStatus(a) === 'tu_choi').length,
+  };
+  const filteredRecent = recentApprovals.filter(a => recentFilter === 'all' ? true : normalizeStatus(a) === recentFilter);
+
   // Monitor's PERSONAL stats (summary from hook)
   const monitorPoints = Math.round(summary?.totalPoints || 0);
   const activitiesJoined = summary?.activitiesJoined || 0;
@@ -448,180 +466,140 @@ export default function MonitorDashboard() {
               {/* Tab Content */}
               <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
                 {activeTab === 'upcoming' ? (
-                  upcomingActivities && upcomingActivities.length > 0 ? (
-                    upcomingActivities.map(activity => (
-                      <div 
-                        key={activity.id}
-                        onClick={() => handleActivityClick(activity.id)}
-                        className="group/item cursor-pointer bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-gray-900 flex-1 text-sm leading-tight">{activity.ten_hd}</h3>
-                          <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold ml-2 whitespace-nowrap">
-                            +{activity.diem_rl} điểm
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-700 font-medium">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}
-                          </span>
-                          {activity.dia_diem && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5" />
-                              {activity.dia_diem}
-                            </span>
-                          )}
-                          {activity.registeredStudents > 0 && (
-                            <span className="flex items-center gap-1 ml-auto text-blue-600">
-                              <Users className="h-3.5 w-3.5" />
-                              {activity.registeredStudents} SV
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="mb-2">Chưa có hoạt động sắp diễn ra</p>
-                      <button 
-                        onClick={() => navigate('/class/activities/create')}
-                        className="mt-2 text-purple-600 hover:text-purple-700 font-medium text-sm"
-                      >
-                        Tạo hoạt động đầu tiên →
-                      </button>
-                    </div>
-                  )
-                ) : (
-                  // Recent Activities Tab - Hiển thị "Hoạt động của tôi" giống student dashboard
-                  recentApprovals && recentApprovals.length > 0 ? (
-                    recentApprovals.map((activity, idx) => {
-                      // Lấy dữ liệu hoạt động từ nested object hoặc chính activity
-                      const activityData = activity.activity || activity.hoat_dong || activity;
-                      const status = (activity.trang_thai_dk || activity.status || '').toLowerCase();
-                      
-                      // Xác định status types
-                      const isPending = status === 'cho_duyet' || status === 'pending';
-                      const isApproved = status === 'da_duyet' || status === 'approved';
-                      const isJoined = status === 'da_tham_gia' || status === 'participated' || status === 'attended';
-                      const isRejected = status === 'tu_choi' || status === 'rejected';
-                      
-                      // Background color based on status
-                      let bgColor = 'from-blue-50 to-indigo-50';
-                      if (isPending) bgColor = 'from-yellow-50 to-orange-50';
-                      else if (isApproved) bgColor = 'from-green-50 to-emerald-50';
-                      else if (isJoined) bgColor = 'from-blue-50 to-cyan-50';
-                      else if (isRejected) bgColor = 'from-red-50 to-pink-50';
-                      
-                      // Status badge với design mềm mại giống student
-                      let statusBadge = null;
-                      let pointsBadge = null;
-                      const points = activityData.diem_rl || activity.diem_rl || 0;
-                      
-                      if (isPending) {
-                        statusBadge = (
-                          <span className="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Chờ duyệt
-                          </span>
-                        );
-                        pointsBadge = (
-                          <span className="bg-orange-500 text-white px-2.5 py-1 rounded-full text-xs font-medium">
-                            +{formatNumber(points)}d
-                          </span>
-                        );
-                      } else if (isApproved) {
-                        statusBadge = (
-                          <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Đã duyệt
-                          </span>
-                        );
-                        pointsBadge = (
-                          <span className="bg-green-500 text-white px-2.5 py-1 rounded-full text-xs font-medium">
-                            +{formatNumber(points)}d
-                          </span>
-                        );
-                      } else if (isJoined) {
-                        statusBadge = (
-                          <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Đã tham gia
-                          </span>
-                        );
-                        pointsBadge = (
-                          <span className="bg-blue-500 text-white px-2.5 py-1 rounded-full text-xs font-medium">
-                            +{formatNumber(points)}d
-                          </span>
-                        );
-                      } else if (isRejected) {
-                        statusBadge = (
-                          <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Bị từ chối
-                          </span>
-                        );
-                      }
-                      
-                      // Lấy các fields từ nhiều nguồn có thể
-                      const activityName = activityData.ten_hd || activity.ten_hd || 'Hoạt động';
-                      const location = activity.dia_diem 
-                        || activityData.dia_diem 
-                        || activity.activity?.dia_diem 
-                        || activity.hoat_dong?.dia_diem
-                        || activityData.location
-                        || '';
-                      
-                      // Lấy ngày từ nhiều nguồn có thể
-                      const displayDate = activity.ngay_tham_gia 
-                        ? new Date(activity.ngay_tham_gia).toLocaleDateString('vi-VN')
-                        : activity.ngay_bd
-                        ? new Date(activity.ngay_bd).toLocaleDateString('vi-VN')
-                        : activityData.ngay_bd
-                        ? new Date(activityData.ngay_bd).toLocaleDateString('vi-VN')
-                        : activityData.ngay_kt
-                        ? new Date(activityData.ngay_kt).toLocaleDateString('vi-VN')
-                        : 'N/A';
-                      
-                      // ID cho modal - ưu tiên activity_id nếu có
-                      const activityId = activity.activity_id || activityData.id || activity.id;
-                      
-                      return (
-                        <div 
-                          key={activity.id || idx}
-                          onClick={() => activityId && handleActivityClick(activityId)}
-                          className={`group/item cursor-pointer bg-gradient-to-br ${bgColor} rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100`}
-                        >
-                          <div className="flex justify-between items-start mb-2 gap-2">
-                            <h3 className="font-bold text-gray-900 flex-1 text-sm leading-tight">{activityName}</h3>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {pointsBadge}
-                              {statusBadge}
+                  <>
+                    {upcomingActivities?.length ? (
+                      <>
+                        {upcomingActivities.map(activity => (
+                          <div
+                            key={activity.id}
+                            onClick={() => handleActivityClick(activity.id)}
+                            className="group/item cursor-pointer bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-bold text-gray-900 flex-1 text-sm leading-tight">{activity.ten_hd}</h3>
+                              <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold ml-2 whitespace-nowrap">
+                                +{activity.diem_rl} điểm
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-700 font-medium">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}
+                              </span>
+                              {activity.dia_diem && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  {activity.dia_diem}
+                                </span>
+                              )}
+                              {activity.registeredStudents > 0 && (
+                                <span className="flex items-center gap-1 ml-auto text-blue-600">
+                                  <Users className="h-3.5 w-3.5" />
+                                  {activity.registeredStudents} SV
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-700 font-medium flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {displayDate}
-                            </span>
-                            {location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3.5 w-3.5" />
-                                {location}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Clock className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="mb-2">Chưa có hoạt động gần đây</p>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                        <p className="mb-2">Chưa có hoạt động sắp diễn ra</p>
+                        <button
+                          onClick={() => navigate('/class/activities/create')}
+                          className="mt-2 text-purple-600 hover:text-purple-700 font-medium text-sm"
+                        >
+                          Tạo hoạt động đầu tiên →
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : activeTab === 'recent' ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {[
+                        { label: 'Tất cả', value: 'all', count: recentCounts.all },
+                        { label: 'Chờ duyệt', value: 'cho_duyet', count: recentCounts.cho_duyet },
+                        { label: 'Đã duyệt', value: 'da_duyet', count: recentCounts.da_duyet },
+                        { label: 'Đã tham gia', value: 'da_tham_gia', count: recentCounts.da_tham_gia },
+                        { label: 'Bị từ chối', value: 'tu_choi', count: recentCounts.tu_choi },
+                      ].map(f => (
+                        <button
+                          key={f.value}
+                          onClick={() => setRecentFilter(f.value)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 border ${recentFilter === f.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          {f.label}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${recentFilter === f.value ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>
+                            {f.count}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                  )
-                )}
+                    {filteredRecent?.length ? (
+                      <>
+                        {filteredRecent.map((activity, idx) => {
+                          const activityData = activity.activity || activity.hoat_dong || activity;
+                          const status = (activity.trang_thai_dk || activity.status || activity.trang_thai || '').toLowerCase();
+                          const points = activityData.diem_rl || activity.diem_rl || 0;
+                          const statusConfig = {
+                            cho_duyet: { label: 'Chờ duyệt', icon: Clock, color: 'text-yellow-700', bg: 'bg-yellow-100', pointsBg: 'bg-orange-500' },
+                            da_duyet: { label: 'Đã duyệt', icon: CheckCircle, color: 'text-green-700', bg: 'bg-green-100', pointsBg: 'bg-green-500' },
+                            da_tham_gia: { label: 'Đã tham gia', icon: CheckCircle, color: 'text-blue-700', bg: 'bg-blue-100', pointsBg: 'bg-blue-500' },
+                            tu_choi: { label: 'Bị từ chối', icon: XCircle, color: 'text-red-700', bg: 'bg-red-100', pointsBg: 'bg-red-500' },
+                            default: { label: 'N/A', icon: Activity, color: 'text-gray-700', bg: 'bg-gray-100', pointsBg: 'bg-gray-500' },
+                          };
+                          const currentStatus = statusConfig[status] || statusConfig.default;
+                          const StatusIcon = currentStatus.icon;
+                          const activityName = activityData.ten_hd || activity.ten_hd || 'Hoạt động';
+                          const location = activityData.dia_diem || '';
+                          const displayDate = activityData.ngay_bd ? new Date(activityData.ngay_bd).toLocaleDateString('vi-VN') : 'N/A';
+                          const activityId = activityData.id || activity.id;
+                          return (
+                            <div
+                              key={activity.id || idx}
+                              onClick={() => activityId && handleActivityClick(activityId)}
+                              className={`group/item cursor-pointer rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 ${currentStatus.bg.replace('bg-', 'bg-opacity-50 ')}`}
+                            >
+                              <div className="flex justify-between items-start mb-2 gap-2">
+                                <h3 className="font-bold text-gray-900 flex-1 text-sm leading-tight">{activityName}</h3>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {points > 0 && (
+                                    <span className={`text-white px-2.5 py-1 rounded-full text-xs font-bold ${currentStatus.pointsBg}`}>
+                                      +{formatNumber(points)}đ
+                                    </span>
+                                  )}
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${currentStatus.bg} ${currentStatus.color}`}>
+                                    <StatusIcon className="h-3.5 w-3.5" />
+                                    {currentStatus.label}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-gray-600 font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                  {displayDate}
+                                </span>
+                                {location && (
+                                  <span className="flex items-center gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                                    {location}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <Clock className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                        <p className="mb-2">Không có hoạt động nào khớp với bộ lọc</p>
+                      </div>
+                    )}
+                  </>
+                ) : null}
               </div>
             </div>
 

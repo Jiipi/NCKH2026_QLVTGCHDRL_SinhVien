@@ -599,13 +599,29 @@ export default function QRScannerModern() {
       showSuccess('Điểm danh thành công!');
 
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra khi điểm danh';
+      console.error("🛑 QR Scan API Error:", err.response || err);
+      const backendMessage = err.response?.data?.message;
+      const statusCode = err.response?.status;
+      
+      let userMessage = 'Điểm danh thất bại. Vui lòng thử lại.';
+      if (statusCode === 400) {
+        userMessage = backendMessage || 'Mã QR không hợp lệ hoặc đã hết hạn.';
+      } else if (statusCode === 403) {
+        userMessage = backendMessage || 'Bạn không có quyền điểm danh cho hoạt động này. Vui lòng kiểm tra đăng ký của bạn.';
+      } else if (statusCode === 404) {
+        userMessage = 'Hoạt động không tồn tại.';
+      } else {
+        userMessage = backendMessage || 'Lỗi máy chủ. Không thể điểm danh.';
+      }
+
       setScanResult({
         success: false,
-        message: errorMessage
+        message: userMessage,
+        details: backendMessage // for debugging if needed
       });
-      setError(errorMessage);
-      showError(errorMessage);
+      setError(userMessage);
+      showError(userMessage, `Lỗi ${statusCode || ''}`); // Show error with status code
+      
       // Ensure camera fully stopped after a failed attempt
       stopCamera();
     } finally {

@@ -9,6 +9,7 @@ export default function ClassStudents() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('points_desc');
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
   
   // Determine current semester for default value
   const getCurrentSemesterValue = () => {
@@ -35,7 +36,7 @@ export default function ClassStudents() {
 
   useEffect(() => {
     loadStudents();
-  }, [semester]); // Reload when semester changes
+  }, [semester, pagination.page, pagination.limit]); // Reload when semester or pagination changes
 
   const loadStudents = async () => {
     try {
@@ -43,8 +44,12 @@ export default function ClassStudents() {
       const endpoints = ['/monitor/students', '/class/students', '/teacher/students'];
       let response = null;
       
-      // Always send semester parameter
-      const params = { semester };
+      // Always send semester parameter with pagination
+      const params = { 
+        semester,
+        page: pagination.page,
+        limit: pagination.limit
+      };
       
       for (const ep of endpoints) {
         try {
@@ -55,7 +60,9 @@ export default function ClassStudents() {
         }
       }
       
-      const raw = response?.data?.data?.students || response?.data?.students || response?.data?.data || [];
+      const responseData = response?.data?.data || response?.data || {};
+      const raw = responseData.students || responseData.items || responseData || [];
+      const total = responseData.total || (Array.isArray(raw) ? raw.length : 0);
       
       const normalized = (Array.isArray(raw) ? raw : []).map(sv => {
         const nguoiDung = sv.nguoi_dung || {};
@@ -92,6 +99,7 @@ export default function ClassStudents() {
       });
       
       setStudents(sorted);
+      setPagination(prev => ({ ...prev, total }));
       setError('');
     } catch (err) {
       console.error('Error loading students:', err);
@@ -519,6 +527,34 @@ export default function ClassStudents() {
             </div>
           </div>
         )}
+
+      {/* Pagination Controls */}
+      {pagination.total > pagination.limit && (
+        <div className="mt-8 flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-sm text-gray-600">
+            Hiển thị {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} trong tổng số {pagination.total} sinh viên
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+              disabled={pagination.page === 1}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Trước
+            </button>
+            <span className="text-sm text-gray-600 px-3">
+              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
+            </span>
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Tiếp →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {showDetails && (

@@ -176,7 +176,7 @@ export const useMyActivities = ({ semester, autoFetch = true } = {}) => {
       
       const params = { semester: semester || undefined };
       
-      const response = await http.get('/dashboard/activities/me', { params });
+      const response = await http.get('/v2/dashboard/activities/me', { params });
       
       const data = response.data?.success && Array.isArray(response.data.data)
         ? response.data.data

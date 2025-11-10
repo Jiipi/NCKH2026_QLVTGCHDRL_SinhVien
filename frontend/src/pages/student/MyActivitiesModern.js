@@ -16,7 +16,7 @@ import { normalizeRole } from '../../utils/role';
 
 export default function MyActivitiesModern() {
   const { showSuccess, showError, confirm } = useNotification();
-  const [tab, setTab] = React.useState('pending');
+  const [tab, setTab] = React.useState('joined'); // Default to 'joined' tab
   const [data, setData] = React.useState({ pending: [], approved: [], joined: [], rejected: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -93,10 +93,13 @@ export default function MyActivitiesModern() {
       
       console.log('📤 API params:', params);
       
-      const res = await http.get('/dashboard/activities/me', { params });
-      const activities = res.data?.data || res.data || [];
-      
-      console.log('📥 Received activities:', activities.length);
+      const res = await http.get('/v2/dashboard/activities/me', { params });
+      // Chuẩn hoá cấu trúc trả về: hỗ trợ {data:{items,total}} hoặc {data:[]} hoặc []
+      const payload = res.data?.data ?? res.data ?? [];
+      const activities = Array.isArray(payload) ? payload : (payload.items || payload.data || []);
+      const total = payload.total || activities.length;
+
+      console.log('📥 Received activities:', activities.length, 'total:', total);
       
       const pending = activities.filter(x => (x.trang_thai_dk || '').toLowerCase() === 'cho_duyet');
       const approved = activities.filter(x => (x.trang_thai_dk || '').toLowerCase() === 'da_duyet');
@@ -126,7 +129,7 @@ export default function MyActivitiesModern() {
   }, [loadMyActivities]);
 
   function loadActivityTypes() {
-    http.get('/activities/types/list')
+    http.get('/v2/activity-types')
       .then(res => {
         if (res.data?.success && res.data?.data) {
           setActivityTypes(res.data.data);
@@ -146,7 +149,7 @@ export default function MyActivitiesModern() {
     if (!confirmed) return;
     
     try {
-      const res = await http.post(`/activities/${hdId}/cancel`);
+      const res = await http.post(`/v2/registrations/${hdId}/cancel`);
       if (res.data?.success) {
         showSuccess('Hủy đăng ký thành công');
         loadMyActivities();
@@ -341,7 +344,7 @@ export default function MyActivitiesModern() {
                 
                 {status === 'pending' && (
                   <button
-                    onClick={() => cancelRegistration(activity.hd_id || activityData.id, activityData.ten_hd || activityData.name)}
+                    onClick={() => cancelRegistration(activity.registration_id || activity.hd_id, activityData.ten_hd || activityData.name)}
                     className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${isWritable ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     disabled={!isWritable}
                   >
@@ -465,7 +468,7 @@ export default function MyActivitiesModern() {
 
             {status === 'pending' && (
               <button
-                onClick={() => cancelRegistration(activity.hd_id || activityData.id, activityData.ten_hd || activityData.name)}
+                onClick={() => cancelRegistration(activity.registration_id || activity.hd_id, activityData.ten_hd || activityData.name)}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 disabled={!isWritable}
               >
@@ -1047,7 +1050,7 @@ export default function MyActivitiesModern() {
               ))}
           </div>
 
-          {/* Enhanced Pagination with better UX */}
+          {/* Enhanced Pagination with better UX (original inline version) */}
           {pagination.total > 0 && (() => {
             const totalPages = Math.ceil(pagination.total / pagination.limit);
             const currentPage = pagination.page;

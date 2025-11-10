@@ -33,9 +33,9 @@ export const useUpcomingActivities = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useUpcomingActivities] Fetching for semester:', semester);
 
-      // Sử dụng endpoint /dashboard/student vì đã có logic sẵn
+      // ✅ Sử dụng V2 endpoint - dashboard module
       // Backend sẽ tự động filter theo lớp của user
-      const response = await http.get('/dashboard/student', {
+      const response = await http.get('/v2/dashboard/student', {
         params: { semester }
       });
 
@@ -100,7 +100,7 @@ export const useMyActivities = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useMyActivities] Fetching for semester:', semester);
 
-      const response = await http.get('/dashboard/activities/me', {
+      const response = await http.get('/v2/dashboard/activities/me', {
         params: { semester }
       });
 
@@ -224,10 +224,10 @@ export const useStudentSummary = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useStudentSummary] Fetching for semester:', semester);
 
-      // Fetch cả dashboard và profile
+      // Fetch cả dashboard và profile - SỬ DỤNG V2 ENDPOINT
       const [dashboardRes, profileRes] = await Promise.all([
-        http.get('/dashboard/student', { params: { semester } }),
-        http.get('/users/profile').catch(() => http.get('/auth/profile'))
+        http.get('/v2/dashboard/student', { params: { semester } }),
+        http.get('/v2/profile')
       ]);
 
       const apiData = dashboardRes.data?.data || dashboardRes.data || {};

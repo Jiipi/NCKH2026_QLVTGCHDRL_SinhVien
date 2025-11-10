@@ -8,8 +8,8 @@ const { validate, loginSchema, registerSchema, forgotPasswordSchema, verifyOtpSc
 const { ApiResponse, sendResponse } = require('../utils/response');
 const { logInfo, logError } = require('../utils/logger');
 const config = require('../config/app');
-// Removed direct prisma import - all database operations should go through models
-const AuthModel = require('../models/auth.model');
+// V2 Services
+const { AuthService, ReferenceDataService, StudentPointsService } = require('../services');
 const UserModel = require('../models/user.model');
 const { prisma } = require('../config/database');
 const { loginLimiter } = require('../middlewares/rateLimiters');
@@ -40,7 +40,7 @@ async function ensureDemoUsersIfNeeded() {
 // Public: faculties (khoa) and classes (lop)
 router.get('/faculties', async (req, res) => {
   try {
-    const faculties = await AuthModel.layDanhSachKhoa();
+    const faculties = await ReferenceDataService.getFaculties();
     const data = faculties.map((f) => ({ value: f, label: f }));
     sendResponse(res, 200, ApiResponse.success(data, 'Faculties'));
   } catch (error) {
@@ -52,7 +52,7 @@ router.get('/faculties', async (req, res) => {
 router.get('/classes', async (req, res) => {
   try {
     const { faculty } = req.query;
-    const lops = await AuthModel.layDanhSachLopTheoKhoa(faculty);
+    const lops = await ReferenceDataService.getClassesByFaculty(faculty);
     const data = lops.map((l) => ({ value: l.id, label: l.ten_lop, khoa: l.khoa }));
     sendResponse(res, 200, ApiResponse.success(data, 'Classes'));
   } catch (error) {
@@ -123,18 +123,18 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
     logInfo('LOGIN_ATTEMPT', { maso });
 
     // Tìm người dùng theo mã số
-    let user = await AuthModel.findByEmailOrMaso(maso);
+    let user = await AuthService.findByEmailOrMaso(maso);
     if (!user) {
       // Nếu database đang trống (dev) thì tự tạo demo users rồi thử lại
       await ensureDemoUsersIfNeeded();
-      user = await AuthModel.findByEmailOrMaso(maso);
+      user = await AuthService.findByEmailOrMaso(maso);
     }
     if (!user) {
       logInfo('LOGIN_USER_NOT_FOUND', { maso });
       return sendResponse(res, 401, ApiResponse.unauthorized('Mã số hoặc mật khẩu không đúng'));
     }
 
-    const isPasswordValid = await AuthModel.verifyPasswordAndUpgrade(user, password);
+    const isPasswordValid = await AuthService.verifyPasswordAndUpgrade(user, password);
     logInfo('LOGIN_PASSWORD_CHECK', { maso, ok: !!isPasswordValid });
     if (!isPasswordValid) {
       return sendResponse(res, 401, ApiResponse.unauthorized('Mã số hoặc mật khẩu không đúng'));
@@ -157,7 +157,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
     });
 
     // Cập nhật thông tin đăng nhập
-    await AuthModel.capNhatThongTinDangNhap(user.id, req.ip);
+    await AuthService.updateLoginInfo(user.id, req.ip);
 
     // Ghi log đăng nhập thành công
     logInfo('LOGIN_SUCCESS', { 
@@ -167,7 +167,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
       ip: req.ip 
     });
 
-    const dto = AuthModel.toUserDTO(user);
+    const dto = AuthService.toUserDTO(user);
     sendResponse(res, 200, ApiResponse.success({ token, user: dto }, 'Đăng nhập thành công'));
   } catch (error) {
     logError('Login error', error, { ip: req.ip });
@@ -181,13 +181,13 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     const { name, maso, email, password, lopId, khoa, ngaySinh, gioiTinh, diaChi, sdt } = req.validatedData;
 
     // Kiểm tra mã số bị trùng
-    const existingUser = await AuthModel.timNguoiDungTheoMaso(maso);
+    const existingUser = await AuthService.findUserByMaso(maso);
     if (existingUser) {
       return sendResponse(res, 400, ApiResponse.validationError([{ field: 'maso', message: 'Mã số đã được sử dụng' }]));
     }
 
     // Kiểm tra email bị trùng
-    const existingEmail = await AuthModel.timNguoiDungTheoEmail(email);
+    const existingEmail = await AuthService.findUserByEmail(email);
     if (existingEmail) {
       return sendResponse(res, 400, ApiResponse.validationError([{ field: 'email', message: 'Email đã được sử dụng' }]));
     }
@@ -195,18 +195,18 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     // Lấy lớp để gán: ưu tiên từ payload, nếu không có thì tạo lớp mới hoặc dùng lớp mặc định
     let lopToUse = null;
     if (lopId) {
-      lopToUse = await AuthModel.layThongTinLopTheoId(lopId);
+      lopToUse = await ReferenceDataService.getClassById(lopId);
       if (!lopToUse) {
         return sendResponse(res, 400, ApiResponse.validationError([{ field: 'lopId', message: 'Lớp được chọn không tồn tại' }]));
       }
     } else if (khoa) {
       // Nếu có khoa nhưng không có lớp cụ thể, tìm hoặc tạo lớp mặc định cho khoa đó
-      lopToUse = await AuthModel.findOrCreateClassForFaculty(khoa);
+      lopToUse = await AuthService.findOrCreateClassForFaculty(khoa);
       if (!lopToUse) {
         return sendResponse(res, 500, ApiResponse.error('Không thể tạo lớp cho khoa này, vui lòng liên hệ quản trị viên'));
       }
     } else {
-      const lopMacDinh = await AuthModel.findDefaultClass();
+      const lopMacDinh = await AuthService.findDefaultClass();
       if (!lopMacDinh) {
         return sendResponse(res, 500, ApiResponse.error('Không tìm thấy lớp mặc định, vui lòng liên hệ quản trị viên'));
       }
@@ -217,7 +217,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Tạo người dùng mới với đầy đủ thông tin
-    const newUser = await AuthModel.createStudent({
+    const newUser = await AuthService.createStudent({
       name,
       maso,
       email,
@@ -265,7 +265,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       // Không throw - đăng ký vẫn thành công dù notification bị lỗi
     }
 
-    const dto = AuthModel.toUserDTO(newUser);
+    const dto = AuthService.toUserDTO(newUser);
     sendResponse(res, 200, ApiResponse.success({ token, user: dto }, 'Đăng ký thành công', 201));
   } catch (error) {
     logError('Register error', error, { ip: req.ip });
@@ -286,7 +286,7 @@ router.post('/forgot', validate(forgotPasswordSchema), async (req, res) => {
     otpRateLimit.set(email, Date.now());
 
     // Tìm user theo email (chỉ email, không cho phép maso ở bước này)
-    const user = await AuthModel.timNguoiDungTheoEmail(email);
+    const user = await AuthService.findUserByEmail(email);
     // Luôn trả 200 để tránh dò email; nhưng chỉ gửi khi tồn tại
   let devOtp = null;
   if (user) {
@@ -365,8 +365,8 @@ router.post('/reset', validate(resetWithOtpSchema), async (req, res) => {
       otpIncrementAttempts(email);
       return sendResponse(res, 401, ApiResponse.unauthorized('Mã không đúng'));
     }
-    const hashed = await AuthModel.bamMatKhau(password);
-    await AuthModel.updatePasswordById(record.user_id, hashed);
+    const hashed = await AuthService.hashPassword(password);
+    await AuthService.updatePasswordById(record.user_id, hashed);
     otpMarkUsed(email);
     return sendResponse(res, 200, ApiResponse.success(null, 'Đặt lại mật khẩu thành công'));
   } catch (error) {
@@ -379,8 +379,8 @@ router.post('/reset', validate(resetWithOtpSchema), async (req, res) => {
 router.post('/admin/reset', auth, requireAdmin, validate(adminResetPasswordSchema), async (req, res) => {
   try {
     const { userId, newPassword } = req.validatedData;
-    const hashed = await AuthModel.bamMatKhau(newPassword);
-    await AuthModel.updatePasswordById(userId, hashed);
+    const hashed = await AuthService.hashPassword(newPassword);
+    await AuthService.updatePasswordById(userId, hashed);
     logInfo('Admin reset password', { adminId: req.user.sub, targetUserId: userId });
     sendResponse(res, 200, ApiResponse.success(null, 'Tạo lại mật khẩu thành công'));
   } catch (error) {
@@ -393,16 +393,16 @@ router.post('/admin/reset', auth, requireAdmin, validate(adminResetPasswordSchem
 router.post('/change', auth, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.validatedData;
-    const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
+    const user = await AuthService.findUserByMaso(req.user.maso);
     if (!user) {
       return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
     }
-    const ok = await AuthModel.verifyPasswordAndUpgrade(user, currentPassword);
+    const ok = await AuthService.verifyPasswordAndUpgrade(user, currentPassword);
     if (!ok) {
       return sendResponse(res, 401, ApiResponse.unauthorized('Mật khẩu hiện tại không đúng'));
     }
-    const hashed = await AuthModel.bamMatKhau(newPassword);
-    await AuthModel.updatePasswordById(user.id, hashed);
+    const hashed = await AuthService.hashPassword(newPassword);
+    await AuthService.updatePasswordById(user.id, hashed);
     sendResponse(res, 200, ApiResponse.success(null, 'Đổi mật khẩu thành công'));
   } catch (error) {
     logError('Change password error', error);
@@ -447,14 +447,14 @@ router.put('/contacts', auth, async (req, res) => {
       .map((c, idx) => ({ type: String(c.type), value: String(c.value), priority: Number(c.priority || idx + 1) }));
 
     // Thao tác: xóa toàn bộ liên hệ non-email cũ và tạo mới (đơn giản, rõ ràng)
-    await AuthModel.deleteNonEmailContacts(req.user.sub); // Assuming AuthModel has this method
+    await AuthService.deleteNonEmailContacts(req.user.sub);
     if (sanitized.length > 0) {
-      await AuthModel.createNonEmailContacts(req.user.sub, sanitized); // Assuming AuthModel has this method
+      await AuthService.createNonEmailContacts(req.user.sub, sanitized);
     }
 
     // Trả lại profile mới với contacts đã cập nhật
-    const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
-    const dto = AuthModel.toUserDTO(user);
+    const user = await AuthService.findUserByMaso(req.user.maso);
+    const dto = AuthService.toUserDTO(user);
     sendResponse(res, 200, ApiResponse.success(dto, 'Cập nhật thông tin liên hệ thành công'));
   } catch (error) {
     logError('Update contacts error', error, { userId: req.user?.sub });
@@ -465,11 +465,11 @@ router.put('/contacts', auth, async (req, res) => {
 // Lấy thông tin cá nhân
 router.get('/profile', auth, requirePermission('profile.read'), async (req, res) => {
   try {
-  const user = await AuthModel.timNguoiDungTheoMaso(req.user.maso);
+  const user = await AuthService.findUserByMaso(req.user.maso);
     if (!user) {
       return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
     }
-    const dto = AuthModel.toUserDTO(user);
+    const dto = AuthService.toUserDTO(user);
     sendResponse(res, 200, ApiResponse.success(dto, 'Lấy thông tin profile thành công'));
   } catch (error) {
     logError('Get profile error', error, { userId: req.user.sub });
@@ -487,7 +487,7 @@ router.get('/points', auth, async (req, res) => {
     console.log('Query params:', { semester, year });
     
     // Tính điểm rèn luyện dựa trên hoạt động đã hoàn thành
-    const pointsData = await AuthModel.calculateStudentPoints(userId, { semester, year });
+    const pointsData = await StudentPointsService.calculateStudentPoints(userId, { semester, year });
     
     console.log('Points data calculated successfully');
     sendResponse(res, 200, ApiResponse.success(pointsData, 'Lấy điểm rèn luyện thành công'));
@@ -508,7 +508,7 @@ router.get('/my-activities', auth, async (req, res) => {
     console.log('Query params:', { semester, year, status });
     
     // Lấy danh sách hoạt động đã đăng ký
-    const activitiesData = await AuthModel.getStudentActivities(userId, { semester, year, status });
+    const activitiesData = await StudentPointsService.getStudentActivities(userId, { semester, year, status });
     
     console.log('Activities data retrieved successfully');
     sendResponse(res, 200, ApiResponse.success(activitiesData, 'Lấy danh sách hoạt động thành công'));
@@ -543,7 +543,7 @@ router.get('/demo-accounts', async (req, res) => {
   try {
     // Pick a few well-known demo users we seeded
     const demoUsernames = ['admin', 'gv001', 'lt001', '2021003'];
-    const users = await AuthModel.layDanhSachDemoUsers(demoUsernames);
+    const users = await ReferenceDataService.getDemoUsers(demoUsernames);
 
     // Plaintext demo passwords corresponding to seed for display only
     const passwordMap = {

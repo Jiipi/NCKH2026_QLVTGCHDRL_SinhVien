@@ -21,7 +21,7 @@ export default function ProfilePage(){
   React.useEffect(function load(){
     let mounted = true;
     // Sử dụng cùng endpoint với UserProfile.js để đồng bộ dữ liệu
-    http.get('/users/profile').then(function(res){
+    http.get('/v2/profile').then(function(res){
       if(!mounted) return; 
       const p = res.data?.data || res.data || null; 
       setProfile(p); 

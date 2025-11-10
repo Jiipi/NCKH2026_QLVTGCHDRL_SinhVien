@@ -41,7 +41,7 @@ export default function AdminProfile() {
       setLoading(true);
       let response;
       try {
-        response = await http.get('/users/profile');
+        response = await http.get('/v2/profile');
       } catch (e) {
         response = await http.get('/auth/profile');
       }
@@ -74,7 +74,7 @@ export default function AdminProfile() {
         // Bỏ qua các trường sinh_vien vì admin không có bản ghi sinh_vien
       };
       
-      await http.put('/users/profile', updateData);
+      await http.put('/v2/profile', updateData);
       setEditing(false);
       loadProfile();
       showSuccess('Cập nhật thông tin thành công', 'Thành công', 8000);
