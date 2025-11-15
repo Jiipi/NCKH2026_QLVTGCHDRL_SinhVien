@@ -1,9 +1,8 @@
 const { Router } = require('express');
 const adminReportsService = require('../services/admin-reports.service');
-const { ApiResponse, sendResponse } = require('../utils/response');
-const { logError } = require('../utils/logger');
-const { auth: authenticateJWT, requireAdmin } = require('../middlewares/auth');
-const AdminReportsController = require('../controllers/admin.reports.controller');
+const { ApiResponse, sendResponse } = require('../core/http/response/apiResponse');
+const { logError } = require('../core/logger');
+const { auth: authenticateJWT, requireAdmin } = require('../core/http/middleware/authJwt');
 
 const router = Router();
 
@@ -12,7 +11,7 @@ router.use(authenticateJWT);
 router.use(requireAdmin);
 
 /**
- * GET /api/v2/admin/reports/users/:id/points
+ * GET /api/core/admin/reports/users/:id/points
  * Get detailed points report for a specific user
  * Query params:
  * - semester (optional): Semester filter
@@ -36,7 +35,7 @@ router.get('/users/:id/points', async (req, res) => {
 });
 
 /**
- * GET /api/v2/admin/reports/attendance
+ * GET /api/core/admin/reports/attendance
  * Get paginated attendance report with filters
  * Query params:
  * - page (optional): Page number (default: 1)
@@ -60,7 +59,7 @@ router.get('/attendance', async (req, res) => {
 });
 
 /**
- * GET /api/v2/admin/reports/classes
+ * GET /api/core/admin/reports/classes
  * Get all classes with student counts
  * Used for admin notification targeting and class management
  * 
@@ -79,21 +78,56 @@ router.get('/classes', async (req, res) => {
 });
 
 /**
- * GET /api/v2/admin/reports/overview
- * V2 alias of legacy /admin/reports/overview
+ * GET /api/core/admin/reports/overview
+ * Get overview statistics for admin dashboard
  */
-router.get('/overview', (req, res) => AdminReportsController.getOverview(req, res));
+router.get('/overview', async (req, res) => {
+  try {
+    const data = await adminReportsService.getOverview(req.query);
+    return sendResponse(res, 200, ApiResponse.success(data, 'Lấy báo cáo tổng quan thành công'));
+  } catch (err) {
+    logError('Error fetching overview:', err);
+    const statusCode = err.message === 'Tham số học kỳ không hợp lệ' ? 400 : 500;
+    return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi lấy báo cáo', statusCode));
+  }
+});
 
 /**
- * GET /api/v2/admin/reports/export/activities
- * V2 alias of legacy /admin/reports/export/activities
+ * GET /api/core/admin/reports/export/activities
+ * Export activities to CSV
  */
-router.get('/export/activities', (req, res) => AdminReportsController.exportActivities(req, res));
+router.get('/export/activities', async (req, res) => {
+  try {
+    const csv = await adminReportsService.exportActivities(req.query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="activities.csv"');
+    return res.status(200).send(csv);
+  } catch (err) {
+    logError('Error exporting activities:', err);
+    const statusCode = err.message === 'Tham số học kỳ không hợp lệ' ? 400 : 500;
+    return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi xuất hoạt động', statusCode));
+  }
+});
 
 /**
- * GET /api/v2/admin/reports/export/registrations
- * V2 alias of legacy /admin/reports/export/registrations
+ * GET /api/core/admin/reports/export/registrations
+ * Export registrations to CSV
  */
-router.get('/export/registrations', (req, res) => AdminReportsController.exportRegistrations(req, res));
+router.get('/export/registrations', async (req, res) => {
+  try {
+    const csv = await adminReportsService.exportRegistrations(req.query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
+    return res.status(200).send(csv);
+  } catch (err) {
+    logError('Error exporting registrations:', err);
+    const statusCode = err.message === 'Tham số học kỳ không hợp lệ' ? 400 : 500;
+    return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi xuất đăng ký', statusCode));
+  }
+});
 
 module.exports = router;
+
+
+
+

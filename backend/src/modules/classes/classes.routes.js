@@ -1,107 +1,82 @@
 /**
  * Classes Routes - V2 API
+ * Manual route definitions following clean architecture pattern
  */
 
 const express = require('express');
 const router = express.Router();
-const { createCRUDRouter } = require('../../shared/factories/crudRouter');
-const classesService = require('./classes.service');
-const auth = require('../../middlewares/auth').auth;
-const { asyncHandler } = require('../../shared/errors/AppError');
+const ClassesController = require('./classes.controller');
+const validators = require('./classes.validators');
+const { auth } = require('../../core/http/middleware/authJwt');
+const { asyncHandler } = require('../../app/errors/AppError');
 
-// ========== Base CRUD Routes (Factory) ==========
-const crudRouter = createCRUDRouter({
-  resource: 'classes',
-  service: classesService,
-  permissions: {
-    list: 'read',
-    get: 'read',
-    create: 'create',
-    update: 'update',
-    delete: 'delete'
-  }
-});
+// All routes require authentication
+router.use(auth);
 
-router.use('/', crudRouter);
+// ==================== CUSTOM ROUTES (Must be before /:id) ====================
 
-// ========== Custom Endpoints ==========
+// Assign teacher to class
+router.post(
+  '/:id/assign-teacher',
+  validators.validateAssignTeacher,
+  asyncHandler(ClassesController.assignTeacher)
+);
 
-/**
- * POST /classes/:id/assign-teacher
- * Gán giảng viên vào lớp (ADMIN only)
- */
-router.post('/:id/assign-teacher', auth, asyncHandler(async (req, res) => {
-  const { teacherId } = req.body;
-  
-  if (!teacherId) {
-    return res.status(400).json({
-      success: false,
-      message: 'teacherId là bắt buộc'
-    });
-  }
-  
-  const result = await classesService.assignTeacher(
-    req.params.id,
-    teacherId,
-    req.user
-  );
-  
-  res.json({
-    success: true,
-    ...result
-  });
-}));
+// Get students in class
+router.get(
+  '/:id/students',
+  validators.validateGetById,
+  asyncHandler(ClassesController.getStudents)
+);
 
-/**
- * POST /classes/:id/remove-teacher
- * Gỡ giảng viên khỏi lớp (ADMIN only)
- */
-router.post('/:id/remove-teacher', auth, asyncHandler(async (req, res) => {
-  const { teacherId } = req.body;
-  
-  if (!teacherId) {
-    return res.status(400).json({
-      success: false,
-      message: 'teacherId là bắt buộc'
-    });
-  }
-  
-  const result = await classesService.removeTeacher(
-    req.params.id,
-    teacherId,
-    req.user
-  );
-  
-  res.json({
-    success: true,
-    ...result
-  });
-}));
+// Get activities for class
+router.get(
+  '/:id/activities',
+  validators.validateGetById,
+  asyncHandler(ClassesController.getActivities)
+);
 
-/**
- * GET /classes/:id/stats
- * Lấy thống kê của class
- */
-router.get('/:id/stats', auth, asyncHandler(async (req, res) => {
-  const stats = await classesService.getStats(req.params.id, req.user);
-  
-  res.json({
-    success: true,
-    data: stats
-  });
-}));
+// ==================== CRUD ROUTES ====================
 
-/**
- * GET /classes/faculty/:faculty
- * Lấy classes theo faculty
- */
-router.get('/faculty/:faculty', auth, asyncHandler(async (req, res) => {
-  const classes = await classesService.getByFaculty(req.params.faculty, req.user);
-  
-  res.json({
-    success: true,
-    data: classes
-  });
-}));
+// List all classes
+router.get(
+  '/',
+  validators.validateGetAll,
+  asyncHandler(ClassesController.getAll)
+);
+
+// Get single class
+router.get(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(ClassesController.getById)
+);
+
+// Create class
+router.post(
+  '/',
+  validators.validateCreate,
+  asyncHandler(ClassesController.create)
+);
+
+// Update class
+router.put(
+  '/:id',
+  validators.validateUpdate,
+  asyncHandler(ClassesController.update)
+);
+
+// Delete class
+router.delete(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(ClassesController.delete)
+);
 
 module.exports = router;
+
+
+
+
+
+

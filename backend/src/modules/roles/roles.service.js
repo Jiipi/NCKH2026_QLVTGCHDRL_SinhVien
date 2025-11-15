@@ -1,5 +1,5 @@
-const { logInfo, logError } = require('../../utils/logger');
-const { invalidateRoleCache, invalidateAllRoleCache } = require('../../middlewares/rbac');
+const { logInfo, logError } = require('../../core/logger');
+const { invalidateRoleCache, invalidateAllRoleCache } = require('../../core/policies');
 const rolesRepo = require('./roles.repo');
 
 class RolesService {
@@ -248,3 +248,8 @@ class RolesService {
 }
 
 module.exports = RolesService;
+
+
+
+
+

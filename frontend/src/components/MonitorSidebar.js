@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import http from '../services/http';
+import http from '../shared/api/http';
 import '../styles/teacher-sidebar.css';
 import {
   Users,
@@ -203,8 +203,9 @@ export default function MonitorSidebar() {
   React.useEffect(() => {
     const fetchCount = async () => {
       try {
-        const res = await http.get('/class/registrations/pending-count');
-        const count = res.data?.data?.count || 0;
+        // ✅ Sử dụng CORE endpoint
+        const res = await http.get('/core/monitor/registrations/pending-count');
+        const count = res.data?.data?.count || res.data?.count || 0;
         setPendingApprovalsCount(count);
       } catch (err) {
         console.error('Error fetching pending count:', err);

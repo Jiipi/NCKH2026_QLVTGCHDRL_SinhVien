@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import http from '../services/http';
+import http from '../shared/api/http';
 import {
   normalizeActivity,
   filterAvailableActivities,
@@ -45,13 +45,14 @@ export const useActivities = ({
       setError(null);
       
       const params = {
-        semester: semester || undefined,
+        semesterValue: semester || undefined,
         limit: 'all'
       };
       
       console.log(`[useActivities] Fetching for role: ${role}, semester: ${semester}`);
       
-      const response = await http.get('/activities', { params });
+      // ✅ Sử dụng CORE endpoint với scope middleware
+      const response = await http.get('/core/activities', { params });
       
       // Normalize response structure
       const responseData = response.data?.data || response.data || {};
@@ -176,7 +177,7 @@ export const useMyActivities = ({ semester, autoFetch = true } = {}) => {
       
       const params = { semester: semester || undefined };
       
-      const response = await http.get('/v2/dashboard/activities/me', { params });
+      const response = await http.get('/core/dashboard/activities/me', { params });
       
       const data = response.data?.success && Array.isArray(response.data.data)
         ? response.data.data

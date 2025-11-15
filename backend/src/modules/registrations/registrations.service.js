@@ -4,10 +4,9 @@
  */
 
 const registrationsRepo = require('./registrations.repo');
-const { buildScope } = require('../../shared/scopes/scopeBuilder');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { buildScope } = require('../../app/scopes/scopeBuilder');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
+const { prisma } = require('../../infrastructure/prisma/client');
 
 const registrationsService = {
   /**
@@ -196,24 +195,47 @@ const registrationsService = {
    * Cancel registration (student tự hủy)
    */
   async cancel(id, user) {
-    const registration = await registrationsRepo.findById(id);
+    // Use Prisma directly with correct schema
+    const { prisma } = require('../../infrastructure/prisma/client');
+    
+    // Get student ID from user ID
+    const student = await prisma.sinhVien.findUnique({
+      where: { nguoi_dung_id: user.sub },
+      select: { id: true }
+    });
+    
+    if (!student) {
+      throw new NotFoundError('Không tìm thấy thông tin sinh viên');
+    }
+
+    // Find registration
+    const registration = await prisma.dangKyHoatDong.findUnique({
+      where: { id: String(id) },
+      include: {
+        sinh_vien: {
+          select: { nguoi_dung_id: true }
+        }
+      }
+    });
 
     if (!registration) {
-      throw new NotFoundError('Registration không tồn tại');
+      throw new NotFoundError('Đăng ký không tồn tại');
     }
 
     // Only owner can cancel
-    if (registration.userId !== user.id && user.role !== 'ADMIN') {
+    if (registration.sinh_vien?.nguoi_dung_id !== user.sub && user.role !== 'ADMIN') {
       throw new ForbiddenError('Bạn chỉ có thể hủy đăng ký của mình');
     }
 
-    // Check if can cancel (chưa approve)
-    if (registration.status === 'APPROVED') {
-      throw new ValidationError('Không thể hủy đăng ký đã được duyệt');
+    // Check if can cancel (chưa approve - chỉ có thể hủy khi đang chờ duyệt)
+    if (registration.trang_thai_dk === 'da_duyet' || registration.trang_thai_dk === 'da_tham_gia') {
+      throw new ValidationError('Không thể hủy đăng ký đã được duyệt hoặc đã tham gia');
     }
 
     // Delete registration
-    await registrationsRepo.delete(id);
+    await prisma.dangKyHoatDong.delete({
+      where: { id: String(id) }
+    });
 
     return { message: 'Đã hủy đăng ký thành công' };
   },
@@ -268,6 +290,134 @@ const registrationsService = {
     await registrationsRepo.bulkApprove(ids, user.id);
 
     return { message: `Đã duyệt ${ids.length} registrations`, count: ids.length };
+  },
+
+  /**
+   * Bulk update registrations (approve or reject)
+   */
+  async bulkUpdate(ids, action, reason, user) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new ValidationError('Danh sách ID trống');
+    }
+
+    if (!['approve', 'reject'].includes(action)) {
+      throw new ValidationError('Hành động không hợp lệ');
+    }
+
+    // Validate all registrations first
+    for (const id of ids) {
+      const registration = await registrationsRepo.findById(id, { activity: true });
+      if (!registration) {
+        throw new NotFoundError(`Registration ${id} không tồn tại`);
+      }
+
+      const canApprove = await this.canApproveRegistration(registration, user);
+      if (!canApprove) {
+        throw new ForbiddenError(`Không có quyền cập nhật registration ${id}`);
+      }
+    }
+
+    // Update all
+    const data = action === 'approve'
+      ? { trang_thai_dk: 'da_duyet', ly_do_tu_choi: null, ngay_duyet: new Date() }
+      : { trang_thai_dk: 'tu_choi', ly_do_tu_choi: reason || null, ngay_duyet: new Date() };
+
+    const result = await prisma.dangKyHoatDong.updateMany({
+      where: { id: { in: ids } },
+      data
+    });
+
+    return { updated: result.count, message: `Cập nhật ${result.count} registrations thành công` };
+  },
+
+  /**
+   * Export registrations to Excel
+   */
+  async exportRegistrations(filters = {}) {
+    const ExcelJS = require('exceljs');
+    const { buildRobustActivitySemesterWhere, parseSemesterString, buildSemesterFilter } = require('../../core/utils/semester');
+
+    const { status, hoc_ky, nam_hoc, semester, classId } = filters;
+
+    let semesterWhere = {};
+    if (semester) {
+      const parsed = parseSemesterString(semester);
+      if (!parsed) {
+        throw new ValidationError('Tham số học kỳ không hợp lệ');
+      }
+      const strict = buildSemesterFilter(semester, false);
+      semesterWhere = { hoat_dong: { ...strict } };
+    } else if (hoc_ky || nam_hoc) {
+      semesterWhere = {
+        hoat_dong: {
+          ...(hoc_ky ? { hoc_ky } : {}),
+          ...(nam_hoc ? { nam_hoc } : {})
+        }
+      };
+    }
+
+    const where = {
+      ...(status ? { trang_thai_dk: status } : {}),
+      ...semesterWhere,
+      ...(classId ? { sinh_vien: { lop_id: classId } } : {})
+    };
+
+    const items = await prisma.dangKyHoatDong.findMany({
+      where,
+      include: {
+        sinh_vien: { include: { nguoi_dung: true, lop: true } },
+        hoat_dong: { include: { loai_hd: true } }
+      },
+      orderBy: { ngay_dang_ky: 'desc' }
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Đăng ký hoạt động');
+
+    // Define columns
+    worksheet.columns = [
+      { header: 'STT', key: 'stt', width: 5 },
+      { header: 'Mã SV', key: 'mssv', width: 12 },
+      { header: 'Họ tên SV', key: 'ho_ten', width: 25 },
+      { header: 'Lớp', key: 'lop', width: 15 },
+      { header: 'Mã HD', key: 'ma_hd', width: 15 },
+      { header: 'Tên hoạt động', key: 'ten_hd', width: 35 },
+      { header: 'Loại HD', key: 'loai_hd', width: 20 },
+      { header: 'Ngày đăng ký', key: 'ngay_dk', width: 15 },
+      { header: 'Trạng thái', key: 'trang_thai', width: 15 },
+      { header: 'Ngày duyệt', key: 'ngay_duyet', width: 15 },
+      { header: 'Lý do đăng ký', key: 'ly_do_dk', width: 30 },
+      { header: 'Lý do từ chối', key: 'ly_do_tu_choi', width: 30 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE67E22' }
+    };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data
+    items.forEach((item, index) => {
+      worksheet.addRow({
+        stt: index + 1,
+        mssv: item.sinh_vien?.mssv || '',
+        ho_ten: item.sinh_vien?.nguoi_dung?.ho_ten || '',
+        lop: item.sinh_vien?.lop?.ten_lop || '',
+        ma_hd: item.hoat_dong?.ma_hd || '',
+        ten_hd: item.hoat_dong?.ten_hd || '',
+        loai_hd: item.hoat_dong?.loai_hd?.ten_loai_hd || '',
+        ngay_dk: item.ngay_dang_ky ? new Date(item.ngay_dang_ky).toLocaleDateString('vi-VN') : '',
+        trang_thai: item.trang_thai_dk || '',
+        ngay_duyet: item.ngay_duyet ? new Date(item.ngay_duyet).toLocaleDateString('vi-VN') : '',
+        ly_do_dk: item.ly_do_dk || '',
+        ly_do_tu_choi: item.ly_do_tu_choi || ''
+      });
+    });
+
+    return workbook;
   },
 
   /**
@@ -370,7 +520,7 @@ const registrationsService = {
       where: { id: activityId },
       include: {
         _count: {
-          select: { dang_ky: true }
+          select: { dang_ky_hd: true }
         }
       }
     });
@@ -393,7 +543,7 @@ const registrationsService = {
     }
 
     // Check max participants
-    if (activity.sl_toi_da && activity._count.dang_ky >= activity.sl_toi_da) {
+    if (activity.sl_toi_da && activity._count.dang_ky_hd >= activity.sl_toi_da) {
       throw new ValidationError('Hoạt động đã đủ số lượng đăng ký');
     }
 
@@ -442,3 +592,8 @@ const registrationsService = {
 };
 
 module.exports = registrationsService;
+
+
+
+
+

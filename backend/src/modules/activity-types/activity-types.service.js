@@ -1,5 +1,5 @@
 const activityTypesRepo = require('./activity-types.repo');
-const { logInfo, logError } = require('../../utils/logger');
+const { logInfo, logError } = require('../../core/logger');
 
 /**
  * Activity Types Service
@@ -126,3 +126,8 @@ class ActivityTypesService {
 }
 
 module.exports = new ActivityTypesService();
+
+
+
+
+

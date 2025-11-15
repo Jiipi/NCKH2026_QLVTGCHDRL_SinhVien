@@ -11,9 +11,9 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
-import SemesterFilter from '../../components/SemesterFilter';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
 
 export default function ModernReports() {
   const [stats, setStats] = useState({});

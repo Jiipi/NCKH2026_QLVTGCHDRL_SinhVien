@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const NotificationTypesService = require('./notification-types.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { auth } = require('../../middlewares/auth');
-const { requireRole } = require('../../middlewares/rbac');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { auth, requireAdmin } = require('../../core/http/middleware/authJwt');
 
 /**
- * @route   GET /api/v2/notification-types
+ * @route   GET /api/core/notification-types
  * @desc    Get all notification types
  * @access  Private (Admin)
  */
-router.get('/', auth, requireRole('admin'), async (req, res) => {
+router.get('/', auth, requireAdmin, async (req, res) => {
   try {
     const types = await NotificationTypesService.list();
     return sendResponse(res, 200, ApiResponse.success(types));
@@ -20,11 +19,11 @@ router.get('/', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/notification-types/:id
+ * @route   GET /api/core/notification-types/:id
  * @desc    Get notification type by ID
  * @access  Private (Admin)
  */
-router.get('/:id', auth, requireRole('admin'), async (req, res) => {
+router.get('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const type = await NotificationTypesService.getById(id);
@@ -38,11 +37,11 @@ router.get('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/notification-types
+ * @route   POST /api/core/notification-types
  * @desc    Create notification type
  * @access  Private (Admin)
  */
-router.post('/', auth, requireRole('admin'), async (req, res) => {
+router.post('/', auth, requireAdmin, async (req, res) => {
   try {
     const type = await NotificationTypesService.create(req.body);
     return sendResponse(res, 201, ApiResponse.success(type, 'Tạo loại thông báo thành công'));
@@ -58,11 +57,11 @@ router.post('/', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v2/notification-types/:id
+ * @route   PUT /api/core/notification-types/:id
  * @desc    Update notification type
  * @access  Private (Admin)
  */
-router.put('/:id', auth, requireRole('admin'), async (req, res) => {
+router.put('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const type = await NotificationTypesService.update(id, req.body);
@@ -82,11 +81,11 @@ router.put('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/v2/notification-types/:id
+ * @route   DELETE /api/core/notification-types/:id
  * @desc    Delete notification type
  * @access  Private (Admin)
  */
-router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
+router.delete('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     await NotificationTypesService.delete(id);
@@ -100,3 +99,8 @@ router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

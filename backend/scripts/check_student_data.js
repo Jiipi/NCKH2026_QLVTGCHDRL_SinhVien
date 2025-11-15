@@ -1,245 +1,364 @@
+/**
+ * Script kiểm tra dữ liệu sinh viên 202101002
+ * Kiểm tra xem dữ liệu có đúng với logic filter theo lớp không
+ * Usage: node scripts/check_student_data.js
+ */
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function main() {
+async function checkStudentData() {
+  const mssv = '202101002';
+  
   try {
-    // Tìm SV Dang Van Ha
-    const sv = await prisma.sinhVien.findFirst({
-      where: {
-        nguoi_dung: {
-          ho_ten: {
-            contains: 'Dang Van Ha',
-            mode: 'insensitive'
-          }
-        }
-      },
+    console.log('='.repeat(100));
+    console.log('🔍 KIỂM TRA DỮ LIỆU SINH VIÊN:', mssv);
+    console.log('='.repeat(100));
+    
+    // 1. Tìm sinh viên
+    const sinhVien = await prisma.sinhVien.findUnique({
+      where: { mssv },
       include: {
-        nguoi_dung: true,
+        nguoi_dung: {
+          select: {
+            id: true,
+            ho_ten: true,
+            email: true,
+            ten_dn: true
+          }
+        },
         lop: {
-          include: {
-            chu_nhiem_rel: true
+          select: {
+            id: true,
+            ten_lop: true,
+            khoa: true,
+            chu_nhiem: true
           }
         }
       }
     });
-
-    if (!sv) {
-      console.log('❌ Không tìm thấy SV Dang Van Ha');
+    
+    if (!sinhVien) {
+      console.error('❌ Không tìm thấy sinh viên với MSSV:', mssv);
       return;
     }
-
-    console.log('\n===== THÔNG TIN SV =====');
-    console.log('MSSV:', sv.mssv);
-    console.log('Họ tên:', sv.nguoi_dung?.ho_ten);
-    console.log('Lớp:', sv.lop?.ten_lop);
-    console.log('Khoa:', sv.lop?.khoa);
-    console.log('GVCN ID:', sv.lop?.chu_nhiem);
-
-    // Lấy danh sách người tạo hoạt động hợp lệ (chỉ lớp)
-    const allClassStudents = await prisma.sinhVien.findMany({
-      where: { lop_id: sv.lop_id },
-      select: { nguoi_dung_id: true }
-    });
     
-    const classCreators = allClassStudents.map(s => s.nguoi_dung_id).filter(Boolean);
-    if (sv.lop.chu_nhiem) {
-      classCreators.push(sv.lop.chu_nhiem);
-    }
-
-    console.log('\n===== NGƯỜI TẠO HĐ HỢP LỆ (CHỈ LỚP) =====');
-    console.log('Số người tạo hợp lệ:', classCreators.length);
-
-    // HK1 2025-2026
-    const hk1_2025 = {
-      hoc_ky: 'hoc_ky_1',
-      nam_hoc: '2025-2026'
-    };
-
-    // Đăng ký của SV
-    const myRegs = await prisma.dangKyHoatDong.findMany({
-      where: {
-        sv_id: sv.id,
-        hoat_dong: {
-          ...hk1_2025,
-          nguoi_tao_id: { in: classCreators }
-        }
-      },
-      include: {
-        hoat_dong: {
-          include: {
-            loai_hd: true
-          }
-        }
-      }
-    });
-
-    console.log('\n===== ĐĂNG KÝ CỦA SV (HK1 2025-2026, CHỈ LỚP) =====');
-    console.log('Tổng đăng ký:', myRegs.length);
-    myRegs.forEach(r => {
-      console.log(`- ${r.hoat_dong.ten_hd} | Trạng thái: ${r.trang_thai_dk} | Điểm: ${r.hoat_dong.diem_rl}`);
-    });
-
-    const participated = myRegs.filter(r => 
-      r.trang_thai_dk === 'da_tham_gia' || r.trang_thai_dk === 'da_duyet'
-    );
-    console.log('\nĐã tham gia/duyệt:', participated.length);
-
-    // Điểm danh QR
-    const attendances = await prisma.diemDanh.findMany({
-      where: {
-        sv_id: sv.id,
-        xac_nhan_tham_gia: true,
-        hoat_dong: {
-          ...hk1_2025,
-          nguoi_tao_id: { in: classCreators }
-        }
-      },
-      include: {
-        hoat_dong: true
-      }
-    });
-
-    console.log('\n===== ĐIỂM DANH QR THÀNH CÔNG =====');
-    console.log('Số lần điểm danh:', attendances.length);
-    attendances.forEach(a => {
-      console.log(`- ${a.hoat_dong.ten_hd} | Điểm: ${a.hoat_dong.diem_rl}`);
-    });
-
-    // Tính điểm hợp lệ (đã tham gia + có QR)
-    const hdIdsWithQR = new Set(attendances.map(a => a.hd_id));
-    const validForPoints = participated.filter(r => hdIdsWithQR.has(r.hd_id));
-
-    console.log('\n===== HĐ HỢP LỆ TÍNH ĐIỂM (ĐÃ THAM GIA + CÓ QR) =====');
-    console.log('Số HĐ:', validForPoints.length);
+    console.log('\n📋 1. THÔNG TIN SINH VIÊN:');
+    console.log('   - ID:', sinhVien.id);
+    console.log('   - MSSV:', sinhVien.mssv);
+    console.log('   - Họ tên:', sinhVien.nguoi_dung.ho_ten);
+    console.log('   - Email:', sinhVien.nguoi_dung.email);
+    console.log('   - User ID:', sinhVien.nguoi_dung_id);
+    console.log('   - Lớp ID:', sinhVien.lop_id);
+    console.log('   - Tên lớp:', sinhVien.lop?.ten_lop);
+    console.log('   - Khoa:', sinhVien.lop?.khoa);
+    console.log('   - Chủ nhiệm ID:', sinhVien.lop?.chu_nhiem);
     
-    let totalPoints = 0;
-    validForPoints.forEach(r => {
-      const pts = Number(r.hoat_dong.diem_rl || 0);
-      totalPoints += pts;
-      console.log(`- ${r.hoat_dong.ten_hd} | Điểm: ${pts}`);
-    });
+    // 2. Lấy tất cả sinh viên trong lớp
+    const lopId = sinhVien.lop_id;
+    const chuNhiemId = sinhVien.lop?.chu_nhiem;
     
-    console.log('\n🏆 TỔNG ĐIỂM:', totalPoints);
-
-    // Hoạt động sắp tới
-    const upcoming = await prisma.hoatDong.findMany({
-      where: {
-        trang_thai: 'da_duyet',
-        ngay_bd: { gte: new Date() },
-        nguoi_tao_id: { in: classCreators },
-        ...hk1_2025
-      },
+    const classStudents = await prisma.sinhVien.findMany({
+      where: { lop_id: lopId },
       select: {
         id: true,
-        ten_hd: true,
-        ngay_bd: true
+        mssv: true,
+        nguoi_dung_id: true
       }
     });
-
-    console.log('\n===== HOẠT ĐỘNG SẮP TỚI (ĐÃ DUYỆT, LỚP) =====');
-    console.log('Số HĐ sắp tới:', upcoming.length);
-    upcoming.forEach(h => {
-      console.log(`- ${h.ten_hd} | Ngày: ${h.ngay_bd.toLocaleDateString('vi-VN')}`);
-    });
-
-    // Rank trong lớp
-    console.log('\n===== RANK TRONG LỚP =====');
-    const classmates = await prisma.sinhVien.findMany({
-      where: { lop_id: sv.lop_id },
+    
+    const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+    if (chuNhiemId) {
+      classCreatorUserIds.push(chuNhiemId);
+    }
+    
+    console.log('\n👥 2. CLASS CREATORS (Sinh viên trong lớp + GVCN):');
+    console.log('   - Tổng số:', classCreatorUserIds.length);
+    console.log('   - Số sinh viên trong lớp:', classStudents.length);
+    console.log('   - GVCN ID:', chuNhiemId || 'Không có');
+    
+    // 3. Lấy TẤT CẢ đăng ký của sinh viên (không filter)
+    const allRegistrations = await prisma.dangKyHoatDong.findMany({
+      where: {
+        sv_id: sinhVien.id
+      },
       include: {
-        nguoi_dung: { select: { ho_ten: true } },
-        dang_ky_hd: {
-          where: {
-            trang_thai_dk: { in: ['da_tham_gia', 'da_duyet'] },
-            hoat_dong: {
-              ...hk1_2025,
-              nguoi_tao_id: { in: classCreators }
-            }
-          },
+        hoat_dong: {
           include: {
-            hoat_dong: true
+            loai_hd: {
+              select: {
+                ten_loai_hd: true,
+                diem_toi_da: true
+              }
+            },
+            nguoi_tao: {
+              select: {
+                id: true,
+                ho_ten: true,
+                ten_dn: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        ngay_dang_ky: 'desc'
+      }
+    });
+    
+    console.log('\n📝 3. TẤT CẢ ĐĂNG KÝ CỦA SINH VIÊN (không filter):');
+    console.log('   - Tổng số:', allRegistrations.length);
+    
+    // Phân loại đăng ký
+    const classActivityRegs = [];
+    const nonClassActivityRegs = [];
+    
+    allRegistrations.forEach(reg => {
+      const creatorId = reg.hoat_dong.nguoi_tao?.id;
+      const isClassActivity = classCreatorUserIds.includes(creatorId);
+      
+      const regInfo = {
+        id: reg.id,
+        hd_id: reg.hoat_dong.id,
+        ten_hd: reg.hoat_dong.ten_hd,
+        hoc_ky: reg.hoat_dong.hoc_ky,
+        nam_hoc: reg.hoat_dong.nam_hoc,
+        trang_thai_dk: reg.trang_thai_dk,
+        diem_rl: reg.hoat_dong.diem_rl,
+        loai_hd: reg.hoat_dong.loai_hd?.ten_loai_hd,
+        nguoi_tao: reg.hoat_dong.nguoi_tao?.ho_ten || reg.hoat_dong.nguoi_tao?.ten_dn || 'Unknown',
+        nguoi_tao_id: creatorId,
+        isClassActivity
+      };
+      
+      if (isClassActivity) {
+        classActivityRegs.push(regInfo);
+      } else {
+        nonClassActivityRegs.push(regInfo);
+      }
+    });
+    
+    console.log('\n   ✅ ĐĂNG KÝ HOẠT ĐỘNG CỦA LỚP (Class Activity = true):', classActivityRegs.length);
+    classActivityRegs.forEach((reg, idx) => {
+      console.log(`      ${idx + 1}. ${reg.ten_hd}`);
+      console.log(`         - Học kỳ: ${reg.hoc_ky} ${reg.nam_hoc}`);
+      console.log(`         - Trạng thái: ${reg.trang_thai_dk}`);
+      console.log(`         - Điểm: ${reg.diem_rl}`);
+      console.log(`         - Loại: ${reg.loai_hd}`);
+      console.log(`         - Người tạo: ${reg.nguoi_tao} (${reg.nguoi_tao_id})`);
+    });
+    
+    console.log('\n   ❌ ĐĂNG KÝ HOẠT ĐỘNG KHÔNG CỦA LỚP (Class Activity = false):', nonClassActivityRegs.length);
+    nonClassActivityRegs.forEach((reg, idx) => {
+      console.log(`      ${idx + 1}. ${reg.ten_hd}`);
+      console.log(`         - Học kỳ: ${reg.hoc_ky} ${reg.nam_hoc}`);
+      console.log(`         - Trạng thái: ${reg.trang_thai_dk}`);
+      console.log(`         - Điểm: ${reg.diem_rl}`);
+      console.log(`         - Loại: ${reg.loai_hd}`);
+      console.log(`         - Người tạo: ${reg.nguoi_tao} (${reg.nguoi_tao_id})`);
+      console.log(`         - ⚠️  VẤN ĐỀ: Hoạt động này KHÔNG được tạo bởi class creators!`);
+    });
+    
+    // 4. Lấy TẤT CẢ điểm danh của sinh viên
+    const allAttendances = await prisma.diemDanh.findMany({
+      where: {
+        sv_id: sinhVien.id,
+        xac_nhan_tham_gia: true
+      },
+      include: {
+        hoat_dong: {
+          include: {
+            loai_hd: {
+              select: {
+                ten_loai_hd: true
+              }
+            },
+            nguoi_tao: {
+              select: {
+                id: true,
+                ho_ten: true,
+                ten_dn: true
+              }
+            }
           }
         }
       }
     });
-
-    console.log('Tổng SV trong lớp:', classmates.length);
-
-    // Tính điểm cho từng SV
-    const scores = await Promise.all(
-      classmates.map(async (c) => {
-        const cAttendances = await prisma.diemDanh.findMany({
-          where: {
-            sv_id: c.id,
-            xac_nhan_tham_gia: true,
-            hoat_dong: {
-              ...hk1_2025,
-              nguoi_tao_id: { in: classCreators }
-            }
-          },
-          include: { hoat_dong: true }
-        });
-
-        const cQRIds = new Set(cAttendances.map(a => a.hd_id));
-        const cValid = c.dang_ky_hd.filter(r => cQRIds.has(r.hd_id));
-        const cPoints = cValid.reduce((s, r) => s + Number(r.hoat_dong.diem_rl || 0), 0);
-
-        return {
-          mssv: c.mssv,
-          ho_ten: c.nguoi_dung?.ho_ten || 'N/A',
-          points: cPoints,
-          isCurrent: c.id === sv.id
-        };
-      })
-    );
-
-    scores.sort((a, b) => b.points - a.points);
-    const myRank = scores.findIndex(s => s.isCurrent) + 1;
-
-    console.log(`\n🎯 Hạng của SV: ${myRank}/${classmates.length}`);
-    console.log('\nTop 5:');
-    scores.slice(0, 5).forEach((s, i) => {
-      const marker = s.isCurrent ? ' 👉 (BẠN)' : '';
-      console.log(`${i + 1}. ${s.mssv} - ${s.ho_ten} - ${s.points} điểm${marker}`);
-    });
-
-    // Xếp loại
-    console.log('\n===== XẾP LOẠI =====');
-    let classification = 'Yếu';
-    let pointsNeeded = 0;
     
-    if (totalPoints >= 90) {
-      classification = 'Xuất sắc';
-      pointsNeeded = 0;
-    } else if (totalPoints >= 80) {
-      classification = 'Giỏi';
-      pointsNeeded = 90 - totalPoints;
-    } else if (totalPoints >= 70) {
-      classification = 'Khá';
-      pointsNeeded = 80 - totalPoints;
-    } else if (totalPoints >= 50) {
-      classification = 'Trung bình';
-      pointsNeeded = 70 - totalPoints;
-    } else {
-      classification = 'Yếu';
-      pointsNeeded = 50 - totalPoints;
+    console.log('\n✅ 4. TẤT CẢ ĐIỂM DANH (đã tham gia):');
+    console.log('   - Tổng số:', allAttendances.length);
+    
+    const classActivityAttendances = [];
+    const nonClassActivityAttendances = [];
+    
+    allAttendances.forEach(att => {
+      const creatorId = att.hoat_dong.nguoi_tao?.id;
+      const isClassActivity = classCreatorUserIds.includes(creatorId);
+      
+      const attInfo = {
+        id: att.id,
+        hd_id: att.hoat_dong.id,
+        ten_hd: att.hoat_dong.ten_hd,
+        hoc_ky: att.hoat_dong.hoc_ky,
+        nam_hoc: att.hoat_dong.nam_hoc,
+        diem_rl: att.hoat_dong.diem_rl,
+        loai_hd: att.hoat_dong.loai_hd?.ten_loai_hd,
+        nguoi_tao: att.hoat_dong.nguoi_tao?.ho_ten || att.hoat_dong.nguoi_tao?.ten_dn || 'Unknown',
+        nguoi_tao_id: creatorId,
+        isClassActivity
+      };
+      
+      if (isClassActivity) {
+        classActivityAttendances.push(attInfo);
+      } else {
+        nonClassActivityAttendances.push(attInfo);
+      }
+    });
+    
+    console.log('\n   ✅ ĐIỂM DANH HOẠT ĐỘNG CỦA LỚP:', classActivityAttendances.length);
+    classActivityAttendances.forEach((att, idx) => {
+      console.log(`      ${idx + 1}. ${att.ten_hd} - ${att.hoc_ky} ${att.nam_hoc} - Điểm: ${att.diem_rl}`);
+    });
+    
+    console.log('\n   ❌ ĐIỂM DANH HOẠT ĐỘNG KHÔNG CỦA LỚP:', nonClassActivityAttendances.length);
+    if (nonClassActivityAttendances.length > 0) {
+      nonClassActivityAttendances.forEach((att, idx) => {
+        console.log(`      ${idx + 1}. ${att.ten_hd}`);
+        console.log(`         - Học kỳ: ${att.hoc_ky} ${att.nam_hoc}`);
+        console.log(`         - Điểm: ${att.diem_rl}`);
+        console.log(`         - Người tạo: ${att.nguoi_tao} (${att.nguoi_tao_id})`);
+        console.log(`         - ⚠️  VẤN ĐỀ: Điểm danh này KHÔNG thuộc hoạt động của lớp!`);
+      });
     }
-
-    console.log('Xếp loại hiện tại:', classification);
-    console.log('Điểm cần đạt thêm:', pointsNeeded > 0 ? pointsNeeded : 0);
-    console.log('\nNgưỡng xếp loại:');
-    console.log('- Yếu: < 50 điểm');
-    console.log('- Trung bình: 50-69 điểm');
-    console.log('- Khá: 70-79 điểm');
-    console.log('- Giỏi: 80-89 điểm');
-    console.log('- Xuất sắc: 90-100 điểm');
-
+    
+    // 5. Tính điểm theo logic hiện tại (chỉ class activities)
+    console.log('\n💰 5. TÍNH ĐIỂM THEO LOGIC HIỆN TẠI (chỉ class activities):');
+    
+    // Lấy đăng ký của class activities
+    const classRegIds = new Set(classActivityRegs.map(r => r.hd_id));
+    const classAttIds = new Set(classActivityAttendances.map(a => a.hd_id));
+    
+    // Chỉ tính điểm cho hoạt động có cả đăng ký VÀ điểm danh
+    const validActivityIds = new Set();
+    classRegIds.forEach(hdId => {
+      if (classAttIds.has(hdId)) {
+        validActivityIds.add(hdId);
+      }
+    });
+    
+    let totalPoints = 0;
+    const pointsByType = {};
+    
+    classActivityAttendances.forEach(att => {
+      if (validActivityIds.has(att.hd_id)) {
+        const points = parseFloat(att.diem_rl || 0);
+        const type = att.loai_hd || 'Khác';
+        
+        if (!pointsByType[type]) {
+          pointsByType[type] = { count: 0, total: 0 };
+        }
+        pointsByType[type].count++;
+        pointsByType[type].total += points;
+        totalPoints += points;
+      }
+    });
+    
+    console.log('   - Số hoạt động hợp lệ (có đăng ký + điểm danh):', validActivityIds.size);
+    console.log('   - Tổng điểm:', totalPoints.toFixed(2));
+    console.log('   - Điểm theo loại:');
+    Object.entries(pointsByType).forEach(([type, data]) => {
+      console.log(`      + ${type}: ${data.count} hoạt động, ${data.total.toFixed(2)} điểm`);
+    });
+    
+    // 6. So sánh với dữ liệu thực tế (nếu có điểm danh không thuộc lớp)
+    if (nonClassActivityAttendances.length > 0) {
+      console.log('\n⚠️  6. CẢNH BÁO: CÓ ĐIỂM DANH KHÔNG THUỘC LỚP!');
+      console.log('   - Số lượng:', nonClassActivityAttendances.length);
+      console.log('   - Các hoạt động này KHÔNG nên được tính điểm cho sinh viên này');
+      console.log('   - Nguyên nhân có thể:');
+      console.log('     + Hoạt động được tạo bởi admin/giảng viên khác lớp');
+      console.log('     + Sinh viên đã đăng ký và điểm danh hoạt động không thuộc lớp');
+      console.log('     + Logic filter trong backend có thể chưa đúng');
+    }
+    
+    // 7. Kiểm tra học kỳ hiện tại
+    console.log('\n📅 7. KIỂM TRA HỌC KỲ:');
+    try {
+      const currentSemester = await prisma.hocKy.findFirst({
+        where: { isCurrent: true }
+      });
+      
+      if (currentSemester) {
+        console.log('   - Học kỳ hiện tại:', `${currentSemester.semester}-${currentSemester.year}`);
+        console.log('   - Năm học:', currentSemester.nam_hoc);
+        
+        // Đếm đăng ký theo học kỳ
+        const regsBySemester = {};
+        allRegistrations.forEach(reg => {
+          const key = `${reg.hoat_dong.hoc_ky}_${reg.hoat_dong.nam_hoc}`;
+          if (!regsBySemester[key]) {
+            regsBySemester[key] = { total: 0, class: 0, nonClass: 0 };
+          }
+          regsBySemester[key].total++;
+          if (classCreatorUserIds.includes(reg.hoat_dong.nguoi_tao?.id)) {
+            regsBySemester[key].class++;
+          } else {
+            regsBySemester[key].nonClass++;
+          }
+        });
+        
+        console.log('\n   - Đăng ký theo học kỳ:');
+        Object.entries(regsBySemester).forEach(([sem, data]) => {
+          console.log(`      ${sem}: Tổng ${data.total} (Lớp: ${data.class}, Không lớp: ${data.nonClass})`);
+        });
+      } else {
+        console.log('   - Không có học kỳ hiện tại được đặt');
+      }
+    } catch (err) {
+      console.log('   - Không thể kiểm tra học kỳ (bảng có thể không tồn tại)');
+    }
+    
+    // 8. Tóm tắt vấn đề
+    console.log('\n' + '='.repeat(100));
+    console.log('📊 TÓM TẮT:');
+    console.log('='.repeat(100));
+    console.log(`   - Tổng đăng ký: ${allRegistrations.length}`);
+    console.log(`   - Đăng ký hoạt động lớp: ${classActivityRegs.length}`);
+    console.log(`   - Đăng ký hoạt động không lớp: ${nonClassActivityRegs.length}`);
+    console.log(`   - Tổng điểm danh: ${allAttendances.length}`);
+    console.log(`   - Điểm danh hoạt động lớp: ${classActivityAttendances.length}`);
+    console.log(`   - Điểm danh hoạt động không lớp: ${nonClassActivityAttendances.length}`);
+    console.log(`   - Điểm tính được (chỉ class activities): ${totalPoints.toFixed(2)}`);
+    
+    if (nonClassActivityRegs.length > 0 || nonClassActivityAttendances.length > 0) {
+      console.log('\n   ⚠️  VẤN ĐỀ PHÁT HIỆN:');
+      if (nonClassActivityRegs.length > 0) {
+        console.log(`      - Có ${nonClassActivityRegs.length} đăng ký hoạt động không thuộc lớp`);
+        console.log('      - Các đăng ký này KHÔNG nên được hiển thị trong dashboard');
+      }
+      if (nonClassActivityAttendances.length > 0) {
+        console.log(`      - Có ${nonClassActivityAttendances.length} điểm danh hoạt động không thuộc lớp`);
+        console.log('      - Các điểm danh này KHÔNG nên được tính điểm');
+      }
+      console.log('\n   💡 GIẢI PHÁP:');
+      console.log('      - Backend đã filter đúng (chỉ lấy hoạt động từ class creators)');
+      console.log('      - Các đăng ký/điểm danh không thuộc lớp sẽ KHÔNG được trả về trong API');
+      console.log('      - Nếu vẫn thấy dữ liệu sai, kiểm tra:');
+      console.log('        1. Frontend có cache dữ liệu cũ không');
+      console.log('        2. Semester filter có được gửi đúng không');
+      console.log('        3. API response có đúng không');
+    } else {
+      console.log('\n   ✅ KHÔNG CÓ VẤN ĐỀ: Tất cả đăng ký và điểm danh đều thuộc hoạt động của lớp');
+    }
+    
+    console.log('\n' + '='.repeat(100));
+    
   } catch (error) {
-    console.error('❌ Lỗi:', error.message);
-    throw error;
+    console.error('❌ Error:', error);
+    console.error(error.stack);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main();
+checkStudentData();

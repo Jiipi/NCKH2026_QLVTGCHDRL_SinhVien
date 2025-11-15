@@ -5,7 +5,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import sessionStorageManager from '../services/sessionStorageManager';
+import sessionStorageManager from '../shared/api/sessionStorageManager';
 import { useAppStore } from '../store/useAppStore';
 
 // Create context

@@ -1,5 +1,7 @@
-const { prisma } = require('../config/database');
-const { logInfo, logError } = require('../utils/logger');
+const { prisma } = require('../infrastructure/prisma/client');
+const { logInfo, logError } = require('../core/logger');
+const { buildSemesterFilter, parseSemesterString } = require('../core/utils/semester');
+const adminReportsRepo = require('./admin-reports.repo');
 
 /**
  * Admin Reports Service
@@ -288,6 +290,179 @@ class AdminReportsService {
     if (points >= 40) return 'Trung bình';
     return 'Yếu';
   }
+
+  /**
+   * Get overview statistics for admin dashboard
+   * @param {Object} query - Query parameters
+   * @param {string} query.semester - Semester filter
+   * @param {string} query.hoc_ky - Học kỳ filter
+   * @param {string} query.nam_hoc - Năm học filter
+   * @returns {Promise<Object>} Overview statistics
+   */
+  async getOverview(query = {}) {
+    try {
+      const { semester, hoc_ky, nam_hoc } = query;
+      let activityWhere = {};
+
+      if (semester) {
+        const si = parseSemesterString(semester);
+        if (!si) {
+          throw new Error('Tham số học kỳ không hợp lệ');
+        }
+        activityWhere = buildSemesterFilter(semester, true);
+      } else if (hoc_ky || nam_hoc) {
+        activityWhere = { hoc_ky: hoc_ky || undefined, ...(nam_hoc ? { nam_hoc } : {}) };
+      }
+
+      const [byStatus, topActivities, dailyRegs] = await Promise.all([
+        adminReportsRepo.groupActivitiesByStatus(activityWhere),
+        adminReportsRepo.findTopActivities(activityWhere),
+        adminReportsRepo.groupRegistrationsByDate(activityWhere)
+      ]);
+
+      const top = topActivities
+        .map(a => ({ id: a.id, ten_hd: a.ten_hd, count: a.dang_ky_hd.length }))
+        .sort((x, y) => y.count - x.count)
+        .slice(0, 10);
+
+      logInfo('Overview statistics generated', { semester, hoc_ky, nam_hoc });
+
+      return { byStatus, topActivities: top, dailyRegs };
+    } catch (error) {
+      logError('Error getting overview statistics', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export activities to CSV
+   * @param {Object} query - Query parameters
+   * @param {string} query.semester - Semester filter
+   * @param {string} query.hoc_ky - Học kỳ filter
+   * @param {string} query.nam_hoc - Năm học filter
+   * @returns {Promise<string>} CSV string
+   */
+  async exportActivities(query = {}) {
+    try {
+      const { semester, hoc_ky, nam_hoc } = query;
+      let activityWhere = {};
+
+      if (semester) {
+        const si = parseSemesterString(semester);
+        if (!si) {
+          throw new Error('Tham số học kỳ không hợp lệ');
+        }
+        activityWhere = buildSemesterFilter(semester, true);
+      } else if (hoc_ky || nam_hoc) {
+        activityWhere = { hoc_ky: hoc_ky || undefined, ...(nam_hoc ? { nam_hoc } : {}) };
+      }
+
+      const rows = await adminReportsRepo.findActivitiesForExport(activityWhere);
+
+      const headers = ['Ma', 'Ten', 'Loai', 'DiemRL', 'TrangThai', 'NgayBD', 'NgayKT'];
+      const safeToIso = (d) => {
+        if (!d) return '';
+        try {
+          if (typeof d === 'string') {
+            const nd = new Date(d);
+            return isNaN(nd.getTime()) ? '' : nd.toISOString();
+          }
+          if (d instanceof Date && !isNaN(d.getTime())) return d.toISOString();
+          if (typeof d.toISOString === 'function') return d.toISOString();
+          return '';
+        } catch {
+          return '';
+        }
+      };
+      const safe = (v) => (v === null || v === undefined ? '' : v);
+      const data = rows.map((r) => [
+        safe(r.ma_hd),
+        safe(r.ten_hd),
+        safe(r.loai_hd?.ten_loai_hd),
+        safe(r.diem_rl),
+        safe(r.trang_thai),
+        safeToIso(r.ngay_bd),
+        safeToIso(r.ngay_kt),
+      ]);
+      const csvRows = data
+        .map((r) => r.map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(','))
+        .join('\n');
+      const csv = [headers.join(','), csvRows].filter(Boolean).join('\n');
+
+      logInfo('Activities exported to CSV', { count: rows.length });
+
+      return '\uFEFF' + csv;
+    } catch (error) {
+      logError('Error exporting activities', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export registrations to CSV
+   * @param {Object} query - Query parameters
+   * @param {string} query.semester - Semester filter
+   * @param {string} query.hoc_ky - Học kỳ filter
+   * @param {string} query.nam_hoc - Năm học filter
+   * @returns {Promise<string>} CSV string
+   */
+  async exportRegistrations(query = {}) {
+    try {
+      const { semester, hoc_ky, nam_hoc } = query;
+      let activityWhere = {};
+
+      if (semester) {
+        const si = parseSemesterString(semester);
+        if (!si) {
+          throw new Error('Tham số học kỳ không hợp lệ');
+        }
+        activityWhere = buildSemesterFilter(semester, false);
+      } else if (hoc_ky || nam_hoc) {
+        activityWhere = { hoc_ky: hoc_ky || undefined, ...(nam_hoc ? { nam_hoc } : {}) };
+      }
+
+      const rows = await adminReportsRepo.findRegistrationsForExport(activityWhere);
+
+      const headers = ['SinhVien', 'Email', 'HoatDong', 'TrangThai', 'NgayDangKy'];
+      const safeToIso = (d) => {
+        if (!d) return '';
+        try {
+          if (typeof d === 'string') {
+            const nd = new Date(d);
+            return isNaN(nd.getTime()) ? '' : nd.toISOString();
+          }
+          if (d instanceof Date && !isNaN(d.getTime())) return d.toISOString();
+          if (typeof d.toISOString === 'function') return d.toISOString();
+          return '';
+        } catch {
+          return '';
+        }
+      };
+      const safe = (v) => (v === null || v === undefined ? '' : v);
+      const data = rows.map((r) => [
+        safe(r.sinh_vien?.nguoi_dung?.ho_ten),
+        safe(r.sinh_vien?.nguoi_dung?.email),
+        safe(r.hoat_dong?.ten_hd),
+        safe(r.trang_thai_dk),
+        safeToIso(r.ngay_dang_ky),
+      ]);
+      const csvRows = data
+        .map((r) => r.map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(','))
+        .join('\n');
+      const csv = [headers.join(','), csvRows].filter(Boolean).join('\n');
+
+      logInfo('Registrations exported to CSV', { count: rows.length });
+
+      return '\uFEFF' + csv;
+    } catch (error) {
+      logError('Error exporting registrations', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new AdminReportsService();
+
+
+
+

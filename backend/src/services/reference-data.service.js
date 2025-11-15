@@ -1,4 +1,4 @@
-const { prisma } = require('../config/database');
+const { prisma } = require('../infrastructure/prisma/client');
 
 /**
  * Reference Data Service
@@ -183,3 +183,7 @@ class ReferenceDataService {
 }
 
 module.exports = ReferenceDataService;
+
+
+
+

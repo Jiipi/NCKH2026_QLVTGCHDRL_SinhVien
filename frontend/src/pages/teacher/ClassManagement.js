@@ -10,7 +10,7 @@ import {
   BookOpen,
   Award
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 
 export default function ClassManagement() {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, MapPin, Clock, CheckCircle } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useAppStore } from '../../store/useAppStore';
 import { useNotification } from '../../contexts/NotificationContext';
-import { formatDateVN } from '../../utils/dateFormat';
-import AvatarUpload from '../../components/AvatarUpload';
+import { formatDateVN } from '../../shared/lib/date';
+import AvatarUpload from '../../entities/user/ui/Avatar';
 
 export default function AdminProfile() {
   const { showSuccess, showError } = useNotification();
@@ -41,7 +41,7 @@ export default function AdminProfile() {
       setLoading(true);
       let response;
       try {
-        response = await http.get('/v2/profile');
+        response = await http.get('/core/profile');
       } catch (e) {
         response = await http.get('/auth/profile');
       }
@@ -74,7 +74,7 @@ export default function AdminProfile() {
         // Bỏ qua các trường sinh_vien vì admin không có bản ghi sinh_vien
       };
       
-      await http.put('/v2/profile', updateData);
+      await http.put('/core/profile', updateData);
       setEditing(false);
       loadProfile();
       showSuccess('Cập nhật thông tin thành công', 'Thành công', 8000);

@@ -16,7 +16,7 @@ All 5 new V2 modules now use the **Repository → Service → Routes** pattern, 
 
 ## 🔍 Quick Lookup
 
-### Profile Module (`/v2/profile`)
+### Profile Module (`/core/profile`)
 
 **Repository Methods:**
 ```javascript
@@ -28,14 +28,14 @@ profileRepo.findClassById(classId)
 ```
 
 **Endpoints:**
-- `GET /v2/profile` - Get profile
-- `PUT /v2/profile` - Update profile
-- `PUT /v2/profile/password` - Change password
-- `GET /v2/profile/monitor-status` - Check monitor status
+- `GET /core/profile` - Get profile
+- `PUT /core/profile` - Update profile
+- `PUT /core/profile/password` - Change password
+- `GET /core/profile/monitor-status` - Check monitor status
 
 ---
 
-### Monitor Module (`/v2/monitor`)
+### Monitor Module (`/core/monitor`)
 
 **Repository Methods:**
 ```javascript
@@ -55,16 +55,16 @@ monitorRepo.findAllStudentsInClass(classId)
 ```
 
 **Endpoints:**
-- `GET /v2/monitor/students` - Get class students
-- `GET /v2/monitor/registrations` - Get pending registrations
-- `GET /v2/monitor/registrations/count` - Count pending
-- `POST /v2/monitor/registrations/:id/approve` - Approve
-- `POST /v2/monitor/registrations/:id/reject` - Reject
-- `GET /v2/monitor/dashboard` - Dashboard
+- `GET /core/monitor/students` - Get class students
+- `GET /core/monitor/registrations` - Get pending registrations
+- `GET /core/monitor/registrations/count` - Count pending
+- `POST /core/monitor/registrations/:id/approve` - Approve
+- `POST /core/monitor/registrations/:id/reject` - Reject
+- `GET /core/monitor/dashboard` - Dashboard
 
 ---
 
-### Notification Types Module (`/v2/notification-types`)
+### Notification Types Module (`/core/notification-types`)
 
 **Repository Methods:**
 ```javascript
@@ -77,15 +77,15 @@ notificationTypesRepo.countNotificationsWithType(typeId)
 ```
 
 **Endpoints:**
-- `GET /v2/notification-types` - List all
-- `GET /v2/notification-types/:id` - Get one
-- `POST /v2/notification-types` - Create
-- `PUT /v2/notification-types/:id` - Update
-- `DELETE /v2/notification-types/:id` - Delete
+- `GET /core/notification-types` - List all
+- `GET /core/notification-types/:id` - Get one
+- `POST /core/notification-types` - Create
+- `PUT /core/notification-types/:id` - Update
+- `DELETE /core/notification-types/:id` - Delete
 
 ---
 
-### Exports Module (`/v2/exports`)
+### Exports Module (`/core/exports`)
 
 **Repository Methods:**
 ```javascript
@@ -96,13 +96,13 @@ exportsRepo.findTopActivities(limit)
 ```
 
 **Endpoints:**
-- `GET /v2/exports/activities` - Export activities CSV
-- `GET /v2/exports/registrations` - Export registrations CSV
-- `GET /v2/exports/overview` - Overview stats
+- `GET /core/exports/activities` - Export activities CSV
+- `GET /core/exports/registrations` - Export registrations CSV
+- `GET /core/exports/overview` - Overview stats
 
 ---
 
-### Roles Module (`/v2/roles`)
+### Roles Module (`/core/roles`)
 
 **Repository Methods:**
 ```javascript
@@ -121,13 +121,13 @@ rolesRepo.assignRoleToUsers(roleId, userIds)
 ```
 
 **Endpoints:**
-- `GET /v2/roles` - List all
-- `GET /v2/roles/:id` - Get one
-- `POST /v2/roles` - Create
-- `PUT /v2/roles/:id` - Update
-- `DELETE /v2/roles/:id` - Delete (cascade)
-- `POST /v2/roles/:id/assign` - Assign to users
-- `POST /v2/roles/:id/remove` - Remove from user
+- `GET /core/roles` - List all
+- `GET /core/roles/:id` - Get one
+- `POST /core/roles` - Create
+- `PUT /core/roles/:id` - Update
+- `DELETE /core/roles/:id` - Delete (cascade)
+- `POST /core/roles/:id/assign` - Assign to users
+- `POST /core/roles/:id/remove` - Remove from user
 
 ---
 

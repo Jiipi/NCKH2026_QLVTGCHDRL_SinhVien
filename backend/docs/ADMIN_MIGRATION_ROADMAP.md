@@ -87,7 +87,7 @@
    - `deleteUserAdmin(id, adminId)` - With cascade checks
    - `exportUsersCSV(filters)` - CSV generation
 3. Create `routes/admin-users.route.js` (6 endpoints)
-4. Register in `routes/index.js` → `/v2/admin/users`
+4. Register in `routes/index.js` → `/core/admin/users`
 5. Test module load + syntax
 
 **Estimated Lines:**
@@ -111,11 +111,11 @@
 **Option A:** Add to existing `modules/dashboard/`
 - File: `modules/dashboard/dashboard.service.js`
 - Method: `getAdminDashboard()`
-- Route: `GET /v2/dashboard/admin`
+- Route: `GET /core/dashboard/admin`
 
 **Option B:** Create `services/admin-analytics.service.js`
 - Standalone service for admin stats
-- Route: `GET /v2/admin/analytics`
+- Route: `GET /core/admin/analytics`
 
 **Decision:** **Option A** - Enhance dashboard module
 - Add 1 method to existing service (~40 lines)
@@ -154,7 +154,7 @@
 
 **Expected Outcome:**
 - Likely **NO NEW CODE** needed
-- Just route admin activities through `/v2/activities` with admin middleware
+- Just route admin activities through `/core/activities` with admin middleware
 - Or add approve/reject methods (~50 lines)
 
 ---
@@ -180,9 +180,9 @@ Create `services/admin-reports.service.js`
    - `getAttendanceReport(filters)` - Join multiple tables
    - `getClassesReport(filters)` - Faculty-based listing
 2. `routes/admin-reports.route.js`:
-   - `GET /v2/admin/reports/points`
-   - `GET /v2/admin/reports/attendance`
-   - `GET /v2/admin/reports/classes`
+   - `GET /core/admin/reports/points`
+   - `GET /core/admin/reports/attendance`
+   - `GET /core/admin/reports/classes`
 
 **Estimated Lines:**
 - Service: ~400 lines (complex queries)
@@ -201,11 +201,11 @@ Create `services/admin-reports.service.js`
 
 #### Current Status:
 ```javascript
-✅ /v2/activity-types     → activityTypesV2
-✅ /v2/broadcast          → broadcastV2
-⏳ /v2/admin/users        → Pending module 7
-⏳ /v2/admin/analytics    → Pending module 8 (or /v2/dashboard/admin)
-⏳ /v2/admin/reports      → Pending module 10
+✅ /core/activity-types     → activityTypesV2
+✅ /core/broadcast          → broadcastV2
+⏳ /core/admin/users        → Pending module 7
+⏳ /core/admin/analytics    → Pending module 8 (or /core/dashboard/admin)
+⏳ /core/admin/reports      → Pending module 10
 ```
 
 #### Remaining Work:
@@ -308,7 +308,7 @@ Create `services/admin-reports.service.js`
 2. Analyze existing `modules/users/users.service.js`
 3. Add 6 admin methods to users service
 4. Create `routes/admin-users.route.js`
-5. Register `/v2/admin/users` route
+5. Register `/core/admin/users` route
 6. Test module load + syntax
 7. Create completion doc
 

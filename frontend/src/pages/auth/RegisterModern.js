@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, User, Calendar, MapPin, Phone } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useAppStore } from '../../store/useAppStore';
 import { useNotification } from '../../contexts/NotificationContext';
-import { normalizeRole } from '../../utils/role';
+import { normalizeRole } from '../../shared/lib/role';
 import './AuthModern.css';
 
 export default function RegisterModern() {

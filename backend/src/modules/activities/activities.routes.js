@@ -1,128 +1,132 @@
 /**
  * Activities Routes
- * Sử dụng CRUD Factory - CHỈ khai báo endpoints cần thiết
+ * Manual route definitions following clean architecture pattern
  * 
- * Tự động có:
- * - GET /api/v2/activities - List (với scope)
- * - GET /api/v2/activities/:id - Get by ID
- * - POST /api/v2/activities - Create
- * - PUT /api/v2/activities/:id - Update
- * - DELETE /api/v2/activities/:id - Delete
+ * Endpoints:
+ * - GET /api/core/activities - List activities (with filters)
+ * - GET /api/core/activities/:id - Get activity by ID
+ * - GET /api/core/activities/:id/details - Get activity details with registrations
+ * - POST /api/core/activities - Create activity
+ * - PUT /api/core/activities/:id - Update activity
+ * - DELETE /api/core/activities/:id - Delete activity
+ * - POST /api/core/activities/:id/approve - Approve activity
+ * - POST /api/core/activities/:id/reject - Reject activity
+ * - POST /api/core/activities/:id/register - Register for activity
+ * - POST /api/core/activities/:id/cancel - Cancel registration
  */
 
-const { Router } = require('express');
-const { createCRUDRouter } = require('../../shared/factories/crudRouter');
-const { applyScope } = require('../../shared/scopes/scopeMiddleware');
-const { asyncHandler } = require('../../shared/errors/AppError');
-const { hasPermission } = require('../../shared/policies');
-const activitiesService = require('./activities.service');
-const registrationsService = require('../registrations/registrations.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
+const express = require('express');
+const router = express.Router();
+const ActivitiesController = require('./activities.controller');
+const validators = require('./activities.validators');
+const { auth } = require('../../core/http/middleware/authJwt');
+const { asyncHandler } = require('../../app/errors/AppError');
+const { extractClassContext, applyClassScope } = require('../../core/http/middleware/classScope');
 
-const router = Router();
+// All routes require authentication
+router.use(auth);
 
-// ==================== CRUD STANDARD (AUTO-GENERATED) ====================
-const crudRouter = createCRUDRouter({
-  resource: 'activities',
-  service: activitiesService,
-  permissions: {
-    list: 'read',
-    read: 'read',
-    create: 'create',
-    update: 'update',
-    delete: 'delete'
-  },
-  // Custom routes được thêm bên dưới
-  customRoutes: (router, { service, applyScope, asyncHandler }) => {
-    
-    // ==================== APPROVE ====================
-    router.post('/:id/approve',
-      (req, res, next) => {
-        if (!hasPermission(req.user?.role, 'activities', 'approve')) {
-          return res.status(403).json({
-            success: false,
-            message: 'Bạn không có quyền duyệt hoạt động'
-          });
-        }
-        next();
-      },
-      asyncHandler(async (req, res) => {
-        const result = await service.approve(req.params.id, req.user);
-        return sendResponse(res, 200, ApiResponse.success(result, 'Duyệt hoạt động thành công'));
-      })
-    );
-    
-    // ==================== REJECT ====================
-    router.post('/:id/reject',
-      (req, res, next) => {
-        if (!hasPermission(req.user?.role, 'activities', 'reject')) {
-          return res.status(403).json({
-            success: false,
-            message: 'Bạn không có quyền từ chối hoạt động'
-          });
-        }
-        next();
-      },
-      asyncHandler(async (req, res) => {
-        const { reason } = req.body;
-        const result = await service.reject(req.params.id, reason, req.user);
-        return sendResponse(res, 200, ApiResponse.success(result, 'Từ chối hoạt động thành công'));
-      })
-    );
-    
-    // ==================== GET DETAILS (with registrations) ====================
-    router.get('/:id/details',
-      (req, res, next) => {
-        if (!hasPermission(req.user?.role, 'activities', 'read')) {
-          return res.status(403).json({
-            success: false,
-            message: 'Bạn không có quyền xem chi tiết hoạt động'
-          });
-        }
-        next();
-      },
-      asyncHandler(async (req, res) => {
-        const result = await service.getDetails(req.params.id, req.user);
-        return sendResponse(res, 200, ApiResponse.success(result, 'Lấy chi tiết thành công'));
-      })
-    );
-    
-    // ==================== REGISTER (Đăng ký hoạt động) ====================
-    router.post('/:id/register',
-      (req, res, next) => {
-        if (!hasPermission(req.user?.role, 'registrations', 'create')) {
-          return res.status(403).json({
-            success: false,
-            message: 'Bạn không có quyền đăng ký hoạt động'
-          });
-        }
-        next();
-      },
-      asyncHandler(async (req, res) => {
-        const result = await registrationsService.register(req.params.id, req.user);
-        return sendResponse(res, 201, ApiResponse.success(result, 'Đăng ký hoạt động thành công'));
-      })
-    );
-    
-    // ==================== CANCEL REGISTRATION ====================
-    router.post('/:id/cancel',
-      (req, res, next) => {
-        if (!hasPermission(req.user?.role, 'registrations', 'cancel')) {
-          return res.status(403).json({
-            success: false,
-            message: 'Bạn không có quyền hủy đăng ký'
-          });
-        }
-        next();
-      },
-      asyncHandler(async (req, res) => {
-        // TODO: Implement cancel logic (sẽ làm ở registrations module)
-        return sendResponse(res, 501, ApiResponse.error('Tính năng đang phát triển'));
-      })
-    );
-  }
-});
+// Extract class context for scope filtering
+router.use(asyncHandler(extractClassContext));
 
-router.use('/', crudRouter);
+// Apply class-based scope (students/monitors see only their class activities)
+router.use(applyClassScope());
+
+// ==================== CRUD ROUTES ====================
+
+// List all activities
+router.get(
+  '/',
+  validators.validateGetAll,
+  asyncHandler(ActivitiesController.getAll)
+);
+
+// Get activity details with registrations
+router.get(
+  '/:id/details',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.getDetails)
+);
+
+// Get single activity
+router.get(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.getById)
+);
+
+// Create activity
+router.post(
+  '/',
+  validators.validateCreate,
+  asyncHandler(ActivitiesController.create)
+);
+
+// Update activity
+router.put(
+  '/:id',
+  validators.validateUpdate,
+  asyncHandler(ActivitiesController.update)
+);
+
+// Delete activity
+router.delete(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.delete)
+);
+
+// ==================== APPROVAL ROUTES ====================
+
+// Approve activity
+router.post(
+  '/:id/approve',
+  validators.validateApprove,
+  asyncHandler(ActivitiesController.approve)
+);
+
+// Reject activity
+router.post(
+  '/:id/reject',
+  validators.validateReject,
+  asyncHandler(ActivitiesController.reject)
+);
+
+// ==================== REGISTRATION ROUTES ====================
+
+// Register for activity (student)
+router.post(
+  '/:id/register',
+  validators.validateRegister,
+  asyncHandler(ActivitiesController.register)
+);
+
+// Cancel registration (student)
+router.post(
+  '/:id/cancel',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.cancelRegistration)
+);
+
+// Get QR data for activity
+router.get(
+  '/:id/qr-data',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.getQRData)
+);
+
+// ==================== ATTENDANCE (QR SELF-SCAN) ====================
+
+// Student self check-in via QR scan (creates DiemDanh record)
+router.post(
+  '/:id/attendance/scan',
+  validators.validateGetById,
+  asyncHandler(ActivitiesController.scanAttendance)
+);
 
 module.exports = router;
+
+
+
+
+

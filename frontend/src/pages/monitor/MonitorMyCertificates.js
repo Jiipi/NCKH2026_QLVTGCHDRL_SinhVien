@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Calendar, MapPin, Download, Search, Filter, X, CheckCircle, Trophy, FileText, BookOpen } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 
 export default function MonitorMyCertificates() {
   const [certificates, setCertificates] = useState([]);
@@ -17,7 +17,7 @@ export default function MonitorMyCertificates() {
   }, []);
 
   const loadActivityTypes = () => {
-    http.get('/activities/types/list')
+    http.get('/core/activity-types')
       .then(res => {
         const types = res.data?.data || [];
         setActivityTypes(types);
@@ -27,7 +27,7 @@ export default function MonitorMyCertificates() {
 
   const loadCertificates = () => {
     setLoading(true);
-    http.get('/v2/dashboard/activities/me')
+    http.get('/core/dashboard/activities/me')
       .then(res => {
         const data = res.data?.data || [];
         // Only show completed activities

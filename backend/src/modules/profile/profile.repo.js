@@ -3,8 +3,7 @@
  * Handles all database operations for user profiles
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class ProfileRepository {
   /**
@@ -89,6 +88,37 @@ class ProfileRepository {
       }
     });
   }
+
+  /**
+   * Find class with monitor information
+   */
+  async findClassWithMonitor(lopId) {
+    return await prisma.lop.findUnique({
+      where: { id: lopId },
+      include: {
+        sinh_viens: {
+          where: {
+            id: {
+              equals: prisma.lop.fields.lop_truong
+            }
+          },
+          include: {
+            nguoi_dung: {
+              select: {
+                ho_ten: true
+              }
+            }
+          },
+          take: 1
+        }
+      }
+    });
+  }
 }
 
 module.exports = new ProfileRepository();
+
+
+
+
+

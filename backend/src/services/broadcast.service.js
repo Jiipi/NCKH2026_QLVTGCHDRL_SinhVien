@@ -1,5 +1,5 @@
-const { prisma } = require('../config/database');
-const { logInfo, logError } = require('../utils/logger');
+const { prisma } = require('../infrastructure/prisma/client');
+const { logInfo, logError } = require('../core/logger');
 
 /**
  * Broadcast Notifications Service
@@ -388,3 +388,7 @@ class BroadcastService {
 }
 
 module.exports = new BroadcastService();
+
+
+
+

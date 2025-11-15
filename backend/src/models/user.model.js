@@ -1,4 +1,4 @@
-const { prisma } = require('../config/database');
+const { prisma } = require('../infrastructure/prisma/client');
 
 class UserModel {
   static includeBasic() {
@@ -74,3 +74,7 @@ class UserModel {
 }
 
 module.exports = UserModel;
+
+
+
+

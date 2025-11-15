@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit2, Trash2, Search, Tag, FileText, Award, Image as ImageIcon, X, Check, Upload, Filter, Grid3x3, List, TrendingUp } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 
 // Danh sách ảnh mặc định

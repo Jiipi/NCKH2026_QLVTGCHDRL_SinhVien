@@ -5,11 +5,11 @@ import {
   Phone, MapPin, GraduationCap, Star, Settings, Save,
   UserPlus, Activity, Clock, Target, Heart, Shield
 } from 'lucide-react';
-import http from '../../services/http';
-import sessionStorageManager from '../../services/sessionStorageManager';
-import { extractUsersFromAxiosResponse, extractRolesFromAxiosResponse } from '../../utils/apiNormalization';
-import { getUserAvatar, getStudentAvatar } from '../../utils/avatarUtils';
-import Pagination from '../../components/Pagination';
+import http from '../../shared/api/http';
+import sessionStorageManager from '../../shared/api/sessionStorageManager';
+import { extractUsersFromAxiosResponse, extractRolesFromAxiosResponse } from '../../shared/lib/apiNormalization';
+import { getUserAvatar, getStudentAvatar } from '../../shared/lib/avatar';
+import Pagination from '../../shared/ui/Pagination';
 
 const IntegratedUserManagement = () => {
   const [users, setUsers] = useState([]);

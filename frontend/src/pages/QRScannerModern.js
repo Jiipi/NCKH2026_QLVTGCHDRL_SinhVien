@@ -7,7 +7,7 @@ import {
 import jsQR from 'jsqr';
 // Optional: ZXing reader for enhanced QR detection (can be lazy loaded)
 // import { BrowserQRCodeReader } from '@zxing/browser';
-import http from '../services/http';
+import http from '../shared/api/http';
 import { useNotification } from '../contexts/NotificationContext';
 
 export default function QRScannerModern() {
@@ -226,22 +226,33 @@ export default function QRScannerModern() {
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
       const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (res, err) => {
         // CRITICAL: Check if scanning is still active before processing
+        // Also check if controls ref is still set (prevents callback after stopCamera)
         if (!scanningActiveRef.current || !zxingControlsRef.current) {
           // Silently ignore - don't log to reduce console spam
           return;
         }
         
+        // CRITICAL: Double-check controls ref hasn't been cleared (race condition protection)
+        if (!zxingControlsRef.current) {
+          return;
+        }
+        
         // CRITICAL: ZXing may replace the video stream, so re-register tracks
-        if (videoRef.current?.srcObject instanceof MediaStream && scanningActiveRef.current) {
+        // BUT: Only if scanning is still active and controls are still valid
+        if (videoRef.current?.srcObject instanceof MediaStream && scanningActiveRef.current && zxingControlsRef.current) {
           const zxStream = videoRef.current.srcObject;
           if (zxStream !== streamRef.current) {
-            console.log('⚠️ ZXing replaced stream, re-registering tracks');
-            streamRef.current = zxStream;
-            registerStreamTracks(zxStream);
+            // Final check before re-registering
+            if (scanningActiveRef.current && zxingControlsRef.current) {
+              console.log('⚠️ ZXing replaced stream, re-registering tracks');
+              streamRef.current = zxStream;
+              registerStreamTracks(zxStream);
+            }
           }
         }
         if (res && res.getText) {
           const text = res.getText();
+          // Triple-check before processing
           if (text && scanningActiveRef.current && zxingControlsRef.current) {
             if (requestAnimationFrameIdRef.current) {
               cancelAnimationFrame(requestAnimationFrameIdRef.current);
@@ -308,13 +319,15 @@ export default function QRScannerModern() {
   const stopCamera = ({ preserveStarting = false } = {}) => {
     console.log('🛑 stopCamera called');
     
-    // CRITICAL: Clear ZXing controls ref FIRST to prevent callbacks
-    zxingControlsRef.current = null;
-    
-    // CRITICAL: Set scanningActiveRef to false to prevent ZXing from restarting
+    // CRITICAL: Set scanningActiveRef to false FIRST to prevent any new operations
     scanningActiveRef.current = false;
     detectionInProgressRef.current = false;
     lastFrameProcessTimeRef.current = 0;
+    
+    // CRITICAL: Clear ZXing controls ref IMMEDIATELY to prevent callbacks
+    // This must be done after setting scanningActiveRef to false
+    const controlsToStop = zxingControlsRef.current;
+    zxingControlsRef.current = null;
     
     // Cancel any ongoing animation frames first
     if (requestAnimationFrameIdRef.current) {
@@ -337,7 +350,17 @@ export default function QRScannerModern() {
       } catch(_) {}
     }
     
-    // Stop ZXing reader FIRST and completely
+    // Stop ZXing reader IMMEDIATELY and completely
+    // Stop controls first if we have a direct reference
+    if (controlsToStop) {
+      try {
+        console.log('🛑 ZXing cleanup: stopping controls directly');
+        controlsToStop.stop?.();
+      } catch(e) {
+        console.warn('ZXing controls direct stop error:', e);
+      }
+    }
+    
     if (zxingCleanupRef.current) { 
       try { 
         console.log('🛑 Cleaning up ZXing');
@@ -576,7 +599,7 @@ export default function QRScannerModern() {
     }
   };
 
-  // Process scanned QR code
+  // Process scanned QR code (validate against activity QR data)
   const processQRCode = async (qrData) => {
     if (isProcessing || processedRef.current) return;
     processedRef.current = true;
@@ -587,42 +610,78 @@ export default function QRScannerModern() {
     detectionInProgressRef.current = false;
 
     try {
-      const response = await http.post('/activities/attendance/scan', {
-        qr_code: qrData
+      // Parse QR payload which is expected to be a JSON string
+      // Format: { activityId, token, timestamp }
+      let payload = null;
+      try {
+        payload = JSON.parse(qrData);
+      } catch (_) {
+        // Some QR libraries may embed data in URLs; attempt to extract JSON substring
+        const jsonStart = qrData.indexOf('{');
+        const jsonEnd = qrData.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          try { payload = JSON.parse(qrData.slice(jsonStart, jsonEnd + 1)); } catch (_) {}
+        }
+      }
+
+      if (!payload || !payload.activityId || !payload.token) {
+        throw { status: 400, message: 'Mã QR không hợp lệ' };
+      }
+
+      // Validate token by fetching QR data from backend
+      const qrRes = await http.get(`/activities/${payload.activityId}/qr-data`);
+      const serverQR = qrRes?.data?.data || qrRes?.data || {};
+      const serverToken = serverQR.qr_token || serverQR.token;
+
+      if (!serverToken || serverToken !== payload.token) {
+        throw { status: 400, message: 'Mã QR không khớp hoặc đã hết hạn' };
+      }
+
+      // Perform self check-in to record attendance
+      const checkinRes = await http.post(`/activities/${payload.activityId}/attendance/scan`, {
+        token: payload.token
       });
+      const checkinData = checkinRes?.data?.data || checkinRes?.data || {};
 
       setScanResult({
         success: true,
-        message: response.data.message,
-        data: response.data.data
+        message: 'Điểm danh thành công!',
+        data: {
+          activityId: checkinData.activityId || payload.activityId,
+          activityName: checkinData.activityName || serverQR.activity_name || '',
+          sessionName: checkinData.sessionName || 'Mặc định',
+          timestamp: checkinData.timestamp || new Date().toISOString()
+        }
       });
-      showSuccess('Điểm danh thành công!');
-
+      showSuccess('Điểm danh thành công');
+      // Notify other views/tabs to refresh My Activities
+      try {
+        window.dispatchEvent(new CustomEvent('attendance:updated', { detail: { activityId: payload.activityId }}));
+      } catch (_) {}
+      try {
+        // Trigger cross-tab update via storage event
+        window.localStorage.setItem('ATTENDANCE_UPDATED_AT', String(Date.now()));
+      } catch (_) {}
     } catch (err) {
-      console.error("🛑 QR Scan API Error:", err.response || err);
-      const backendMessage = err.response?.data?.message;
-      const statusCode = err.response?.status;
-      
-      let userMessage = 'Điểm danh thất bại. Vui lòng thử lại.';
-      if (statusCode === 400) {
-        userMessage = backendMessage || 'Mã QR không hợp lệ hoặc đã hết hạn.';
-      } else if (statusCode === 403) {
-        userMessage = backendMessage || 'Bạn không có quyền điểm danh cho hoạt động này. Vui lòng kiểm tra đăng ký của bạn.';
-      } else if (statusCode === 404) {
-        userMessage = 'Hoạt động không tồn tại.';
-      } else {
-        userMessage = backendMessage || 'Lỗi máy chủ. Không thể điểm danh.';
+      console.error('🛑 QR validation error:', err);
+      const statusCode = err?.status || err?.response?.status;
+      const backendMessage = err?.message || err?.response?.data?.message;
+      const errorCode = err?.response?.data?.errors?.code;
+
+      // Special-case: Already checked in
+      if (statusCode === 409 && errorCode === 'ALREADY_CHECKED_IN') {
+        const userMessage = 'Bạn đã điểm danh hoạt động này rồi';
+        setScanResult({ success: false, message: userMessage, details: backendMessage });
+        setError(userMessage);
+        // Treat as non-fatal info, no success toast
+        stopCamera();
+        return;
       }
 
-      setScanResult({
-        success: false,
-        message: userMessage,
-        details: backendMessage // for debugging if needed
-      });
+      const userMessage = backendMessage || 'Không thể xác thực mã QR. Vui lòng thử lại.';
+      setScanResult({ success: false, message: userMessage, details: backendMessage });
       setError(userMessage);
-      showError(userMessage, `Lỗi ${statusCode || ''}`); // Show error with status code
-      
-      // Ensure camera fully stopped after a failed attempt
+      showError(userMessage, statusCode ? `Lỗi ${statusCode}` : undefined);
       stopCamera();
     } finally {
       setIsProcessing(false);

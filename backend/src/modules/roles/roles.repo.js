@@ -3,8 +3,7 @@
  * Handles all database operations for role management
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class RolesRepository {
   /**
@@ -210,3 +209,8 @@ class RolesRepository {
 }
 
 module.exports = new RolesRepository();
+
+
+
+
+

@@ -14,11 +14,11 @@ import {
   XCircle,
   Sparkles
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
 import { useNotification } from '../../contexts/NotificationContext';
-import { extractActivitiesFromAxiosResponse } from '../../utils/apiNormalization';
-import { getActivityImage } from '../../utils/activityImages';
+import { extractActivitiesFromAxiosResponse } from '../../shared/lib/apiNormalization';
+import { getActivityImage } from '../../shared/lib/activityImages';
 
 export default function AdminActivities() {
   const navigate = useNavigate();
@@ -28,20 +28,22 @@ export default function AdminActivities() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('');
-  const [semester, setSemester] = useState(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-    if (m >= 7 && m <= 11) return `hoc_ky_1-${y}`;
-    if (m === 12) return `hoc_ky_2-${y}`;
-    if (m >= 1 && m <= 4) return `hoc_ky_2-${y - 1}`;
-    return `hoc_ky_1-${y}`;
-  });
   const [types, setTypes] = useState([]);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const [total, setTotal] = useState(0);
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
+  const [semesterValue, setSemesterValue] = useState(null);
+  
+  // Initialize semester from hook's currentSemester (from DB) when available
+  useEffect(() => {
+    if (currentSemester && !semesterValue) {
+      setSemesterValue(currentSemester);
+    } else if (!currentSemester && !semesterLoading && semesterOptions.length > 0 && !semesterValue) {
+      // Fallback to first option if no current semester
+      setSemesterValue(semesterOptions[0]?.value || null);
+    }
+  }, [currentSemester, semesterOptions, semesterLoading, semesterValue]);
 
   const statusLabels = {
     cho_duyet: 'Chờ duyệt',
@@ -63,8 +65,10 @@ export default function AdminActivities() {
   }, []);
 
   useEffect(() => {
-    loadActivities();
-  }, [statusFilter, typeFilter, semester, page, limit, search]);
+    if (semesterValue) {
+      loadActivities();
+    }
+  }, [statusFilter, typeFilter, semesterValue, page, limit, search]);
 
   const loadActivities = async () => {
     try {
@@ -75,7 +79,7 @@ export default function AdminActivities() {
         search: search || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         typeId: typeFilter || undefined,
-        semester: semester || undefined
+        semesterValue: semesterValue || undefined
       };
       const resp = await http.get('/admin/activities', { params });
       const list = extractActivitiesFromAxiosResponse(resp);
@@ -330,10 +334,14 @@ export default function AdminActivities() {
             <div className="relative">
               <Filter className="h-4 w-4 text-gray-400 absolute left-3 top-3" />
               <select
-                value={semester}
-                onChange={(e) => { setSemester(e.target.value); setPage(1); }}
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                value={semesterValue || ''}
+                onChange={(e) => { setSemesterValue(e.target.value); setPage(1); }}
+                disabled={semesterLoading || !semesterOptions.length}
+                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                {!semesterLoading && semesterOptions.length === 0 && (
+                  <option value="">Không có học kỳ</option>
+                )}
                 {(semesterOptions || []).map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}

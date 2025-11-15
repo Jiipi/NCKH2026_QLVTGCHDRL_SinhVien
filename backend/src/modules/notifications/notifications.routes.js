@@ -6,15 +6,15 @@
 const express = require('express');
 const router = express.Router();
 const service = require('./notifications.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { logError, logInfo } = require('../../utils/logger');
-const { auth: authenticateJWT } = require('../../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { logError, logInfo } = require('../../core/logger');
+const { auth: authenticateJWT } = require('../../core/http/middleware/authJwt');
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
 
 /**
- * POST /api/v2/notifications
+ * POST /api/core/notifications
  * Create new notification
  * Supports: single recipient, class broadcast, activity broadcast
  */
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * GET /api/v2/notifications/unread-count
+ * GET /api/core/notifications/unread-count
  * Get count of unread notifications
  */
 router.get('/unread-count', async (req, res) => {
@@ -63,7 +63,7 @@ router.get('/unread-count', async (req, res) => {
 });
 
 /**
- * PATCH /api/v2/notifications/mark-all-read
+ * PATCH /api/core/notifications/mark-all-read
  * Mark all notifications as read
  */
 router.patch('/mark-all-read', async (req, res) => {
@@ -83,7 +83,7 @@ router.patch('/mark-all-read', async (req, res) => {
 });
 
 /**
- * GET /api/v2/notifications/sent/:notificationId
+ * GET /api/core/notifications/sent/:notificationId
  * Get sent notification detail
  */
 router.get('/sent/:notificationId', async (req, res) => {
@@ -109,7 +109,7 @@ router.get('/sent/:notificationId', async (req, res) => {
 });
 
 /**
- * GET /api/v2/notifications/sent
+ * GET /api/core/notifications/sent
  * Get sent notifications history
  */
 router.get('/sent', async (req, res) => {
@@ -129,7 +129,7 @@ router.get('/sent', async (req, res) => {
 });
 
 /**
- * GET /api/v2/notifications
+ * GET /api/core/notifications
  * Get user's received notifications
  */
 router.get('/', async (req, res) => {
@@ -149,7 +149,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * PATCH /api/v2/notifications/:notificationId/read
+ * PATCH /api/core/notifications/:notificationId/read
  * Mark notification as read
  */
 router.patch('/:notificationId/read', async (req, res) => {
@@ -175,7 +175,7 @@ router.patch('/:notificationId/read', async (req, res) => {
 });
 
 /**
- * GET /api/v2/notifications/:notificationId
+ * GET /api/core/notifications/:notificationId
  * Get notification detail by ID
  */
 router.get('/:notificationId', async (req, res) => {
@@ -201,7 +201,7 @@ router.get('/:notificationId', async (req, res) => {
 });
 
 /**
- * DELETE /api/v2/notifications/:notificationId
+ * DELETE /api/core/notifications/:notificationId
  * Delete notification
  */
 router.delete('/:notificationId', async (req, res) => {
@@ -227,3 +227,8 @@ router.delete('/:notificationId', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

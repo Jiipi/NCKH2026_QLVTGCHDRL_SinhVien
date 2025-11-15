@@ -315,10 +315,10 @@ try {
     console.log('   - CRUD Factory');
     console.log('   - Error Classes');
     console.log('\n📝 Available V2 APIs:');
-    console.log('   /api/v2/activities');
-    console.log('   /api/v2/registrations');
-    console.log('   /api/v2/users');
-    console.log('   /api/v2/classes');
+    console.log('   /api/core/activities');
+    console.log('   /api/core/registrations');
+    console.log('   /api/core/users');
+    console.log('   /api/core/classes');
     console.log('\n🚀 Ready for integration testing with server!');
     console.log();
   } else {

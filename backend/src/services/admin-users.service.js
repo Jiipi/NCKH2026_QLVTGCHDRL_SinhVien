@@ -1,8 +1,8 @@
-const { prisma } = require('../config/database');
+const { prisma } = require('../infrastructure/prisma/client');
 const bcrypt = require('bcryptjs');
 const { z } = require('zod');
-const { logInfo, logError } = require('../utils/logger');
-const { validatePaginationParams, createQueryOptions, createPaginationResponse } = require('../utils/pagination');
+const { logInfo, logError } = require('../core/logger');
+const { validatePaginationParams, createQueryOptions, createPaginationResponse } = require('../core/utils/pagination');
 
 /**
  * Admin Users Service
@@ -599,3 +599,7 @@ class AdminUsersService {
 }
 
 module.exports = new AdminUsersService();
+
+
+
+

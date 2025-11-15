@@ -1,4 +1,4 @@
-const { logInfo, logError } = require('../../utils/logger');
+const { logInfo, logError } = require('../../core/logger');
 const notificationTypesRepo = require('./notification-types.repo');
 
 class NotificationTypesService {
@@ -131,3 +131,8 @@ class NotificationTypesService {
 }
 
 module.exports = NotificationTypesService;
+
+
+
+
+

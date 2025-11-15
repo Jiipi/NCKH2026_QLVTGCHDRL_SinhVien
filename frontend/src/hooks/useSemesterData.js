@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 const OPTIONS_CACHE_KEY = 'semester_options';
 const CURRENT_CACHE_KEY = 'current_semester';

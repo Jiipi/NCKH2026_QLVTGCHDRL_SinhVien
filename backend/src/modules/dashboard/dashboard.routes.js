@@ -1,8 +1,8 @@
 const { Router } = require('express');
 const dashboardService = require('./dashboard.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { logError } = require('../../utils/logger');
-const { auth } = require('../../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { logError } = require('../../core/logger');
+const { auth } = require('../../core/http/middleware/authJwt');
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
 router.use(auth);
 
 /**
- * GET /api/v2/dashboard/student
+ * GET /api/core/dashboard/student
  * Get student dashboard data with points summary and activities
  * Query params: semester (optional) - format: hoc_ky_1-2024 or hoc_ky_2-2024
  */
@@ -26,7 +26,7 @@ router.get('/student', async (req, res) => {
 });
 
 /**
- * GET /api/v2/dashboard/activity-stats
+ * GET /api/core/dashboard/activity-stats
  * Get activity statistics by time range (for admin/teacher)
  * Query params: timeRange (optional) - values: 7d, 30d, 90d (default: 30d)
  */
@@ -42,7 +42,7 @@ router.get('/activity-stats', async (req, res) => {
 });
 
 /**
- * GET /api/v2/dashboard/admin
+ * GET /api/core/dashboard/admin
  * Get admin dashboard statistics (Admin only)
  * Returns system-wide overview: total users, activities, registrations, pending approvals
  */
@@ -57,17 +57,20 @@ router.get('/admin', async (req, res) => {
 });
 
 /**
- * GET /api/v2/dashboard/activities/me
+ * GET /api/core/dashboard/activities/me
  * Get my registered activities (ALL, not just recent 5)
  * Query params: semester (optional)
  */
 router.get('/activities/me', async (req, res) => {
   try {
     const userId = req.user.sub;
-    const { semester, hoc_ky, nam_hoc } = req.query;
+    const { semester, semesterValue, hoc_ky, nam_hoc } = req.query;
+    
+    // Support both 'semester' (legacy) and 'semesterValue' (new) for backward compatibility
+    const semesterParam = semesterValue || semester;
     
     // Get FULL activity list (not just dashboard's top 5)
-    const myActivities = await dashboardService.getMyActivities(userId, { semester, hoc_ky, nam_hoc });
+    const myActivities = await dashboardService.getMyActivities(userId, { semester: semesterParam, hoc_ky, nam_hoc });
     
     return sendResponse(res, 200, ApiResponse.success(myActivities, 'Danh sách hoạt động của tôi'));
   } catch (err) {
@@ -77,7 +80,7 @@ router.get('/activities/me', async (req, res) => {
 });
 
 /**
- * GET /api/v2/dashboard/scores/detailed
+ * GET /api/core/dashboard/scores/detailed
  * Get detailed score breakdown by criteria
  * Query params: semester, year
  */
@@ -105,3 +108,8 @@ router.get('/scores/detailed', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

@@ -1,5 +1,5 @@
-const { logInfo, logError } = require('../../utils/logger');
-const { parseSemesterString, buildSemesterFilter } = require('../../utils/semester');
+const { logInfo, logError } = require('../../core/logger');
+const { parseSemesterString, buildSemesterFilter } = require('../../core/utils/semester');
 const exportsRepo = require('./exports.repo');
 
 class ExportsService {
@@ -209,3 +209,8 @@ class ExportsService {
 }
 
 module.exports = ExportsService;
+
+
+
+
+

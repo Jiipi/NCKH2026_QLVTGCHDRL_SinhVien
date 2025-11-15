@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Unlock, Hourglass, AlertCircle, CheckCircle, ShieldCheck, Calendar } from 'lucide-react';
-import http from '../services/http';
+import http from '../shared/api/http';
 import { invalidateSemesterDataCache } from '../hooks/useSemesterData';
 
 export default function SemesterClosureWidget({ compact = false, onChanged, classId: forcedClassId = null, enableSoftLock = false, enableHardLock = false, className = '' }) {

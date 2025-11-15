@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Download, BarChart3, Users, Activity as ActivityIcon, CheckCircle, XCircle } from 'lucide-react';
-import http from '../../services/http';
-import SemesterFilter from '../../components/SemesterFilter';
+import http from '../../shared/api/http';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
 
 export default function AdminReports() {
   const [semester, setSemester] = useState('');

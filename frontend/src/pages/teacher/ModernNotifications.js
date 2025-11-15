@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Search, Calendar, TrendingUp, Zap } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 
 export default function ModernNotifications() {
@@ -38,7 +38,7 @@ export default function ModernNotifications() {
 
   const loadSentHistory = async () => {
     try {
-      const response = await http.get('/v2/notifications/sent');
+      const response = await http.get('/core/notifications/sent');
       const data = response.data?.data || response.data;
       
       if (data.history && Array.isArray(data.history)) {
@@ -78,7 +78,7 @@ export default function ModernNotifications() {
 
   const handleNotificationClick = async (notification) => {
     try {
-      const response = await http.get(`/v2/notifications/sent/${notification.id}`);
+      const response = await http.get(`/core/notifications/sent/${notification.id}`);
       const data = response.data?.data || response.data;
       setSelectedNotification(data);
       setShowDetailModal(true);
@@ -118,7 +118,7 @@ export default function ModernNotifications() {
         muc_do_uu_tien: 'trung_binh',
         phuong_thuc_gui: 'trong_he_thong'
       };
-      await http.post('/v2/notifications', payload);
+      await http.post('/core/notifications', payload);
       showSuccess('Đã gửi thông báo thành công! 🎉');
       setTitle('');
       setMessage('');

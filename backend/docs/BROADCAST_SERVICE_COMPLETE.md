@@ -223,9 +223,9 @@ prisma.dangKyHoatDong.findMany({
 
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| POST | `/api/v2/broadcast` | Admin | Send broadcast notification |
-| GET | `/api/v2/broadcast/stats` | Admin | Get broadcast statistics |
-| GET | `/api/v2/broadcast/history` | Admin | Get broadcast history |
+| POST | `/api/core/broadcast` | Admin | Send broadcast notification |
+| GET | `/api/core/broadcast/stats` | Admin | Get broadcast statistics |
+| GET | `/api/core/broadcast/history` | Admin | Get broadcast history |
 
 ### Middleware Stack
 ```javascript
@@ -235,7 +235,7 @@ router.use(requireAdmin);     // Admin role check
 
 ### Request/Response Examples
 
-#### POST /api/v2/broadcast
+#### POST /api/core/broadcast
 **Request Body:**
 ```json
 {
@@ -282,7 +282,7 @@ router.use(requireAdmin);     // Admin role check
 
 ---
 
-#### GET /api/v2/broadcast/stats
+#### GET /api/core/broadcast/stats
 **Success Response (200):**
 ```json
 {
@@ -300,7 +300,7 @@ router.use(requireAdmin);     // Admin role check
 
 ---
 
-#### GET /api/v2/broadcast/history?limit=100
+#### GET /api/core/broadcast/history?limit=100
 **Success Response (200):**
 ```json
 {
@@ -334,7 +334,7 @@ router.use(requireAdmin);     // Admin role check
 **File:** `src/routes/index.js`
 ```javascript
 const broadcastV2 = require('./broadcast.route');
-router.use('/v2/broadcast', broadcastV2);
+router.use('/core/broadcast', broadcastV2);
 ```
 
 ### Dependencies

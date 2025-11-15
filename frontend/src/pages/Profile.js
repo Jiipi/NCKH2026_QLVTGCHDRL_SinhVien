@@ -1,5 +1,5 @@
 import React from 'react';
-import http from '../services/http';
+import http from '../shared/api/http';
 import Header from '../components/Header';
 import StudentSidebar from '../components/StudentSidebar';
 import useSemesterData from '../hooks/useSemesterData';
@@ -21,7 +21,7 @@ export default function ProfilePage(){
   React.useEffect(function load(){
     let mounted = true;
     // Sử dụng cùng endpoint với UserProfile.js để đồng bộ dữ liệu
-    http.get('/v2/profile').then(function(res){
+    http.get('/core/profile').then(function(res){
       if(!mounted) return; 
       const p = res.data?.data || res.data || null; 
       setProfile(p); 

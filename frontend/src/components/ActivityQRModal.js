@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Download, QrCode as QrCodeIcon, Loader } from 'lucide-react';
 import QRCode from 'qrcode';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 export default function ActivityQRModal({ activityId, activityName, isOpen, onClose }) {
   const [qrData, setQrData] = useState(null);

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const ProfileService = require('./profile.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { auth } = require('../../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { auth } = require('../../core/http/middleware/authJwt');
 
 /**
- * @route   GET /api/v2/profile
+ * @route   GET /api/core/profile
  * @desc    Get current user profile
  * @access  Private
  */
@@ -23,7 +23,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v2/profile
+ * @route   PUT /api/core/profile
  * @desc    Update current user profile
  * @access  Private
  */
@@ -47,7 +47,7 @@ router.put('/', auth, async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/profile/change-password
+ * @route   POST /api/core/profile/change-password
  * @desc    Change current user password
  * @access  Private
  */
@@ -71,7 +71,7 @@ router.post('/change-password', auth, async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/profile/monitor-status
+ * @route   GET /api/core/profile/monitor-status
  * @desc    Check if current user is a class monitor
  * @access  Private
  */
@@ -86,3 +86,8 @@ router.get('/monitor-status', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

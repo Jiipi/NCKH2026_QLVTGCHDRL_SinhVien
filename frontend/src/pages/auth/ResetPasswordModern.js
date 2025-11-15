@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Lock } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import './AuthModern.css';
 
 export default function ResetPasswordModern() {

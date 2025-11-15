@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Lock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 
 export default function SemesterManagement() {
   const [semesters, setSemesters] = useState([]);
