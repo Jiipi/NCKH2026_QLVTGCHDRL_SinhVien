@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
-import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
-import { getUserAvatar } from '../../utils/avatarUtils';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
+import { getActivityImage, getBestActivityImage } from '../../shared/lib/activityImages';
+import { getUserAvatar } from '../../shared/lib/avatar';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
 
 export default function TeacherRegistrationApprovalsModern() {
   const [registrations, setRegistrations] = useState([]);

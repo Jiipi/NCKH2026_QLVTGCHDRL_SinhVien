@@ -3,8 +3,7 @@
  * Handles all database operations for export/reporting features
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class ExportsRepository {
   /**
@@ -93,3 +92,8 @@ class ExportsRepository {
 }
 
 module.exports = new ExportsRepository();
+
+
+
+
+

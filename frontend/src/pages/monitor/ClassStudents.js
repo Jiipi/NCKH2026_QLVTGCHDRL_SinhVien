@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, RefreshCw, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
-import http from '../../services/http';
-import { getStudentAvatar, getAvatarGradient } from '../../utils/avatarUtils';
+import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
+import http from '../../shared/api/http';
+import { getStudentAvatar, getAvatarGradient } from '../../shared/lib/avatar';
 import useSemesterData from '../../hooks/useSemesterData';
+import Pagination from '../../shared/components/common/Pagination';
 
 export default function ClassStudents() {
   const [students, setStudents] = useState([]);
@@ -36,34 +37,26 @@ export default function ClassStudents() {
 
   useEffect(() => {
     loadStudents();
-  }, [semester, pagination.page, pagination.limit]); // Reload when semester or pagination changes
+    // Reset to first page whenever semester changes
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [semester]);
+
+  // Reset to first page when search or sort changes for better UX
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [searchTerm, sortBy]);
 
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const endpoints = ['/monitor/students', '/class/students', '/teacher/students'];
-      let response = null;
-      
-      // Always send semester parameter with pagination
-      const params = { 
-        semester,
-        page: pagination.page,
-        limit: pagination.limit
-      };
-      
-      for (const ep of endpoints) {
-        try {
-          response = await http.get(ep, { params });
-          if (response.data) break;
-        } catch (e) {
-          continue;
-        }
-      }
+      // Fetch full dataset for the semester and paginate client-side
+      const params = { semester };
+      const response = await http.get('/core/monitor/students', { params });
       
       const responseData = response?.data?.data || response?.data || {};
       const raw = responseData.students || responseData.items || responseData || [];
       const total = responseData.total || (Array.isArray(raw) ? raw.length : 0);
-      
+
       const normalized = (Array.isArray(raw) ? raw : []).map(sv => {
         const nguoiDung = sv.nguoi_dung || {};
         const lop = sv.lop || {};
@@ -84,21 +77,15 @@ export default function ClassStudents() {
             ten_lop: lop.ten_lop || '',
             khoa: lop.khoa || ''
           },
-          totalPoints: sv._count?.diem_danh || sv.totalPoints || 0,
-          activitiesJoined: sv._count?.dang_ky_hd || sv.activitiesJoined || 0,
-          rank: sv.rank || 0,
+          totalPoints: sv.totalPoints ?? sv.totalPointsRounded ?? sv._count?.diem_danh ?? 0,
+          activitiesJoined: sv.activitiesJoined ?? sv._count?.dang_ky_hd ?? 0,
+          rank: sv.rank || 0, // preserve global rank from backend if provided
           status: sv.status || 'active',
           lastActivityDate: sv.lastActivityDate || new Date().toISOString()
         };
       });
-      
-      // Add ranking
-      const sorted = normalized.sort((a, b) => b.totalPoints - a.totalPoints);
-      sorted.forEach((student, index) => {
-        student.rank = index + 1;
-      });
-      
-      setStudents(sorted);
+
+      setStudents(normalized);
       setPagination(prev => ({ ...prev, total }));
       setError('');
     } catch (err) {
@@ -112,7 +99,8 @@ export default function ClassStudents() {
 
   const handleExportData = () => {
     const headers = ['MSSV', 'Họ tên', 'Email', 'Điểm RL', 'Số hoạt động', 'Xếp hạng'];
-    const csvData = students.map(student => [
+    // Export all filtered rows for the current semester (not just current page)
+    const csvData = filteredStudents.map(student => [
       student.mssv,
       student.nguoi_dung.ho_ten,
       student.nguoi_dung.email,
@@ -175,15 +163,38 @@ export default function ClassStudents() {
     }
   });
 
-  const filteredStudents = sortedStudents.filter(student =>
-    student.nguoi_dung.ho_ten.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.mssv.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.nguoi_dung.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const normalizeText = (text) => {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+  };
+
+  const filteredStudents = sortedStudents.filter(student => {
+    if (!searchTerm || searchTerm.trim() === '') return true; // Show all if no search term
+    
+    const searchNormalized = normalizeText(searchTerm);
+    const nameNormalized = normalizeText(student.nguoi_dung.ho_ten);
+    const mssvNormalized = normalizeText(student.mssv);
+    const emailNormalized = normalizeText(student.nguoi_dung.email);
+    
+    return nameNormalized.includes(searchNormalized) ||
+      mssvNormalized.includes(searchNormalized) ||
+      emailNormalized.includes(searchNormalized);
+  });
+
+  // Client-side pagination of filtered results
+  const startIndex = (pagination.page - 1) * pagination.limit;
+  const endIndex = startIndex + pagination.limit;
+  const pageItems = filteredStudents.slice(startIndex, endIndex);
+  const filteredTotal = filteredStudents.length;
 
   const stats = {
     total: students.length,
-    avgPoints: students.length > 0 ? Math.round(students.reduce((sum, s) => sum + s.totalPoints, 0) / students.length) : 0,
+    avgPoints: students.length > 0 ? Math.round((students.reduce((sum, s) => sum + s.totalPoints, 0) / students.length) * 10) / 10 : 0,
     topPerformers: students.filter(s => s.totalPoints >= 90).length // ✅ Xuất sắc: >= 90 điểm (thống nhất với Dashboard)
   };
 
@@ -495,14 +506,6 @@ export default function ClassStudents() {
                 <option value="activities_desc">📊 Nhiều hoạt động</option>
               </select>
             </div>
-
-            <button
-              onClick={loadStudents}
-              className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold flex items-center gap-2 text-sm"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Làm mới
-            </button>
           </div>
         </div>
       </div>
@@ -510,7 +513,7 @@ export default function ClassStudents() {
       {/* Students Grid - Compact */}
       {filteredStudents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredStudents.map(student => (
+          {pageItems.map(student => (
             <StudentCard key={student.id} student={student} />
           ))}
         </div>
@@ -528,31 +531,16 @@ export default function ClassStudents() {
           </div>
         )}
 
-      {/* Pagination Controls */}
-      {pagination.total > pagination.limit && (
-        <div className="mt-8 flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-gray-600">
-            Hiển thị {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} trong tổng số {pagination.total} sinh viên
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-              disabled={pagination.page === 1}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              ← Trước
-            </button>
-            <span className="text-sm text-gray-600 px-3">
-              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
-            </span>
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Tiếp →
-            </button>
-          </div>
+      {/* Pagination Controls - Pattern từ trang sinh viên */}
+      {filteredTotal > pagination.limit && (
+        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 mt-8">
+          <Pagination
+            pagination={{ ...pagination, total: filteredTotal }}
+            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+            itemLabel="sinh viên"
+            showLimitSelector={true}
+          />
         </div>
       )}
 

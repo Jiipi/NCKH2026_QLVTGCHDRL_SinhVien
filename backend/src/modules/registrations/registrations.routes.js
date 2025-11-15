@@ -5,10 +5,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { createCRUDRouter } = require('../../shared/factories/crudRouter');
+const { createCRUDRouter } = require('../../app/factories/crudRouter');
 const registrationsService = require('./registrations.service');
-const auth = require('../../middlewares/auth').auth;
-const { asyncHandler } = require('../../shared/errors/AppError');
+const auth = require('../../core/http/middleware/authJwt').auth;
+const { asyncHandler } = require('../../app/errors/AppError');
 
 // ========== Base CRUD Routes (Factory) ==========
 const crudRouter = createCRUDRouter({
@@ -145,3 +145,8 @@ router.get('/activity/:activityId/stats', auth, asyncHandler(async (req, res) =>
 }));
 
 module.exports = router;
+
+
+
+
+

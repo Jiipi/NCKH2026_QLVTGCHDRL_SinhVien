@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, X, ChevronDown, User, Check } from 'lucide-react';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 /**
  * UserSearchSelect - Reusable component for searching and selecting users

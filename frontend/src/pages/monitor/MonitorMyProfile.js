@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, MapPin, Clock, CheckCircle, GraduationCap, Hash, Award, Crown } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useAppStore } from '../../store/useAppStore';
 import { useNotification } from '../../contexts/NotificationContext';
-import { formatDateVN } from '../../utils/dateFormat';
-import AvatarUpload from '../../components/AvatarUpload';
+import { formatDateVN } from '../../shared/lib/date';
+import AvatarUpload from '../../entities/user/ui/Avatar';
 
 export default function MonitorMyProfile() {
   const { showSuccess, showError } = useNotification();
@@ -53,7 +53,7 @@ export default function MonitorMyProfile() {
       const timestamp = new Date().getTime();
       let response;
       try {
-        response = await http.get(`/v2/profile?_t=${timestamp}`);
+        response = await http.get(`/core/profile?_t=${timestamp}`);
       } catch (e) {
         response = await http.get(`/auth/profile?_t=${timestamp}`);
       }
@@ -110,7 +110,7 @@ export default function MonitorMyProfile() {
 
   const loadStats = async () => {
     try {
-      const response = await http.get('/v2/dashboard/activities/me');
+      const response = await http.get('/core/dashboard/activities/me');
       const registrations = response.data?.data || [];
       
       const totalActivities = registrations.length;
@@ -134,7 +134,7 @@ export default function MonitorMyProfile() {
         anh_dai_dien: formData.anh_dai_dien || undefined
       };
       
-      await http.put('/v2/profile', updateData);
+      await http.put('/core/profile', updateData);
       setEditing(false);
       loadProfile();
       

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, MapPin, Award, Users, FileText, Info } from 'lucide-react';
-import http from '../services/http';
+import http from '../shared/api/http';
 import ClassManagementLayout from '../components/ClassManagementLayout';
 import Header from '../components/Header';
 import { useParams, useLocation } from 'react-router-dom';

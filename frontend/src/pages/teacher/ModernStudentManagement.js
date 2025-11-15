@@ -24,10 +24,10 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { getStudentAvatar, getAvatarGradient } from '../../utils/avatarUtils';
+import { getStudentAvatar, getAvatarGradient } from '../../shared/lib/avatar';
 
 export default function ModernStudentManagement() {
   const navigate = useNavigate();

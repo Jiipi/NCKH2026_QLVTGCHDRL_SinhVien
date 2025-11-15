@@ -3,8 +3,8 @@
  */
 
 const usersRepo = require('./users.repo');
-const { buildScope } = require('../../shared/scopes/scopeBuilder');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
+const { buildScope } = require('../../app/scopes/scopeBuilder');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
 const bcrypt = require('bcryptjs');
 
 const usersService = {
@@ -244,3 +244,8 @@ const usersService = {
 };
 
 module.exports = usersService;
+
+
+
+
+

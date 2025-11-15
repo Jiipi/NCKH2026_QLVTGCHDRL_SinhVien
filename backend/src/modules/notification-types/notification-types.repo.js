@@ -3,8 +3,7 @@
  * Handles all database operations for notification types
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class NotificationTypesRepository {
   /**
@@ -96,3 +95,8 @@ class NotificationTypesRepository {
 }
 
 module.exports = new NotificationTypesRepository();
+
+
+
+
+

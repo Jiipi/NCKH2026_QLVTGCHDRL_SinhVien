@@ -3,8 +3,7 @@
  * Handles all database operations for class monitor features
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class MonitorRepository {
   /**
@@ -40,10 +39,8 @@ class MonitorRepository {
     return await prisma.dangKyHoatDong.findMany({
       where: {
         sv_id: studentId,
-        trang_thai_dk: {
-          in: ['da_tham_gia', 'da_duyet'] // ✅ Include both approved and completed
-        },
-        hoat_dong: activityFilter
+        trang_thai_dk: 'da_tham_gia',
+        hoat_dong: activityFilter && Object.keys(activityFilter).length ? { is: activityFilter } : undefined
       },
       include: {
         hoat_dong: {
@@ -55,6 +52,39 @@ class MonitorRepository {
           },
         },
       },
+    });
+  }
+
+  /**
+   * Find ALL registrations of a class for points aggregation (participated only)
+   */
+  async findClassRegistrationsForPoints(classId, activityFilter) {
+    return await prisma.dangKyHoatDong.findMany({
+      where: {
+        sinh_vien: { lop_id: classId },
+        trang_thai_dk: 'da_tham_gia',
+        hoat_dong: activityFilter && Object.keys(activityFilter).length ? { is: activityFilter } : undefined
+      },
+      select: {
+        sv_id: true,
+        ngay_dang_ky: true,
+        hoat_dong: { 
+          select: { 
+            id: true,
+            diem_rl: true,
+            ngay_bd: true,
+            loai_hd: { select: { ten_loai_hd: true } }
+          } 
+        },
+        sinh_vien: {
+          select: {
+            id: true,
+            mssv: true,
+            nguoi_dung: { select: { ho_ten: true } }
+          }
+        }
+      },
+      orderBy: { ngay_dang_ky: 'asc' }
     });
   }
 
@@ -73,7 +103,7 @@ class MonitorRepository {
     }
 
     if (activityFilter && Object.keys(activityFilter).length) {
-      whereClause.hoat_dong = activityFilter;
+      whereClause.hoat_dong = { is: activityFilter };
     }
 
     return await prisma.dangKyHoatDong.findMany({
@@ -97,11 +127,13 @@ class MonitorRepository {
         },
         hoat_dong: { 
           select: { 
+            id: true,
             ten_hd: true, 
             ngay_bd: true, 
             diem_rl: true, 
             dia_diem: true, 
-            hinh_anh: true 
+            hinh_anh: true,
+            loai_hd: { select: { id: true, ten_loai_hd: true } }
           } 
         }
       },
@@ -207,7 +239,7 @@ class MonitorRepository {
     }
 
     if (activityFilter && Object.keys(activityFilter).length) {
-      where.hoat_dong = activityFilter;
+      where.hoat_dong = { is: activityFilter };
     }
 
     return await prisma.dangKyHoatDong.count({ where });
@@ -220,7 +252,7 @@ class MonitorRepository {
     return await prisma.dangKyHoatDong.findMany({
       where: {
         sinh_vien: { lop_id: classId },
-        hoat_dong: activityFilter
+        hoat_dong: activityFilter && Object.keys(activityFilter).length ? { is: activityFilter } : undefined
       },
       include: {
         sinh_vien: {
@@ -238,7 +270,7 @@ class MonitorRepository {
   }
 
   /**
-   * Find upcoming activities for class
+   * Find upcoming activities for class (only class activities)
    */
   async findUpcomingActivities(classId, activityFilter, limit = 5) {
     const now = new Date();
@@ -247,12 +279,7 @@ class MonitorRepository {
       where: {
         ngay_bd: { gte: now },
         trang_thai: 'da_duyet',
-        ...activityFilter,
-        dang_ky_hd: {
-          some: {
-            sinh_vien: { lop_id: classId }
-          }
-        }
+        ...activityFilter, // activityFilter already includes nguoi_tao_id filter
       },
       orderBy: { ngay_bd: 'asc' },
       take: limit,
@@ -281,6 +308,20 @@ class MonitorRepository {
   }
 
   /**
+   * Find class by ID
+   */
+  async findClassById(classId) {
+    return await prisma.lop.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        ten_lop: true,
+        chu_nhiem: true
+      }
+    });
+  }
+
+  /**
    * Find all students in class (minimal data)
    */
   async findAllStudentsInClass(classId) {
@@ -300,10 +341,7 @@ class MonitorRepository {
     return await prisma.dangKyHoatDong.findMany({
       where: {
         sinh_vien: { lop_id: classId },
-        hoat_dong: {
-          ...activityFilter,
-          trang_thai: { in: ['da_duyet', 'ket_thuc'] }
-        },
+        hoat_dong: { is: { ...(activityFilter || {}), trang_thai: { in: ['da_duyet', 'ket_thuc'] } } },
         trang_thai_dk: 'da_duyet'
       },
       select: {
@@ -311,6 +349,157 @@ class MonitorRepository {
       }
     });
   }
+
+  /**
+   * Find class registrations for counting distinct activities with status da_duyet only
+   * Used for reports to match the "Có sẵn" tab logic
+   */
+  async findClassRegistrationsForCountApproved(classId, activityFilter) {
+    return await prisma.dangKyHoatDong.findMany({
+      where: {
+        sinh_vien: { lop_id: classId },
+        hoat_dong: { is: { ...(activityFilter || {}), trang_thai: 'da_duyet' } },
+        trang_thai_dk: 'da_duyet'
+      },
+      select: {
+        hd_id: true
+      }
+    });
+  }
+
+  /**
+   * Count activities with status da_duyet in semester (for class)
+   * Counts activities directly from hoatDong table with semester filter
+   * This matches the logic of "Có sẵn" tab in class activities page
+   */
+  async countApprovedActivitiesForClass(classId, activityFilter) {
+    // Get class creators (students + homeroom teacher) for filtering
+    const classStudents = await this.findAllStudentsInClass(classId);
+    const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+    
+    // Get homeroom teacher
+    const lop = await this.findClassById(classId);
+    if (lop?.chu_nhiem) {
+      classCreatorUserIds.push(lop.chu_nhiem);
+    }
+    
+    if (classCreatorUserIds.length === 0) {
+      return 0;
+    }
+    
+    // Build where clause: semester filter + status da_duyet + created by class
+    // This matches exactly what the "Có sẵn" tab shows
+    const hoatDongWhere = activityFilter && Object.keys(activityFilter).length > 0
+      ? {
+          AND: [
+            activityFilter, // Semester filter (may contain OR)
+            { trang_thai: 'da_duyet' },
+            { nguoi_tao_id: { in: classCreatorUserIds } }
+          ]
+        }
+      : {
+          AND: [
+            { trang_thai: 'da_duyet' },
+            { nguoi_tao_id: { in: classCreatorUserIds } }
+          ]
+        };
+
+    // Count directly from hoatDong table
+    const count = await prisma.hoatDong.count({
+      where: hoatDongWhere
+    });
+
+    // Log for debugging
+    const { logInfo } = require('../../core/logger');
+    logInfo('countApprovedActivitiesForClass', {
+      classId,
+      classCreatorUserIdsCount: classCreatorUserIds.length,
+      activityFilter: JSON.stringify(activityFilter),
+      hoatDongWhere: JSON.stringify(hoatDongWhere),
+      count
+    });
+
+    return count;
+  }
+
+  /**
+   * Count class-created activities in a strict semester (no status constraint)
+   * Matches the Activities list page total which filters by exact hoc_ky/nam_hoc
+   */
+  async countActivitiesForClassStrict(classId, semesterWhere) {
+    // Get class creators (students + homeroom teacher)
+    const classStudents = await this.findAllStudentsInClass(classId);
+    const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+
+    const lop = await this.findClassById(classId);
+    if (lop?.chu_nhiem) {
+      classCreatorUserIds.push(lop.chu_nhiem);
+    }
+
+    if (classCreatorUserIds.length === 0) return 0;
+
+    const where = {
+      AND: [
+        semesterWhere || {},
+        { nguoi_tao_id: { in: classCreatorUserIds } }
+      ]
+    };
+
+    const count = await prisma.hoatDong.count({ where });
+
+    const { logInfo } = require('../../core/logger');
+    logInfo('countActivitiesForClassStrict', {
+      classId,
+      classCreatorUserIdsCount: classCreatorUserIds.length,
+      semesterWhere: JSON.stringify(semesterWhere),
+      count
+    });
+
+    return count;
+  }
+
+  /**
+   * Find class registrations for reports
+   * Filters by semester and activity status
+   */
+  async findClassRegistrationsForReports(classId, activityFilter) {
+    // Build where clause for hoat_dong
+    // If activityFilter has OR (from buildRobustActivitySemesterWhere), we need to combine it with trang_thai filter
+    const hoatDongWhere = activityFilter && Object.keys(activityFilter).length > 0
+      ? { AND: [ activityFilter, { trang_thai: { in: ['da_duyet', 'ket_thuc'] } } ] }
+      : { trang_thai: { in: ['da_duyet', 'ket_thuc'] } };
+
+    return await prisma.dangKyHoatDong.findMany({
+      where: {
+        sinh_vien: { lop_id: classId },
+        hoat_dong: { is: hoatDongWhere }
+      },
+      include: {
+        hoat_dong: {
+          select: {
+            id: true,
+            diem_rl: true,
+            ngay_bd: true,
+            hoc_ky: true,
+            nam_hoc: true,
+            loai_hd: { select: { ten_loai_hd: true } }
+          }
+        },
+        sinh_vien: { 
+          select: { 
+            id: true, 
+            mssv: true, 
+            nguoi_dung: { select: { ho_ten: true } } 
+          } 
+        }
+      }
+    });
+  }
 }
 
 module.exports = new MonitorRepository();
+
+
+
+
+

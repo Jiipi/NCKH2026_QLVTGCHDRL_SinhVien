@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const activityTypesService = require('./activity-types.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { logError } = require('../../utils/logger');
-const { auth: authenticateJWT, requireAdmin } = require('../../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { logError } = require('../../core/logger');
+const { auth: authenticateJWT, requireAdmin } = require('../../core/http/middleware/authJwt');
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
 
 /**
- * @route   GET /api/v2/activity-types
+ * @route   GET /api/core/activity-types
  * @desc    Get paginated list of activity types with search
  * @access  Authenticated users (students need this for filtering)
  */
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/activity-types/:id
+ * @route   GET /api/core/activity-types/:id
  * @desc    Get single activity type by ID
  * @access  Authenticated users
  */
@@ -43,7 +43,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/activity-types
+ * @route   POST /api/core/activity-types
  * @desc    Create new activity type
  * @access  Admin only
  */
@@ -58,7 +58,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v2/activity-types/:id
+ * @route   PUT /api/core/activity-types/:id
  * @desc    Update existing activity type
  * @access  Admin only
  */
@@ -74,7 +74,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/v2/activity-types/:id
+ * @route   DELETE /api/core/activity-types/:id
  * @desc    Delete activity type
  * @access  Admin only
  */
@@ -90,3 +90,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

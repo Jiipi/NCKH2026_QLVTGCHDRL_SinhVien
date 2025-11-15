@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const adminUsersService = require('../services/admin-users.service');
-const { ApiResponse, sendResponse } = require('../utils/response');
-const { logError } = require('../utils/logger');
-const { auth: authenticateJWT, requireAdmin } = require('../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../core/http/response/apiResponse');
+const { logError } = require('../core/logger');
+const { auth: authenticateJWT, requireAdmin } = require('../core/http/middleware/authJwt');
 const { z } = require('zod');
 
 // Apply authentication and admin authorization to all routes
@@ -11,7 +11,7 @@ router.use(authenticateJWT);
 router.use(requireAdmin);
 
 /**
- * @route   GET /api/v2/admin/users
+ * @route   GET /api/core/admin/users
  * @desc    Get paginated users list with filters
  * @access  Admin only
  * @query   page, limit, search, role
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/admin/users/export
+ * @route   GET /api/core/admin/users/export
  * @desc    Export users to CSV
  * @access  Admin only
  * @query   search, role, status
@@ -46,7 +46,7 @@ router.get('/export', async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/admin/users/:id
+ * @route   GET /api/core/admin/users/:id
  * @desc    Get user details by ID
  * @access  Admin only
  */
@@ -62,7 +62,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/admin/users
+ * @route   POST /api/core/admin/users
  * @desc    Create new user
  * @access  Admin only
  * @body    {
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v2/admin/users/:id
+ * @route   PUT /api/core/admin/users/:id
  * @desc    Update user
  * @access  Admin only
  * @body    {
@@ -124,7 +124,7 @@ router.put('/:id', async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/v2/admin/users/:id
+ * @route   DELETE /api/core/admin/users/:id
  * @desc    Delete user completely from system
  * @access  Admin only
  */
@@ -146,3 +146,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+

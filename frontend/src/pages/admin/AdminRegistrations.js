@@ -3,11 +3,11 @@ import {
   Shield, Search, Filter, Eye, CheckCircle, XCircle, AlertCircle,
   Calendar, Activity, Clock, Download, Award, ArrowUp, ArrowDown
 } from 'lucide-react';
-import http from '../../services/http';
-import { extractRegistrationsFromAxiosResponse, extractActivitiesFromAxiosResponse } from '../../utils/apiNormalization';
-import { getUserAvatar } from '../../utils/avatarUtils';
-import { getBestActivityImage } from '../../utils/activityImages';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
+import http from '../../shared/api/http';
+import { extractRegistrationsFromAxiosResponse, extractActivitiesFromAxiosResponse } from '../../shared/lib/apiNormalization';
+import { getUserAvatar } from '../../shared/lib/avatar';
+import { getBestActivityImage } from '../../shared/lib/activityImages';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import useSemesterData from '../../hooks/useSemesterData';
 

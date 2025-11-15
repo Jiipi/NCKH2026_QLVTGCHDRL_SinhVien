@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import http from '../services/http';
+import http from '../shared/api/http';
 import '../styles/teacher-sidebar.css';
 import { 
   Users, 

@@ -4,7 +4,7 @@
  */
 
 const repo = require('./points.repo');
-const { logError } = require('../../utils/logger');
+const { logError } = require('../../core/logger');
 
 class PointsService {
   /**
@@ -100,6 +100,7 @@ class PointsService {
       },
       thong_ke: {
         tong_diem: totalPoints,
+        tong_diem_lam_tron: Math.round(totalPoints),
         tong_hoat_dong: totalActivities,
         diem_theo_loai: pointsByType,
         trang_thai_dang_ky: statusSummary
@@ -309,3 +310,8 @@ class PointsService {
 }
 
 module.exports = new PointsService();
+
+
+
+
+

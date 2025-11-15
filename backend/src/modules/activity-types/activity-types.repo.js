@@ -1,4 +1,4 @@
-const { prisma } = require('../../config/database');
+const { prisma } = require('../../infrastructure/prisma/client');
 
 /**
  * Activity Types Repository
@@ -127,3 +127,8 @@ class ActivityTypesRepository {
 }
 
 module.exports = new ActivityTypesRepository();
+
+
+
+
+

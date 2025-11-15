@@ -4,7 +4,7 @@
  * Không chứa business logic
  */
 
-const { prisma } = require('../../config/database');
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class ActivitiesRepository {
   /**
@@ -17,13 +17,16 @@ class ActivitiesRepository {
     const {
       page = 1,
       limit = 20,
-      sort = 'ngay_bd',
-      order = 'desc',
+      sort = 'ngay_cap_nhat', // ✅ FIX: Default sort by ngay_cap_nhat (last updated)
+      order = 'desc',         // ✅ DESC = mới nhất trước
       include = this.getDefaultInclude()
     } = options;
     
-    const skip = (page - 1) * limit;
-    const take = limit > 0 ? limit : undefined; // undefined = no limit
+    // Handle limit='all' or undefined (no pagination)
+    const effectiveLimit = limit === 'all' || limit === undefined ? undefined : parseInt(limit);
+    const effectivePage = effectiveLimit === undefined ? 1 : parseInt(page);
+    const skip = effectiveLimit ? (effectivePage - 1) * effectiveLimit : undefined;
+    const take = effectiveLimit;
     
     // Build orderBy
     let orderBy = {};
@@ -46,9 +49,9 @@ class ActivitiesRepository {
     return {
       items,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: limit > 0 ? Math.ceil(total / limit) : 1
+      page: effectivePage,
+      limit: effectiveLimit || total, // If limit='all', return total as limit
+      totalPages: effectiveLimit ? Math.ceil(total / effectiveLimit) : 1
     };
   }
   
@@ -241,3 +244,8 @@ class ActivitiesRepository {
 }
 
 module.exports = new ActivitiesRepository();
+
+
+
+
+

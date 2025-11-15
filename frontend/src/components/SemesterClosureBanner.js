@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Hourglass, Lock } from 'lucide-react';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 // Lightweight, read-only banner to show semester closing/soft-lock status and countdown
 // Props: { classId?: string, refreshMs?: number }

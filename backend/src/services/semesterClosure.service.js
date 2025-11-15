@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { getSemesterDataDir, getMetadataPath } = require('../utils/paths');
-const { prisma } = require('../config/database');
-const { determineSemesterFromDate, parseSemesterString } = require('../utils/semester');
+const { getSemesterDataDir, getMetadataPath } = require('../core/utils/paths');
+const { prisma } = require('../infrastructure/prisma/client');
+const { determineSemesterFromDate, parseSemesterString } = require('../core/utils/semester');
 
 // Use configurable dir (env) or OS temp as safe writable default
 const DATA_DIR = getSemesterDataDir();
@@ -16,6 +16,13 @@ function semesterKeyFromInfo({ semester, year }) {
 }
 
 function getCurrentSemesterInfo() {
+  // Ưu tiên đọc từ metadata (học kỳ đã được admin kích hoạt)
+  const active = readActiveSemesterFromMetadata();
+  if (active && /^hoc_ky_[12]-\d{4}$/.test(active)) {
+    const [hk, y] = active.split('-');
+    return { semester: hk, year: y };
+  }
+  // Fallback: tính từ ngày hiện tại nếu không có metadata
   const info = determineSemesterFromDate(new Date());
   return { semester: info.semester, year: info.year };
 }
@@ -334,3 +341,7 @@ const SemesterClosureService = {
 };
 
 module.exports = SemesterClosureService;
+
+
+
+

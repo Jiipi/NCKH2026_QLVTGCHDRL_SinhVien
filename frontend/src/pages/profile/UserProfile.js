@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import Header from '../../components/Header';
 import StudentSidebar from '../../components/StudentSidebar';
 import { useAppStore } from '../../store/useAppStore';
 import { useNotification } from '../../contexts/NotificationContext';
-import { formatDateVN } from '../../utils/dateFormat';
+import { formatDateVN } from '../../shared/lib/date';
 
 export default function UserProfile() {
   const { showSuccess, showError } = useNotification();
@@ -41,7 +41,7 @@ export default function UserProfile() {
       setLoading(true);
       let response;
       try {
-        response = await http.get('/v2/profile');
+        response = await http.get('/core/profile');
       } catch (e) {
         response = await http.get('/auth/profile');
       }
@@ -66,7 +66,7 @@ export default function UserProfile() {
     e.preventDefault();
     try {
       const updateData = { ...formData };
-      await http.put('/v2/profile', updateData);
+      await http.put('/core/profile', updateData);
       setEditing(false);
       loadProfile();
       showSuccess('Cập nhật thông tin thành công', 'Thành công', 8000);

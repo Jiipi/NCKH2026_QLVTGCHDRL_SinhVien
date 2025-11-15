@@ -3,8 +3,7 @@
  * Data access layer for notification operations
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 class NotificationsRepository {
   /**
@@ -346,3 +345,8 @@ class NotificationsRepository {
 }
 
 module.exports = new NotificationsRepository();
+
+
+
+
+

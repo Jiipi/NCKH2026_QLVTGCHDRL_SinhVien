@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Calendar, TrendingUp, Zap, Shield, Building2, GraduationCap } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 
 export default function AdminNotifications() {
@@ -24,10 +24,10 @@ export default function AdminNotifications() {
   const [stats, setStats] = useState({ total: 0, thisWeek: 0, systemScope: 0, roleScope: 0, classScope: 0 });
   
   const templates = [
-    { id: 1, name: 'Thông báo hệ thống', title: 'Thông báo bảo trì hệ thống', message: 'Hệ thống sẽ bảo trì từ [Thời gian]. Vui lòng lưu công việc và đăng xuất trước đó.' },
-    { id: 2, name: 'Thông báo sinh viên', title: 'Thông báo quan trọng tới sinh viên', message: 'Tất cả sinh viên vui lòng chú ý: [Nội dung]' },
-    { id: 3, name: 'Thông báo giảng viên', title: 'Hướng dẫn cho giảng viên', message: 'Kính gửi quý thầy cô, [Nội dung hướng dẫn]' },
-    { id: 4, name: 'Thông báo khẩn cấp', title: ' THÔNG BÁO KHẨN CẤP', message: 'Có tình huống khẩn cấp cần xử lý ngay. Vui lòng liên hệ phòng quản lý.' }
+    { id: 1, name: 'Th�ng b�o h? th?ng', title: 'Th�ng b�o b?o tr? h? th?ng', message: 'H? th?ng s? b?o tr? t? [Th?i gian]. Vui l?ng l�u c�ng vi?c v� ��ng xu?t tr�?c ��.' },
+    { id: 2, name: 'Th�ng b�o sinh vi�n', title: 'Th�ng b�o quan tr?ng t?i sinh vi�n', message: 'T?t c? sinh vi�n vui l?ng ch� ?: [N?i dung]' },
+    { id: 3, name: 'Th�ng b�o gi?ng vi�n', title: 'H�?ng d?n cho gi?ng vi�n', message: 'K�nh g?i qu? th?y c�, [N?i dung h�?ng d?n]' },
+    { id: 4, name: 'Th�ng b�o kh?n c?p', title: ' TH�NG B�O KH?N C?P', message: 'C� t?nh hu?ng kh?n c?p c?n x? l? ngay. Vui l?ng li�n h? ph?ng qu?n l?.' }
   ];
 
   useEffect(() => {
@@ -92,23 +92,23 @@ export default function AdminNotifications() {
     setError('');
     setSuccess('');
     if (!title || !message) {
-      setError('Vui lòng nhập tiêu đề và nội dung');
+      setError('Vui l?ng nh?p ti�u �? v� n?i dung');
       return;
     }
     if (scope === 'role' && !targetRole) {
-      setError('Vui lòng chọn vai trò');
+      setError('Vui l?ng ch?n vai tr?');
       return;
     }
     if (scope === 'class' && !targetClass) {
-      setError('Vui lòng chọn lớp');
+      setError('Vui l?ng ch?n l?p');
       return;
     }
     if (scope === 'department' && !targetDepartment) {
-      setError('Vui lòng nhập tên khoa');
+      setError('Vui l?ng nh?p t�n khoa');
       return;
     }
     if (scope === 'activity' && !activityId) {
-      setError('Vui lòng chọn hoạt động');
+      setError('Vui l?ng ch?n ho?t �?ng');
       return;
     }
     try {
@@ -120,7 +120,7 @@ export default function AdminNotifications() {
       if (scope === 'activity') payload.activityId = activityId;
       const response = await http.post('/admin/notifications/broadcast', payload);
       const count = response.data?.data?.count || 0;
-      showSuccess(`Đã gửi thông báo thành công đến ${count} người nhận! `);
+      showSuccess(`�? g?i th�ng b�o th�nh c�ng �?n ${count} ng�?i nh?n! `);
       setTitle('');
       setMessage('');
       setTargetRole('');
@@ -131,7 +131,7 @@ export default function AdminNotifications() {
       loadBroadcastHistory(); // Reload history after sending
     } catch (err) {
       const apiMsg = err?.response?.data?.message;
-      showError(apiMsg ? String(apiMsg) : 'Không thể gửi thông báo');
+      showError(apiMsg ? String(apiMsg) : 'Kh�ng th? g?i th�ng b�o');
     } finally {
       setSending(false);
     }
@@ -155,12 +155,12 @@ export default function AdminNotifications() {
 
   const getScopeLabel = (scopeType) => {
     switch (scopeType) {
-      case 'system': return ' Toàn hệ thống';
-      case 'role': return ' Theo vai trò';
-      case 'class': return ' Theo lớp';
+      case 'system': return ' To�n h? th?ng';
+      case 'role': return ' Theo vai tr?';
+      case 'class': return ' Theo l?p';
       case 'department': return ' Theo khoa';
-      case 'activity': return ' Theo hoạt động';
-      default: return 'Cá nhân';
+      case 'activity': return ' Theo ho?t �?ng';
+      default: return 'C� nh�n';
     }
   };
 
@@ -190,13 +190,13 @@ export default function AdminNotifications() {
                   <Shield className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white drop-shadow-lg">Quản lý Thông Báo</h1>
-                  <p className="text-orange-100 mt-1">Gửi thông báo broadcast tới toàn hệ thống hoặc nhóm cụ thể</p>
+                  <h1 className="text-3xl font-bold text-white drop-shadow-lg">Qu?n l? Th�ng B�o</h1>
+                  <p className="text-orange-100 mt-1">G?i th�ng b�o broadcast t?i to�n h? th?ng ho?c nh�m c? th?</p>
                 </div>
               </div>
               <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-2 px-6 py-3 bg-white text-red-600 rounded-2xl hover:bg-red-50 transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 font-semibold">
                 <Clock className="h-5 w-5" />
-                {showHistory ? 'Ẩn lịch sử' : 'Xem lịch sử'}
+                {showHistory ? '?n l?ch s?' : 'Xem l?ch s?'}
               </button>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function AdminNotifications() {
               <Sparkles className="h-5 w-5 opacity-50" />
             </div>
             <div className="text-3xl font-bold mb-1">{stats.total}</div>
-            <div className="text-orange-100 text-sm font-medium">Tổng thông báo</div>
+            <div className="text-orange-100 text-sm font-medium">T?ng th�ng b�o</div>
           </div>
           <div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
             <div className="flex items-center justify-between mb-2">
@@ -216,7 +216,7 @@ export default function AdminNotifications() {
               <TrendingUp className="h-5 w-5 opacity-50" />
             </div>
             <div className="text-3xl font-bold mb-1">{stats.thisWeek}</div>
-            <div className="text-emerald-100 text-sm font-medium">Tuần này</div>
+            <div className="text-emerald-100 text-sm font-medium">Tu?n n�y</div>
           </div>
           <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
             <div className="flex items-center justify-between mb-2">
@@ -224,7 +224,7 @@ export default function AdminNotifications() {
               <Target className="h-5 w-5 opacity-50" />
             </div>
             <div className="text-3xl font-bold mb-1">{stats.systemScope}</div>
-            <div className="text-purple-100 text-sm font-medium">Hệ thống</div>
+            <div className="text-purple-100 text-sm font-medium">H? th?ng</div>
           </div>
           <div className="bg-gradient-to-br from-indigo-500 to-blue-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
             <div className="flex items-center justify-between mb-2">
@@ -232,7 +232,7 @@ export default function AdminNotifications() {
               <Filter className="h-5 w-5 opacity-50" />
             </div>
             <div className="text-3xl font-bold mb-1">{stats.roleScope}</div>
-            <div className="text-indigo-100 text-sm font-medium">Theo vai trò</div>
+            <div className="text-indigo-100 text-sm font-medium">Theo vai tr?</div>
           </div>
           <div className="bg-gradient-to-br from-amber-500 to-yellow-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
             <div className="flex items-center justify-between mb-2">
@@ -240,7 +240,7 @@ export default function AdminNotifications() {
               <Activity className="h-5 w-5 opacity-50" />
             </div>
             <div className="text-3xl font-bold mb-1">{stats.classScope}</div>
-            <div className="text-amber-100 text-sm font-medium">Theo lớp</div>
+            <div className="text-amber-100 text-sm font-medium">Theo l?p</div>
           </div>
         </div>
         {error && (
@@ -258,7 +258,7 @@ export default function AdminNotifications() {
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-orange-600" />
-            Mẫu thông báo nhanh
+            M?u th�ng b�o nhanh
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             {templates.map(template => (
@@ -273,45 +273,45 @@ export default function AdminNotifications() {
           <div>
             <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
               <MessageSquare className="h-4 w-4 text-red-600" />
-              Tiêu đề thông báo
+              Ti�u �? th�ng b�o
             </label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium" placeholder="Nhập tiêu đề ngắn gọn, rõ ràng..." />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium" placeholder="Nh?p ti�u �? ng?n g?n, r? r�ng..." />
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="flex text-sm font-bold text-gray-900 items-center gap-2">
                 <Bell className="h-4 w-4 text-red-600" />
-                Nội dung thông báo
+                N?i dung th�ng b�o
               </label>
               <span className={`text-xs font-medium ${charCount > maxChars ? 'text-red-600' : 'text-gray-500'}`}>{charCount}/{maxChars}</span>
             </div>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} maxLength={maxChars} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all resize-none" placeholder="Nhập nội dung chi tiết thông báo..." />
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} maxLength={maxChars} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all resize-none" placeholder="Nh?p n?i dung chi ti?t th�ng b�o..." />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
                 <Target className="h-4 w-4 text-red-600" />
-                Phạm vi gửi
+                Ph?m vi g?i
               </label>
               <select value={scope} onChange={(e) => { setScope(e.target.value); setTargetRole(''); setTargetClass(''); setTargetDepartment(''); setActivityId(''); }} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium">
-                <option value="system"> Toàn hệ thống</option>
-                <option value="role"> Theo vai trò</option>
-                <option value="class"> Theo lớp</option>
+                <option value="system"> To�n h? th?ng</option>
+                <option value="role"> Theo vai tr?</option>
+                <option value="class"> Theo l?p</option>
                 <option value="department"> Theo khoa</option>
-                <option value="activity"> Theo hoạt động</option>
+                <option value="activity"> Theo ho?t �?ng</option>
               </select>
             </div>
             {scope === 'role' && (
               <div>
                 <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
                   <Users className="h-4 w-4 text-red-600" />
-                  Chọn vai trò
+                  Ch?n vai tr?
                 </label>
                 <select value={targetRole} onChange={(e) => setTargetRole(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium">
-                  <option value="">-- Chọn vai trò --</option>
-                  <option value="ADMIN"> Quản trị viên</option>
-                  <option value="GIANG_VIEN"> Giảng viên</option>
-                  <option value="SINH_VIEN"> Sinh viên</option>
+                  <option value="">-- Ch?n vai tr? --</option>
+                  <option value="ADMIN"> Qu?n tr? vi�n</option>
+                  <option value="GIANG_VIEN"> Gi?ng vi�n</option>
+                  <option value="SINH_VIEN"> Sinh vi�n</option>
                 </select>
               </div>
             )}
@@ -319,10 +319,10 @@ export default function AdminNotifications() {
               <div>
                 <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
                   <GraduationCap className="h-4 w-4 text-red-600" />
-                  Chọn lớp
+                  Ch?n l?p
                 </label>
                 <select value={targetClass} onChange={(e) => setTargetClass(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium">
-                  <option value="">-- Chọn lớp --</option>
+                  <option value="">-- Ch?n l?p --</option>
                   {classes.map(cls => (
                     <option key={cls.id} value={cls.id}>{cls.ten_lop} - {cls.khoa} ({cls.soLuongSinhVien || 0} SV)</option>
                   ))}
@@ -333,19 +333,19 @@ export default function AdminNotifications() {
               <div>
                 <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
                   <Building2 className="h-4 w-4 text-red-600" />
-                  Tên khoa
+                  T�n khoa
                 </label>
-                <input value={targetDepartment} onChange={(e) => setTargetDepartment(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium" placeholder="VD: Công nghệ thông tin" />
+                <input value={targetDepartment} onChange={(e) => setTargetDepartment(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium" placeholder="VD: C�ng ngh? th�ng tin" />
               </div>
             )}
             {scope === 'activity' && (
               <div>
                 <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
                   <Activity className="h-4 w-4 text-red-600" />
-                  Chọn hoạt động
+                  Ch?n ho?t �?ng
                 </label>
                 <select value={activityId} onChange={(e) => setActivityId(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-medium">
-                  <option value="">-- Chọn hoạt động --</option>
+                  <option value="">-- Ch?n ho?t �?ng --</option>
                   {activities.map(activity => (
                     <option key={activity.id} value={activity.id}>{activity.ten_hd || activity.ten_hoat_dong || `HD ${activity.id}`}</option>
                   ))}
@@ -354,10 +354,10 @@ export default function AdminNotifications() {
             )}
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => { setTitle(''); setMessage(''); setTargetRole(''); setTargetClass(''); setTargetDepartment(''); setActivityId(''); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-semibold">Đặt lại</button>
+            <button type="button" onClick={() => { setTitle(''); setMessage(''); setTargetRole(''); setTargetClass(''); setTargetDepartment(''); setActivityId(''); }} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-semibold">�?t l?i</button>
             <button type="submit" disabled={sending} className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl hover:from-red-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed font-semibold">
               <Send className="h-5 w-5" />
-              {sending ? 'Đang gửi...' : 'Gửi thông báo'}
+              {sending ? '�ang g?i...' : 'G?i th�ng b�o'}
             </button>
           </div>
         </form>
@@ -365,7 +365,7 @@ export default function AdminNotifications() {
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl border-2 border-white shadow-lg p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <Clock className="h-6 w-6 text-red-600" />
-              Lịch sử gửi thông báo
+              L?ch s? g?i th�ng b�o
             </h3>
             <div className="space-y-3">
               {sentHistory.map((item) => (
@@ -375,13 +375,13 @@ export default function AdminNotifications() {
                     <p className="font-semibold text-gray-900">{item.title}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-gray-600 flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(item.date).toLocaleDateString('vi-VN')}</span>
-                      <span className="text-xs text-gray-600 flex items-center gap-1"><Users className="h-3 w-3" />{item.recipients} người nhận</span>
+                      <span className="text-xs text-gray-600 flex items-center gap-1"><Users className="h-3 w-3" />{item.recipients} ng�?i nh?n</span>
                       <span className="text-xs px-2 py-1 rounded-lg font-semibold bg-red-100 text-red-700">{getScopeLabel(item.scope)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
                     <CheckCircle className="h-4 w-4" />
-                    Đã gửi
+                    �? g?i
                   </div>
                 </div>
               ))}
@@ -395,13 +395,13 @@ export default function AdminNotifications() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold flex items-center gap-2">
                     <MessageSquare className="h-6 w-6" />
-                    Chi tiết thông báo broadcast
+                    Chi ti?t th�ng b�o broadcast
                   </h2>
                   <button
                     onClick={() => setShowDetailModal(false)}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                   >
-                    <span className="text-2xl">×</span>
+                    <span className="text-2xl">�</span>
                   </button>
                 </div>
               </div>
@@ -409,12 +409,12 @@ export default function AdminNotifications() {
               <div className="p-6 space-y-6">
                 {/* Basic Info */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">Tiêu đề</label>
+                  <label className="text-sm font-semibold text-gray-600 mb-2 block">Ti�u �?</label>
                   <p className="text-lg font-bold text-gray-900">{selectedNotification.title}</p>
                 </div>
 
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">Nội dung</label>
+                  <label className="text-sm font-semibold text-gray-600 mb-2 block">N?i dung</label>
                   <p className="text-gray-800 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl border border-gray-200">
                     {selectedNotification.message}
                   </p>
@@ -423,7 +423,7 @@ export default function AdminNotifications() {
                 {/* Scope Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Phạm vi gửi</label>
+                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Ph?m vi g?i</label>
                     <div className={`px-4 py-2 rounded-xl font-semibold inline-flex items-center gap-2 ${
                       selectedNotification.scope === 'system' ? 'bg-purple-100 text-purple-700' :
                       selectedNotification.scope === 'role' ? 'bg-blue-100 text-blue-700' :
@@ -438,7 +438,7 @@ export default function AdminNotifications() {
                   </div>
                   
                   <div>
-                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Ngày gửi</label>
+                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Ng�y g?i</label>
                     <p className="text-gray-900 flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-red-600" />
                       {new Date(selectedNotification.date).toLocaleString('vi-VN')}
@@ -449,7 +449,7 @@ export default function AdminNotifications() {
                 {/* Sender Info */}
                 {selectedNotification.senderName && (
                   <div className="bg-gradient-to-br from-gray-50 to-indigo-50 p-4 rounded-xl border border-gray-200">
-                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Người gửi</label>
+                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Ng�?i g?i</label>
                     <div className="flex items-center gap-2">
                       <p className="text-gray-900 font-medium">{selectedNotification.senderName}</p>
                       <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-semibold">
@@ -462,7 +462,7 @@ export default function AdminNotifications() {
                 {/* Scope Details */}
                 {selectedNotification.roles && selectedNotification.roles.length > 0 && (
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
-                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Vai trò nhận</label>
+                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Vai tr? nh?n</label>
                     <div className="flex flex-wrap gap-2">
                       {selectedNotification.roles.map((role, idx) => (
                         <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold">
@@ -475,7 +475,7 @@ export default function AdminNotifications() {
 
                 {selectedNotification.classes && selectedNotification.classes.length > 0 && (
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
-                    <label className="text-sm font-semibold text-gray-600 mb-2 block">Lớp nhận</label>
+                    <label className="text-sm font-semibold text-gray-600 mb-2 block">L?p nh?n</label>
                     <div className="flex flex-wrap gap-2">
                       {selectedNotification.classes.map((cls, idx) => (
                         <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">
@@ -488,10 +488,10 @@ export default function AdminNotifications() {
 
                 {/* Recipients Info */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">Người nhận</label>
+                  <label className="text-sm font-semibold text-gray-600 mb-2 block">Ng�?i nh?n</label>
                   <div className="flex items-center gap-2 text-gray-900">
                     <Users className="h-5 w-5 text-red-600" />
-                    <span className="font-bold text-lg">{selectedNotification.recipients} người</span>
+                    <span className="font-bold text-lg">{selectedNotification.recipients} ng�?i</span>
                   </div>
                   {selectedNotification.recipientsList && selectedNotification.recipientsList.length > 0 && (
                     <div className="mt-3 max-h-40 overflow-y-auto bg-gray-50 rounded-xl p-4 border border-gray-200">
@@ -510,7 +510,7 @@ export default function AdminNotifications() {
                         ))}
                         {selectedNotification.recipients > selectedNotification.recipientsList.length && (
                           <div className="text-sm text-gray-500 italic pt-2 border-t border-gray-200">
-                            ... và {selectedNotification.recipients - selectedNotification.recipientsList.length} người khác
+                            ... v� {selectedNotification.recipients - selectedNotification.recipientsList.length} ng�?i kh�c
                           </div>
                         )}
                       </div>
@@ -524,7 +524,7 @@ export default function AdminNotifications() {
                   onClick={() => setShowDetailModal(false)} 
                   className="px-6 py-2 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl hover:from-red-700 hover:to-orange-700 transition-all font-semibold shadow-lg"
                 >
-                  Đóng
+                  ��ng
                 </button>
               </div>
             </div>

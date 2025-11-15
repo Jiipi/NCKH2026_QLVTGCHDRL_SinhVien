@@ -1,124 +1,17 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
-const compression = require('compression');
+/**
+ * Application Entry Point
+ * Uses new modular architecture with app/server.js
+ */
 
-const config = require('./config/app');
-const { connectDB, disconnectDB } = require('./config/database');
-const corsMw = require('./middlewares/cors');
-const sanitizeMw = require('./middlewares/sanitize');
-const notFound = require('./middlewares/notFound');
-const error = require('./middlewares/error');
-const routes = require('./routes');
-const { logInfo, logError } = require('./utils/logger');
-const autoPointCalculationService = require('./services/auto-point-calculation.service');
+const { createServer } = require('./app/server');
+const { connectDB, disconnectDB } = require('./infrastructure/prisma/client');
+const { logInfo, logError } = require('./core/logger');
+const config = require('./core/config');
 
-const app = express();
+// Create Express app
+const app = createServer();
 
-// CORS middleware - phải được đặt trước tất cả routes
-app.use(corsMw);
-
-// Security middleware with basic CSP
-app.use(helmet({
-  // Relax CORP so resources under /uploads can be used cross-origin by the frontend (e.g., localhost:3000)
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  // Disable COEP for dev to avoid requiring corp on all embedded resources
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      "default-src": ["'self'"],
-      // Note: CSP applies to documents we serve; in dev, the app runs on a different origin
-      // and its own dev server controls CSP. Keeping this permissive enough for images we host.
-      "img-src": ["'self'", 'data:', 'blob:'],
-      "style-src": ["'self'", "'unsafe-inline'"],
-      "script-src": ["'self'"],
-      "connect-src": ["'self'"],
-    }
-  }
-}));
-
-// Compression middleware
-app.use(compression());
-
-// Rate limiting
-const limiter = rateLimit({
-  ...config.rateLimit,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${req.user?.sub || 'anon'}`,
-  skip: (req) => {
-    // Skip rate limiting for demo accounts endpoint
-    return req.path === '/api/auth/demo-accounts';
-  }
-});
-app.use('/api/', limiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Global sanitize to reduce XSS risk from inputs
-app.use(sanitizeMw);
-
-// Request logging middleware
-app.use((req, res, next) => {
-  logInfo(`${req.method} ${req.path}`, {
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    timestamp: new Date().toISOString()
-  });
-  next();
-});
-
-// Serve uploaded files statically with CORS enabled
-const uploadsPath = path.resolve(__dirname, '../uploads');
-app.use('/uploads', corsMw, express.static(uploadsPath, {
-  setHeaders: (res, p) => {
-    // Allow other origins (e.g., localhost:3000) to use these resources without CORP blocking
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    // CORS is handled by corsMw; we also add long cache for static files
-    res.setHeader('Cache-Control', 'public, max-age=31536000');
-  }
-}));
-
-// API routes
-app.use('/api', routes);
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: config.nodeEnv
-  });
-});
-
-// Serve frontend build (single-process deployment)
-try {
-  // In container, we copy built frontend to /app/frontend/build
-  const frontendBuildPath = path.resolve(__dirname, '../../frontend/build');
-  if (fs.existsSync(frontendBuildPath)) {
-    app.use(express.static(frontendBuildPath));
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
-      res.sendFile(path.join(frontendBuildPath, 'index.html'));
-    });
-  }
-} catch (e) {
-  // ignore if build not present
-}
-
-// 404 handler
-app.use(notFound);
-
-// Error handler
-app.use(error);
-
-// Graceful shutdown
+// Graceful shutdown handlers
 process.on('SIGTERM', async () => {
   logInfo('SIGTERM received, shutting down gracefully');
   await disconnectDB();
@@ -131,14 +24,17 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Start server
+/**
+ * Start server
+ */
 const startServer = async () => {
   try {
-    // Connect to database
+  // Connect to database
     await connectDB();
-    
+
     // Initialize auto point calculation scheduler if available
     try {
+      const autoPointCalculationService = require('./services/auto-point-calculation.service');
       if (autoPointCalculationService && typeof autoPointCalculationService.init === 'function') {
         autoPointCalculationService.init();
       } else {
@@ -147,13 +43,14 @@ const startServer = async () => {
     } catch (e) {
       logError('Auto point calculation init failed (continuing without it)', e);
     }
-    
+
     // Start listening
-    app.listen(config.port, () => {
+    app.listen(config.server.port, config.server.host, () => {
       logInfo(`🚀 Server started successfully`, {
-        port: config.port,
-        environment: config.nodeEnv,
-        timestamp: new Date().toISOString()
+        port: config.server.port,
+        host: config.server.host,
+        environment: config.server.nodeEnv,
+        timestamp: new Date().toISOString(),
       });
     });
   } catch (error) {
@@ -163,3 +60,6 @@ const startServer = async () => {
 };
 
 startServer();
+
+
+

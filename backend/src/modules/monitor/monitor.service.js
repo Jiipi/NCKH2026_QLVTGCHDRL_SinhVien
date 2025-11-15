@@ -1,6 +1,6 @@
 const monitorRepo = require('./monitor.repo');
-const { logInfo, logError } = require('../../utils/logger');
-const { parseSemesterString, buildRobustActivitySemesterWhere } = require('../../utils/semester');
+const { logInfo, logError } = require('../../core/logger');
+const { parseSemesterString, buildRobustActivitySemesterWhere } = require('../../core/utils/semester');
 const SemesterClosure = require('../../services/semesterClosure.service');
 
 class MonitorService {
@@ -15,53 +15,53 @@ class MonitorService {
     try {
       logInfo('Getting class students', { classId, semester });
 
-      // Parse semester filter
-      const si = parseSemesterString(semester || 'current');
-      const activityFilter = si ? { hoc_ky: si.semester, nam_hoc: { contains: si.year } } : {};
+      // Build robust semester filter for activities (matches exact labels, contains year, or date range)
+      const activityFilter = semester ? buildRobustActivitySemesterWhere(semester) : buildRobustActivitySemesterWhere('current');
 
       // Get all students in the class
       const students = await monitorRepo.findStudentsByClass(classId);
 
-      // Get activities and points for each student
-      const studentsWithPoints = await Promise.all(
-        students.map(async (student) => {
-          const activities = await monitorRepo.findStudentRegistrations(student.id, activityFilter);
+      // Fetch all participated registrations once and aggregate by student
+      const regs = await monitorRepo.findClassRegistrationsForPoints(classId, activityFilter);
+      const totalsByStudent = new Map();
+      const lastDateByStudent = new Map();
+      const countByStudent = new Map();
+      regs.forEach(r => {
+        const id = r.sv_id;
+        const cur = Number(totalsByStudent.get(id) || 0) + Number(r.hoat_dong?.diem_rl || 0);
+        totalsByStudent.set(id, cur);
+        countByStudent.set(id, (countByStudent.get(id) || 0) + 1);
+        lastDateByStudent.set(id, r.ngay_dang_ky);
+      });
 
-          const totalPoints = activities.reduce((sum, activity) => {
-            return sum + Number(activity.hoat_dong?.diem_rl || 0);
-          }, 0);
+      const studentsWithPoints = students.map((student) => {
+        const totalPoints = Number(totalsByStudent.get(student.id) || 0);
+        const activitiesJoined = Number(countByStudent.get(student.id) || 0);
+        const lastActivityDate = lastDateByStudent.get(student.id) || null;
 
-          // ✅ V1 compatibility: activitiesJoined (total count)
-          const activitiesJoined = activities.length;
+        // Status based on points (critical < 30, warning < 50, active >= 50)
+        let status = 'active';
+        if (totalPoints < 30) status = 'critical';
+        else if (totalPoints < 50) status = 'warning';
 
-          // ✅ V1 compatibility: lastActivityDate (last registration date)
-          const lastActivityDate = activities.length > 0 
-            ? activities[activities.length - 1].ngay_dang_ky 
-            : null;
-
-          // ✅ V1 compatibility: status based on points (critical < 30, warning < 50, active >= 50)
-          let status = 'active';
-          if (totalPoints < 30) status = 'critical';
-          else if (totalPoints < 50) status = 'warning';
-
-          return {
-            id: student.id,
-            mssv: student.mssv,
-            nguoi_dung: {
-              ...student.nguoi_dung,
-              sdt: student.sdt // ✅ V1 compatibility: merge sdt from SinhVien model
-            },
-            lop: student.lop,
-            totalPoints,
-            activitiesJoined, // ✅ V1 field
-            lastActivityDate, // ✅ V1 field
-            rank: 0,
-            gpa: parseFloat((Math.random() * 2 + 2).toFixed(1)), // ✅ V1 mock data
-            academicYear: '2021-2025', // ✅ V1 mock data
-            status // ✅ V1 field: 'active' | 'warning' | 'critical'
-          };
-        })
-      );
+        return {
+          id: student.id,
+          mssv: student.mssv,
+          nguoi_dung: {
+            ...student.nguoi_dung,
+            sdt: student.sdt
+          },
+          lop: student.lop,
+          totalPoints,
+          totalPointsRounded: Math.round(totalPoints),
+          activitiesJoined,
+          lastActivityDate,
+          rank: 0,
+          gpa: parseFloat((Math.random() * 2 + 2).toFixed(1)),
+          academicYear: '2021-2025',
+          status
+        };
+      });
 
       // Sort by points and assign ranks
       studentsWithPoints.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -90,10 +90,26 @@ class MonitorService {
 
       // Build filters
       const activityFilter = semester ? buildRobustActivitySemesterWhere(semester) : {};
+      
+      // Get class creators (students + homeroom teacher) for filtering
+      const classStudents = await monitorRepo.findAllStudentsInClass(classId);
+      const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+      
+      // Get homeroom teacher
+      const lop = await monitorRepo.findClassById(classId);
+      if (lop?.chu_nhiem) {
+        classCreatorUserIds.push(lop.chu_nhiem);
+      }
+      
+      // Add class creators filter to activityFilter
+      const activityFilterWithClass = {
+        ...activityFilter,
+        nguoi_tao_id: { in: classCreatorUserIds }
+      };
 
       const registrations = await monitorRepo.findClassRegistrations(classId, {
         status,
-        activityFilter: (activityFilter && Object.keys(activityFilter).length) ? activityFilter : {}
+        activityFilter: (activityFilterWithClass && Object.keys(activityFilterWithClass).length) ? activityFilterWithClass : {}
       });
 
       return registrations;
@@ -104,13 +120,31 @@ class MonitorService {
   }
 
   /**
-   * Get pending registrations count
+   * Get pending registrations count (only class activities)
    * @param {string} classId - Class ID
    * @returns {Promise<number>} Count of pending registrations
    */
   static async getPendingRegistrationsCount(classId) {
     try {
-      const count = await monitorRepo.countPendingRegistrations(classId);
+      // Get class creators (students + homeroom teacher) for filtering
+      const classStudents = await monitorRepo.findAllStudentsInClass(classId);
+      const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+      
+      // Get homeroom teacher
+      const lop = await monitorRepo.findClassById(classId);
+      if (lop?.chu_nhiem) {
+        classCreatorUserIds.push(lop.chu_nhiem);
+      }
+      
+      // Filter by class creators
+      const activityFilter = {
+        nguoi_tao_id: { in: classCreatorUserIds }
+      };
+      
+      const count = await monitorRepo.countRegistrations(classId, { 
+        status: 'cho_duyet',
+        activityFilter
+      });
       return count;
     } catch (error) {
       logError('Error getting pending registrations count', error);
@@ -143,8 +177,10 @@ class MonitorService {
         userRole
       });
 
-      // Update registration
-      await monitorRepo.updateRegistrationStatus(registrationId, 'da_duyet');
+      // Update registration with approver meta in ghi_chu
+      await monitorRepo.updateRegistrationStatus(registrationId, 'da_duyet', {
+        ghi_chu: `APPROVED_BY:${userRole}|USER:${userId}`
+      });
 
       // Send notification to student
       try {
@@ -200,9 +236,10 @@ class MonitorService {
         userRole
       });
 
-      // Update registration
+      // Update registration with reject meta in ghi_chu
       await monitorRepo.updateRegistrationStatus(registrationId, 'tu_choi', {
-        ly_do_tu_choi: reason || 'Bị từ chối'
+        ly_do_tu_choi: reason || 'Bị từ chối',
+        ghi_chu: `REJECTED_BY:${userRole}|USER:${userId}`
       });
 
       // Send notification to student
@@ -246,10 +283,24 @@ class MonitorService {
       logInfo('Getting monitor dashboard', { classId, className, semester });
 
       const semInfo = parseSemesterString(semester || 'current');
-      const activityFilter = semInfo ? { 
-        hoc_ky: semInfo.semester, 
-        nam_hoc: { contains: semInfo.year } 
-      } : {};
+      // Use robust filter to avoid missing records due to label variations
+      const baseActivityFilter = semester ? buildRobustActivitySemesterWhere(semester) : buildRobustActivitySemesterWhere('current');
+
+      // Get class creators (students + homeroom teacher) for filtering
+      const classStudents = await monitorRepo.findAllStudentsInClass(classId);
+      const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
+      
+      // Get homeroom teacher
+      const lop = await monitorRepo.findClassById(classId);
+      if (lop?.chu_nhiem) {
+        classCreatorUserIds.push(lop.chu_nhiem);
+      }
+      
+      // Add class creators filter to activityFilter
+      const activityFilterWithClass = {
+        ...baseActivityFilter,
+        nguoi_tao_id: { in: classCreatorUserIds }
+      };
 
       // Parallel queries
       const [
@@ -258,35 +309,43 @@ class MonitorService {
         recentRegistrations,
         classActivities,
         allStudentsInClass,
-        classRegistrationsForCount
+        classRegistrationsForCount,
+        regsForPoints
       ] = await Promise.all([
         monitorRepo.countStudentsByClass(classId),
-        monitorRepo.countRegistrations(classId, { status: 'cho_duyet', activityFilter }),
-        monitorRepo.findRecentRegistrations(classId, activityFilter, 5),
-        monitorRepo.findUpcomingActivities(classId, activityFilter, 5),
+        monitorRepo.countRegistrations(classId, { status: 'cho_duyet', activityFilter: activityFilterWithClass }),
+        monitorRepo.findRecentRegistrations(classId, activityFilterWithClass, 5),
+        monitorRepo.findUpcomingActivities(classId, activityFilterWithClass, 5),
         monitorRepo.findAllStudentsInClass(classId),
-        monitorRepo.findClassRegistrationsForCount(classId, activityFilter)
+        // Count ALL activities registered by class (not filtered by creator)
+        monitorRepo.findClassRegistrationsForCount(classId, baseActivityFilter),
+        // IMPORTANT: Points must include ALL participated activities (no class-creator filter)
+        monitorRepo.findClassRegistrationsForPoints(classId, baseActivityFilter)
       ]);
 
       // Count distinct activities
       const uniqueActivities = [...new Set(classRegistrationsForCount.map(r => r.hd_id))];
       const totalActivities = uniqueActivities.length;
 
-      // Calculate points for ALL students (including those with 0 points)
-      const studentScores = await Promise.all(
-        allStudentsInClass.map(async (student) => {
-          const regs = await monitorRepo.findStudentRegistrations(student.id, activityFilter);
-          const totalPoints = regs.reduce((sum, r) => sum + Number(r.hoat_dong?.diem_rl || 0), 0);
+      // Calculate points for ALL students (participated only)
+      const pointsByStudent = new Map();
+      const countByStudent = new Map();
+      regsForPoints.forEach(r => {
+        pointsByStudent.set(r.sv_id, Number(pointsByStudent.get(r.sv_id) || 0) + Number(r.hoat_dong?.diem_rl || 0));
+        countByStudent.set(r.sv_id, (countByStudent.get(r.sv_id) || 0) + 1);
+      });
 
-          return {
-            id: student.id,
-            name: student.nguoi_dung?.ho_ten || 'N/A',
-            mssv: student.mssv,
-            points: totalPoints,
-            activitiesCount: regs.length
-          };
-        })
-      );
+      const studentScores = allStudentsInClass.map((student) => {
+        const pts = Number(pointsByStudent.get(student.id) || 0);
+        return {
+          id: student.id,
+          name: student.nguoi_dung?.ho_ten || 'N/A',
+          mssv: student.mssv,
+          points: pts,
+          pointsRounded: Math.round(pts),
+          activitiesCount: Number(countByStudent.get(student.id) || 0)
+        };
+      });
 
       // Sort by points descending
       const topStudents = studentScores.sort((a, b) => b.points - a.points);
@@ -339,6 +398,258 @@ class MonitorService {
       throw error;
     }
   }
+
+  /**
+   * Get class reports with statistics
+   * @param {string} classId - Class ID
+   * @param {Object} options - Options
+   * @param {string} options.timeRange - Time range filter
+   * @param {string} options.semester - Semester filter
+   * @returns {Promise<Object>} Report data
+   */
+  static async getClassReports(classId, options = {}) {
+    try {
+      const { timeRange = 'semester', semester } = options;
+      logInfo('Getting class reports', { classId, timeRange, semester });
+
+      const now = new Date();
+      let activityWhere = {};
+      if (semester) {
+        // Robust semester relation filter when semester provided
+        activityWhere = buildRobustActivitySemesterWhere(semester);
+        logInfo('Semester filter applied', { semester, activityWhere: JSON.stringify(activityWhere) });
+      } else {
+        let startDate;
+        switch (timeRange) {
+          case 'year':
+            startDate = new Date(now.getFullYear() - 1, 6, 1);
+            break;
+          case 'all':
+            startDate = new Date(2020, 0, 1);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth() - 4, 1);
+        }
+        activityWhere = { ngay_bd: { gte: startDate } };
+      }
+
+      const [totalStudents, regs, allRegsForPoints, approvedActivitiesCount, strictActivitiesCount] = await Promise.all([
+        monitorRepo.countStudentsByClass(classId),
+        monitorRepo.findClassRegistrationsForReports(classId, activityWhere),
+        // ✅ Lấy thêm registrations đã tham gia (da_tham_gia) để tính điểm và tỷ lệ tham gia
+        monitorRepo.findClassRegistrationsForPoints(classId, activityWhere),
+        // ✅ Đếm số hoạt động "Có sẵn" được lớp tạo và đã được duyệt (khớp thẻ hoạt động lớp)
+        monitorRepo.countApprovedActivitiesForClass(classId, activityWhere),
+        // ✅ Đếm tổng hoạt động lớp tạo theo filter học kỳ STRICT (khớp trang Hoạt động lớp - Tổng hoạt động)
+        (async () => {
+          if (semester) {
+            const sem = parseSemesterString(semester);
+            const strictWhere = sem?.semester && sem?.yearLabel ? { hoc_ky: sem.semester, nam_hoc: sem.yearLabel } : {};
+            return monitorRepo.countActivitiesForClassStrict(classId, strictWhere);
+          }
+          return 0;
+        })()
+      ]);
+
+      // Log để debug: kiểm tra số lượng registration và học kỳ của chúng
+      if (semester) {
+        const semesterInfo = parseSemesterString(semester);
+        logInfo('Reports data check', {
+          semester,
+          semesterInfo,
+          totalActivitiesApprovedClassCreated: approvedActivitiesCount,
+          totalRegistrations: regs.length,
+          totalParticipatedRegistrations: allRegsForPoints.length,
+          uniqueSemesters: [...new Set(regs.map(r => `${r.hoat_dong?.hoc_ky || 'N/A'}_${r.hoat_dong?.nam_hoc || 'N/A'}`))],
+          sampleRegistrations: regs.slice(0, 3).map(r => ({
+            id: r.id,
+            hoc_ky: r.hoat_dong?.hoc_ky,
+            nam_hoc: r.hoat_dong?.nam_hoc,
+            trang_thai_dk: r.trang_thai_dk
+          }))
+        });
+      }
+
+      // ✅ Calculate points per student from PARTICIPATED registrations (da_tham_gia) only
+      const studentPointsMap = new Map();
+      allRegsForPoints.forEach(r => {
+        const svId = r.sv_id;
+        const points = Number(r.hoat_dong?.diem_rl || 0);
+        studentPointsMap.set(svId, (studentPointsMap.get(svId) || 0) + points);
+      });
+      
+      const totalPoints = Array.from(studentPointsMap.values()).reduce((sum, pts) => sum + pts, 0);
+      const avgPoints = totalStudents > 0 ? totalPoints / totalStudents : 0;
+      
+      // ✅ Participation rate: students with PARTICIPATED registrations (da_tham_gia) / total students
+      const uniqueParticipants = new Set(allRegsForPoints.map(r => r.sv_id)).size;
+      const participationRate = totalStudents > 0 ? (uniqueParticipants / totalStudents) * 100 : 0;
+
+      // ✅ Pass both regs (for activity counting) and allRegsForPoints (for points/participation)
+      const monthlyActivities = this._calculateMonthlyActivities(regs, allRegsForPoints);
+      const activityTypes = this._calculateActivityTypes(regs);
+      const topStudents = this._calculateTopStudents(allRegsForPoints);
+      const pointsDistribution = this._calculatePointsDistribution(allRegsForPoints, totalStudents);
+      const attendanceRate = this._calculateAttendanceRate(allRegsForPoints, totalStudents);
+
+      // ✅ Tổng số hoạt động KHỚP trang Hoạt động lớp (header "TỔNG HOẠT ĐỘNG")
+      //    - Đếm theo strict semester (hoc_ky + nam_hoc) và do lớp tạo (không ép trạng thái)
+      //    - Nếu không có semester, fallback về số 0 (hoặc có thể dùng approvedActivitiesCount)
+      const totalActivities = semester ? strictActivitiesCount : approvedActivitiesCount;
+
+      return {
+        overview: {
+          totalStudents,
+          totalActivities,
+          avgPoints: Math.round(avgPoints * 10) / 10,
+          participationRate: Math.round(participationRate * 10) / 10
+        },
+        monthlyActivities,
+        pointsDistribution,
+        activityTypes,
+        topStudents,
+        attendanceRate
+      };
+    } catch (error) {
+      logError('Error getting class reports', error);
+      throw error;
+    }
+  }
+
+  static _calculateMonthlyActivities(regs, participatedRegs = []) {
+    const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthlyActivityIds = new Map();
+    const monthlyParticipantSets = new Map();
+    
+    // Count activities from all registrations (regs)
+    regs.forEach(r => {
+      const d = r.hoat_dong?.ngay_bd ? new Date(r.hoat_dong.ngay_bd) : new Date();
+      const key = monthKey(d);
+      if (!monthlyActivityIds.has(key)) monthlyActivityIds.set(key, new Set());
+      if (r.hoat_dong?.id) monthlyActivityIds.get(key).add(r.hoat_dong.id);
+    });
+    
+    // Count participants from participated registrations only
+    participatedRegs.forEach(r => {
+      const d = r.hoat_dong?.ngay_bd ? new Date(r.hoat_dong.ngay_bd) : new Date();
+      const key = monthKey(d);
+      if (!monthlyParticipantSets.has(key)) monthlyParticipantSets.set(key, new Set());
+      monthlyParticipantSets.get(key).add(r.sv_id);
+    });
+    
+    return Array.from(monthlyActivityIds.keys()).sort().map(key => {
+      const [year, mm] = key.split('-');
+      const monthNumber = parseInt(mm, 10);
+      const label = `T${monthNumber}/${year}`;
+      const activities = monthlyActivityIds.get(key)?.size || 0;
+      const participants = monthlyParticipantSets.get(key)?.size || 0;
+      return { month: label, activities, participants };
+    });
+  }
+
+  static _calculateActivityTypes(regs) {
+    const activitiesById = new Map();
+    regs.forEach(r => {
+      const id = r.hoat_dong?.id;
+      if (!id || activitiesById.has(id)) return;
+      activitiesById.set(id, {
+        typeName: r.hoat_dong?.loai_hd?.ten_loai_hd || 'Khác',
+        diem_rl: Number(r.hoat_dong?.diem_rl || 0)
+      });
+    });
+    const typeAgg = new Map();
+    activitiesById.forEach(({ typeName, diem_rl }) => {
+      const cur = typeAgg.get(typeName) || { name: typeName, count: 0, points: 0 };
+      cur.count += 1;
+      cur.points += diem_rl;
+      typeAgg.set(typeName, cur);
+    });
+    return Array.from(typeAgg.values());
+  }
+
+  static _calculateTopStudents(participatedRegs) {
+    const studentPoints = new Map();
+    // ✅ Calculate from participated registrations only (already filtered by da_tham_gia)
+    participatedRegs.forEach(r => {
+      const id = r.sv_id;
+      // Need to get student info from regs if available, otherwise use minimal data
+      const cur = studentPoints.get(id) || { 
+        id, 
+        name: r.sinh_vien?.nguoi_dung?.ho_ten || r.sinh_vien?.ho_ten || '', 
+        mssv: r.sinh_vien?.mssv || '', 
+        points: 0, 
+        activities: 0 
+      };
+      cur.points += Number(r.hoat_dong?.diem_rl || 0);
+      cur.activities += 1;
+      studentPoints.set(id, cur);
+    });
+    return Array.from(studentPoints.values()).sort((a,b)=>b.points-a.points).slice(0,5).map((s,idx)=>({ rank: idx+1, ...s }));
+  }
+
+  static _calculatePointsDistribution(participatedRegs, totalStudents) {
+    const studentPoints = new Map();
+    // ✅ Calculate from participated registrations only (already filtered by da_tham_gia)
+    participatedRegs.forEach(r => {
+      const id = r.sv_id;
+      const cur = studentPoints.get(id) || { points: 0 };
+      cur.points += Number(r.hoat_dong?.diem_rl || 0);
+      studentPoints.set(id, cur);
+    });
+
+    const bins = [
+      { range: '0-49', min: 0, max: 49 },
+      { range: '50-64', min: 50, max: 64 },
+      { range: '65-79', min: 65, max: 79 },
+      { range: '80-89', min: 80, max: 89 },
+      { range: '90-100', min: 90, max: 100 }
+    ];
+    const binCounts = bins.map(() => 0);
+    const studentsWithPoints = Array.from(studentPoints.values());
+    studentsWithPoints.forEach(s => {
+      const p = Math.max(0, Math.min(100, Math.round(Number(s.points || 0))));
+      const idx = bins.findIndex(b => p >= b.min && p <= b.max);
+      if (idx >= 0) binCounts[idx] += 1;
+    });
+
+    // ✅ Count participants from participated registrations
+    const participantsCount = new Set(participatedRegs.map(r => r.sv_id)).size;
+    const nonParticipants = Math.max(0, totalStudents - participantsCount);
+    binCounts[0] += nonParticipants;
+
+    return bins.map((b, i) => ({
+      range: b.range,
+      count: binCounts[i],
+      name: b.range,
+      value: binCounts[i],
+      percentage: totalStudents > 0 ? parseFloat(((binCounts[i] / totalStudents) * 100).toFixed(1)) : 0
+    }));
+  }
+
+  static _calculateAttendanceRate(participatedRegs, totalStudents) {
+    const monthlyParticipantSets = new Map();
+    // ✅ Calculate from participated registrations only (already filtered by da_tham_gia)
+    participatedRegs.forEach(r => {
+      const d = r.hoat_dong?.ngay_bd ? new Date(r.hoat_dong.ngay_bd) : new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyParticipantSets.has(key)) monthlyParticipantSets.set(key, new Set());
+      monthlyParticipantSets.get(key).add(r.sv_id);
+    });
+
+    return Array.from(monthlyParticipantSets.keys()).sort().map(key => {
+      const mmSet = monthlyParticipantSets.get(key) || new Set();
+      const monthNumber = parseInt(key.split('-')[1], 10);
+      return {
+        month: `T${monthNumber}`,
+        rate: totalStudents > 0 ? Math.round((mmSet.size / totalStudents) * 100) : 0
+      };
+    });
+  }
 }
 
 module.exports = MonitorService;
+
+
+
+
+

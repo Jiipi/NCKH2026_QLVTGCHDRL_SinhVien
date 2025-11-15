@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, ArrowUp, ArrowDown } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
-import SemesterFilter from '../../components/SemesterFilter';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
 import useSemesterData from '../../hooks/useSemesterData';
 
 export default function TeacherRegistrationApprovals() {

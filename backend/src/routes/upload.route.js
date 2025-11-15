@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const UploadController = require('../controllers/upload.controller');
-const { uploadImage, uploadAttachment, handleUploadError } = require('../middlewares/upload');
-const uploadAvatar = require('../middlewares/uploadAvatar');
-const { auth } = require('../middlewares/auth');
+const { uploadImage, uploadAttachment, handleUploadError } = require('../core/http/middleware/upload');
+const uploadAvatar = require('../core/http/middleware/uploadAvatar');
+const { auth } = require('../core/http/middleware/authJwt');
 
 // All upload routes require authentication
 router.use(auth);
@@ -47,3 +47,7 @@ router.delete('/:type/:filename', UploadController.deleteFile);
 router.get('/:type/:filename/info', UploadController.getFileInfo);
 
 module.exports = router;
+
+
+
+

@@ -6,8 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const teachersService = require('./teachers.service');
-const { auth } = require('../../middlewares/auth');
-const { asyncHandler } = require('../../shared/errors/AppError');
+const { auth } = require('../../core/http/middleware/authJwt');
+const { asyncHandler } = require('../../app/errors/AppError');
 
 // All routes require GIANG_VIEN role (handled in service layer)
 
@@ -257,3 +257,8 @@ router.get('/reports/statistics', auth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+
+
+
+
+

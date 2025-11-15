@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import './AuthModern.css';
 
 export default function ForgotPasswordModern() {

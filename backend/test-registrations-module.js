@@ -100,13 +100,13 @@ try {
   console.log('✅ Sẵn sàng test với server thật\n');
 
   console.log('📝 Custom endpoints available:');
-  console.log('   POST /v2/registrations/:id/approve');
-  console.log('   POST /v2/registrations/:id/reject');
-  console.log('   POST /v2/registrations/:id/cancel');
-  console.log('   POST /v2/registrations/:id/checkin');
-  console.log('   POST /v2/registrations/bulk-approve');
-  console.log('   GET  /v2/registrations/my');
-  console.log('   GET  /v2/registrations/activity/:activityId/stats\n');
+  console.log('   POST /core/registrations/:id/approve');
+  console.log('   POST /core/registrations/:id/reject');
+  console.log('   POST /core/registrations/:id/cancel');
+  console.log('   POST /core/registrations/:id/checkin');
+  console.log('   POST /core/registrations/bulk-approve');
+  console.log('   GET  /core/registrations/my');
+  console.log('   GET  /core/registrations/activity/:activityId/stats\n');
 
 } catch (err) {
   console.error('❌ Test failed:', err.message);

@@ -96,11 +96,11 @@ modules/activity-types/
 
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| GET | `/api/v2/activity-types` | Admin | Paginated list with search |
-| GET | `/api/v2/activity-types/:id` | Admin | Get single type |
-| POST | `/api/v2/activity-types` | Admin | Create new type |
-| PUT | `/api/v2/activity-types/:id` | Admin | Update type |
-| DELETE | `/api/v2/activity-types/:id` | Admin | Delete type |
+| GET | `/api/core/activity-types` | Admin | Paginated list with search |
+| GET | `/api/core/activity-types/:id` | Admin | Get single type |
+| POST | `/api/core/activity-types` | Admin | Create new type |
+| PUT | `/api/core/activity-types/:id` | Admin | Update type |
+| DELETE | `/api/core/activity-types/:id` | Admin | Delete type |
 
 ### Middleware Stack
 ```javascript
@@ -121,7 +121,7 @@ router.use(requireAdmin);     // Admin role check
 **File:** `src/routes/index.js`
 ```javascript
 const activityTypesV2 = require('../modules/activity-types');
-router.use('/v2/activity-types', activityTypesV2.activityTypesRoutes);
+router.use('/core/activity-types', activityTypesV2.activityTypesRoutes);
 ```
 
 ### Dependencies
@@ -177,7 +177,7 @@ Service: 5 methods
 ## 🔄 Backward Compatibility
 
 **V1 Route:** `routes/admin.route.js` (still exists)  
-**V2 Route:** `routes/index.js` → `/v2/activity-types`
+**V2 Route:** `routes/index.js` → `/core/activity-types`
 
 **Strategy:** Both routes coexist until all admin modules migrated, then V1 cleanup.
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 export default function ResetPassword() {
   const [token, setToken] = React.useState('');

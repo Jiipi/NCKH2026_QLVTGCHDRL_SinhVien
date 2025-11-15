@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Search, Calendar, TrendingUp, Zap } from 'lucide-react';
-import http from '../../services/http';
+import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Calendar } from 'lucide-react';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
+import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassNotifications() {
   const { showSuccess, showError } = useNotification();
@@ -16,9 +17,14 @@ export default function ClassNotifications() {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [semester, setSemester] = useState(() => {
+    try { return sessionStorage.getItem('current_semester') || ''; } catch (_) { return ''; }
+  });
+  const { options: semesterOptions, currentSemester } = useSemesterData(semester);
+  const [activityOptions, setActivityOptions] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
-    thisWeek: 0,
     classScope: 0,
     activityScope: 0
   });
@@ -36,22 +42,36 @@ export default function ClassNotifications() {
     loadSentHistory();
   }, []);
 
+  // Sync current semester from backend once available
+  useEffect(() => {
+    if (currentSemester && currentSemester !== semester) {
+      setSemester(currentSemester);
+    }
+  }, [currentSemester]);
+
+  // Persist semester in session for consistency across pages
+  useEffect(() => {
+    if (semester) {
+      try { sessionStorage.setItem('current_semester', semester); } catch (_) {}
+    }
+  }, [semester]);
+
+  // Load activities when scope is activity and semester changes
+  useEffect(() => {
+    if (scope === 'activity' && semester) {
+      loadActivitiesForSemester(semester);
+    }
+  }, [scope, semester]);
+
   const loadSentHistory = async () => {
     try {
-      const response = await http.get('/v2/notifications/sent');
+      const response = await http.get('/core/notifications/sent');
       const data = response.data?.data || response.data;
       
       if (data.history && Array.isArray(data.history)) {
         setSentHistory(data.history);
         
-        // Calculate stats from history
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const thisWeekCount = data.history.filter(item => 
-          new Date(item.date) >= oneWeekAgo
-        ).length;
-        
+        // Calculate stats from history (remove week-based stat)
         const classCount = data.history.filter(item => 
           item.scope === 'class'
         ).length;
@@ -62,7 +82,6 @@ export default function ClassNotifications() {
         
         setStats({
           total: data.history.length,
-          thisWeek: thisWeekCount,
           classScope: classCount,
           activityScope: activityCount
         });
@@ -76,9 +95,27 @@ export default function ClassNotifications() {
     // This is now handled by loadSentHistory
   };
 
+  const loadActivitiesForSemester = async (semesterValue) => {
+    try {
+      setActivityLoading(true);
+      const params = { semester: semesterValue };
+      const response = await http.get('/core/activities', { params });
+      const payload = response.data?.data || response.data || {};
+      const items = payload.items || payload.data || (Array.isArray(payload) ? payload : []);
+      const list = Array.isArray(items) ? items : [];
+      const options = list.map(a => ({ value: a.id, label: a.ten_hd }));
+      setActivityOptions(options);
+    } catch (err) {
+      console.error('Error loading activities for semester:', err);
+      setActivityOptions([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
     try {
-      const response = await http.get(`/v2/notifications/sent/${notification.id}`);
+      const response = await http.get(`/core/notifications/sent/${notification.id}`);
       const data = response.data?.data || response.data;
       setSelectedNotification(data);
       setShowDetailModal(true);
@@ -95,8 +132,12 @@ export default function ClassNotifications() {
       setError('Vui lòng nhập tiêu đề và nội dung');
       return;
     }
+    if (scope === 'activity' && !semester) {
+      setError('Vui lòng chọn học kỳ khi gửi theo hoạt động');
+      return;
+    }
     if (scope === 'activity' && !activityId) {
-      setError('Vui lòng nhập ID hoạt động khi gửi theo hoạt động');
+      setError('Vui lòng chọn hoạt động trong học kỳ đã chọn');
       return;
     }
     try {
@@ -118,7 +159,7 @@ export default function ClassNotifications() {
         muc_do_uu_tien: 'trung_binh',
         phuong_thuc_gui: 'trong_he_thong'
       };
-      await http.post('/v2/notifications', payload);
+      await http.post('/core/notifications', payload);
       showSuccess('Đã gửi thông báo thành công! 🎉');
       setTitle('');
       setMessage('');
@@ -217,7 +258,7 @@ export default function ClassNotifications() {
             </div>
 
             {/* Stats Bar with Brutalist Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Card 1 - Total */}
               <div className="group relative">
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
@@ -227,18 +268,7 @@ export default function ClassNotifications() {
                   <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG</p>
                 </div>
               </div>
-
-              {/* Card 2 - This Week */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Zap className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{stats.thisWeek}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TUẦN NÀY</p>
-                </div>
-              </div>
-
-              {/* Card 3 - Class Scope */}
+                    {/* Card 2 - Class Scope */}
               <div className="group relative">
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
@@ -248,7 +278,7 @@ export default function ClassNotifications() {
                 </div>
               </div>
 
-              {/* Card 4 - Activity Scope */}
+                    {/* Card 3 - Activity Scope */}
               <div className="group relative">
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-pink-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
@@ -377,18 +407,40 @@ export default function ClassNotifications() {
               </select>
             </div>
             {scope === 'activity' && (
-              <div className="md:col-span-2">
-                <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
-                  <Activity className="h-4 w-4 text-indigo-600" />
-                  ID hoạt động
-                </label>
-                <input
-                  value={activityId}
-                  onChange={(e) => setActivityId(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium"
-                  placeholder="Nhập ID hoạt động cần gửi thông báo..."
-                />
-              </div>
+              <>
+                <div>
+                  <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
+                    <Calendar className="h-4 w-4 text-indigo-600" />
+                    Học kỳ
+                  </label>
+                  <select
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium"
+                  >
+                    {(semesterOptions || []).map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex text-sm font-bold text-gray-900 mb-2 items-center gap-2">
+                    <Activity className="h-4 w-4 text-indigo-600" />
+                    Hoạt động trong học kỳ
+                  </label>
+                  <select
+                    value={activityId}
+                    onChange={(e) => setActivityId(e.target.value)}
+                    disabled={activityLoading || !semester}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="">{activityLoading ? 'Đang tải...' : '— Chọn hoạt động —'}</option>
+                    {activityOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
           </div>
 

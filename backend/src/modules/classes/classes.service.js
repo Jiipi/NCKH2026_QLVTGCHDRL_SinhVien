@@ -3,8 +3,8 @@
  */
 
 const classesRepo = require('./classes.repo');
-const { buildScope } = require('../../shared/scopes/scopeBuilder');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
+const { buildScope } = require('../../app/scopes/scopeBuilder');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
 
 const classesService = {
   /**
@@ -207,3 +207,8 @@ const classesService = {
 };
 
 module.exports = classesService;
+
+
+
+
+

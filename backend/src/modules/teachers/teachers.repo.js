@@ -4,8 +4,7 @@
  * NOTE: Legacy naming (class, user, activity, registration) replaced.
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 // Helper: get classes where teacher is homeroom (chu_nhiem)
 async function findTeacherClassesRaw(teacherId) {
@@ -408,3 +407,8 @@ const teachersRepo = {
 };
 
 module.exports = teachersRepo;
+
+
+
+
+

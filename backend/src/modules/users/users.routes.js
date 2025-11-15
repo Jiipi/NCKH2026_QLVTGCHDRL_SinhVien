@@ -1,90 +1,86 @@
 /**
  * Users Routes - V2 API
+ * Manual route definitions following clean architecture pattern
  */
 
 const express = require('express');
 const router = express.Router();
-const { createCRUDRouter } = require('../../shared/factories/crudRouter');
-const usersService = require('./users.service');
-const auth = require('../../middlewares/auth').auth;
-const { asyncHandler } = require('../../shared/errors/AppError');
+const UsersController = require('./users.controller');
+const validators = require('./users.validators');
+const { auth } = require('../../core/http/middleware/authJwt');
+const { asyncHandler } = require('../../app/errors/AppError');
 
-// ========== Base CRUD Routes (Factory) ==========
-const crudRouter = createCRUDRouter({
-  resource: 'users',
-  service: usersService,
-  permissions: {
-    list: 'read',
-    get: 'read',
-    create: 'create',
-    update: 'update',
-    delete: 'delete'
-  }
-});
+// All routes require authentication
+router.use(auth);
 
-router.use('/', crudRouter);
+// ==================== CUSTOM ROUTES (Must be before /:id) ====================
 
-// ========== Custom Endpoints ==========
+// Search users
+router.get(
+  '/search',
+  validators.validateSearch,
+  asyncHandler(UsersController.search)
+);
 
-/**
- * GET /users/search?q=keyword
- * Search users
- */
-router.get('/search', auth, asyncHandler(async (req, res) => {
-  const { q } = req.query;
-  
-  if (!q) {
-    return res.status(400).json({
-      success: false,
-      message: 'Missing search query'
-    });
-  }
-  
-  const users = await usersService.search(q, req.user);
-  
-  res.json({
-    success: true,
-    data: users
-  });
-}));
+// Get user statistics
+router.get(
+  '/stats',
+  asyncHandler(UsersController.getStats)
+);
 
-/**
- * GET /users/stats
- * Get user statistics (ADMIN only)
- */
-router.get('/stats', auth, asyncHandler(async (req, res) => {
-  const stats = await usersService.getStats(req.user);
-  
-  res.json({
-    success: true,
-    data: stats
-  });
-}));
+// Get current user profile
+router.get(
+  '/me',
+  asyncHandler(UsersController.getMe)
+);
 
-/**
- * GET /users/class/:className
- * Get users by class
- */
-router.get('/class/:className', auth, asyncHandler(async (req, res) => {
-  const users = await usersService.getByClass(req.params.className, req.user);
-  
-  res.json({
-    success: true,
-    data: users
-  });
-}));
+// Get users by class
+router.get(
+  '/class/:className',
+  validators.validateGetByClass,
+  asyncHandler(UsersController.getByClass)
+);
 
-/**
- * GET /users/me
- * Get current user profile
- */
-router.get('/me', auth, asyncHandler(async (req, res) => {
-  const user = await usersService.getById(req.user.id, req.user);
-  
-  res.json({
-    success: true,
-    data: user
-  });
-}));
+// ==================== CRUD ROUTES ====================
+
+// List all users
+router.get(
+  '/',
+  validators.validateGetAll,
+  asyncHandler(UsersController.getAll)
+);
+
+// Get single user
+router.get(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(UsersController.getById)
+);
+
+// Create user
+router.post(
+  '/',
+  validators.validateCreate,
+  asyncHandler(UsersController.create)
+);
+
+// Update user
+router.put(
+  '/:id',
+  validators.validateUpdate,
+  asyncHandler(UsersController.update)
+);
+
+// Delete user
+router.delete(
+  '/:id',
+  validators.validateGetById,
+  asyncHandler(UsersController.delete)
+);
 
 module.exports = router;
+
+
+
+
+

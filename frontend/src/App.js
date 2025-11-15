@@ -1,17 +1,18 @@
 import React from 'react';
+import http from './shared/api/http';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { normalizeRole, roleMatches } from './utils/role';
+import { normalizeRole, roleMatches } from './shared/lib/role';
 import './styles/sidebar-fix.css';
 import './styles/layout-fix.css';
 import './styles/modern-admin.css';
 import MultiSessionGuard from './components/MultiSessionGuard';
-import sessionStorageManager from './services/sessionStorageManager';
+import sessionStorageManager from './shared/api/sessionStorageManager';
 import { TabSessionProvider } from './contexts/TabSessionContext';
 // import AdminLayout from './components/AdminLayout';
 // import SimpleAdminLayout from './components/SimpleAdminLayout';
 import AdminStudentLayout from './components/AdminStudentLayout';
-import MonitorLayout from './components/MonitorLayout';
-import StudentLayout from './components/StudentLayout';
+import MonitorLayout from './widgets/layout/ui/MonitorLayout';
+import StudentLayout from './widgets/layout/ui/StudentLayout';
 // Active admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -24,7 +25,7 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminProfile from './pages/admin/AdminProfile';
 import SemesterManagement from './pages/admin/SemesterManagement';
-import ModernTeacherLayout from './components/ModernTeacherLayout';
+import ModernTeacherLayout from './widgets/layout/ui/TeacherLayout';
 // Legacy pages removed in favor of modern auth pages
 // Domain grouped imports (refactored) - use explicit index.js to avoid case conflicts on Linux
 import { Profile } from './pages/profile/index.js';
@@ -157,6 +158,39 @@ function App() {
     } finally {
       setHydrated(true);
     }
+  }, []);
+
+  // Global listener for role permission changes
+  React.useEffect(() => {
+    const handleRoleChange = async (event) => {
+      if (event.key === '__role_permissions_updated_at__') {
+        console.log('⚡️ Detected role permission change, forcing profile refresh...');
+        const token = sessionStorageManager.getToken();
+        if (!token) return;
+
+        try {
+          // Attempt to refetch profile from primary endpoint
+          const response = await http.get('/users/profile');
+          const payload = response?.data?.data || response?.data || null;
+          if (payload) {
+            const currentSession = sessionStorageManager.getSession() || {};
+            // Force update session with new user data (which includes permissions)
+            sessionStorageManager.saveSession({ ...currentSession, token, user: payload, role: payload.vai_tro?.ten_vt || payload.role });
+            // Force a reload to ensure all guards and components re-evaluate with new permissions
+            window.location.reload();
+          }
+        } catch (err) {
+          console.error('Failed to refresh profile after role change, logging out as a security measure.', err);
+          sessionStorageManager.clearSession();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleRoleChange);
+    return () => {
+      window.removeEventListener('storage', handleRoleChange);
+    };
   }, []);
 
   if (!hydrated) {

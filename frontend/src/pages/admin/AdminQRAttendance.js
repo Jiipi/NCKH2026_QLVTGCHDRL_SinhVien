@@ -4,8 +4,8 @@ import {
   MapPin, Clock, User, Activity, Download, RefreshCw, Scan, Plus,
   AlertCircle, FileText, Camera, Upload
 } from 'lucide-react';
-import http from '../../services/http';
-import { extractAttendanceFromAxiosResponse, extractActivitiesFromAxiosResponse } from '../../utils/apiNormalization';
+import http from '../../shared/api/http';
+import { extractAttendanceFromAxiosResponse, extractActivitiesFromAxiosResponse } from '../../shared/lib/apiNormalization';
 
 const FixedQRAttendanceManagement = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();

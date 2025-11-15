@@ -7,10 +7,10 @@
  */
 
 const activitiesRepo = require('./activities.repo');
-const { buildScope, canAccessItem } = require('../../shared/scopes/scopeBuilder');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
-const { normalizeRole } = require('../../shared/policies');
-const { determineSemesterFromDate } = require('../../utils/semester');
+const { buildScope, canAccessItem } = require('../../app/scopes/scopeBuilder');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
+const { normalizeRole } = require('../../core/utils/roleHelper');
+const { determineSemesterFromDate } = require('../../core/utils/semester');
 const crypto = require('crypto');
 
 class ActivitiesService {
@@ -18,68 +18,25 @@ class ActivitiesService {
    * List activities with filters and scope
    */
   async list(filters, user) {
-    const { page, limit, sort, order, semester, q, loaiId, trangThai, status, from, to, ...otherFilters } = filters;
+    const { page, limit, sort, order, semester, q, loaiId, trangThai, status, from, to, scope, type, ...otherFilters } = filters;
     
-    // Build where clause
+    // Build where clause (exclude non-Prisma fields like 'type', 'search', etc.)
     const where = { ...otherFilters };
-    
-    // Apply scope for students and monitors (filter by class activities)
-    if (user && (user.role === 'SINH_VIEN' || user.role === 'LOP_TRUONG')) {
-      console.log('🔍 Applying class filter for', user.role, ':', user.sub);
-      
-      // Get student's class
-      const { prisma } = require('../../config/database');
-      const student = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: user.sub },
-        select: { lop_id: true }
-      });
-      
-      if (student && student.lop_id) {
-        const lopId = student.lop_id;
-        console.log('✅ Class ID:', lopId);
-        
-        // Get ALL students in the class (including monitors)
-        const allClassStudents = await prisma.sinhVien.findMany({
-          where: { lop_id: lopId },
-          select: { nguoi_dung_id: true }
-        });
-        
-        const classStudentUserIds = allClassStudents
-          .map(s => s.nguoi_dung_id)
-          .filter(Boolean);
-        console.log('✅ Class has', classStudentUserIds.length, 'student users');
-        
-        // Get homeroom teacher (chu nhiem)
-        const lop = await prisma.lop.findUnique({
-          where: { id: lopId },
-          select: { chu_nhiem: true }
-        });
-        
-        // Allowed creators: class students + homeroom teacher
-        const allowedCreators = [...classStudentUserIds];
-        if (lop?.chu_nhiem) {
-          allowedCreators.push(lop.chu_nhiem);
-          console.log('✅ Added homeroom teacher to allowed creators');
-        }
-        
-        console.log('✅ Total allowed creators:', allowedCreators.length);
-        
-        if (user.role === 'LOP_TRUONG') {
-          // LỚP TRƯỞNG: Show activities created by class OR activities with class registrations
-          const creatorFilter = { nguoi_tao_id: { in: allowedCreators } };
-          const hasClassRegistrations = { dang_ky_hd: { some: { sinh_vien: { lop_id: lopId } } } };
-          where.OR = [creatorFilter, hasClassRegistrations];
-          console.log('✅ LOP_TRUONG - OR filter applied (creator OR registrations)');
-        } else {
-          // SINH VIÊN: Only show activities created by class
-          where.nguoi_tao_id = { in: allowedCreators };
-          console.log('✅ SINH_VIEN - creator filter applied');
-        }
-      } else {
-        // Student has no class -> show nothing
-        console.log('⚠️ No class found, showing no activities');
-        where.nguoi_tao_id = { in: [] };
+    // Remove any undefined or non-Prisma fields
+    Object.keys(where).forEach(key => {
+      if (where[key] === undefined || ['search', 'type'].includes(key)) {
+        delete where[key];
       }
+    });
+    
+    // Apply scope filter from middleware (class-based access control)
+    if (scope && scope.activityFilter) {
+      // Merge activityFilter from middleware (already handles role-based filtering)
+      Object.assign(where, scope.activityFilter);
+      console.log('✅ Applied activity scope filter:', JSON.stringify(scope.activityFilter));
+      console.log('✅ User role:', user?.role, 'User ID:', user?.sub);
+    } else {
+      console.log('⚠️ No scope filter applied. Scope:', scope ? 'exists' : 'null', 'User role:', user?.role);
     }
     
     // Text search
@@ -87,9 +44,9 @@ class ActivitiesService {
       where.ten_hd = { contains: String(q), mode: 'insensitive' };
     }
     
-    // Filter by activity type
-    if (loaiId) {
-      where.loai_hd_id = String(loaiId);
+    // Filter by activity type (using 'type' from query)
+    if (filters.type) {
+      where.loai_hd_id = String(filters.type);
     }
     
     // Filter by status
@@ -115,11 +72,24 @@ class ActivitiesService {
     }
     
     // Date range filter
+    // Filter activities that start within the date range
     if (from || to) {
-      where.ngay_bd = {
-        ...(from && { gte: new Date(from) }),
-        ...(to && { lte: new Date(to) })
-      };
+      const dateFilter = {};
+      if (from) {
+        // Set to start of day in local timezone
+        const fromDate = new Date(from);
+        fromDate.setHours(0, 0, 0, 0);
+        dateFilter.gte = fromDate;
+      }
+      if (to) {
+        // Set to end of day in local timezone
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        dateFilter.lte = toDate;
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        where.ngay_bd = dateFilter;
+      }
     }
     
     // Semester filter
@@ -128,15 +98,28 @@ class ActivitiesService {
       if (semesterInfo.hoc_ky && semesterInfo.nam_hoc) {
         where.hoc_ky = semesterInfo.hoc_ky;
         where.nam_hoc = semesterInfo.nam_hoc;
+        console.log('✅ Applied semester filter:', { 
+          semester, 
+          parsed: semesterInfo,
+          filter: { hoc_ky: semesterInfo.hoc_ky, nam_hoc: semesterInfo.nam_hoc }
+        });
+      } else {
+        console.warn('⚠️ Failed to parse semester:', semester, 'parsed:', semesterInfo);
       }
+    } else {
+      console.log('ℹ️ No semester filter applied');
     }
     
     // Merge with scope (lop_id filter based on role)
     // Scope is already in filters from middleware
     
+    // Handle limit='all' case
+    const effectiveLimit = limit === 'all' ? undefined : (parseInt(limit) || 10);
+    const effectivePage = limit === 'all' ? 1 : (parseInt(page) || 1); // If limit='all', always use page 1
+    
     const result = await activitiesRepo.findMany(where, {
-      page,
-      limit,
+      page: effectivePage,
+      limit: effectiveLimit,
       sort,
       order
     });
@@ -157,8 +140,7 @@ class ActivitiesService {
    * For LOP_TRUONG: also add has_class_registrations, class_relation, registrationCount
    */
   async enrichActivitiesWithRegistrations(activities, userId, userRole) {
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    const { prisma } = require('../../infrastructure/prisma/client');
     
     try {
       // Get student ID from user ID
@@ -285,8 +267,10 @@ class ActivitiesService {
           } : {})
         };
       });
-    } finally {
-      await prisma.$disconnect();
+    } catch (error) {
+      console.error('Error enriching activities with registrations:', error);
+      // Return original activities if enrichment fails
+      return activities;
     }
   }
   
@@ -294,7 +278,16 @@ class ActivitiesService {
    * Get activity by ID (with scope check)
    */
   async getById(id, scope, user) {
-    const activity = await activitiesRepo.findById(id, scope);
+    // Build where clause with scope filter
+    const where = {};
+    
+    // Apply scope filter from middleware (class-based access control)
+    if (scope && scope.activityFilter) {
+      // Merge activityFilter from middleware (already handles role-based filtering)
+      Object.assign(where, scope.activityFilter);
+    }
+    
+    const activity = await activitiesRepo.findById(id, where);
     
     if (!activity) {
       return null;
@@ -526,8 +519,16 @@ class ActivitiesService {
    * Parse semester string
    */
   parseSemester(semester) {
-    const match = String(semester).match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!match) return {};
+    const s = String(semester || '');
+    // Accept both dash and underscore formats: hoc_ky_1-2025 and hoc_ky_1_2025
+    const normalized = s.replace(/_(\d{4})$/, '-$1');
+    const match = normalized.match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
+    if (!match) {
+      try {
+        console.warn('[Activities] parseSemester failed for input:', s);
+      } catch (_) {}
+      return {};
+    }
     
     const hoc_ky = match[1];
     const year = parseInt(match[2]);
@@ -550,11 +551,15 @@ class ActivitiesService {
    */
   enrichActivity(activity, user) {
     // Add user-specific flags
+    // Handle null/undefined user safely
+    const userRole = user ? normalizeRole(user.role) : null;
+    const userId = user?.sub || null;
+    
     const enriched = {
       ...activity,
-      is_creator: activity.nguoi_tao_id === user?.sub,
-      can_edit: activity.nguoi_tao_id === user?.sub || ['ADMIN', 'GIANG_VIEN'].includes(normalizeRole(user?.role)),
-      can_delete: ['ADMIN', 'GIANG_VIEN'].includes(normalizeRole(user?.role))
+      is_creator: userId ? (activity.nguoi_tao_id === userId) : false,
+      can_edit: userId ? (activity.nguoi_tao_id === userId || ['ADMIN', 'GIANG_VIEN'].includes(userRole)) : false,
+      can_delete: userRole ? ['ADMIN', 'GIANG_VIEN'].includes(userRole) : false
     };
     
     return enriched;
@@ -562,3 +567,8 @@ class ActivitiesService {
 }
 
 module.exports = new ActivitiesService();
+
+
+
+
+

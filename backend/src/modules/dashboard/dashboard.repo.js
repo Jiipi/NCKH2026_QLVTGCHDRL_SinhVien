@@ -1,4 +1,4 @@
-const { prisma } = require('../../config/database');
+const { prisma } = require('../../infrastructure/prisma/client');
 
 /**
  * Dashboard Repository
@@ -60,6 +60,7 @@ class DashboardRepository {
 
   /**
    * Get student registrations with filter
+   * Note: Sorting by activity's ngay_cap_nhat is done in service layer
    */
   async getStudentRegistrations(svId, activityFilter = {}) {
     return prisma.dangKyHoatDong.findMany({
@@ -74,10 +75,8 @@ class DashboardRepository {
             loai_hd: true
           }
         }
-      },
-      orderBy: {
-        ngay_dang_ky: 'desc'
       }
+      // Sorting by activity's ngay_cap_nhat is handled in service layer
     });
   }
 
@@ -186,3 +185,8 @@ class DashboardRepository {
 }
 
 module.exports = new DashboardRepository();
+
+
+
+
+

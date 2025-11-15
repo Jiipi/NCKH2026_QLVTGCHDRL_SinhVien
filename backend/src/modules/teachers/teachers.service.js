@@ -5,7 +5,7 @@
 const teachersRepo = require('./teachers.repo');
 const activitiesService = require('../activities/activities.service');
 const registrationsService = require('../registrations/registrations.service');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
 
 const teachersService = {
   /**
@@ -239,3 +239,8 @@ const teachersService = {
 };
 
 module.exports = teachersService;
+
+
+
+
+

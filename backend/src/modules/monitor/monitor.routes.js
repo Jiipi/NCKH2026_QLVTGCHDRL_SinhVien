@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const MonitorService = require('./monitor.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { auth } = require('../../middlewares/auth');
-const { isClassMonitor } = require('../../middlewares/rbac');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { auth, isClassMonitor } = require('../../core/http/middleware');
 
 /**
- * @route   GET /api/v2/monitor/students
+ * @route   GET /api/core/monitor/students
  * @desc    Get all students in monitor's class
  * @access  Private (Class Monitor)
  */
@@ -23,7 +22,7 @@ router.get('/students', auth, isClassMonitor, async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/monitor/registrations
+ * @route   GET /api/core/monitor/registrations
  * @desc    Get registrations for monitor's class
  * @access  Private (Class Monitor)
  */
@@ -40,7 +39,22 @@ router.get('/registrations', auth, isClassMonitor, async (req, res) => {
       try {
         const imgs = Array.isArray(r?.hoat_dong?.hinh_anh) ? r.hoat_dong.hinh_anh : [];
         const abs = imgs.map(u => (typeof u === 'string' && u.startsWith('/uploads/')) ? (base + u) : u).filter(Boolean);
-        return { ...r, hoat_dong: { ...r.hoat_dong, hinh_anh: abs } };
+        // Parse approver meta from ghi_chu
+        let approvedByRole = null; let rejectedByRole = null; let approvedByUser = null; let rejectedByUser = null;
+        if (typeof r?.ghi_chu === 'string') {
+          const ap = /APPROVED_BY:([A-Z_]+)\|USER:([a-f0-9\-]+)/i.exec(r.ghi_chu);
+          const rj = /REJECTED_BY:([A-Z_]+)\|USER:([a-f0-9\-]+)/i.exec(r.ghi_chu);
+          if (ap) { approvedByRole = ap[1]; approvedByUser = ap[2]; }
+          if (rj) { rejectedByRole = rj[1]; rejectedByUser = rj[2]; }
+        }
+        return { 
+          ...r, 
+          hoat_dong: { ...r.hoat_dong, hinh_anh: abs },
+          approvedByRole,
+          rejectedByRole,
+          approvedByUser,
+          rejectedByUser
+        };
       } catch (_) { 
         return r; 
       }
@@ -56,7 +70,7 @@ router.get('/registrations', auth, isClassMonitor, async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/monitor/registrations/pending-count
+ * @route   GET /api/core/monitor/registrations/pending-count
  * @desc    Get count of pending registrations
  * @access  Private (Class Monitor)
  */
@@ -71,7 +85,7 @@ router.get('/registrations/pending-count', auth, isClassMonitor, async (req, res
 });
 
 /**
- * @route   PUT /api/v2/monitor/registrations/:registrationId/approve
+ * @route   PUT /api/core/monitor/registrations/:registrationId/approve
  * @desc    Approve a registration
  * @access  Private (Class Monitor)
  */
@@ -95,7 +109,7 @@ router.put('/registrations/:registrationId/approve', auth, isClassMonitor, async
 });
 
 /**
- * @route   PUT /api/v2/monitor/registrations/:registrationId/reject
+ * @route   PUT /api/core/monitor/registrations/:registrationId/reject
  * @desc    Reject a registration
  * @access  Private (Class Monitor)
  */
@@ -120,7 +134,7 @@ router.put('/registrations/:registrationId/reject', auth, isClassMonitor, async 
 });
 
 /**
- * @route   GET /api/v2/monitor/dashboard
+ * @route   GET /api/core/monitor/dashboard
  * @desc    Get monitor dashboard summary
  * @access  Private (Class Monitor)
  */
@@ -141,4 +155,30 @@ router.get('/dashboard', auth, isClassMonitor, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/core/monitor/reports
+ * @desc    Get class reports/statistics for monitor's class
+ * @access  Private (Class Monitor)
+ */
+router.get('/reports', auth, isClassMonitor, async (req, res) => {
+  try {
+    const classId = req.classMonitor?.lop_id;
+    const { semester, timeRange } = req.query;
+
+    if (!classId) {
+      return sendResponse(res, 403, ApiResponse.error('Bạn chưa được gán vào lớp nào'));
+    }
+
+    const report = await MonitorService.getClassReports(classId, { semester, timeRange });
+    return sendResponse(res, 200, ApiResponse.success(report));
+  } catch (error) {
+    return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy dữ liệu báo cáo lớp'));
+  }
+});
+
 module.exports = router;
+
+
+
+
+

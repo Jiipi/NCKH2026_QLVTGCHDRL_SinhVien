@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const broadcastService = require('../services/broadcast.service');
-const { ApiResponse, sendResponse } = require('../utils/response');
-const { logError } = require('../utils/logger');
-const { auth: authenticateJWT, requireAdmin } = require('../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../core/http/response/apiResponse');
+const { logError } = require('../core/logger');
+const { auth: authenticateJWT, requireAdmin } = require('../core/http/middleware/authJwt');
 
 // Apply authentication and admin authorization to all routes
 router.use(authenticateJWT);
 router.use(requireAdmin);
 
 /**
- * @route   POST /api/v2/broadcast
+ * @route   POST /api/core/broadcast
  * @desc    Send broadcast notification to multiple recipients
  * @access  Admin only
  * @body    {
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/broadcast/stats
+ * @route   GET /api/core/broadcast/stats
  * @desc    Get broadcast statistics (total, weekly, by scope)
  * @access  Admin only
  */
@@ -64,7 +64,7 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/broadcast/history
+ * @route   GET /api/core/broadcast/history
  * @desc    Get broadcast notification history
  * @access  Admin only
  * @query   limit?: number (default 500)
@@ -85,3 +85,7 @@ router.get('/history', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+

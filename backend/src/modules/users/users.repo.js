@@ -2,8 +2,7 @@
  * Users Repository - Pure Data Access Layer
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 const usersRepo = {
   /**
@@ -199,3 +198,8 @@ const usersRepo = {
 };
 
 module.exports = usersRepo;
+
+
+
+
+

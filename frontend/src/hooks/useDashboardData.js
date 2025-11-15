@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import http from '../services/http';
+import http from '../shared/api/http';
 
 /**
  * Hook: Lấy "Hoạt động sắp diễn ra"
@@ -33,10 +33,10 @@ export const useUpcomingActivities = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useUpcomingActivities] Fetching for semester:', semester);
 
-      // ✅ Sử dụng V2 endpoint - dashboard module
+      // ✅ Sử dụng CORE endpoint - dashboard module
       // Backend sẽ tự động filter theo lớp của user
-      const response = await http.get('/v2/dashboard/student', {
-        params: { semester }
+      const response = await http.get('/core/dashboard/student', {
+        params: { semesterValue: semester }
       });
 
       const data = response.data?.data || response.data || {};
@@ -100,8 +100,8 @@ export const useMyActivities = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useMyActivities] Fetching for semester:', semester);
 
-      const response = await http.get('/v2/dashboard/activities/me', {
-        params: { semester }
+      const response = await http.get('/core/dashboard/activities/me', {
+        params: { semesterValue: semester }
       });
 
       // Normalize response structure
@@ -224,10 +224,10 @@ export const useStudentSummary = ({ semester, autoFetch = true } = {}) => {
 
       console.log('[useStudentSummary] Fetching for semester:', semester);
 
-      // Fetch cả dashboard và profile - SỬ DỤNG V2 ENDPOINT
+      // Fetch cả dashboard và profile - SỬ DỤNG CORE ENDPOINT
       const [dashboardRes, profileRes] = await Promise.all([
-        http.get('/v2/dashboard/student', { params: { semester } }),
-        http.get('/v2/profile')
+        http.get('/core/dashboard/student', { params: { semesterValue: semester } }),
+        http.get('/core/profile')
       ]);
 
       const apiData = dashboardRes.data?.data || dashboardRes.data || {};
@@ -328,10 +328,10 @@ export const useClassStats = ({ semester, enabled = true } = {}) => {
 
       console.log('[useClassStats] Fetching for semester:', semester);
 
-      // Fetch class dashboard và registrations
+      // ✅ Sử dụng CORE endpoint
       const [classDashboardRes, registrationsRes] = await Promise.all([
-        http.get('/class/dashboard', { params: { semester } }),
-        http.get('/class/registrations', { params: { status: 'all', semester } })
+        http.get('/core/monitor/dashboard', { params: { semester } }),
+        http.get('/core/monitor/registrations', { params: { status: 'all', semester } })
           .catch(() => ({ data: { data: [] } }))
       ]);
 

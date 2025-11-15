@@ -6,9 +6,9 @@
 const express = require('express');
 const router = express.Router();
 const service = require('./points.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { logError, logInfo } = require('../../utils/logger');
-const { auth: authenticateJWT } = require('../../middlewares/auth');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { logError, logInfo } = require('../../core/logger');
+const { auth: authenticateJWT } = require('../../core/http/middleware/authJwt');
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
@@ -27,7 +27,7 @@ function getUserId(req) {
 }
 
 /**
- * GET /api/v2/points/summary
+ * GET /api/core/points/summary
  * Get points summary for current student
  */
 router.get('/summary', async (req, res) => {
@@ -54,7 +54,7 @@ router.get('/summary', async (req, res) => {
 });
 
 /**
- * GET /api/v2/points/detail
+ * GET /api/core/points/detail
  * Get detailed points with pagination
  */
 router.get('/detail', async (req, res) => {
@@ -82,7 +82,7 @@ router.get('/detail', async (req, res) => {
 });
 
 /**
- * GET /api/v2/points/attendance-history
+ * GET /api/core/points/attendance-history
  * Get attendance history
  */
 router.get('/attendance-history', async (req, res) => {
@@ -109,7 +109,7 @@ router.get('/attendance-history', async (req, res) => {
 });
 
 /**
- * GET /api/v2/points/filter-options
+ * GET /api/core/points/filter-options
  * Get available semesters and academic years
  */
 router.get('/filter-options', async (req, res) => {
@@ -133,7 +133,7 @@ router.get('/filter-options', async (req, res) => {
 });
 
 /**
- * GET /api/v2/points/report
+ * GET /api/core/points/report
  * Get points report by academic year
  */
 router.get('/report', async (req, res) => {
@@ -159,3 +159,8 @@ router.get('/report', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

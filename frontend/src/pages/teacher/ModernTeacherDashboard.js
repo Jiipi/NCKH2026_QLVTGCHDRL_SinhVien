@@ -21,7 +21,7 @@ import {
   Target,
   Zap
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import SemesterClosureWidget from '../../components/SemesterClosureWidget';
 import useSemesterData from '../../hooks/useSemesterData';
 import { useTeacherDashboard } from '../../hooks/useDashboardData';

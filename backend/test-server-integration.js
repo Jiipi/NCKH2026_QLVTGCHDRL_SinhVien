@@ -80,7 +80,7 @@ async function testServer() {
     console.log('2️⃣ Testing V2 Activities endpoint (no auth)...');
     const v2Test = await makeRequest({
       ...baseOptions,
-      path: '/api/v2/activities',
+      path: '/api/core/activities',
       method: 'GET'
     });
     
@@ -115,7 +115,7 @@ async function testServer() {
     // Test 4: Check routing structure
     console.log('4️⃣ Testing routing structure...');
     const routes = [
-      '/api/v2/activities',
+      '/api/core/activities',
       '/api/activities',
       '/api/users',
       '/api/classes'

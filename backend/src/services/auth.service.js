@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
-const { prisma } = require('../config/database');
+const { prisma } = require('../infrastructure/prisma/client');
+const { normalizeRoleCode } = require('../core/utils/roleHelper');
 
 /**
  * Auth Service
@@ -37,7 +38,7 @@ class AuthService {
   static toUserDTO(user) {
     if (!user) return null;
     const rawRoleLabel = user.vai_tro?.ten_vt || 'sinh viên';
-    const roleCode = this.normalizeRoleCode(rawRoleLabel);
+    const roleCode = normalizeRoleCode(rawRoleLabel);
     
     return {
       id: user.id,
@@ -75,19 +76,7 @@ class AuthService {
     };
   }
 
-  /**
-   * Normalize Vietnamese role labels to canonical role codes
-   * Used for frontend routing and permission checks
-   */
-  static normalizeRoleCode(label) {
-    const r = (label || '').toString().trim().toLowerCase();
-    if (r.includes('quản trị')) return 'ADMIN';
-    if (r.includes('giảng viên')) return 'GIANG_VIEN';
-    if (r.includes('lớp trưởng')) return 'LOP_TRUONG';
-    if (r.includes('hỗ trợ')) return 'HO_TRO';
-    if (r.includes('sinh viên')) return 'SINH_VIEN';
-    return label?.toString().toUpperCase() || 'SINH_VIEN';
-  }
+
 
   /**
    * Find user by maso (username)
@@ -400,6 +389,37 @@ class AuthService {
   static bamMatKhau(plain) {
     return this.hashPassword(plain);
   }
+
+  /**
+   * Update user profile (basic info)
+   * Handles updates to both nguoiDung and sinhVien tables
+   */
+  static async updateProfile(id, { maso, name, trangthai, ngaysinh, gt, sdt }) {
+    const dataUser = { ngay_cap_nhat: new Date() };
+    if (typeof maso !== 'undefined') dataUser.ten_dn = maso;
+    if (typeof name !== 'undefined') dataUser.ho_ten = name;
+    if (typeof trangthai !== 'undefined') dataUser.trang_thai = trangthai;
+
+    const ops = [];
+    ops.push(prisma.nguoiDung.update({ where: { id }, data: dataUser }));
+
+    const updateSV = (typeof ngaysinh !== 'undefined') || (typeof gt !== 'undefined') || (typeof sdt !== 'undefined');
+    if (updateSV) {
+      const dataSv = {};
+      if (typeof ngaysinh !== 'undefined') dataSv.ngay_sinh = ngaysinh ? new Date(ngaysinh) : null;
+      if (typeof gt !== 'undefined') dataSv.gt = gt || null;
+      if (typeof sdt !== 'undefined') dataSv.sdt = sdt || null;
+      ops.push(prisma.sinhVien.updateMany({ where: { nguoi_dung_id: id }, data: dataSv }));
+    }
+
+    await prisma.$transaction(ops);
+    const user = await prisma.nguoiDung.findUnique({ where: { id }, include: this.includeForUser() });
+    return this.toUserDTO(user);
+  }
 }
 
 module.exports = AuthService;
+
+
+
+

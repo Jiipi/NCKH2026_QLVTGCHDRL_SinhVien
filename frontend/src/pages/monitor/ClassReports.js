@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, Area } from 'recharts';
 import { TrendingUp, Users, Calendar, Award, Download, RefreshCw, Filter, BarChart3, PieChart as PieIcon, LineChart as LineIcon, FileText, AlertCircle, Sparkles, Target, Activity, Trophy, Star, CheckCircle2, XCircle } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
 
 export default function ClassReports() {
@@ -42,8 +42,8 @@ export default function ClassReports() {
       setError('');
       console.log('📊 [ClassReports] Loading data for semester:', semester);
       
-      // ✅ Send semester parameter instead of timeRange
-      const response = await http.get(`/class/reports?semester=${semester}`);
+      // ✅ Use core monitor reports endpoint with semester parameter
+      const response = await http.get('/core/monitor/reports', { params: { semester } });
       const raw = response?.data?.data;
       console.log('📊 [ClassReports] Raw response:', raw);
       
@@ -94,64 +94,175 @@ export default function ClassReports() {
 
   const handleExportExcel = () => {
     if (!reportData) return;
-    const csv = generateCSV();
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    downloadBlob(blob, `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.csv`);
+    try {
+      const csv = generateCSV();
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.csv`);
+    } catch (e) {
+      console.error('Export Excel failed', e);
+      alert('Xuất Excel thất bại. Vui lòng thử lại.');
+    }
   };
 
   const handleExportPDF = () => {
     if (!reportData) return;
-    const html = generateReportHTML();
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      setTimeout(() => printWindow.print(), 250);
+    try {
+      const html = generateReportHTML();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        setTimeout(() => printWindow.print(), 300);
+      }
+    } catch (e) {
+      console.error('Export PDF failed', e);
+      alert('Xuất PDF thất bại. Vui lòng thử lại.');
     }
   };
 
   const generateCSV = () => {
     if (!reportData) return '';
-    let csv = 'BÁO CÁO THỐNG KÊ LỚP\n\n';
-    csv += `Học kỳ: ${semester}\n`;
-    csv += `Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}\n\n`;
-    csv += 'TỔNG QUAN\n';
-    csv += `Tổng sinh viên,${reportData.overview.totalStudents}\n`;
-    csv += `Tổng hoạt động,${reportData.overview.totalActivities}\n`;
-    csv += `Điểm TB,${reportData.overview.avgPoints}\n`;
-    csv += `Tỷ lệ tham gia,${reportData.overview.participationRate}%\n\n`;
-    
-    if (reportData.topStudents?.length > 0) {
-      csv += 'TOP SINH VIÊN\n';
-      csv += 'STT,Họ tên,MSSV,Điểm RL,Hoạt động\n';
-      reportData.topStudents.forEach((s, i) => {
-        csv += `${i + 1},"${s.name}",${s.mssv},${s.points},${s.activities}\n`;
+    const safe = (v) => {
+      if (v === null || v === undefined) return '';
+      const s = String(v).replace(/"/g, '""');
+      // Ensure values with commas/newlines are quoted
+      return /[",\n]/.test(s) ? `"${s}"` : s;
+    };
+
+    const lines = [];
+    lines.push('BÁO CÁO THỐNG KÊ LỚP');
+    lines.push('');
+    lines.push(`Học kỳ:,${safe(semester)}`);
+    lines.push(`Ngày xuất:,${safe(new Date().toLocaleDateString('vi-VN'))}`);
+    lines.push('');
+    lines.push('TỔNG QUAN');
+    lines.push(`Tổng sinh viên,${safe(reportData.overview?.totalStudents || 0)}`);
+    lines.push(`Tổng hoạt động,${safe(reportData.overview?.totalActivities || 0)}`);
+    lines.push(`Điểm TB,${safe(reportData.overview?.avgPoints || 0)}`);
+    lines.push(`Tỷ lệ tham gia,${safe(reportData.overview?.participationRate || 0)}%`);
+    lines.push('');
+
+    // Activity types
+    if (Array.isArray(reportData.activityTypes) && reportData.activityTypes.length) {
+      lines.push('PHÂN LOẠI HOẠT ĐỘNG');
+      lines.push('Loại,Số hoạt động,Điểm TB');
+      reportData.activityTypes.forEach(t => {
+        const count = Number(t.count || 0);
+        const avg = count > 0 ? (Number(t.points || 0) / count).toFixed(1) : '0.0';
+        lines.push(`${safe(t.name)},${count},${avg}`);
+      });
+      lines.push('');
+    }
+
+    // Points distribution
+    if (Array.isArray(reportData.pointsDistribution) && reportData.pointsDistribution.length) {
+      lines.push('PHÂN BỐ ĐIỂM RÈN LUYỆN');
+      lines.push('Khoảng điểm,Số SV,Tỷ lệ (%)');
+      reportData.pointsDistribution.forEach(d => {
+        lines.push(`${safe(d.range)},${safe(d.count)},${safe(d.percentage)}`);
+      });
+      lines.push('');
+    }
+
+    // Monthly activities
+    if (Array.isArray(reportData.monthlyActivities) && reportData.monthlyActivities.length) {
+      lines.push('HOẠT ĐỘNG THEO THÁNG');
+      lines.push('Tháng,Số hoạt động,Số SV tham gia');
+      reportData.monthlyActivities.forEach(m => {
+        lines.push(`${safe(m.month)},${safe(m.activities)},${safe(m.participants)}`);
+      });
+      lines.push('');
+    }
+
+    // Top students
+    if (Array.isArray(reportData.topStudents) && reportData.topStudents.length) {
+      lines.push('TOP SINH VIÊN');
+      lines.push('Hạng,Họ tên,MSSV,Điểm RL,Hoạt động');
+      reportData.topStudents.forEach((s) => {
+        lines.push(`${safe(s.rank || '')},${safe(s.name || '')},${safe(s.mssv || '')},${safe(s.points || 0)},${safe(s.activities || 0)}`);
       });
     }
-    return csv;
+
+    return lines.join('\n');
   };
 
   const generateReportHTML = () => {
+    const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const overview = reportData?.overview || {};
+    const activityTypes = Array.isArray(reportData?.activityTypes) ? reportData.activityTypes : [];
+    const pointsDistribution = Array.isArray(reportData?.pointsDistribution) ? reportData.pointsDistribution : [];
+    const monthlyActivities = Array.isArray(reportData?.monthlyActivities) ? reportData.monthlyActivities : [];
+    const topStudents = Array.isArray(reportData?.topStudents) ? reportData.topStudents : [];
+
+    const activityTypesRows = activityTypes.map(t => {
+      const count = Number(t.count || 0);
+      const avg = count > 0 ? (Number(t.points || 0) / count).toFixed(1) : '0.0';
+      return `<tr><td>${esc(t.name)}</td><td>${count}</td><td>${avg}</td></tr>`;
+    }).join('');
+
+    const pointsRows = pointsDistribution.map(d => `<tr><td>${esc(d.range)}</td><td>${esc(d.count)}</td><td>${esc(d.percentage)}</td></tr>`).join('');
+    const monthRows = monthlyActivities.map(m => `<tr><td>${esc(m.month)}</td><td>${esc(m.activities)}</td><td>${esc(m.participants)}</td></tr>`).join('');
+    const topRows = topStudents.map(s => `<tr><td>${esc(s.rank)}</td><td>${esc(s.name)}</td><td>${esc(s.mssv)}</td><td>${esc(s.points)}</td><td>${esc(s.activities)}</td></tr>`).join('');
+
     return `
       <!DOCTYPE html>
       <html><head><meta charset="utf-8"><title>Báo cáo lớp</title>
-      <style>body{font-family:Arial;padding:20px;}h1{color:#6366F1;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}</style>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111827}
+        h1{color:#4f46e5;margin:0 0 8px}
+        h2{color:#374151;margin:24px 0 8px}
+        .muted{color:#6b7280}
+        table{width:100%;border-collapse:collapse;margin-top:8px}
+        th,td{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:13px}
+        th{background:#f9fafb}
+        .section{margin-top:18px}
+      </style>
       </head><body>
       <h1>BÁO CÁO THỐNG KÊ LỚP</h1>
-      <p><strong>Học kỳ:</strong> ${semester}</p>
-      <p><strong>Ngày xuất:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
-      <h2>Tổng quan</h2>
-      <ul>
-        <li>Tổng sinh viên: ${reportData?.overview?.totalStudents || 0}</li>
-        <li>Tổng hoạt động: ${reportData?.overview?.totalActivities || 0}</li>
-        <li>Điểm trung bình: ${reportData?.overview?.avgPoints || 0}</li>
-        <li>Tỷ lệ tham gia: ${reportData?.overview?.participationRate || 0}%</li>
-      </ul>
-      ${reportData?.topStudents?.length > 0 ? `
+      <div class="muted">Học kỳ: ${esc(semester)} • Ngày xuất: ${esc(new Date().toLocaleDateString('vi-VN'))}</div>
+
+      <div class="section">
+        <h2>Tổng quan</h2>
+        <table><tbody>
+          <tr><th>Tổng sinh viên</th><td>${overview.totalStudents || 0}</td></tr>
+          <tr><th>Tổng hoạt động</th><td>${overview.totalActivities || 0}</td></tr>
+          <tr><th>Điểm trung bình</th><td>${overview.avgPoints || 0}</td></tr>
+          <tr><th>Tỷ lệ tham gia</th><td>${overview.participationRate || 0}%</td></tr>
+        </tbody></table>
+      </div>
+
+      ${activityTypes.length ? `
+      <div class="section">
+        <h2>Phân loại hoạt động</h2>
+        <table><thead><tr><th>Loại</th><th>Số hoạt động</th><th>Điểm TB</th></tr></thead><tbody>
+          ${activityTypesRows}
+        </tbody></table>
+      </div>` : ''}
+
+      ${pointsDistribution.length ? `
+      <div class="section">
+        <h2>Phân bố điểm rèn luyện</h2>
+        <table><thead><tr><th>Khoảng điểm</th><th>Số SV</th><th>Tỷ lệ (%)</th></tr></thead><tbody>
+          ${pointsRows}
+        </tbody></table>
+      </div>` : ''}
+
+      ${monthlyActivities.length ? `
+      <div class="section">
+        <h2>Hoạt động theo tháng</h2>
+        <table><thead><tr><th>Tháng</th><th>Số hoạt động</th><th>Số SV tham gia</th></tr></thead><tbody>
+          ${monthRows}
+        </tbody></table>
+      </div>` : ''}
+
+      ${topStudents.length ? `
+      <div class="section">
         <h2>Top sinh viên</h2>
-        <table><tr><th>STT</th><th>Họ tên</th><th>MSSV</th><th>Điểm</th></tr>
-        ${reportData.topStudents.map((s, i) => `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.mssv}</td><td>${s.points}</td></tr>`).join('')}
-        </table>` : ''}
+        <table><thead><tr><th>Hạng</th><th>Họ tên</th><th>MSSV</th><th>Điểm RL</th><th>Hoạt động</th></tr></thead><tbody>
+          ${topRows}
+        </tbody></table>
+      </div>` : ''}
+
       </body></html>
     `;
   };
@@ -206,7 +317,6 @@ export default function ClassReports() {
 
   const overview = reportData?.overview || {};
   const avgScore = Number(overview.avgPoints || 0);
-  const avgScoreRounded = Number.isFinite(avgScore) ? Number(avgScore.toFixed(1)) : 0;
   const getScoreTheme = (s) => {
     if (s >= 90) return { gradient: 'from-violet-500 to-purple-600', label: 'Xuất sắc' };
     if (s >= 80) return { gradient: 'from-blue-500 to-indigo-600', label: 'Tốt' };
@@ -326,7 +436,7 @@ export default function ClassReports() {
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
                   <Award className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{avgScoreRounded}</p>
+                  <p className="text-3xl font-black text-black">{avgScore}</p>
                   <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐIỂM TB</p>
                 </div>
               </div>
@@ -384,13 +494,6 @@ export default function ClassReports() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={loadReportData}
-              className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-semibold flex items-center gap-2 text-sm"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Làm mới
-            </button>
           </div>
         </div>
       </div>
@@ -635,32 +738,23 @@ export default function ClassReports() {
               </p>
               {(() => {
                 const data = reportData?.activityTypes || [];
+                const overview = reportData?.overview || {};
                 console.log('📊 [Chart-Activities] Rendering with data:', data);
                 
-                // Calculate totals
-                const totalActivities = data.reduce((s, d) => s + d.count, 0);
-                const totalPoints = data.reduce((s, d) => s + d.points, 0);
+                // Use totalActivities from overview (approved activities in this semester)
+                const totalActivities = overview.totalActivities || 0;
                 
                 return (
                   <div className="space-y-6">
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl p-6 text-white">
                         <div className="flex items-center gap-3 mb-2">
                           <Activity className="h-6 w-6" />
                           <span className="text-sm font-medium opacity-90">Tổng hoạt động</span>
                         </div>
                         <div className="text-4xl font-bold">{totalActivities}</div>
-                        <div className="text-sm opacity-75 mt-1">hoạt động đã tổ chức</div>
-                      </div>
-                      
-                      <div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl p-6 text-white">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Award className="h-6 w-6" />
-                          <span className="text-sm font-medium opacity-90">Tổng điểm</span>
-                        </div>
-                        <div className="text-4xl font-bold">{totalPoints.toFixed(1)}</div>
-                        <div className="text-sm opacity-75 mt-1">điểm rèn luyện</div>
+                        <div className="text-sm opacity-75 mt-1">hoạt động đã đăng ký và duyệt</div>
                       </div>
                       
                       <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl p-6 text-white">
@@ -744,75 +838,6 @@ export default function ClassReports() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-
-                    {/* Stats Table */}
-                    <div className="overflow-hidden rounded-xl border-2 border-gray-200">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-                            <th className="px-6 py-4 text-left font-semibold">Loại hoạt động</th>
-                            <th className="px-6 py-4 text-center font-semibold">Số lượng</th>
-                            <th className="px-6 py-4 text-center font-semibold">Tỷ lệ</th>
-                            <th className="px-6 py-4 text-center font-semibold">Tổng điểm</th>
-                            <th className="px-6 py-4 text-center font-semibold">Điểm TB</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {data.map((item, index) => {
-                            const percentage = totalActivities > 0 ? ((item.count / totalActivities) * 100).toFixed(1) : 0;
-                            const avgPoints = item.count > 0 ? (item.points / item.count).toFixed(1) : 0;
-                            return (
-                              <tr key={index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div 
-                                      className="w-3 h-3 rounded-full" 
-                                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                    />
-                                    <span className="font-medium text-gray-900">{item.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full font-bold">
-                                    {item.count}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className="font-semibold text-gray-900">{percentage}%</span>
-                                    <div className="w-full bg-gray-200 rounded-full h-2 max-w-[100px]">
-                                      <div 
-                                        className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                                        style={{ width: `${percentage}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="font-bold text-emerald-600">{item.points.toFixed(1)}</span>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
-                                    {avgPoints}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-gray-100 font-bold">
-                            <td className="px-6 py-4 text-gray-900">TỔNG CỘNG</td>
-                            <td className="px-6 py-4 text-center text-indigo-600">{totalActivities}</td>
-                            <td className="px-6 py-4 text-center text-gray-900">100%</td>
-                            <td className="px-6 py-4 text-center text-emerald-600">{totalPoints.toFixed(1)}</td>
-                            <td className="px-6 py-4 text-center text-amber-600">
-                              {totalActivities > 0 ? (totalPoints / totalActivities).toFixed(1) : '0.0'}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
                   </div>
                 );
               })()}
@@ -1086,62 +1111,48 @@ export default function ClassReports() {
 
       {/* Top Students */}
       {reportData?.topStudents?.length > 0 && (
-        <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-yellow-400 blur-lg opacity-30"></div>
-              <Trophy className="relative h-8 w-8 text-yellow-500" />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900">
+            <Trophy className="h-7 w-7 text-yellow-500" />
+            <h3 className="text-xl font-bold text-gray-900">
               TOP SINH VIÊN XUẤT SẮC
             </h3>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             {reportData.topStudents.slice(0, 5).map((student, index) => (
               <div 
                 key={index}
-                className="group relative"
+                className={`flex items-center gap-4 p-4 rounded-lg border transition-all duration-200 hover:shadow-md ${
+                  index === 0 ? 'bg-yellow-50 border-yellow-200' :
+                  index === 1 ? 'bg-gray-50 border-gray-200' :
+                  index === 2 ? 'bg-orange-50 border-orange-200' :
+                  'bg-white border-gray-200'
+                }`}
               >
-                {/* Brutalist shadow */}
-                <div className={`absolute inset-0 transform translate-x-2 translate-y-2 rounded-xl ${
-                  index === 0 ? 'bg-yellow-400' :
-                  index === 1 ? 'bg-gray-400' :
-                  index === 2 ? 'bg-orange-400' :
-                  'bg-purple-400'
-                }`}></div>
-                
-                {/* Main card */}
-                <div className={`relative flex items-center gap-4 p-5 rounded-xl border-4 border-black transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 ${
-                  index === 0 ? 'bg-gradient-to-r from-yellow-100 to-amber-100' :
-                  index === 1 ? 'bg-gradient-to-r from-gray-100 to-slate-100' :
-                  index === 2 ? 'bg-gradient-to-r from-orange-100 to-amber-100' :
-                  'bg-gradient-to-r from-purple-100 to-pink-100'
+                {/* Rank badge */}
+                <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${
+                  index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                  index === 1 ? 'bg-gray-100 text-gray-700' :
+                  index === 2 ? 'bg-orange-100 text-orange-700' :
+                  'bg-indigo-100 text-indigo-700'
                 }`}>
-                  {/* Rank badge */}
-                  <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl border-4 border-black ${
-                    index === 0 ? 'bg-yellow-400 text-black' :
-                    index === 1 ? 'bg-gray-400 text-white' :
-                    index === 2 ? 'bg-orange-400 text-white' :
-                    'bg-purple-500 text-white'
-                  }`}>
-                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                </div>
+                
+                {/* Student info */}
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">{student.name}</p>
+                  <p className="text-sm text-gray-600">MSSV: {student.mssv}</p>
+                </div>
+                
+                {/* Points */}
+                <div className="text-right">
+                  <div className="flex items-center gap-2 justify-end mb-1">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <p className="text-2xl font-bold text-gray-900">{student.points}</p>
                   </div>
-                  
-                  {/* Student info */}
-                  <div className="flex-1">
-                    <p className="font-black text-gray-900 text-lg">{student.name}</p>
-                    <p className="text-sm font-bold text-gray-600">MSSV: {student.mssv}</p>
-                  </div>
-                  
-                  {/* Points */}
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 justify-end mb-1">
-                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                      <p className="text-3xl font-black text-gray-900">{student.points}</p>
-                    </div>
-                    <p className="text-xs font-bold text-gray-600 uppercase">{student.activities} hoạt động</p>
-                  </div>
+                  <p className="text-xs text-gray-600">{student.activities} hoạt động</p>
                 </div>
               </div>
             ))}

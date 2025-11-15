@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminStudentSidebar from './AdminStudentSidebar';
-import ModernHeader from './ModernHeader';
-import ModernFooter from './ModernFooter';
+import ModernHeader from '../widgets/header/ui/ModernHeader';
+import ModernFooter from '../widgets/header/ui/ModernFooter';
 import MobileSidebarWrapper from './MobileSidebarWrapper';
 
 export default function AdminStudentLayout() {

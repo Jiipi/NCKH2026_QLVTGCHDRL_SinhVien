@@ -3,10 +3,10 @@ import {
   Activity, Search, Eye, Calendar, MapPin, Users, Award, Clock, 
   CheckCircle, XCircle, AlertCircle, Filter, RefreshCw, LayoutGrid, List
 } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
-import SemesterFilter from '../../components/SemesterFilter';
-import { getActivityImage } from '../../utils/activityImages';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
+import { getActivityImage } from '../../shared/lib/activityImages';
 
 const TeacherActivities = () => {
   const [activities, setActivities] = useState([]);

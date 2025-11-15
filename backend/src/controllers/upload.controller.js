@@ -1,276 +1,216 @@
 const path = require('path');
-const fs = require('fs');
-const { IMAGE_DIR, ATTACHMENT_DIR } = require('../middlewares/upload');
+const fs = require('fs').promises;
+const { ApiResponse } = require('../core/http/response/apiResponse');
+const { logInfo, logError } = require('../core/logger');
 
 class UploadController {
-  // Upload single image
-  static uploadImage(req, res) {
+  /**
+   * Upload single image
+   */
+  static async uploadImage(req, res) {
     try {
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'Không có file nào được upload'
-        });
+        return res.status(400).json(ApiResponse.error('No image file provided'));
       }
 
       const fileUrl = `/uploads/images/${req.file.filename}`;
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Upload ảnh thành công',
-        data: {
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-          size: req.file.size,
-          url: fileUrl,
-          path: req.file.path
-        }
-      });
+      logInfo('Image uploaded', { filename: req.file.filename, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success({
+        filename: req.file.filename,
+        url: fileUrl,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }, 'Image uploaded successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi upload ảnh',
-        error: error.message
-      });
+      logError('Upload image error', error);
+      return res.status(500).json(ApiResponse.error('Failed to upload image'));
     }
   }
 
-  // Upload multiple images
-  static uploadImages(req, res) {
+  /**
+   * Upload multiple images
+   */
+  static async uploadImages(req, res) {
     try {
       if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Không có file nào được upload'
-        });
+        return res.status(400).json(ApiResponse.error('No image files provided'));
       }
 
       const files = req.files.map(file => ({
         filename: file.filename,
-        originalname: file.originalname,
-        size: file.size,
         url: `/uploads/images/${file.filename}`,
-        path: file.path
+        size: file.size,
+        mimetype: file.mimetype
       }));
 
-      return res.status(200).json({
-        success: true,
-        message: `Upload ${files.length} ảnh thành công`,
-        data: files
-      });
+      logInfo('Images uploaded', { count: files.length, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success({ files }, 'Images uploaded successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi upload ảnh',
-        error: error.message
-      });
+      logError('Upload images error', error);
+      return res.status(500).json(ApiResponse.error('Failed to upload images'));
     }
   }
 
-  // Upload single attachment
-  static uploadAttachment(req, res) {
+  /**
+   * Upload single attachment
+   */
+  static async uploadAttachment(req, res) {
     try {
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'Không có file nào được upload'
-        });
+        return res.status(400).json(ApiResponse.error('No attachment file provided'));
       }
 
       const fileUrl = `/uploads/attachments/${req.file.filename}`;
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Upload tệp đính kèm thành công',
-        data: {
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-          size: req.file.size,
-          url: fileUrl,
-          path: req.file.path
-        }
-      });
+      logInfo('Attachment uploaded', { filename: req.file.filename, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success({
+        filename: req.file.filename,
+        url: fileUrl,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        originalName: req.file.originalname
+      }, 'Attachment uploaded successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi upload tệp đính kèm',
-        error: error.message
-      });
+      logError('Upload attachment error', error);
+      return res.status(500).json(ApiResponse.error('Failed to upload attachment'));
     }
   }
 
-  // Upload multiple attachments
-  static uploadAttachments(req, res) {
+  /**
+   * Upload multiple attachments
+   */
+  static async uploadAttachments(req, res) {
     try {
       if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Không có file nào được upload'
-        });
+        return res.status(400).json(ApiResponse.error('No attachment files provided'));
       }
 
       const files = req.files.map(file => ({
         filename: file.filename,
-        originalname: file.originalname,
-        size: file.size,
         url: `/uploads/attachments/${file.filename}`,
-        path: file.path
+        size: file.size,
+        mimetype: file.mimetype,
+        originalName: file.originalname
       }));
 
-      return res.status(200).json({
-        success: true,
-        message: `Upload ${files.length} tệp đính kèm thành công`,
-        data: files
-      });
+      logInfo('Attachments uploaded', { count: files.length, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success({ files }, 'Attachments uploaded successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi upload tệp đính kèm',
-        error: error.message
-      });
+      logError('Upload attachments error', error);
+      return res.status(500).json(ApiResponse.error('Failed to upload attachments'));
     }
   }
 
-  // Delete file
-  static deleteFile(req, res) {
-    try {
-      const { type, filename } = req.params;
-      
-      if (!['images', 'attachments'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Loại file không hợp lệ'
-        });
-      }
-
-      const dir = type === 'images' ? IMAGE_DIR : ATTACHMENT_DIR;
-      const filePath = path.join(dir, filename);
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-          success: false,
-          message: 'File không tồn tại'
-        });
-      }
-
-      fs.unlinkSync(filePath);
-
-      return res.status(200).json({
-        success: true,
-        message: 'Xóa file thành công'
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi xóa file',
-        error: error.message
-      });
-    }
-  }
-
-  // Get file info
-  static getFileInfo(req, res) {
-    try {
-      const { type, filename } = req.params;
-      
-      if (!['images', 'attachments'].includes(type)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Loại file không hợp lệ'
-        });
-      }
-
-      const dir = type === 'images' ? IMAGE_DIR : ATTACHMENT_DIR;
-      const filePath = path.join(dir, filename);
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-          success: false,
-          message: 'File không tồn tại'
-        });
-      }
-
-      const stats = fs.statSync(filePath);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          filename,
-          size: stats.size,
-          created: stats.birthtime,
-          modified: stats.mtime,
-          url: `/uploads/${type}/${filename}`
-        }
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi lấy thông tin file',
-        error: error.message
-      });
-    }
-  }
-
-  // Upload avatar (single image for user profile)
-  static uploadAvatar(req, res) {
+  /**
+   * Upload avatar
+   */
+  static async uploadAvatar(req, res) {
     try {
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'Không có file ảnh nào được upload'
-        });
+        return res.status(400).json(ApiResponse.error('No avatar file provided'));
       }
 
       const fileUrl = `/uploads/avatars/${req.file.filename}`;
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Upload avatar thành công',
-        data: {
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-          size: req.file.size,
-          url: fileUrl,
-          path: req.file.path
-        }
-      });
+      logInfo('Avatar uploaded', { filename: req.file.filename, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success({
+        filename: req.file.filename,
+        url: fileUrl,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }, 'Avatar uploaded successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi upload avatar',
-        error: error.message
-      });
+      logError('Upload avatar error', error);
+      return res.status(500).json(ApiResponse.error('Failed to upload avatar'));
     }
   }
 
-  // Delete avatar (also delete old avatar before uploading new one)
-  static deleteAvatar(req, res) {
+  /**
+   * Delete avatar
+   */
+  static async deleteAvatar(req, res) {
     try {
       const { filename } = req.params;
-      const avatarsDir = path.join(__dirname, '../../uploads/avatars');
-      const filePath = path.join(avatarsDir, filename);
+      const filePath = path.join(__dirname, '../../uploads/avatars', filename);
 
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-          success: false,
-          message: 'Avatar không tồn tại'
-        });
+      await fs.unlink(filePath);
+      logInfo('Avatar deleted', { filename, userId: req.user?.sub });
+
+      return res.json(ApiResponse.success(null, 'Avatar deleted successfully'));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return res.status(404).json(ApiResponse.error('Avatar not found'));
+      }
+      logError('Delete avatar error', error);
+      return res.status(500).json(ApiResponse.error('Failed to delete avatar'));
+    }
+  }
+
+  /**
+   * Delete file
+   */
+  static async deleteFile(req, res) {
+    try {
+      const { type, filename } = req.params;
+      const allowedTypes = ['images', 'attachments', 'avatars'];
+
+      if (!allowedTypes.includes(type)) {
+        return res.status(400).json(ApiResponse.error('Invalid file type'));
       }
 
-      fs.unlinkSync(filePath);
+      const filePath = path.join(__dirname, '../../uploads', type, filename);
+      await fs.unlink(filePath);
+      logInfo('File deleted', { type, filename, userId: req.user?.sub });
 
-      return res.status(200).json({
-        success: true,
-        message: 'Xóa avatar thành công'
-      });
+      return res.json(ApiResponse.success(null, 'File deleted successfully'));
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi xóa avatar',
-        error: error.message
-      });
+      if (error.code === 'ENOENT') {
+        return res.status(404).json(ApiResponse.error('File not found'));
+      }
+      logError('Delete file error', error);
+      return res.status(500).json(ApiResponse.error('Failed to delete file'));
+    }
+  }
+
+  /**
+   * Get file info
+   */
+  static async getFileInfo(req, res) {
+    try {
+      const { type, filename } = req.params;
+      const allowedTypes = ['images', 'attachments', 'avatars'];
+
+      if (!allowedTypes.includes(type)) {
+        return res.status(400).json(ApiResponse.error('Invalid file type'));
+      }
+
+      const filePath = path.join(__dirname, '../../uploads', type, filename);
+      const stats = await fs.stat(filePath);
+
+      return res.json(ApiResponse.success({
+        filename,
+        type,
+        size: stats.size,
+        created: stats.birthtime,
+        modified: stats.mtime,
+        url: `/uploads/${type}/${filename}`
+      }, 'File info retrieved successfully'));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return res.status(404).json(ApiResponse.error('File not found'));
+      }
+      logError('Get file info error', error);
+      return res.status(500).json(ApiResponse.error('Failed to get file info'));
     }
   }
 }
 
 module.exports = UploadController;
+
+
+
+
+

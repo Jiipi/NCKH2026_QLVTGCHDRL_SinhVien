@@ -13,13 +13,13 @@ import {
   History,
   FileCheck
 } from 'lucide-react';
-import http from '../../services/http';
-import { getActivityImage } from '../../utils/activityImages';
+import http from '../../shared/api/http';
+import { getActivityImage } from '../../shared/lib/activityImages';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
 import useSemesterData from '../../hooks/useSemesterData';
-import SemesterFilter from '../../components/SemesterFilter';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
 
 export default function ModernActivityApproval() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'

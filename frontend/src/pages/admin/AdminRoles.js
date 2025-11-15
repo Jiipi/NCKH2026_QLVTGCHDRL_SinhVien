@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Users, Plus, Edit, Trash2, Eye, Search, X, Save, Crown, Key, Lock } from 'lucide-react';
-import http from '../../services/http';
-import { extractRolesFromAxiosResponse, extractUsersFromAxiosResponse } from '../../utils/apiNormalization';
-import { getUserAvatar, getStudentAvatar } from '../../utils/avatarUtils';
+import http from '../../shared/api/http';
+import { extractRolesFromAxiosResponse, extractUsersFromAxiosResponse } from '../../shared/lib/apiNormalization';
+import { getUserAvatar, getStudentAvatar } from '../../shared/lib/avatar';
 
 export default function AdminRoles() {
   const [roles, setRoles] = useState([]);
@@ -52,8 +52,8 @@ export default function AdminRoles() {
   const getRoleIcon = (roleName) => {
     const name = (roleName || '').toLowerCase();
     if (name.includes('admin')) return <Crown size={18} style={{ color: '#f59e0b' }} />;
-    if (name.includes('giảng viên')) return <Key size={18} style={{ color: '#3b82f6' }} />;
-    if (name.includes('lớp trưởng')) return <Shield size={18} style={{ color: '#8b5cf6' }} />;
+    if (name.includes('gi?ng vi�n')) return <Key size={18} style={{ color: '#3b82f6' }} />;
+    if (name.includes('l?p tr�?ng')) return <Shield size={18} style={{ color: '#8b5cf6' }} />;
     return <Users size={18} style={{ color: '#10b981' }} />;
   };
 
@@ -97,7 +97,7 @@ export default function AdminRoles() {
         const data = resp?.data?.data || resp?.data || {};
         if (!Array.isArray(data.quyen_han)) data.quyen_han = [];
         
-        console.log('🔄 Loaded fresh role permissions from API:', {
+        console.log('?? Loaded fresh role permissions from API:', {
           roleId: data.id,
           roleName: data.ten_vt,
           permissions: data.quyen_han
@@ -106,7 +106,7 @@ export default function AdminRoles() {
         // Always update roleFilter with fresh data from API
         setRoleFilter({ ...data });
       } catch (err) {
-        console.error('❌ Failed to load role details:', err);
+        console.error('? Failed to load role details:', err);
       }
     })();
   }, [roleFilter?.id]);
@@ -130,7 +130,7 @@ export default function AdminRoles() {
       pairs.forEach(([id, total]) => (map[id] = total));
       setRoleCounts(map);
     } catch (e) {
-      console.error('Lỗi đếm số người dùng theo vai trò', e?.message);
+      console.error('L?i �?m s? ng�?i d�ng theo vai tr?', e?.message);
     }
   }
 
@@ -149,7 +149,7 @@ export default function AdminRoles() {
       setEditingRole(data);
       setShowRoleModal(true);
     } catch (e) {
-      console.error('Lỗi tải chi tiết vai trò', e.response?.data || e.message);
+      console.error('L?i t?i chi ti?t vai tr?', e.response?.data || e.message);
     }
   }
 
@@ -170,13 +170,13 @@ export default function AdminRoles() {
       if (!roleFilter && rs[0]) setRoleFilter(rs[0]);
       fetchRoleCounts(rs);
     } catch (e) {
-      console.error('Lưu vai trò thất bại', e.response?.data || e.message);
+      console.error('L�u vai tr? th?t b?i', e.response?.data || e.message);
     }
   }
 
   async function deleteRole(roleId) {
-    if (!window.confirm('Bạn có chắc muốn xóa vai trò này?')) return;
-    if (!window.confirm('Xóa luôn TẤT CẢ người dùng đang thuộc vai trò này? Hành động này không thể hoàn tác.')) return;
+    if (!window.confirm('B?n c� ch?c mu?n x�a vai tr? n�y?')) return;
+    if (!window.confirm('X�a lu�n T?T C? ng�?i d�ng �ang thu?c vai tr? n�y? H�nh �?ng n�y kh�ng th? ho�n t�c.')) return;
     try {
       await http.delete(`/admin/roles/${roleId}`, { params: { cascadeUsers: true } });
       const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles'));
@@ -184,7 +184,7 @@ export default function AdminRoles() {
       if (!rs.find(r => r.id === roleFilter?.id)) setRoleFilter(rs[0] || null);
       fetchRoleCounts(rs);
     } catch (e) {
-      console.error('Xóa vai trò thất bại', e.response?.data || e.message);
+      console.error('X�a vai tr? th?t b?i', e.response?.data || e.message);
     }
   }
 
@@ -272,26 +272,26 @@ export default function AdminRoles() {
 
   const roleNotes = [
     { key: 'ADMIN', name: 'ADMIN', icon: getRoleIcon('ADMIN'), color: '#fff7ed', items: [
-      'Quản trị hệ thống, người dùng, vai trò',
-      'Quản lý loại hoạt động'
+      'Qu?n tr? h? th?ng, ng�?i d�ng, vai tr?',
+      'Qu?n l? lo?i ho?t �?ng'
     ] },
-    { key: 'GIANG_VIEN', name: 'GIẢNG VIÊN', icon: getRoleIcon('GIANG_VIEN'), color: '#eff6ff', items: [
-      'Tạo và quản lý hoạt động',
-      'Điểm danh, theo dõi đăng ký'
+    { key: 'GIANG_VIEN', name: 'GI?NG VI�N', icon: getRoleIcon('GIANG_VIEN'), color: '#eff6ff', items: [
+      'T?o v� qu?n l? ho?t �?ng',
+      '�i?m danh, theo d?i ��ng k?'
     ] },
-    { key: 'LOP_TRUONG', name: 'LỚP TRƯỞNG', icon: getRoleIcon('LOP_TRUONG'), color: '#f5f3ff', items: [
-      'Theo dõi hoạt động lớp',
-      'Hỗ trợ điểm danh'
+    { key: 'LOP_TRUONG', name: 'L?P TR�?NG', icon: getRoleIcon('LOP_TRUONG'), color: '#f5f3ff', items: [
+      'Theo d?i ho?t �?ng l?p',
+      'H? tr? �i?m danh'
     ] },
-    { key: 'SINH_VIEN', name: 'SINH VIÊN', icon: getRoleIcon('SINH_VIEN'), color: '#f0fdf4', items: [
-      'Đăng ký tham gia hoạt động',
-      'Xem điểm rèn luyện'
+    { key: 'SINH_VIEN', name: 'SINH VI�N', icon: getRoleIcon('SINH_VIEN'), color: '#f0fdf4', items: [
+      '��ng k? tham gia ho?t �?ng',
+      'Xem �i?m r�n luy?n'
     ] }
   ];
 
   if (authError) {
     return (
-      <div style={{ padding: 24 }}>Bạn không có quyền truy cập hoặc phiên đã hết hạn.</div>
+      <div style={{ padding: 24 }}>B?n kh�ng c� quy?n truy c?p ho?c phi�n �? h?t h?n.</div>
     );
   }
 
@@ -313,7 +313,7 @@ export default function AdminRoles() {
       const total = resp?.data?.data?.pagination?.total;
       setUserTotal(typeof total === 'number' ? total : list.length);
     } catch (e) {
-      console.error('Lỗi tải người dùng', e.response?.data || e.message);
+      console.error('L?i t?i ng�?i d�ng', e.response?.data || e.message);
       setUsers([]);
       setUserTotal(0);
     } finally {
@@ -324,16 +324,16 @@ export default function AdminRoles() {
   return (
     <div style={{ padding: 16, display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ margin: 0 }}>Vai trò & Quyền</h2>
+        <h2 style={{ margin: 0 }}>Vai tr? & Quy?n</h2>
   <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative' }}>
-            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên/email" style={{ ...inputStyle, paddingLeft: 32, width: 260 }} />
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="T?m theo t�n/email" style={{ ...inputStyle, paddingLeft: 32, width: 260 }} />
             <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
           </div>
-          <button onClick={applySearch} style={buttonStyle}>Tìm</button>
-          {/* Nút test slug chuẩn đã được yêu cầu gỡ bỏ */}
+          <button onClick={applySearch} style={buttonStyle}>T?m</button>
+          {/* N�t test slug chu?n �? ��?c y�u c?u g? b? */}
           <button onClick={openCreateRole} style={{ ...buttonStyle, background: '#eef2ff', borderColor: '#c7d2fe', color: '#4338ca' }}>
-            <Plus size={16} /> Tạo vai trò
+            <Plus size={16} /> T?o vai tr?
           </button>
         </div>
       </div>
@@ -348,8 +348,8 @@ export default function AdminRoles() {
                 {getRoleIcon(r.ten_vt)} <span>{r.ten_vt}</span>
                 <span style={{ color: '#6b7280' }}> ({roleCounts[r.id] ?? 0})</span>
               </button>
-              {/* Nút xóa vai trò */}
-              <button onClick={() => deleteRole(r.id)} title="Xóa vai trò (kèm xóa mọi người dùng thuộc vai trò)" style={{ ...buttonStyle, background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
+              {/* N�t x�a vai tr? */}
+              <button onClick={() => deleteRole(r.id)} title="X�a vai tr? (k�m x�a m?i ng�?i d�ng thu?c vai tr?)" style={{ ...buttonStyle, background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
                 <Trash2 size={16} />
               </button>
             </div>
@@ -374,12 +374,12 @@ export default function AdminRoles() {
               setRoleFilter(cur);
               fetchRoleCounts(rs);
             } catch (e) {
-              console.error('Khôi phục quyền cũ thất bại', e.response?.data || e.message);
+              console.error('Kh�i ph?c quy?n c? th?t b?i', e.response?.data || e.message);
             }
           } : null}
           onSaved={async (updated) => {
             try {
-              console.log('💾 Updating role permissions via API:', updated);
+              console.log('?? Updating role permissions via API:', updated);
               
               await http.put(`/admin/roles/${roleFilter.id}`, {
                 ten_vt: updated.ten_vt,
@@ -387,8 +387,15 @@ export default function AdminRoles() {
                 quyen_han: updated.quyen_han,
               });
               
-              console.log('✅ Role permissions saved successfully');
+              console.log('? Role permissions saved successfully');
               
+              // Broadcast a global event that roles have changed
+              try {
+                localStorage.setItem('__role_permissions_updated_at__', Date.now().toString());
+              } catch (e) {
+                console.warn('Could not broadcast role change event', e);
+              }
+
               // Refresh roles list
               const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles'));
               setRoles(rs);
@@ -398,7 +405,7 @@ export default function AdminRoles() {
               const freshData = freshResp?.data?.data || freshResp?.data || {};
               if (!Array.isArray(freshData.quyen_han)) freshData.quyen_han = [];
               
-              console.log('🔄 Reloaded role after save:', {
+              console.log('?? Reloaded role after save:', {
                 roleId: freshData.id,
                 permissions: freshData.quyen_han
               });
@@ -406,24 +413,24 @@ export default function AdminRoles() {
               setRoleFilter({ ...freshData });
               fetchRoleCounts(rs);
             } catch (e) {
-              console.error('❌ Update role permissions failed:', e.response?.data || e.message);
-              alert('Cập nhật quyền vai trò thất bại: ' + (e.response?.data?.message || e.message));
+              console.error('? Update role permissions failed:', e.response?.data || e.message);
+              alert('C?p nh?t quy?n vai tr? th?t b?i: ' + (e.response?.data?.message || e.message));
             }
           }}
         />
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 0.6fr', padding: '8px 10px', background: '#f9fafb', color: '#6b7280', fontWeight: 600, borderRadius: 8 }}>
-        <div>Thông tin</div>
+        <div>Th�ng tin</div>
         <div>Email</div>
-        {isStudent ? (<><div>Lớp</div><div>Khoa</div></>) : isAdmin ? (<><div>Quyền</div><div>HĐ tạo</div></>) : (<><div>Lớp CN</div><div>HĐ tạo</div></>)}
-        <div>Trạng thái</div>
+        {isStudent ? (<><div>L?p</div><div>Khoa</div></>) : isAdmin ? (<><div>Quy?n</div><div>H� t?o</div></>) : (<><div>L?p CN</div><div>H� t?o</div></>)}
+        <div>Tr?ng th�i</div>
       </div>
 
       {usersLoading ? (
-        <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Đang tải người dùng...</div>
+        <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>�ang t?i ng�?i d�ng...</div>
       ) : users.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>Không có người dùng</div>
+        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>Kh�ng c� ng�?i d�ng</div>
       ) : (
         users.map((u) => {
           const avatar = u?.sinh_vien ? getStudentAvatar(u.sinh_vien) : getUserAvatar(u);
@@ -431,8 +438,8 @@ export default function AdminRoles() {
           const roleClr = (() => {
             const name = String(roleName || '').toLowerCase();
             if (name.includes('admin')) return { bg: '#fef2f2', color: '#dc2626' };
-            if (name.includes('giảng') || name.includes('giang')) return { bg: '#fef3c7', color: '#92400e' };
-            if (name.includes('lớp') || name.includes('lop')) return { bg: '#dbeafe', color: '#1e40af' };
+            if (name.includes('gi?ng') || name.includes('giang')) return { bg: '#fef3c7', color: '#92400e' };
+            if (name.includes('l?p') || name.includes('lop')) return { bg: '#dbeafe', color: '#1e40af' };
             if (name.includes('sinh')) return { bg: '#dcfce7', color: '#15803d' };
             return { bg: '#f3f4f6', color: '#374151' };
           })();
@@ -471,7 +478,7 @@ export default function AdminRoles() {
               )}
               <div>
                 <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 9999, background: u.trang_thai === 'hoat_dong' ? '#dcfce7' : '#fee2e2', color: u.trang_thai === 'hoat_dong' ? '#166534' : '#991b1b' }}>
-                  {u.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Khóa'}
+                  {u.trang_thai === 'hoat_dong' ? 'Ho?t �?ng' : 'Kh�a'}
                 </span>
               </div>
             </div>
@@ -481,12 +488,12 @@ export default function AdminRoles() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
         <div style={{ color: '#6b7280', fontSize: 13 }}>
-          Đang hiển thị {users.length ? (userPage - 1) * userLimit + 1 : 0} - {Math.min(userPage * userLimit, userTotal)} / {userTotal}
+          �ang hi?n th? {users.length ? (userPage - 1) * userLimit + 1 : 0} - {Math.min(userPage * userLimit, userTotal)} / {userTotal}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ ...buttonStyle, opacity: userPage <= 1 ? 0.6 : 1 }}>Trước</button>
+          <button disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ ...buttonStyle, opacity: userPage <= 1 ? 0.6 : 1 }}>Tr�?c</button>
           <div style={{ alignSelf: 'center', color: '#6b7280', fontSize: 13 }}>Trang {userPage} / {Math.max(1, Math.ceil(userTotal / userLimit))}</div>
-          <button disabled={userPage >= Math.ceil(userTotal / userLimit)} onClick={() => setUserPage(p => Math.min(Math.ceil(userTotal / userLimit), p + 1))} style={{ ...buttonStyle, opacity: userPage >= Math.ceil(userTotal / userLimit) ? 0.6 : 1 }}>Tiếp</button>
+          <button disabled={userPage >= Math.ceil(userTotal / userLimit)} onClick={() => setUserPage(p => Math.min(Math.ceil(userTotal / userLimit), p + 1))} style={{ ...buttonStyle, opacity: userPage >= Math.ceil(userTotal / userLimit) ? 0.6 : 1 }}>Ti?p</button>
         </div>
       </div>
 
@@ -494,10 +501,10 @@ export default function AdminRoles() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'white', borderRadius: 12, width: '92%', maxWidth: 780, maxHeight: '90%', overflow: 'auto', border: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #e5e7eb' }}>
-              <h3 style={{ margin: 0 }}>{isCreate ? 'Tạo vai trò mới' : 'Chỉnh sửa vai trò'}</h3>
+              <h3 style={{ margin: 0 }}>{isCreate ? 'T?o vai tr? m?i' : 'Ch?nh s?a vai tr?'}</h3>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={saveRole} style={{ ...buttonStyle, background: '#10b981', color: 'white', borderColor: '#10b981' }}>
-                  <Save size={16} /> Lưu
+                  <Save size={16} /> L�u
                 </button>
                 <button onClick={() => { setShowRoleModal(false); setEditingRole(null); }} style={{ ...buttonStyle }}>
                   <X size={16} />
@@ -506,15 +513,15 @@ export default function AdminRoles() {
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tên vai trò</label>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>T�n vai tr?</label>
                 <input value={editingRole.ten_vt || ''} onChange={(e) => setEditingRole({ ...editingRole, ten_vt: e.target.value })} style={inputStyle} placeholder="VD: ADMIN, GIANG_VIEN" />
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mô tả</label>
-                <textarea value={editingRole.mo_ta || ''} onChange={(e) => setEditingRole({ ...editingRole, mo_ta: e.target.value })} style={{ ...inputStyle, minHeight: 80 }} placeholder="Mô tả vai trò" />
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>M� t?</label>
+                <textarea value={editingRole.mo_ta || ''} onChange={(e) => setEditingRole({ ...editingRole, mo_ta: e.target.value })} style={{ ...inputStyle, minHeight: 80 }} placeholder="M� t? vai tr?" />
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Quyền hạn</label>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Quy?n h?n</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
                   {(useCanonicalSlugs ? CANONICAL_PERMISSION_SLUGS : LEGACY_PERMISSION_SLUGS).map(p => {
                     // Determine checked state with slug equivalence
@@ -562,7 +569,7 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
 
   // Update state whenever role data changes (important for permission display)
   React.useEffect(() => {
-    console.log('📋 RolePermissionEditor updating state:', {
+    console.log('?? RolePermissionEditor updating state:', {
       roleId: role?.id,
       roleName: role?.ten_vt,
       permissions: role?.quyen_han
@@ -645,7 +652,7 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
       quyen_han: Array.from(permissionsToSave)
     };
     
-    console.log('💾 Saving role permissions:', payload);
+    console.log('?? Saving role permissions:', payload);
     
     await onSaved?.(payload);
     setSetDirty(false);
@@ -662,15 +669,15 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
     <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fafafa', display: 'grid', gap: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tên vai trò</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>T�n vai tr?</label>
           <input style={inputStyle} value={name} onChange={(e) => { setName(e.target.value); setSetDirty(true); }} />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mô tả</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>M� t?</label>
           <input style={inputStyle} value={desc} onChange={(e) => { setDesc(e.target.value); setSetDirty(true); }} />
         </div>
       </div>
-      <div style={{ fontWeight: 600 }}>Quyền của vai trò: {role.ten_vt} {useCanonical ? '(slug chuẩn - test)' : ''}</div>
+      <div style={{ fontWeight: 600 }}>Quy?n c?a vai tr?: {role.ten_vt} {useCanonical ? '(slug chu?n - test)' : ''}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {allPermissions.map((p) => {
           // Show as active if:
@@ -693,10 +700,10 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         {useCanonical && typeof onRestoreOriginal === 'function' ? (
-          <button onClick={onRestoreOriginal} style={{ ...buttonStyle, background: '#fff7ed', borderColor: '#fdba74', color: '#b45309' }}>Khôi phục quyền gốc</button>
+          <button onClick={onRestoreOriginal} style={{ ...buttonStyle, background: '#fff7ed', borderColor: '#fdba74', color: '#b45309' }}>Kh�i ph?c quy?n g?c</button>
         ) : null}
-        <button disabled={!setDirty} onClick={reset} style={{ ...buttonStyle, opacity: setDirty ? 1 : 0.6 }}>Hoàn tác</button>
-        <button disabled={!setDirty} onClick={save} style={{ ...buttonStyle, background: setDirty ? '#10b981' : '#d1d5db', color: 'white', borderColor: setDirty ? '#10b981' : '#d1d5db', cursor: setDirty ? 'pointer' : 'not-allowed' }}>Lưu</button>
+        <button disabled={!setDirty} onClick={reset} style={{ ...buttonStyle, opacity: setDirty ? 1 : 0.6 }}>Ho�n t�c</button>
+        <button disabled={!setDirty} onClick={save} style={{ ...buttonStyle, background: setDirty ? '#10b981' : '#d1d5db', color: 'white', borderColor: setDirty ? '#10b981' : '#d1d5db', cursor: setDirty ? 'pointer' : 'not-allowed' }}>L�u</button>
       </div>
     </div>
   );

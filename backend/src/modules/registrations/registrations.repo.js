@@ -3,14 +3,14 @@
  * Chỉ chứa Prisma queries, không có business logic
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../../infrastructure/prisma/client');
 
 const registrationsRepo = {
   /**
    * Lấy danh sách registrations với filter và pagination
+   * ✅ FIX: Default sort by ngay_dang_ky DESC (mới nhất trước)
    */
-  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { createdAt: 'desc' }, include = {} }) {
+  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { ngay_dang_ky: 'desc' }, include = {} }) {
     const [items, total] = await Promise.all([
       prisma.registration.findMany({
         where,
@@ -262,6 +262,7 @@ const registrationsRepo = {
 
   /**
    * Lấy registrations của user
+   * ✅ FIX: Sort by ngay_dang_ky DESC (mới nhất trước)
    */
   async findByUser(userId, where = {}) {
     return prisma.registration.findMany({
@@ -272,9 +273,14 @@ const registrationsRepo = {
       include: {
         activity: true
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { ngay_dang_ky: 'desc' }
     });
   }
 };
 
 module.exports = registrationsRepo;
+
+
+
+
+

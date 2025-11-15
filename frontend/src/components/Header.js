@@ -1,13 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { Bell } from 'lucide-react';
-import http from '../services/http';
+import http from '../shared/api/http';
 import { useAppStore } from '../store/useAppStore';
 import { useMultiSession } from '../hooks/useMultiSession';
 import MultiSessionIndicator from './MultiSessionIndicator';
 import SessionMonitor from './SessionMonitor';
-import sessionStorageManager from '../services/sessionStorageManager';
-import { getUserAvatar, getAvatarGradient } from '../utils/avatarUtils';
+import sessionStorageManager from '../shared/api/sessionStorageManager';
+import { getUserAvatar, getAvatarGradient } from '../shared/lib/avatar';
 
 export default function Header() {
   console.log('🏠 Header component rendering');
@@ -175,7 +175,7 @@ export default function Header() {
 
   const loadNotifications = async () => {
     try {
-      const response = await http.get('/v2/notifications?limit=10');
+      const response = await http.get('/core/notifications?limit=10');
       const data = response?.data?.data || response?.data || {};
       
       if (data.notifications && Array.isArray(data.notifications)) {
@@ -264,7 +264,7 @@ export default function Header() {
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? { ...n, unread: false } : n
       ));
-      await http.put(`/v2/notifications/${notificationId}/read`);
+      await http.put(`/core/notifications/${notificationId}/read`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       setNotifications(prev => prev.map(n => 
@@ -276,7 +276,7 @@ export default function Header() {
   const markAllAsRead = async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-      await http.put('/v2/notifications/mark-all-read');
+      await http.put('/core/notifications/mark-all-read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       loadNotifications();
@@ -285,7 +285,7 @@ export default function Header() {
 
   const openDetail = async (id) => {
     try {
-      const res = await http.get(`/v2/notifications/${id}`);
+      const res = await http.get(`/core/notifications/${id}`);
       const d = res?.data?.data || res?.data || null;
       if (d) {
         setDetail({

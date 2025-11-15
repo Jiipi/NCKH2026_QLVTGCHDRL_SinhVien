@@ -3,8 +3,8 @@ import {
   Users, Search, UserPlus, Eye, Trash2, Shield, Filter,
   CheckCircle, XCircle, Mail, User, GraduationCap, Calendar
 } from 'lucide-react';
-import http from '../../services/http';
-import Pagination from '../../components/Pagination';
+import http from '../../shared/api/http';
+import Pagination from '../../shared/ui/Pagination';
 
 const AdminUsersWithPagination = () => {
   const [users, setUsers] = useState([]);

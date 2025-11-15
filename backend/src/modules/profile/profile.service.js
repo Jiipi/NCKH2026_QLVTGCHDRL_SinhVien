@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { z } = require('zod');
-const { logInfo, logError } = require('../../utils/logger');
+const { logInfo, logError } = require('../../core/logger');
 const profileRepo = require('./profile.repo');
 
 // Validation schemas
@@ -164,6 +164,45 @@ class ProfileService {
       throw error;
     }
   }
+
+  /**
+   * Check if a class has a monitor
+   * @param {string} lopId - Class ID
+   * @returns {Promise<Object>} Has monitor status
+   */
+  static async checkClassHasMonitor(lopId) {
+    try {
+      logInfo('Checking if class has monitor', { lopId });
+
+      const classWithMonitor = await profileRepo.findClassWithMonitor(lopId);
+
+      if (!classWithMonitor) {
+        return {
+          hasMonitor: false,
+          monitor: null
+        };
+      }
+
+      const hasMonitor = classWithMonitor.lop_truong !== null;
+
+      return {
+        hasMonitor,
+        monitor: hasMonitor ? {
+          id: classWithMonitor.lop_truong,
+          mssv: classWithMonitor.sinh_viens?.[0]?.mssv,
+          ho_ten: classWithMonitor.sinh_viens?.[0]?.nguoi_dung?.ho_ten
+        } : null
+      };
+    } catch (error) {
+      logError('Error checking if class has monitor', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = ProfileService;
+
+
+
+
+

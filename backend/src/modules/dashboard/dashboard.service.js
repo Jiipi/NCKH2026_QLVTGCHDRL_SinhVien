@@ -18,14 +18,18 @@ class DashboardService {
 
   /**
    * Parse semester filter from query params
+   * Supports both 'semester' (legacy) and 'semesterValue' (new) for backward compatibility
    */
   parseSemesterFilter(query) {
-    const { semester, hoc_ky, nam_hoc } = query;
+    const { semester, semesterValue, hoc_ky, nam_hoc } = query;
     const semesterFilter = {};
     
-    if (semester) {
+    // Support both 'semester' (legacy) and 'semesterValue' (new)
+    const semesterParam = semesterValue || semester;
+    
+    if (semesterParam) {
       // New format: "hoc_ky_1-2024" or "hoc_ky_2-2024"
-      const match = String(semester).match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
+      const match = String(semesterParam).match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
       if (match) {
         const hocKy = match[1];
         const year = parseInt(match[2], 10);
@@ -66,12 +70,10 @@ class DashboardService {
    */
   async calculatePointsSummary(svId, activityFilter) {
     const registrations = await dashboardRepo.getStudentRegistrations(svId, activityFilter);
-    const attendances = await dashboardRepo.getStudentAttendances(svId, activityFilter);
     const activityTypes = await dashboardRepo.getActivityTypes();
     
-    // Only count activities with both registration AND QR attendance
-    const hdIdsWithQR = new Set(attendances.map(a => a.hd_id));
-    const validRegistrations = registrations.filter(r => hdIdsWithQR.has(r.hd_id));
+    // Align with Prisma Studio and monitor pages: count based on registration status 'da_tham_gia'
+    const validRegistrations = registrations.filter(r => r.trang_thai_dk === 'da_tham_gia');
     
     // Create max points map
     const maxPointsMap = {};
@@ -103,18 +105,21 @@ class DashboardService {
     
     // Apply max points cap for each type
     let totalPoints = 0;
+    let totalPointsUncapped = 0;
     Object.values(pointsByType).forEach(typeData => {
       const cappedPoints = Math.min(typeData.tong_diem_thuc, typeData.diem_toi_da);
       typeData.tong_diem = cappedPoints;
       totalPoints += cappedPoints;
+      totalPointsUncapped += typeData.tong_diem_thuc;
     });
     
     const totalMaxPoints = activityTypes.reduce((sum, type) => 
       sum + Number(type.diem_toi_da || 0), 0
     );
     
+    // Use uncapped total to match Prisma Studio and monitor pages
     return {
-      tong_diem: totalPoints,
+      tong_diem: totalPointsUncapped,
       tong_diem_toi_da: totalMaxPoints,
       tong_hoat_dong: validRegistrations.length,
       diem_theo_loai: Object.values(pointsByType),
@@ -185,14 +190,13 @@ class DashboardService {
     const classmates = await dashboardRepo.getClassStudents(sinhVien.lop_id);
     const totalStudentsInClass = classmates.length;
     
-    // Calculate points for each student (same QR logic)
+    // Calculate points for each student - same logic as calculatePointsSummary
     const classScores = await Promise.all(
       classmates.map(async (c) => {
         const cRegs = await dashboardRepo.getStudentRegistrations(c.id, activityFilter);
-        const cAttendances = await dashboardRepo.getStudentAttendances(c.id, activityFilter);
         
-        const cHdIdsWithQR = new Set(cAttendances.map(a => a.hd_id));
-        const cValid = cRegs.filter(r => cHdIdsWithQR.has(r.hd_id));
+        // Only count 'da_tham_gia' registrations to match points calculation
+        const cValid = cRegs.filter(r => r.trang_thai_dk === 'da_tham_gia');
         const cPoints = cValid.reduce((s, r) => s + Number(r.hoat_dong.diem_rl || 0), 0);
         
         return {
@@ -239,7 +243,6 @@ class DashboardService {
         const dateB = new Date(b.ngay_duyet || b.ngay_dang_ky || 0);
         return dateB - dateA;
       })
-      .slice(0, 5)
       .map(reg => ({
         id: reg.hoat_dong.id,
         registration_id: reg.id,  // Add registration ID for cancel functionality
@@ -247,6 +250,7 @@ class DashboardService {
         loai_hd: reg.hoat_dong.loai_hd?.ten_loai_hd || 'Khác',
         diem_rl: parseFloat(reg.hoat_dong.diem_rl || 0),
         ngay_tham_gia: reg.ngay_duyet,
+        ngay_bd: reg.hoat_dong.ngay_bd,
         trang_thai: reg.trang_thai_dk
       }));
   }
@@ -255,24 +259,30 @@ class DashboardService {
    * Get student dashboard data
    */
   async getStudentDashboard(userId, query) {
+    console.log('🔍 getStudentDashboard called - userId:', userId, 'query:', query);
+    
     // Get student info
     const sinhVien = await dashboardRepo.getStudentInfo(userId);
     if (!sinhVien) {
       throw new Error('Không tìm thấy thông tin sinh viên');
     }
+    console.log('✅ Student found:', { id: sinhVien.id, mssv: sinhVien.mssv, lop_id: sinhVien.lop_id });
     
     // Parse semester filter
     const semesterFilter = this.parseSemesterFilter(query);
+    console.log('📅 Semester filter:', semesterFilter);
     
     // Build activity filter
     const activityWhereClause = { ...semesterFilter };
     
     // Get class creators (only activities from class)
     const classCreators = await this.getClassCreators(sinhVien.lop_id, sinhVien.lop.chu_nhiem);
+    console.log('👥 Class creators count:', classCreators.length);
     
     if (classCreators.length > 0) {
       activityWhereClause.nguoi_tao_id = { in: classCreators };
     }
+    console.log('🔍 Activity where clause:', JSON.stringify(activityWhereClause, null, 2));
     
     // Calculate points summary with QR validation
     const pointsSummary = await this.calculatePointsSummary(sinhVien.id, activityWhereClause);
@@ -284,11 +294,9 @@ class DashboardService {
       semesterFilter
     );
     
-    // Get recent activities (from valid registrations)
-    const validRegistrations = await dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
-    const attendances = await dashboardRepo.getStudentAttendances(sinhVien.id, activityWhereClause);
-    const hdIdsWithQR = new Set(attendances.map(a => a.hd_id));
-    const validRegs = validRegistrations.filter(r => hdIdsWithQR.has(r.hd_id));
+    // Get recent activities - only from 'da_tham_gia' registrations to match points calculation
+    const allRegistrations = await dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
+    const validRegs = allRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia');
     
     // Get unread notifications
     const unreadNotifications = await dashboardRepo.getUnreadNotificationsCount(userId);
@@ -387,9 +395,10 @@ class DashboardService {
     // Map to frontend format with is_class_activity flag
     const result = registrations
       .sort((a, b) => {
-        const dateA = a.ngay_duyet || a.ngay_dang_ky || new Date(0);
-        const dateB = b.ngay_duyet || b.ngay_dang_ky || new Date(0);
-        return dateB - dateA;
+        // Sort by activity's ngay_cap_nhat (last updated) first, then by registration date
+        const dateA = a.hoat_dong?.ngay_cap_nhat || a.ngay_duyet || a.ngay_dang_ky || new Date(0);
+        const dateB = b.hoat_dong?.ngay_cap_nhat || b.ngay_duyet || b.ngay_dang_ky || new Date(0);
+        return new Date(dateB) - new Date(dateA); // Mới nhất trước
       })
       .map(reg => ({
         id: reg.hoat_dong.id,
@@ -459,7 +468,7 @@ class DashboardService {
    * @returns {Promise<Object>} Dashboard statistics
    */
   async getAdminDashboard() {
-    const { prisma } = require('../../config/database');
+    const { prisma } = require('../../infrastructure/prisma/client');
     
     const [
       totalUsers,
@@ -488,3 +497,8 @@ class DashboardService {
 }
 
 module.exports = new DashboardService();
+
+
+
+
+

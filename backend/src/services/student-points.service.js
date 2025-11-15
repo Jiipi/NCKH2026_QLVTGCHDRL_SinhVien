@@ -1,4 +1,4 @@
-const { prisma } = require('../config/database');
+const { prisma } = require('../infrastructure/prisma/client');
 
 /**
  * Student Points Service (Extended)
@@ -308,3 +308,7 @@ class StudentPointsService {
 }
 
 module.exports = StudentPointsService;
+
+
+
+

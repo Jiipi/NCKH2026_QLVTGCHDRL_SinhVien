@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const RolesService = require('./roles.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { auth } = require('../../middlewares/auth');
-const { requireRole } = require('../../middlewares/rbac');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { auth, requireAdmin } = require('../../core/http/middleware/authJwt');
 
 /**
- * @route   GET /api/v2/roles
+ * @route   GET /api/core/roles
  * @desc    Get all roles with pagination
  * @access  Private (Admin)
  */
-router.get('/', auth, requireRole('admin'), async (req, res) => {
+router.get('/', auth, requireAdmin, async (req, res) => {
   try {
     const { page, limit, search } = req.query;
     const result = await RolesService.list({ page, limit, search });
@@ -21,11 +20,11 @@ router.get('/', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/roles/:id
+ * @route   GET /api/core/roles/:id
  * @desc    Get role by ID
  * @access  Private (Admin)
  */
-router.get('/:id', auth, requireRole('admin'), async (req, res) => {
+router.get('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const role = await RolesService.getById(id);
@@ -39,11 +38,11 @@ router.get('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/roles
+ * @route   POST /api/core/roles
  * @desc    Create new role
  * @access  Private (Admin)
  */
-router.post('/', auth, requireRole('admin'), async (req, res) => {
+router.post('/', auth, requireAdmin, async (req, res) => {
   try {
     const adminId = req.user.sub;
     const role = await RolesService.create(req.body, adminId);
@@ -60,11 +59,11 @@ router.post('/', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v2/roles/:id
+ * @route   PUT /api/core/roles/:id
  * @desc    Update role
  * @access  Private (Admin)
  */
-router.put('/:id', auth, requireRole('admin'), async (req, res) => {
+router.put('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const role = await RolesService.update(id, req.body);
@@ -75,11 +74,11 @@ router.put('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/v2/roles/:id
+ * @route   DELETE /api/core/roles/:id
  * @desc    Delete role
  * @access  Private (Admin)
  */
-router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
+router.delete('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { reassignTo, cascadeUsers } = req.query || {};
@@ -106,11 +105,11 @@ router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/roles/:id/assign
+ * @route   POST /api/core/roles/:id/assign
  * @desc    Assign role to users
  * @access  Private (Admin)
  */
-router.post('/:id/assign', auth, requireRole('admin'), async (req, res) => {
+router.post('/:id/assign', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { user_ids } = req.body;
@@ -130,11 +129,11 @@ router.post('/:id/assign', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/v2/roles/user/:userId
+ * @route   DELETE /api/core/roles/user/:userId
  * @desc    Remove role from user (not allowed)
  * @access  Private (Admin)
  */
-router.delete('/user/:userId', auth, requireRole('admin'), async (req, res) => {
+router.delete('/user/:userId', auth, requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     await RolesService.removeFromUser(userId);
@@ -150,3 +149,8 @@ router.delete('/user/:userId', auth, requireRole('admin'), async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

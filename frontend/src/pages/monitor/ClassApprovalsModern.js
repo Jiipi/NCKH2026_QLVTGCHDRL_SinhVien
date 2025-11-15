@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy, ArrowUp, ArrowDown, SlidersHorizontal, RefreshCw, Grid3X3, List, X } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
-import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
-import { getUserAvatar } from '../../utils/avatarUtils';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
+import { getActivityImage, getBestActivityImage } from '../../shared/lib/activityImages';
+import { getUserAvatar } from '../../shared/lib/avatar';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
 import useSemesterData from '../../hooks/useSemesterData';
+import Pagination from '../../shared/components/common/Pagination';
 
 export default function ClassApprovalsModern() {
+  const typeCacheRef = useRef({}); // cache activityId -> { loai_hd_id, loai_hd }
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,18 +59,35 @@ export default function ClassApprovalsModern() {
     'da_tham_gia': 'bg-blue-50 text-blue-700 border-blue-200'
   };
 
+  const roleLabel = (role) => {
+    switch (role) {
+      case 'LOP_TRUONG': return 'Lớp trưởng';
+      case 'GIANG_VIEN': return 'Giảng viên';
+      case 'ADMIN': return 'Admin';
+      default: return null;
+    }
+  };
+
   useEffect(() => {
     loadRegistrations();
     loadActivityTypes();
     setPage(1); // reset page when semester changes
   }, [semester]);
 
+  // Reset về trang 1 khi thay đổi chế độ xem, tìm kiếm, hoặc bộ lọc
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode, searchTerm, filters]);
+
   // Load activity types for filter
   const loadActivityTypes = async () => {
     try {
-      const response = await http.get('/activities/types/list');
-      const types = response.data?.data || [];
-      setActivityTypes(types);
+      const response = await http.get('/core/activity-types');
+      const payload = response.data?.data ?? response.data ?? [];
+      const items = Array.isArray(payload?.items)
+        ? payload.items
+        : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []));
+      setActivityTypes(items);
     } catch (err) {
       console.error('Error loading activity types:', err);
       setActivityTypes([]);
@@ -125,14 +144,18 @@ export default function ClassApprovalsModern() {
   const loadRegistrations = async () => {
     try {
       setLoading(true);
-      const res = await http.get('/class/registrations', {
+      const res = await http.get('/core/monitor/registrations', {
         params: { status: 'all', semester }
       });
-      
-      const data = res.data?.data || res.data || [];
-      const items = Array.isArray(data) ? data : [];
-      console.log('[ClassApprovalsModern] Loaded registrations:', { total: items.length, semester });
-      setRegistrations(items);
+
+      // Normalize response: support both array and { items: [] }
+      const payload = res.data?.data ?? res.data ?? [];
+      const items = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
+      console.log('[ClassApprovalsModern] Loaded registrations (core):', { total: items.length, semester });
+
+      // Enrich registrations with activity type info if missing
+      const enriched = await enrichActivityTypes(items);
+      setRegistrations(enriched);
       setError('');
     } catch (err) {
       console.error('Error loading registrations:', err);
@@ -140,6 +163,67 @@ export default function ClassApprovalsModern() {
       setRegistrations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Enrich activity types for registrations to enable type filtering and tags
+  const enrichActivityTypes = async (items) => {
+    try {
+      if (!Array.isArray(items) || items.length === 0) return items;
+      const cache = typeCacheRef.current;
+
+      // Collect unique activity IDs that are missing type info and not yet cached
+      const ids = Array.from(new Set(
+        items
+          .map(r => r?.hoat_dong?.id)
+          .filter(id => !!id)
+      ));
+
+      const missingIds = ids.filter(id => {
+        const r = items.find(it => it?.hoat_dong?.id === id);
+        const hasType = r?.hoat_dong?.loai_hd || r?.hoat_dong?.loai_hd_id;
+        return !hasType && !cache[id];
+      });
+
+      // Fetch details for missing IDs in small chunks
+      const chunkSize = 8;
+      for (let i = 0; i < missingIds.length; i += chunkSize) {
+        const chunk = missingIds.slice(i, i + chunkSize);
+        const results = await Promise.all(chunk.map(async (id) => {
+          try {
+            const res = await http.get(`/core/activities/${id}`);
+            const data = res?.data?.data ?? res?.data ?? {};
+            const loai_hd_id = data?.loai_hd_id ?? data?.loai_hd?.id ?? null;
+            const loai_hd = data?.loai_hd ?? null;
+            return { id, loai_hd_id, loai_hd };
+          } catch (_) {
+            return { id };
+          }
+        }));
+
+        results.forEach(r => {
+          if (r && r.id) {
+            cache[r.id] = {
+              ...(cache[r.id] || {}),
+              ...(r.loai_hd_id ? { loai_hd_id: r.loai_hd_id } : {}),
+              ...(r.loai_hd ? { loai_hd: r.loai_hd } : {})
+            };
+          }
+        });
+      }
+
+      // Merge cache back into items
+      const merged = items.map(reg => {
+        const act = reg?.hoat_dong;
+        if (!act || act?.loai_hd || act?.loai_hd_id) return reg;
+        const patch = cache[act.id];
+        return patch ? { ...reg, hoat_dong: { ...act, ...patch } } : reg;
+      });
+
+      return merged;
+    } catch (e) {
+      console.warn('[ClassApprovalsModern] enrichActivityTypes failed, returning original items');
+      return items;
     }
   };
 
@@ -156,7 +240,7 @@ export default function ClassApprovalsModern() {
     try {
       setProcessing(true);
       if (!isWritable) return;
-      await http.post(`/class/registrations/${registration.id}/approve`);
+      await http.put(`/core/monitor/registrations/${registration.id}/approve`);
       await loadRegistrations();
       showSuccess(`Đã phê duyệt đăng ký cho ${registration.sinh_vien?.nguoi_dung?.ho_ten}`, 'Phê duyệt thành công');
     } catch (err) {
@@ -182,7 +266,7 @@ export default function ClassApprovalsModern() {
     try {
       setProcessing(true);
       if (!isWritable) return;
-      await http.post(`/class/registrations/${registration.id}/reject`, { reason });
+      await http.put(`/core/monitor/registrations/${registration.id}/reject`, { reason });
       await loadRegistrations();
       showSuccess(`Đã từ chối đăng ký của ${registration.sinh_vien?.nguoi_dung?.ho_ten}`, 'Từ chối thành công');
     } catch (err) {
@@ -212,13 +296,22 @@ export default function ClassApprovalsModern() {
     try {
       setProcessing(true);
       if (!isWritable) return;
-      const res = await http.post('/class/registrations/bulk-approve', {
-        registrationIds: selectedIds
-      });
+      // Prefer core bulk endpoint; fallback to sequential approves if unavailable
+      let approvedCount = 0;
+      try {
+        const res = await http.post('/core/registrations/bulk-approve', {
+          ids: selectedIds
+        });
+        approvedCount = res.data?.data?.approved || res.data?.approved || selectedIds.length;
+      } catch (bulkErr) {
+        // Fallback: sequential approves via monitor endpoint
+        for (const id of selectedIds) {
+          try { await http.put(`/core/monitor/registrations/${id}/approve`); approvedCount++; } catch (_) {}
+        }
+      }
       
       await loadRegistrations();
       setSelectedIds([]); // Clear selection
-      const approvedCount = res.data?.data?.approved || selectedIds.length;
       showSuccess(`Đã phê duyệt ${approvedCount} đăng ký thành công`, 'Phê duyệt hàng loạt thành công');
     } catch (err) {
       console.error('Error bulk approving:', err);
@@ -365,6 +458,8 @@ export default function ClassApprovalsModern() {
     const isPending = registration.trang_thai_dk === 'cho_duyet';
     const activityImage = getBestActivityImage(activity);
     const isSelected = selectedIds.includes(registration.id);
+    const approvedBy = registration.trang_thai_dk === 'da_duyet' ? roleLabel(registration.approvedByRole) : null;
+    const rejectedBy = registration.trang_thai_dk === 'tu_choi' ? roleLabel(registration.rejectedByRole) : null;
 
     // LIST MODE - Compact horizontal layout (matching ClassActivities style)
     if (displayViewMode === 'list') {
@@ -465,6 +560,19 @@ export default function ClassApprovalsModern() {
                       <div className="flex items-center gap-1.5 col-span-2">
                         <MapPin className="h-3.5 w-3.5 text-gray-400" />
                         <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                      </div>
+                    )}
+                    {/* Approver/rejector info */}
+                    {!isPending && approvedBy && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                        <span className="text-gray-600 truncate">Người duyệt: {approvedBy}</span>
+                      </div>
+                    )}
+                    {!isPending && rejectedBy && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                        <span className="text-gray-600 truncate">Người từ chối: {rejectedBy}</span>
                       </div>
                     )}
                   </div>
@@ -629,6 +737,19 @@ export default function ClassApprovalsModern() {
                 <div className="flex items-center gap-1.5 text-xs">
                   <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                   <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+              </div>
+            )}
+            {/* Approver/rejector info */}
+            {!isPending && approvedBy && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                <span className="text-gray-600 truncate">Người duyệt: {approvedBy}</span>
+              </div>
+            )}
+            {!isPending && rejectedBy && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <XCircle className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />
+                <span className="text-gray-600 truncate">Người từ chối: {rejectedBy}</span>
               </div>
             )}
           </div>
@@ -960,7 +1081,7 @@ export default function ClassApprovalsModern() {
                     className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                   >
                     <option value="">Tất cả loại</option>
-                    {activityTypes.map(type => {
+                    {Array.isArray(activityTypes) && activityTypes.map(type => {
                       const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
                       const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
                       const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
@@ -1321,40 +1442,16 @@ export default function ClassApprovalsModern() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Pattern từ trang sinh viên */}
         {effectiveTotal > 0 && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-600">
-              Đang hiển thị {effectiveTotal ? Math.min(startIdx + 1, effectiveTotal) : 0} - {Math.min(endIdx, effectiveTotal)} / {effectiveTotal}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
-              >
-                Trước
-              </button>
-              <div className="text-sm text-gray-600">Trang {page} / {Math.max(1, Math.ceil(effectiveTotal / limit))}</div>
-              <button
-                disabled={page >= Math.ceil(effectiveTotal / limit)}
-                onClick={() => setPage(p => Math.min(Math.ceil(effectiveTotal / limit) || 1, p + 1))}
-                className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(effectiveTotal / limit) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
-              >
-                Tiếp
-              </button>
-              <select
-                value={limit}
-                onChange={e => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
-                className="ml-2 px-2 py-1.5 rounded-lg border border-gray-300"
-                title="Số đăng ký mỗi trang"
-              >
-                <option value={6}>6</option>
-                <option value={12}>12</option>
-                <option value={24}>24</option>
-                <option value={48}>48</option>
-              </select>
-            </div>
+          <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 mt-6">
+            <Pagination
+              pagination={{ page, limit, total: effectiveTotal }}
+              onPageChange={(newPage) => setPage(newPage)}
+              onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
+              itemLabel="đăng ký"
+              showLimitSelector={true}
+            />
           </div>
         )}
       </div>

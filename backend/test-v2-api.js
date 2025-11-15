@@ -105,6 +105,6 @@ console.log('   ✅ Error Handling: Consistent error responses');
 console.log('   ✅ Activities Module: Ready to use!');
 console.log('\n🚀 Next steps:');
 console.log('   1. Start the server: npm run dev');
-console.log('   2. Test API: GET /api/v2/activities');
+console.log('   2. Test API: GET /api/core/activities');
 console.log('   3. Compare with old API: GET /api/activities');
 console.log('\n');

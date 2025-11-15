@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const ExportsService = require('./exports.service');
-const { ApiResponse, sendResponse } = require('../../utils/response');
-const { auth } = require('../../middlewares/auth');
-const { requireRole } = require('../../middlewares/rbac');
+const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { auth } = require('../../core/http/middleware/authJwt');
+const { requireAdmin } = require('../../core/http/middleware/authJwt');
 
 /**
- * @route   GET /api/v2/exports/overview
+ * @route   GET /api/core/exports/overview
  * @desc    Get overview statistics
  * @access  Private (Admin)
  */
-router.get('/overview', auth, requireRole('admin'), async (req, res) => {
+router.get('/overview', auth, requireAdmin, async (req, res) => {
   try {
     const { semester, hoc_ky, nam_hoc } = req.query || {};
     const data = await ExportsService.getOverview({ semester, hoc_ky, nam_hoc });
@@ -24,11 +24,11 @@ router.get('/overview', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/exports/activities
+ * @route   GET /api/core/exports/activities
  * @desc    Export activities to CSV
  * @access  Private (Admin)
  */
-router.get('/activities', auth, requireRole('admin'), async (req, res) => {
+router.get('/activities', auth, requireAdmin, async (req, res) => {
   try {
     const { semester, hoc_ky, nam_hoc } = req.query || {};
     const csv = await ExportsService.exportActivities({ semester, hoc_ky, nam_hoc });
@@ -45,11 +45,11 @@ router.get('/activities', auth, requireRole('admin'), async (req, res) => {
 });
 
 /**
- * @route   GET /api/v2/exports/registrations
+ * @route   GET /api/core/exports/registrations
  * @desc    Export registrations to CSV
  * @access  Private (Admin)
  */
-router.get('/registrations', auth, requireRole('admin'), async (req, res) => {
+router.get('/registrations', auth, requireAdmin, async (req, res) => {
   try {
     const { semester, hoc_ky, nam_hoc } = req.query || {};
     const csv = await ExportsService.exportRegistrations({ semester, hoc_ky, nam_hoc });
@@ -66,3 +66,8 @@ router.get('/registrations', auth, requireRole('admin'), async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
