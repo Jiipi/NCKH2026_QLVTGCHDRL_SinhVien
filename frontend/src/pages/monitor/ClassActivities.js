@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Edit, Trash2, Eye, Plus, Search, Filter, Users, Clock, MapPin, Award, AlertCircle, CheckCircle, XCircle, QrCode, X, Sparkles, TrendingUp, Activity as ActivityIcon, Save, SlidersHorizontal, RefreshCw, Grid3X3, List, Trophy } from 'lucide-react';
 import { UserPlus } from 'lucide-react';
-import http from '../../services/http';
+import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
 import { useNotification } from '../../contexts/NotificationContext';
 import ActivityQRModal from '../../components/ActivityQRModal';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
-import FileUpload from '../../components/FileUpload';
-import { getActivityImage } from '../../utils/activityImages';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
+import FileUpload from '../../shared/ui/FileUpload';
+import { getActivityImage } from '../../shared/lib/activityImages';
+import Pagination from '../../shared/components/common/Pagination';
 
 export default function ClassActivities() {
   const navigate = useNavigate();
@@ -29,20 +30,17 @@ export default function ClassActivities() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
   const [activityTypes, setActivityTypes] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
-  const [availablePagination, setAvailablePagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 100, total: 0 });
+  const [availablePagination, setAvailablePagination] = useState({ page: 1, limit: 100, total: 0 });
 
-  // ✅ Add semester filter
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-    else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-    else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-    else return `hoc_ky_1-${currentYear}`;
-  };
-  
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  // ✅ Add semester filter - sync with backend current semester
+  const [semester, setSemester] = useState(() => {
+    try {
+      return sessionStorage.getItem('current_semester') || '';
+    } catch (_) {
+      return '';
+    }
+  });
   
   // ✅ Add dashboard stats state to get accurate total activities count
   const [dashboardStats, setDashboardStats] = useState({
@@ -51,7 +49,23 @@ export default function ClassActivities() {
     endedCount: 0
   });
 
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+  
+  // Sync with backend-reported current semester
+  useEffect(() => {
+    if (currentSemester && currentSemester !== semester) {
+      setSemester(currentSemester);
+    }
+  }, [currentSemester]);
+  
+  // Persist selection for other pages/tabs in the session
+  useEffect(() => {
+    if (semester) {
+      try {
+        sessionStorage.setItem('current_semester', semester);
+      } catch (_) {}
+    }
+  }, [semester]);
 
   // Status mappings (matching Prisma TrangThaiHoatDong enum)
   const statusLabels = {
@@ -60,7 +74,7 @@ export default function ClassActivities() {
     'da_duyet': 'Đã duyệt',
     'tu_choi': 'Bị từ chối',
     'da_huy': 'Đã hủy',
-    'ket_thuc': 'Đã tham gia'
+    'ket_thuc': 'Kết thúc'
   };
 
   const statusColors = {
@@ -79,6 +93,12 @@ export default function ClassActivities() {
     loadActivityTypes();
   }, [semester, pagination.page, pagination.limit, availablePagination.page, availablePagination.limit]); // ✅ Add pagination dependencies
 
+  // Reset về trang 1 khi thay đổi học kỳ, tab trạng thái hoặc bộ lọc/tìm kiếm
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setAvailablePagination(prev => ({ ...prev, page: 1 }));
+  }, [semester, statusFilter, searchTerm, filters]);
+
   // Load hoạt động có sẵn để đăng ký (giống role sinh viên)
   const loadAvailableActivities = async () => {
     try {
@@ -88,18 +108,25 @@ export default function ClassActivities() {
         limit: availablePagination.limit
       };
       
-      const response = await http.get('/activities', { params });
+      const response = await http.get('/core/activities', { params });
       const responseData = response.data?.data || response.data || {};
       const items = responseData.items || responseData.data || responseData || [];
       const total = responseData.total || (Array.isArray(items) ? items.length : 0);
       const activitiesArray = Array.isArray(items) ? items : [];
       
-      // Filter: chỉ lấy hoạt động thuộc lớp (is_class_activity = true)
-      const classActivities = activitiesArray.filter(a => a.is_class_activity === true);
+      // ✅ REMOVED: Don't filter is_class_activity here - backend already filters by scope
+      // Backend scope filter ensures only class activities are returned for LOP_TRUONG/SINH_VIEN
+      // Filtering here would cause mismatch with total count from backend
       
-      setAvailableActivities(classActivities);
+      setAvailableActivities(activitiesArray);
       setAvailablePagination(prev => ({ ...prev, total }));
-      console.log('📋 Loaded available activities for registration:', classActivities.length, '/', total);
+      console.log('📋 Loaded available activities for registration:', activitiesArray.length, '/', total);
+      console.log('📋 Semester filter:', semester);
+      console.log('📋 Semester breakdown:', {
+        hoc_ky_1: activitiesArray.filter(a => a.hoc_ky === 'hoc_ky_1').length,
+        hoc_ky_2: activitiesArray.filter(a => a.hoc_ky === 'hoc_ky_2').length,
+        nam_hoc: [...new Set(activitiesArray.map(a => a.nam_hoc))].filter(Boolean)
+      });
     } catch (err) {
       console.error('Error loading available activities:', err);
       setAvailableActivities([]);
@@ -110,18 +137,21 @@ export default function ClassActivities() {
   // Load activity types for filter
   const loadActivityTypes = async () => {
     try {
-      const response = await http.get('/activities/types/list');
-      const types = response.data?.data || [];
-      setActivityTypes(types);
+      const response = await http.get('/core/activity-types');
+      const payload = response.data?.data ?? response.data ?? [];
+      const items = Array.isArray(payload?.items)
+        ? payload.items
+        : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []));
+      setActivityTypes(items);
       
       // Debug: Log activity types structure
-      console.log('🔍 Loaded activity types:', types.length, 'types');
-      if (types.length > 0) {
+      console.log('🔍 Loaded activity types:', items.length, 'types');
+      if (items.length > 0) {
         console.log('🔍 First type structure:', {
-          type: types[0],
-          id: types[0]?.id,
-          ten_loai_hd: types[0]?.ten_loai_hd,
-          name: types[0]?.name
+          type: items[0],
+          id: items[0]?.id,
+          ten_loai_hd: items[0]?.ten_loai_hd,
+          name: items[0]?.name
         });
       }
     } catch (err) {
@@ -133,17 +163,18 @@ export default function ClassActivities() {
   // ✅ Load dashboard stats to get accurate total activities count
   const loadDashboardStats = async () => {
     try {
-      const response = await http.get(`/class/dashboard?semester=${semester}`);
+      const response = await http.get('/core/monitor/dashboard', { params: { semester } });
       const data = response.data?.data || response.data || {};
       const summary = data.summary || {};
       
       setDashboardStats({
         totalActivities: summary.totalActivities || 0,
-        approvedCount: summary.approvedCount || 0,
-        endedCount: summary.endedCount || 0
+        // These two are not provided by backend summary; keep zero to fall back to local counts
+        approvedCount: 0,
+        endedCount: 0
       });
       
-      console.log('📊 Dashboard stats loaded:', summary);
+      console.log('📊 Monitor dashboard stats loaded:', summary);
     } catch (err) {
       console.error('Error loading dashboard stats:', err);
       // Fallback to counting from activities if dashboard fails
@@ -165,7 +196,7 @@ export default function ClassActivities() {
         limit: pagination.limit
       };
       
-      const response = await http.get('/activities', { params });
+      const response = await http.get('/core/activities', { params });
       
       // Backend returns: { success: true, data: { items: [...], total, page, limit }, message: "..." }
       const responseData = response.data?.data || response.data || {};
@@ -178,12 +209,18 @@ export default function ClassActivities() {
       const activitiesArray = Array.isArray(activities) ? activities : [];
       
       console.log('📊 Loaded activities:', activitiesArray.length, 'items, total:', total);
+      console.log('📊 Semester filter:', semester);
       console.log('📊 Status breakdown:', {
         cho_duyet: activitiesArray.filter(a => a.trang_thai === 'cho_duyet').length,
         da_duyet: activitiesArray.filter(a => a.trang_thai === 'da_duyet').length,
         tu_choi: activitiesArray.filter(a => a.trang_thai === 'tu_choi').length,
         da_huy: activitiesArray.filter(a => a.trang_thai === 'da_huy').length,
         ket_thuc: activitiesArray.filter(a => a.trang_thai === 'ket_thuc').length
+      });
+      console.log('📊 Semester breakdown:', {
+        hoc_ky_1: activitiesArray.filter(a => a.hoc_ky === 'hoc_ky_1').length,
+        hoc_ky_2: activitiesArray.filter(a => a.hoc_ky === 'hoc_ky_2').length,
+        nam_hoc: [...new Set(activitiesArray.map(a => a.nam_hoc))].filter(Boolean)
       });
       
       // Debug: Log first activity's type structure
@@ -221,7 +258,7 @@ export default function ClassActivities() {
   const handleEditActivity = async (activity) => {
     try {
       // Fetch full activity details
-      const response = await http.get(`/activities/${activity.id}`);
+      const response = await http.get(`/core/activities/${activity.id}`);
       const activityData = response.data?.data || response.data;
       setSelectedActivity(activityData);
       setShowEditModal(true);
@@ -262,7 +299,7 @@ export default function ClassActivities() {
       
       console.log('💾 Update data:', updateData);
       
-      const response = await http.put(`/activities/${selectedActivity.id}`, updateData);
+      const response = await http.put(`/core/activities/${selectedActivity.id}`, updateData);
       console.log('💾 Update response:', response);
       
       await loadActivities();
@@ -295,7 +332,7 @@ export default function ClassActivities() {
     if (!confirmed) return;
 
     try {
-      await http.delete(`/activities/${activity.id}`);
+      await http.delete(`/core/activities/${activity.id}`);
       await loadActivities();
       showSuccess(`Đã xóa hoạt động "${activity.ten_hd}" thành công`, 'Xóa hoạt động');
     } catch (err) {
@@ -325,7 +362,7 @@ export default function ClassActivities() {
     });
     if (!confirmed) return;
     try {
-      const res = await http.post(`/activities/${activityId}/register`);
+      const res = await http.post(`/core/activities/${activityId}/register`);
       if (res?.data?.success) {
         showSuccess('Đăng ký thành công');
       } else {
@@ -358,6 +395,18 @@ export default function ClassActivities() {
   // Helpers for availability calculation - hoisted to component scope
   const parseDateSafe = (d) => { try { return d ? new Date(d) : null; } catch(_) { return null; } };
   const isClassActivity = (a) => a?.is_class_activity === true || a?.pham_vi === 'lop' || a?.lop_id != null;
+  // Determine if an activity should be considered ended by time (end time + 1 minute)
+  const hasEndedByTime = (a) => {
+    const end = parseDateSafe(a?.ngay_kt);
+    if (!end) return false;
+    return Date.now() > (end.getTime() + 60 * 1000);
+  };
+  // Compute display status for filtering/badges/counts
+  const getDisplayStatus = (a) => {
+    if (!a) return 'cho_duyet';
+    if (a.trang_thai === 'da_duyet' && hasEndedByTime(a)) return 'ket_thuc';
+    return a.trang_thai;
+  };
   
   // ✅ Tab "Có sẵn" hiển thị hoạt động CÓ SẴN ĐỂ ĐĂNG KÝ (giống logic sinh viên)
   // - Đã duyệt (da_duyet)
@@ -389,15 +438,17 @@ export default function ClassActivities() {
   };
 
   // Filter and sort activities with advanced filters
-  const filteredActivities = (statusFilter === 'co_san' ? availableActivities : activities)
+  // For consistency with Student view: show ALL class activities in "Có sẵn"
+  const filteredActivities = (statusFilter === 'co_san' ? activities : activities)
     .filter(activity => {
       const matchesSearch = activity.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
       
       // Tab "Có sẵn": chỉ hiển thị hoạt động đã duyệt (ẩn cho_duyet giống role sinh viên)
       // Tab khác: lọc theo trạng thái hiện tại
+      const displayStatus = getDisplayStatus(activity);
       const matchesStatus = statusFilter === 'all' 
-        || (statusFilter === 'co_san' ? activity.trang_thai === 'da_duyet' : activity.trang_thai === statusFilter);
+        || (statusFilter === 'co_san' ? true : displayStatus === statusFilter);
       
       // Advanced filters
       let matchesType = true;
@@ -405,40 +456,29 @@ export default function ClassActivities() {
       let matchesDateTo = true;
 
       if (filters.type) {
-        // Filter by ID - compare as numbers
-        const filterValue = filters.type;
-        const filterId = parseInt(filterValue);
-        
+        const filterValue = String(filters.type).trim();
+        const filterId = parseInt(filterValue, 10);
+
         if (isNaN(filterId)) {
-          // If filter value is not a number, skip type filtering
-          matchesType = true;
+          // Filter by name (case-insensitive) when value is not numeric
+          const filterName = filterValue.toLowerCase();
+          const activityTypeName = (activity.loai_hd?.ten_loai_hd || activity.loai_hd?.name || '').toLowerCase();
+          matchesType = activityTypeName === filterName;
         } else {
-          // Try multiple ways to get activity type ID
+          // Filter by numeric id
           let activityTypeId = null;
-          
-          // Method 1: Direct loai_hd_id field
           if (activity.loai_hd_id !== undefined && activity.loai_hd_id !== null) {
             activityTypeId = activity.loai_hd_id;
-          }
-          // Method 2: From loai_hd object's id property
-          else if (activity.loai_hd && typeof activity.loai_hd === 'object' && activity.loai_hd.id !== undefined) {
+          } else if (activity.loai_hd && typeof activity.loai_hd === 'object' && activity.loai_hd.id !== undefined) {
             activityTypeId = activity.loai_hd.id;
+          } else if (activity.loai_hd !== undefined && activity.loai_hd !== null) {
+            const parsed = parseInt(activity.loai_hd, 10);
+            if (!isNaN(parsed)) activityTypeId = parsed;
           }
-          // Method 3: If loai_hd is a number/string, try to parse it
-          else if (activity.loai_hd !== undefined && activity.loai_hd !== null) {
-            const parsed = parseInt(activity.loai_hd);
-            if (!isNaN(parsed)) {
-              activityTypeId = parsed;
-            }
-          }
-          
-          // Convert to number for comparison
-          const activityId = activityTypeId !== null ? parseInt(activityTypeId) : null;
-          
-          // Compare as numbers
+
+          const activityId = activityTypeId !== null ? parseInt(activityTypeId, 10) : null;
           matchesType = activityId !== null && activityId === filterId;
-          
-          // Debug log for mismatches (only log once per filter change)
+
           if (!matchesType && activityId !== null) {
             console.log('🔍 Filter mismatch:', {
               filterId,
@@ -476,17 +516,26 @@ export default function ClassActivities() {
   // Derived counts within the selected semester (activities already filtered by semester from API)
   // ✅ DEPRECATED: Use dashboardStats instead for accurate counts
   // These counts are for local filtering only (status tabs)
-  const localApprovedCount = activities.filter(a => a.trang_thai === 'da_duyet').length;
-  const localAvailableCount = availableActivities.filter(a => a.trang_thai === 'da_duyet').length; // Chỉ hoạt động đã duyệt
-  const localPendingCount = activities.filter(a => a.trang_thai === 'cho_duyet').length;
-  const localEndedCount = activities.filter(a => a.trang_thai === 'ket_thuc').length;
+  const countByDisplayStatus = (st) => activities.reduce((n, a) => n + (getDisplayStatus(a) === st ? 1 : 0), 0);
+  const tabCounts = {
+    cho_duyet: countByDisplayStatus('cho_duyet'),
+    da_duyet: countByDisplayStatus('da_duyet'),
+    ket_thuc: countByDisplayStatus('ket_thuc'),
+    tu_choi: countByDisplayStatus('tu_choi')
+  };
+  const localApprovedCount = tabCounts.da_duyet;
+  // For the "Có sẵn" tab, align count with total class activities
+  const localAvailableCount = pagination.total || activities.length;
+  const localPendingCount = tabCounts.cho_duyet;
+  const localEndedCount = tabCounts.ket_thuc;
   
   // ✅ Use dashboard stats for display (accurate count from backend)
   const approvedCount = dashboardStats.approvedCount || localApprovedCount;
   const availableCount = localAvailableCount;
   const pendingCount = localPendingCount; // Keep local count for pending
   const endedCount = dashboardStats.endedCount || localEndedCount;
-  const totalApprovedAndEnded = dashboardStats.totalActivities || (approvedCount + endedCount);
+  // Use backend list total to match student role count exactly
+  const totalActivitiesCount = pagination.total || activities.length;
 
   // Format date helper
   const formatDate = (dateStr) => {
@@ -520,6 +569,7 @@ export default function ClassActivities() {
     const isRegistrationOpen = canRegister;
     
     // LIST MODE - Compact horizontal layout
+    const displayStatus = getDisplayStatus(activity);
     if (displayViewMode === 'list') {
       return (
         <div className="group relative">
@@ -536,8 +586,8 @@ export default function ClassActivities() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                 <div className="absolute top-2 left-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[activity.trang_thai]}`}>
-                    {statusLabels[activity.trang_thai]}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[displayStatus]}`}>
+                    {statusLabels[displayStatus]}
                   </span>
                 </div>
                 {activity.diem_rl && (
@@ -611,7 +661,7 @@ export default function ClassActivities() {
                 </button>
                 
                 {/* Tab "Có sẵn" - KHÔNG hiển thị QR/Sửa/Xóa */}
-                {statusFilter !== 'co_san' && activity.trang_thai === 'da_duyet' && (
+                {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
                   <button
                     onClick={() => handleShowQR(activity)}
                     disabled={!isWritable}
@@ -623,7 +673,7 @@ export default function ClassActivities() {
                   </button>
                 )}
                 
-                {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+                {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
                   <button
                     onClick={() => handleEditActivity(activity)}
                     disabled={!isWritable}
@@ -635,7 +685,7 @@ export default function ClassActivities() {
                   </button>
                 )}
                 
-                {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+                {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
                   <button
                     onClick={() => handleDeleteActivity(activity)}
                     disabled={!isWritable}
@@ -673,7 +723,7 @@ export default function ClassActivities() {
               <div className="absolute top-2 left-2">
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm text-emerald-700 shadow-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  {activity.trang_thai === 'da_duyet' ? 'Đã mở' : (statusLabels[activity.trang_thai] || 'Đã mở')}
+                  {displayStatus === 'da_duyet' ? 'Đã mở' : (statusLabels[displayStatus] || 'Đã mở')}
                 </span>
               </div>
               
@@ -795,8 +845,8 @@ export default function ClassActivities() {
           
           {/* Status Badge on Image - Compact */}
           <div className="absolute top-2 left-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[activity.trang_thai]}`}>
-              {statusLabels[activity.trang_thai]}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[displayStatus]}`}>
+              {statusLabels[displayStatus]}
             </span>
           </div>
           
@@ -888,7 +938,7 @@ export default function ClassActivities() {
             </button>
             
             {/* Tab khác - Hiển thị QR/Sửa/Xóa */}
-            {statusFilter !== 'co_san' && activity.trang_thai === 'da_duyet' && (
+            {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
               <button
                 onClick={() => handleShowQR(activity)}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-600 hover:to-purple-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
@@ -900,7 +950,7 @@ export default function ClassActivities() {
             )}
             
             {/* Chỉ cho phép sửa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
-            {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+            {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
               <button
                 onClick={() => handleEditActivity(activity)}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white hover:from-amber-500 hover:to-orange-500 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
@@ -912,7 +962,7 @@ export default function ClassActivities() {
             )}
             
             {/* Chỉ cho phép xóa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
-            {statusFilter !== 'co_san' && activity.trang_thai === 'cho_duyet' && (
+            {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
               <button
                 onClick={() => handleDeleteActivity(activity)}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
@@ -978,7 +1028,7 @@ export default function ClassActivities() {
                 <div className="text-white/90 font-bold text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    {totalApprovedAndEnded} HOẠT ĐỘNG
+                    {totalActivitiesCount} HOẠT ĐỘNG
                   </div>
                 </div>
               </div>
@@ -1025,7 +1075,7 @@ export default function ClassActivities() {
                 <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
                 <div className="relative bg-gradient-to-br from-cyan-400 to-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
                   <ActivityIcon className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{totalApprovedAndEnded}</p>
+                  <p className="text-3xl font-black text-black">{totalActivitiesCount}</p>
                   <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG HOẠT ĐỘNG</p>
                 </div>
               </div>
@@ -1214,7 +1264,7 @@ export default function ClassActivities() {
                     className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                   >
                     <option value="">Tất cả loại</option>
-                    {activityTypes.map(type => {
+                    {Array.isArray(activityTypes) && activityTypes.map(type => {
                       const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
                       // Always use ID as value for consistent filtering
                       const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
@@ -1309,9 +1359,9 @@ export default function ClassActivities() {
               >
                 <Clock className="h-4 w-4" />
                 Chờ duyệt
-                {activities.filter(a => a.trang_thai === 'cho_duyet').length > 0 && (
+                {tabCounts.cho_duyet > 0 && (
                   <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {activities.filter(a => a.trang_thai === 'cho_duyet').length}
+                    {tabCounts.cho_duyet}
                   </span>
                 )}
               </button>
@@ -1325,9 +1375,9 @@ export default function ClassActivities() {
               >
                 <CheckCircle className="h-4 w-4" />
                 Đã duyệt
-                {activities.filter(a => a.trang_thai === 'da_duyet').length > 0 && (
+                {tabCounts.da_duyet > 0 && (
                   <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {activities.filter(a => a.trang_thai === 'da_duyet').length}
+                    {tabCounts.da_duyet}
                   </span>
                 )}
               </button>
@@ -1340,10 +1390,10 @@ export default function ClassActivities() {
                 }`}
               >
                 <Award className="h-4 w-4" />
-                Đã tham gia
-                {activities.filter(a => a.trang_thai === 'ket_thuc').length > 0 && (
+                Kết thúc
+                {tabCounts.ket_thuc > 0 && (
                   <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {activities.filter(a => a.trang_thai === 'ket_thuc').length}
+                    {tabCounts.ket_thuc}
                   </span>
                 )}
               </button>
@@ -1357,9 +1407,9 @@ export default function ClassActivities() {
               >
                 <XCircle className="h-4 w-4" />
                 Bị từ chối
-                {activities.filter(a => a.trang_thai === 'tu_choi').length > 0 && (
+                {tabCounts.tu_choi > 0 && (
                   <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {activities.filter(a => a.trang_thai === 'tu_choi').length}
+                    {tabCounts.tu_choi}
                   </span>
                 )}
               </button>
@@ -1375,18 +1425,20 @@ export default function ClassActivities() {
                 className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
               >
                 <option value="co_san">Có sẵn ({availableCount})</option>
-                <option value="cho_duyet">Chờ duyệt ({activities.filter(a => a.trang_thai === 'cho_duyet').length})</option>
-                <option value="da_duyet">Đã duyệt ({activities.filter(a => a.trang_thai === 'da_duyet').length})</option>
-                <option value="ket_thuc">Đã tham gia ({activities.filter(a => a.trang_thai === 'ket_thuc').length})</option>
-                <option value="tu_choi">Bị từ chối ({activities.filter(a => a.trang_thai === 'tu_choi').length})</option>
+                <option value="cho_duyet">Chờ duyệt ({tabCounts.cho_duyet})</option>
+                <option value="da_duyet">Đã duyệt ({tabCounts.da_duyet})</option>
+                <option value="ket_thuc">Kết thúc ({tabCounts.ket_thuc})</option>
+                {/* Label corrected to Kết thúc */}
+                {/* Keeping option order and value same */}
+                <option value="tu_choi">Bị từ chối ({tabCounts.tu_choi})</option>
               </select>
               {(() => {
                 const configs = {
                   co_san: { icon: UserPlus, gradient: 'from-emerald-500 to-green-500', count: availableCount },
-                  cho_duyet: { icon: Clock, gradient: 'from-amber-500 to-orange-500', count: activities.filter(a => a.trang_thai === 'cho_duyet').length },
-                  da_duyet: { icon: CheckCircle, gradient: 'from-emerald-500 to-teal-500', count: activities.filter(a => a.trang_thai === 'da_duyet').length },
-                  ket_thuc: { icon: Award, gradient: 'from-violet-500 to-purple-500', count: activities.filter(a => a.trang_thai === 'ket_thuc').length },
-                  tu_choi: { icon: XCircle, gradient: 'from-red-500 to-rose-500', count: activities.filter(a => a.trang_thai === 'tu_choi').length }
+                  cho_duyet: { icon: Clock, gradient: 'from-amber-500 to-orange-500', count: tabCounts.cho_duyet },
+                  da_duyet: { icon: CheckCircle, gradient: 'from-emerald-500 to-teal-500', count: tabCounts.da_duyet },
+                  ket_thuc: { icon: Award, gradient: 'from-violet-500 to-purple-500', count: tabCounts.ket_thuc },
+                  tu_choi: { icon: XCircle, gradient: 'from-red-500 to-rose-500', count: tabCounts.tu_choi }
                 };
                 const currentConfig = configs[statusFilter] || configs.cho_duyet;
                 const CurrentIcon = currentConfig?.icon || Clock;
@@ -1425,7 +1477,7 @@ export default function ClassActivities() {
               >
                 <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
                 <span className={`text-xs font-bold ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {activities.filter(a => a.trang_thai === 'cho_duyet').length}
+                  {tabCounts.cho_duyet}
                 </span>
               </button>
               
@@ -1438,7 +1490,7 @@ export default function ClassActivities() {
               >
                 <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
                 <span className={`text-xs font-bold ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {activities.filter(a => a.trang_thai === 'da_duyet').length}
+                  {tabCounts.da_duyet}
                 </span>
               </button>
               
@@ -1451,7 +1503,7 @@ export default function ClassActivities() {
               >
                 <Award className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
                 <span className={`text-xs font-bold ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {activities.filter(a => a.trang_thai === 'ket_thuc').length}
+                  {tabCounts.ket_thuc}
                 </span>
               </button>
               
@@ -1464,7 +1516,7 @@ export default function ClassActivities() {
               >
                 <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
                 <span className={`text-xs font-bold ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {activities.filter(a => a.trang_thai === 'tu_choi').length}
+                  {tabCounts.tu_choi}
                 </span>
               </button>
             </div>
@@ -1909,59 +1961,16 @@ export default function ClassActivities() {
         />
       )}
 
-      {/* Pagination Controls for Activities */}
-      {statusFilter !== 'co_san' && pagination.total > pagination.limit && (
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl mt-6">
-          <div className="text-sm text-gray-600">
-            Hiển thị <span className="font-semibold">{Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}</span> - <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> trong tổng số <span className="font-semibold">{pagination.total}</span> hoạt động
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-              disabled={pagination.page <= 1}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Trước
-            </button>
-            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
-              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
-            </span>
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: Math.min(Math.ceil(pagination.total / pagination.limit), prev.page + 1) }))}
-              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Sau
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Pagination Controls for Available Activities */}
-      {statusFilter === 'co_san' && availablePagination.total > availablePagination.limit && (
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl mt-6">
-          <div className="text-sm text-gray-600">
-            Hiển thị <span className="font-semibold">{Math.min((availablePagination.page - 1) * availablePagination.limit + 1, availablePagination.total)}</span> - <span className="font-semibold">{Math.min(availablePagination.page * availablePagination.limit, availablePagination.total)}</span> trong tổng số <span className="font-semibold">{availablePagination.total}</span> hoạt động
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAvailablePagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-              disabled={availablePagination.page <= 1}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Trước
-            </button>
-            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
-              Trang {availablePagination.page} / {Math.ceil(availablePagination.total / availablePagination.limit)}
-            </span>
-            <button
-              onClick={() => setAvailablePagination(prev => ({ ...prev, page: Math.min(Math.ceil(availablePagination.total / availablePagination.limit), prev.page + 1) }))}
-              disabled={availablePagination.page >= Math.ceil(availablePagination.total / availablePagination.limit)}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Sau
-            </button>
-          </div>
+      {/* Pagination Controls - Pattern từ trang sinh viên */}
+      {filteredActivities.length > 0 && (
+        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 mt-6">
+          <Pagination
+            pagination={pagination}
+            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+            itemLabel="hoạt động"
+            showLimitSelector={true}
+          />
         </div>
       )}
     </div>
