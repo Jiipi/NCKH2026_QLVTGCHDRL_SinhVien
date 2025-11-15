@@ -6,12 +6,13 @@ import {
   RefreshCw, Zap, SlidersHorizontal, Grid3X3, List
 } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
-import http from '../../services/http';
-import ActivityDetailModal from '../../components/ActivityDetailModal';
+import http from '../../shared/api/http';
+import ActivityDetailModal from '../../entities/activity/ui/ActivityDetailModal';
 import ActivityQRModal from '../../components/ActivityQRModal';
-import { getActivityImage, getBestActivityImage } from '../../utils/activityImages';
+import { getActivityImage, getBestActivityImage } from '../../shared/lib/activityImages';
 import useSemesterData from '../../hooks/useSemesterData';
-import SemesterFilter from '../../components/SemesterFilter';
+import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
+import Pagination from '../../shared/components/common/Pagination';
 
 export default function MonitorMyActivities() {
   const [viewMode, setViewMode] = useState('pending'); // pending | approved | completed
@@ -64,17 +65,37 @@ export default function MonitorMyActivities() {
   }, [semester]); // ✅ Add semester dependency
 
   useEffect(() => {
+    // Reset to first page when filters or view change for consistent UX
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [viewMode, searchText, filters, semester]);
+
+  useEffect(() => {
     loadMyRegistrations();
   }, [viewMode, searchText, filters, semester, pagination.page, pagination.limit]); // ✅ Add pagination dependencies
 
   // Load activity types for filter
   function loadActivityTypes() {
-    http.get('/activities/types/list')
+    http.get('/core/activity-types')
       .then(res => {
-        const types = res.data?.data || [];
-        setActivityTypes(types);
+        if (res.data?.success && res.data?.data) {
+          // Đảm bảo data là array
+          const data = res.data.data;
+          // Handle paginated response: { items: [], total: number } or array
+          const types = Array.isArray(data) ? data : (data.items || data.data || []);
+          setActivityTypes(types);
+        } else if (res.data?.data) {
+          // Fallback: nếu không có success flag nhưng có data
+          const data = res.data.data;
+          const types = Array.isArray(data) ? data : (data.items || data.data || []);
+          setActivityTypes(types);
+        } else {
+          setActivityTypes([]);
+        }
       })
-      .catch(() => setActivityTypes([]));
+      .catch(err => {
+        console.warn('Could not load activity types:', err);
+        setActivityTypes([]); // Đảm bảo luôn là array
+      });
   }
 
   // Load my registrations
@@ -87,7 +108,7 @@ export default function MonitorMyActivities() {
       limit: pagination.limit
     };
     
-    http.get('/v2/dashboard/activities/me', { params })
+    http.get('/core/dashboard/activities/me', { params })
       .then(res => {
         const responseData = res.data?.data || res.data || {};
         const data = responseData.items || responseData.data || responseData || [];
@@ -98,14 +119,14 @@ export default function MonitorMyActivities() {
         
         // Log each registration
         data.forEach((reg, index) => {
-          console.log(`  ${index + 1}. ${reg.hoat_dong?.ten_hd} - Status: ${reg.trang_thai_dk} - is_class_activity: ${reg.is_class_activity}`);
+          console.log(`  ${index + 1}. ${reg.hoat_dong?.ten_hd} - Status: ${reg.trang_thai_dk}`);
         });
         
-        // Count by status
-        const pending = data.filter(r => r.is_class_activity === true && r.trang_thai_dk === 'cho_duyet').length;
-        const approved = data.filter(r => r.is_class_activity === true && r.trang_thai_dk === 'da_duyet').length;
-        const completed = data.filter(r => r.is_class_activity === true && r.trang_thai_dk === 'da_tham_gia').length;
-        console.log(`✅ Class Activity Counts: Pending=${pending}, Approved=${approved}, Completed=${completed}`);
+        // Count by status (all activities, not just class activities)
+        const pending = data.filter(r => r.trang_thai_dk === 'cho_duyet').length;
+        const approved = data.filter(r => r.trang_thai_dk === 'da_duyet').length;
+        const completed = data.filter(r => r.trang_thai_dk === 'da_tham_gia').length;
+        console.log(`✅ Activity Counts: Pending=${pending}, Approved=${approved}, Completed=${completed}`);
         
         setMyRegistrations(Array.isArray(data) ? data : []);
         setPagination(prev => ({ ...prev, total }));
@@ -136,7 +157,7 @@ export default function MonitorMyActivities() {
     
     if (!confirmed) return;
     
-    http.post(`/v2/registrations/${hdId}/cancel`)
+    http.post(`/core/registrations/${hdId}/cancel`)
       .then(res => {
         if (res.data?.success) {
           showSuccess('Hủy đăng ký thành công');
@@ -186,23 +207,33 @@ export default function MonitorMyActivities() {
       );
     }
 
-    // Filter by type (using ID)
+    // Filter by type (support both ID and name)
     if (filters.type) {
       filtered = filtered.filter(reg => {
         const activity = reg.hoat_dong || {};
         const filterValue = filters.type;
-        const filterId = parseInt(filterValue);
         
-        if (isNaN(filterId)) {
-          // If filter value is not a number, filter by name
-          const activityTypeName = activity.loai_hd?.ten_loai_hd || activity.loai?.name || activity.loai || '';
-          return activityTypeName.toLowerCase() === filterValue.toLowerCase();
-        } else {
-          // Filter by ID
-          const activityTypeId = activity.loai_hd_id || activity.loai_hd?.id;
-          const activityId = activityTypeId ? parseInt(activityTypeId) : null;
-          return activityId !== null && activityId === filterId;
+        // Get activity type name
+        const activityTypeName = typeof activity.loai === 'string' 
+          ? activity.loai 
+          : (activity.loai?.name || activity.loai_hd?.ten_loai_hd || '');
+        
+        // Get activity type ID
+        const activityTypeId = activity.loai_hd_id || activity.loai_hd?.id;
+        
+        // Try to match by name first
+        if (activityTypeName && activityTypeName.toLowerCase() === filterValue.toLowerCase()) {
+          return true;
         }
+        
+        // If filter value is a number, try to match by ID
+        const filterId = parseInt(filterValue);
+        if (!isNaN(filterId) && activityTypeId) {
+          const activityId = parseInt(activityTypeId);
+          return activityId === filterId;
+        }
+        
+        return false;
       });
     }
     
@@ -232,19 +263,24 @@ export default function MonitorMyActivities() {
     // Filter by date range
     if (filters.from) {
       const fromDate = new Date(filters.from);
+      fromDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
       filtered = filtered.filter(reg => {
         const activity = reg.hoat_dong || {};
         const startDate = activity.ngay_bd ? new Date(activity.ngay_bd) : null;
-        return startDate && startDate >= fromDate;
+        if (!startDate) return false;
+        startDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+        return startDate >= fromDate;
       });
     }
 
     if (filters.to) {
       const toDate = new Date(filters.to);
+      toDate.setHours(23, 59, 59, 999); // Set to end of day for accurate comparison
       filtered = filtered.filter(reg => {
         const activity = reg.hoat_dong || {};
         const startDate = activity.ngay_bd ? new Date(activity.ngay_bd) : null;
-        return startDate && startDate <= toDate;
+        if (!startDate) return false;
+        return startDate <= toDate;
       });
     }
 
@@ -823,10 +859,10 @@ export default function MonitorMyActivities() {
                     className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                   >
                     <option value="">Tất cả loại</option>
-                    {activityTypes.map(type => {
+                    {(Array.isArray(activityTypes) ? activityTypes : []).map(type => {
                       const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
-                      // Always use ID as value for consistent filtering
-                      const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
+                      // Use name as value for consistent filtering (same as student page)
+                      const typeValue = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || type?.id || '');
                       const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
                       return (
                         <option key={typeKey} value={typeValue}>{typeName}</option>
@@ -1105,31 +1141,16 @@ export default function MonitorMyActivities() {
       {/* Content - Activity Cards */}
       {renderMyRegistrations()}
 
-      {/* Pagination Controls */}
-      {pagination.total > pagination.limit && (
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
-          <div className="text-sm text-gray-600">
-            Hiển thị <span className="font-semibold">{Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}</span> - <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> trong tổng số <span className="font-semibold">{pagination.total}</span> hoạt động
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-              disabled={pagination.page <= 1}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Trước
-            </button>
-            <span className="px-4 py-2 text-sm font-semibold text-gray-700">
-              Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit)}
-            </span>
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, page: Math.min(Math.ceil(pagination.total / pagination.limit), prev.page + 1) }))}
-              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-              className="px-4 py-2 rounded-lg border-2 border-gray-300 font-semibold text-sm transition-all duration-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Sau
-            </button>
-          </div>
+      {/* Pagination Controls - Pattern từ trang sinh viên */}
+      {getFilteredRegistrations().length > 0 && (
+        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6">
+          <Pagination
+            pagination={pagination}
+            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+            itemLabel="hoạt động"
+            showLimitSelector={true}
+          />
         </div>
       )}
 
