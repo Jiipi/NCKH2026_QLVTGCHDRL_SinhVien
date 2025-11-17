@@ -10,68 +10,70 @@ import sessionStorageManager from './shared/api/sessionStorageManager';
 import { TabSessionProvider } from './contexts/TabSessionContext';
 // import AdminLayout from './components/AdminLayout';
 // import SimpleAdminLayout from './components/SimpleAdminLayout';
-import AdminStudentLayout from './components/AdminStudentLayout';
+import AdminStudentLayout from './widgets/layout/ui/AdminStudentLayout';
 import MonitorLayout from './widgets/layout/ui/MonitorLayout';
 import StudentLayout from './widgets/layout/ui/StudentLayout';
 // Active admin pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminActivities from './pages/admin/AdminActivities';
-import AdminRegistrations from './pages/admin/AdminRegistrations';
-import AdminQRAttendance from './pages/admin/AdminQRAttendance';
-import AdminReports from './pages/admin/AdminReports';
-import AdminRoles from './pages/admin/AdminRoles';
-import AdminNotifications from './pages/admin/AdminNotifications';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminProfile from './pages/admin/AdminProfile';
-import SemesterManagement from './pages/admin/SemesterManagement';
+import AdminDashboard from './features/admin/ui/AdminDashboardPage';
+import AdminUsers from './features/admin/ui/AdminUsersPage';
+import AdminActivities from './features/admin/ui/AdminActivitiesPage';
+import AdminRegistrations from './features/admin/ui/AdminRegistrationsPage';
+import QRManagementPage from './features/qr-attendance/ui/QRManagementPage';
+import AdminReports from './features/reports/pages/AdminReportsPage';
+import AdminRoles from './features/users/pages/AdminRolesPage';
+import AdminNotifications from './features/notifications/pages/AdminNotificationsPage';
+import AdminSettings from './features/settings/pages/AdminSettingsPage';
+import AdminProfile from './features/users/pages/AdminProfilePage';
+import SemesterManagement from './features/semesters/pages/SemesterManagementPage';
 import ModernTeacherLayout from './widgets/layout/ui/TeacherLayout';
 // Legacy pages removed in favor of modern auth pages
 // Domain grouped imports (refactored) - use explicit index.js to avoid case conflicts on Linux
-import { Profile } from './pages/profile/index.js';
-import UserProfile from './pages/profile/UserProfile';
+import ProfilePage from './features/profile/ui/ProfilePage';
+import UserProfilePage from './features/profile/ui/UserProfilePage';
 // Cleaned: remove StudentPointsModern import if not used elsewhere
-import { ManageActivity } from './pages/activity/index.js';
-import ActivityDetail from './pages/student/ActivityDetail';
-// import DashboardStudentImproved from './pages/student/DashboardStudentImproved';
-import DashboardStudentModern from './pages/student/DashboardStudentModern';
-// import ActivitiesList from './pages/student/ActivitiesList';
-import ActivitiesListModern from './pages/student/ActivitiesListModern';
-// import MyActivities from './pages/student/MyActivities';
-import MyActivitiesModern from './pages/student/MyActivitiesModern';
-import StudentProfile from './pages/student/StudentProfile';
-import Scores from './pages/student/Scores';
-import { QRScannerModern, QRAttendanceManagement } from './pages/qr/index.js';
-import ModernTeacherDashboard from './pages/teacher/ModernTeacherDashboard';
+import ManageActivityPage from './features/activities/pages/ManageActivityPage';
+import StudentActivityDetailPage from './features/student/ui/StudentActivityDetailPage';
+import { StudentDashboardPage } from './features/student/ui/StudentDashboardPage';
+import StudentActivitiesListPage from './features/student/ui/StudentActivitiesListPage';
+import MyActivitiesPage from './features/student/ui/MyActivitiesPage';
+import StudentProfilePage from './features/student/ui/StudentProfilePage';
+import StudentScoresPage from './features/student/ui/StudentScoresPage';
+import QRScannerPage from './features/qr-attendance/ui/QRScannerPage';
+import TeacherDashboardPage from './features/teacher/ui/TeacherDashboardPage';
 import TeacherProfile from './pages/teacher/TeacherProfile';
 import TeacherPreferences from './pages/teacher/TeacherPreferences';
-import ModernActivityApproval from './pages/teacher/ModernActivityApproval';
-import TeacherRegistrationApprovals from './pages/teacher/TeacherRegistrationApprovals';
+// Legacy approval page replaced by FSD implementation
+// import ModernActivityApproval from './pages/teacher/ModernActivityApproval';
+import TeacherActivityApprovalPage from './features/teacher/ui/TeacherActivityApprovalPage';
+// Legacy registration approvals replaced by FSD page
+// import TeacherRegistrationApprovals from './pages/teacher/TeacherRegistrationApprovals';
+import TeacherRegistrationApprovalsPage from './features/teacher/ui/TeacherRegistrationApprovalsPage';
 import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
 import ImportStudents from './pages/teacher/ImportStudents';
 import ClassManagement from './pages/teacher/ClassManagement';
 import ModernReports from './pages/teacher/ModernReports';
 import ModernNotifications from './pages/teacher/ModernNotifications';
-import ActivityTypeManagement from './pages/teacher/ActivityTypeManagement';
-import TeacherActivities from './pages/teacher/TeacherActivities';
-import MonitorDashboard from './pages/monitor/MonitorDashboard';
-import MonitorMyActivities from './pages/monitor/MonitorMyActivities';
-import MonitorMyProfile from './pages/monitor/MonitorMyProfile';
-import MonitorMyCertificates from './pages/monitor/MonitorMyCertificates';
-import ClassActivities from './pages/monitor/ClassActivities';
-import ClassApprovalsModern from './pages/monitor/ClassApprovalsModern';
-import ClassStudents from './pages/monitor/ClassStudents';
-import ClassReports from './pages/monitor/ClassReports';
-import ClassNotifications from './pages/monitor/ClassNotifications';
+import ActivityTypesManagementPage from './features/activity-types/pages/ActivityTypesManagementPage';
+import TeacherActivitiesPage from './features/teacher/ui/TeacherActivitiesPage';
+import TeacherAttendancePage from './features/teacher/ui/TeacherAttendancePage';
+import TeacherStudentScoresPage from './features/teacher/ui/TeacherStudentScoresPage';
+import MonitorDashboardPage from './features/monitor/ui/MonitorDashboardPage';
+import MonitorMyActivitiesPage from './features/monitor/ui/MonitorMyActivitiesPage';
+import MonitorMyProfilePage from './features/monitor/ui/MonitorMyProfilePage';
+import MonitorMyCertificatesPage from './features/monitor/ui/MonitorMyCertificatesPage';
+import MonitorActivityOversightPage from './features/monitor/ui/MonitorActivityOversightPage';
+import MonitorStudentManagementPage from './features/monitor/ui/MonitorStudentManagementPage';
+import MonitorReportsPage from './features/monitor/ui/MonitorReportsPage';
+import MonitorApprovalsPage from './features/monitor/ui/MonitorApprovalsPage';
+import ClassNotificationsPage from './features/monitor/ui/ClassNotificationsPage';
 import { useAppStore } from './store/useAppStore';
 import { NotificationProvider } from './contexts/NotificationContext';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
-import { ForgotPassword, ResetPassword } from './pages/auth/legacy/index.js';
-// Modern auth pages
-import LoginModern from './pages/auth/LoginModern';
-import RegisterModern from './pages/auth/RegisterModern';
-import ForgotPasswordModern from './pages/auth/ForgotPasswordModern';
-import ResetPasswordModern from './pages/auth/ResetPasswordModern';
+// Modern auth pages (legacy path kept due to different shared structure)
+import LoginPage from './features/auth/ui/LoginPage';
+import RegisterPage from './features/auth/ui/RegisterPage';
+import ForgotPasswordPage from './features/auth/ui/ForgotPasswordPage';
+import ResetPasswordPage from './features/auth/ui/ResetPasswordPage';
 
 // Use Neo-brutalism design for student dashboard
 // const StudentDashboardModern = DashboardStudentImproved;
@@ -103,8 +105,8 @@ function RoleGuard({ allow, element }) {
 }
 
 function StudentHome() { return React.createElement(Navigate, { to: '/student', replace: true }); }
-function TeacherHome() { return React.createElement(ModernTeacherDashboard, null); }
-function MonitorHome() { return React.createElement(MonitorDashboard, null); }
+function TeacherHome() { return React.createElement(TeacherDashboardPage, null); }
+function MonitorHome() { return React.createElement(MonitorDashboardPage, null); }
 // function AdminHome() { 
 //   return React.createElement(SimpleAdminLayout, null, React.createElement(AdminDashboard, null)); 
 // }
@@ -213,13 +215,13 @@ function App() {
         React.createElement(
           Routes,
           null,
-          React.createElement(Route, { key: 'login', path: '/login', element: React.createElement(LoginModern) }),
-          React.createElement(Route, { key: 'register', path: '/register', element: React.createElement(RegisterModern) }),
-          React.createElement(Route, { key: 'forgot', path: '/forgot', element: React.createElement(ForgotPasswordModern) }),
-          React.createElement(Route, { key: 'forgot-password', path: '/forgot-password', element: React.createElement(ForgotPasswordModern) }),
-          React.createElement(Route, { key: 'reset', path: '/reset', element: React.createElement(ResetPasswordModern) }),
-          React.createElement(Route, { key: 'profile', path: '/profile', element: React.createElement(RoleGuard, { allow: ['STUDENT','SINH_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(Profile) }) }),
-          React.createElement(Route, { key: 'user-profile', path: '/profile/user', element: React.createElement(RoleGuard, { allow: ['STUDENT','SINH_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(UserProfile) }) }),
+          React.createElement(Route, { key: 'login', path: '/login', element: React.createElement(LoginPage) }),
+          React.createElement(Route, { key: 'register', path: '/register', element: React.createElement(RegisterPage) }),
+          React.createElement(Route, { key: 'forgot', path: '/forgot', element: React.createElement(ForgotPasswordPage) }),
+          React.createElement(Route, { key: 'forgot-password', path: '/forgot-password', element: React.createElement(ForgotPasswordPage) }),
+          React.createElement(Route, { key: 'reset', path: '/reset', element: React.createElement(ResetPasswordPage) }),
+          React.createElement(Route, { key: 'profile', path: '/profile', element: React.createElement(RoleGuard, { allow: ['STUDENT','SINH_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ProfilePage) }) }),
+          React.createElement(Route, { key: 'user-profile', path: '/profile/user', element: React.createElement(RoleGuard, { allow: ['STUDENT','SINH_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(UserProfilePage) }) }),
           // removed student points modern route (cleanup)
 
           // Admin layout: áp dụng mẫu sidebar kiểu sinh viên (AdminStudentLayout)
@@ -228,14 +230,14 @@ function App() {
             React.createElement(Route, { key: 'admin-users', path: 'users', element: React.createElement(AdminUsers) }),
             React.createElement(Route, { key: 'admin-activities', path: 'activities', element: React.createElement(AdminActivities) }),
             React.createElement(Route, { key: 'admin-roles', path: 'roles', element: React.createElement(AdminRoles) }),
-            React.createElement(Route, { key: 'admin-activity-create', path: 'activities/create', element: React.createElement(ManageActivity) }),
-            React.createElement(Route, { key: 'admin-activity-edit', path: 'activities/:id/edit', element: React.createElement(ManageActivity) }),
+            React.createElement(Route, { key: 'admin-activity-create', path: 'activities/create', element: React.createElement(ManageActivityPage) }),
+            React.createElement(Route, { key: 'admin-activity-edit', path: 'activities/:id/edit', element: React.createElement(ManageActivityPage) }),
             React.createElement(Route, { key: 'admin-approvals', path: 'approvals', element: React.createElement(AdminRegistrations) }),
             React.createElement(Route, { key: 'admin-reports', path: 'reports', element: React.createElement(AdminReports) }),
             React.createElement(Route, { key: 'admin-notifications', path: 'notifications', element: React.createElement(AdminNotifications) }),
-            React.createElement(Route, { key: 'admin-qr-attendance', path: 'qr-attendance', element: React.createElement(AdminQRAttendance) }),
+            React.createElement(Route, { key: 'admin-qr-attendance', path: 'qr-attendance', element: React.createElement(QRManagementPage) }),
             // Admin manage Activity Types (reuse teacher page for now)
-            React.createElement(Route, { key: 'admin-activity-types', path: 'activity-types', element: React.createElement(ActivityTypeManagement) }),
+            React.createElement(Route, { key: 'admin-activity-types', path: 'activity-types', element: React.createElement(ActivityTypesManagementPage) }),
             React.createElement(Route, { key: 'admin-semesters', path: 'semesters', element: React.createElement(SemesterManagement) }),
             React.createElement(Route, { key: 'admin-settings', path: 'settings', element: React.createElement(AdminSettings) }),
             React.createElement(Route, { key: 'admin-profile', path: 'profile', element: React.createElement(AdminProfile) }),
@@ -243,11 +245,13 @@ function App() {
 
           // Teacher nested layout - Modern UI
           React.createElement(Route, { key: 'teacher-root', path: '/teacher', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','ADMIN'], element: React.createElement(ModernTeacherLayout) }) }, [
-            React.createElement(Route, { key: 'teacher-index', index: true, element: React.createElement(ModernTeacherDashboard) }),
-            React.createElement(Route, { key: 'teacher-activities', path: 'activities', element: React.createElement(TeacherActivities) }),
-            React.createElement(Route, { key: 'teacher-approve', path: 'approve', element: React.createElement(ModernActivityApproval) }),
-            React.createElement(Route, { key: 'teacher-registrations-approve', path: 'registrations/approve', element: React.createElement(TeacherRegistrationApprovals) }),
-            React.createElement(Route, { key: 'teacher-types', path: 'activity-types', element: React.createElement(ActivityTypeManagement) }),
+            React.createElement(Route, { key: 'teacher-index', index: true, element: React.createElement(TeacherDashboardPage) }),
+            React.createElement(Route, { key: 'teacher-activities', path: 'activities', element: React.createElement(TeacherActivitiesPage) }),
+            React.createElement(Route, { key: 'teacher-approve', path: 'approve', element: React.createElement(TeacherActivityApprovalPage) }),
+            React.createElement(Route, { key: 'teacher-registrations-approve', path: 'registrations/approve', element: React.createElement(TeacherRegistrationApprovalsPage) }),
+            React.createElement(Route, { key: 'teacher-types', path: 'activity-types', element: React.createElement(ActivityTypesManagementPage) }),
+            React.createElement(Route, { key: 'teacher-attendance', path: 'attendance', element: React.createElement(TeacherAttendancePage) }),
+            React.createElement(Route, { key: 'teacher-student-scores', path: 'student-scores', element: React.createElement(TeacherStudentScoresPage) }),
             React.createElement(Route, { key: 'teacher-students', path: 'students', element: React.createElement(ModernStudentManagement) }),
             React.createElement(Route, { key: 'teacher-students-import', path: 'students/import', element: React.createElement(ImportStudents) }),
             React.createElement(Route, { key: 'teacher-classes-redirect', path: 'classes', element: React.createElement(Navigate, { to: '/teacher/students', replace: true }) }),
@@ -263,37 +267,37 @@ function App() {
           React.createElement(Route, { key: 'monitor-root', path: '/monitor', element: React.createElement(RoleGuard, { allow: ['LOP_TRUONG','GIANG_VIEN','ADMIN'], element: React.createElement(MonitorLayout) }) }, [
             React.createElement(Route, { key: 'monitor-index', index: true, element: React.createElement(MonitorHome) }),
             // Personal section (Student features for Monitor)
-            React.createElement(Route, { key: 'monitor-my-activities', path: 'my-activities', element: React.createElement(MonitorMyActivities) }),
-            React.createElement(Route, { key: 'monitor-qr-scanner', path: 'qr-scanner', element: React.createElement(QRScannerModern) }),
-            React.createElement(Route, { key: 'monitor-my-profile', path: 'my-profile', element: React.createElement(MonitorMyProfile) }),
-            React.createElement(Route, { key: 'monitor-my-certificates', path: 'my-certificates', element: React.createElement(MonitorMyCertificates) }),
+            React.createElement(Route, { key: 'monitor-my-activities', path: 'my-activities', element: React.createElement(MonitorMyActivitiesPage) }),
+            React.createElement(Route, { key: 'monitor-qr-scanner', path: 'qr-scanner', element: React.createElement(QRScannerPage) }),
+            React.createElement(Route, { key: 'monitor-my-profile', path: 'my-profile', element: React.createElement(MonitorMyProfilePage) }),
+            React.createElement(Route, { key: 'monitor-my-certificates', path: 'my-certificates', element: React.createElement(MonitorMyCertificatesPage) }),
             // Class management section
-            React.createElement(Route, { key: 'class-activities', path: 'activities', element: React.createElement(ClassActivities) }),
-            React.createElement(Route, { key: 'class-activity-create', path: 'activities/create', element: React.createElement(RoleGuard, { allow: ['LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivity) }) }),
-            React.createElement(Route, { key: 'class-approvals', path: 'approvals', element: React.createElement(ClassApprovalsModern) }),
-            React.createElement(Route, { key: 'class-students', path: 'students', element: React.createElement(ClassStudents) }),
-            React.createElement(Route, { key: 'class-reports', path: 'reports', element: React.createElement(ClassReports) }),
-            React.createElement(Route, { key: 'class-notifications', path: 'notifications', element: React.createElement(ClassNotifications) }),
+            React.createElement(Route, { key: 'class-activities', path: 'activities', element: React.createElement(MonitorActivityOversightPage) }),
+            React.createElement(Route, { key: 'class-activity-create', path: 'activities/create', element: React.createElement(RoleGuard, { allow: ['LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivityPage) }) }),
+            React.createElement(Route, { key: 'class-approvals', path: 'approvals', element: React.createElement(MonitorApprovalsPage) }),
+            React.createElement(Route, { key: 'class-students', path: 'students', element: React.createElement(MonitorStudentManagementPage) }),
+            React.createElement(Route, { key: 'class-reports', path: 'reports', element: React.createElement(MonitorReportsPage) }),
+            React.createElement(Route, { key: 'class-notifications', path: 'notifications', element: React.createElement(ClassNotificationsPage) }),
           ]),
 
           // Student nested layout - Modern UI
           React.createElement(Route, { key: 'student-root', path: '/student', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG'], element: React.createElement(StudentLayout) }) }, [
-            React.createElement(Route, { key: 'student-index', index: true, element: React.createElement(DashboardStudentModern) }),
-            React.createElement(Route, { key: 'student-activities', path: 'activities', element: React.createElement(ActivitiesListModern) }),
-            React.createElement(Route, { key: 'student-my-activities', path: 'my-activities', element: React.createElement(MyActivitiesModern) }),
-            React.createElement(Route, { key: 'student-scores', path: 'scores', element: React.createElement(Scores) }),
-            React.createElement(Route, { key: 'student-profile', path: 'profile', element: React.createElement(StudentProfile) }),
-            React.createElement(Route, { key: 'student-qr-scanner', path: 'qr-scanner', element: React.createElement(QRScannerModern) }),
+            React.createElement(Route, { key: 'student-index', index: true, element: React.createElement(StudentDashboardPage) }),
+            React.createElement(Route, { key: 'student-activities', path: 'activities', element: React.createElement(StudentActivitiesListPage) }),
+            React.createElement(Route, { key: 'student-my-activities', path: 'my-activities', element: React.createElement(MyActivitiesPage) }),
+            React.createElement(Route, { key: 'student-scores', path: 'scores', element: React.createElement(StudentScoresPage) }),
+            React.createElement(Route, { key: 'student-profile', path: 'profile', element: React.createElement(StudentProfilePage) }),
+            React.createElement(Route, { key: 'student-qr-scanner', path: 'qr-scanner', element: React.createElement(QRScannerPage) }),
           ]),
 
           // Common routes
-          React.createElement(Route, { key: 'create-activity', path: '/activities/create', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivity) }) }),
-          React.createElement(Route, { key: 'edit-activity', path: '/activities/edit/:id', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivity) }) }),
-          React.createElement(Route, { key: 'activity-detail', path: '/activities/:id', element: React.createElement(RoleGuard, { allow: [], element: React.createElement(ActivityDetail) }) }),
+          React.createElement(Route, { key: 'create-activity', path: '/activities/create', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivityPage) }) }),
+          React.createElement(Route, { key: 'edit-activity', path: '/activities/edit/:id', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivityPage) }) }),
+          React.createElement(Route, { key: 'activity-detail', path: '/activities/:id', element: React.createElement(RoleGuard, { allow: [], element: React.createElement(StudentActivityDetailPage) }) }),
           // (Re-added) Root-level QR Scanner fallback route to bypass potential nested routing edge cases.
           // Accessible by students and monitors. If nested route fails, this ensures accessibility.
-          React.createElement(Route, { key: 'qr-scanner-root', path: '/qr-scanner', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG'], element: React.createElement(QRScannerModern) }) }),
-          React.createElement(Route, { key: 'qr-management', path: '/qr-management', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(QRAttendanceManagement) }) }),
+          React.createElement(Route, { key: 'qr-scanner-root', path: '/qr-scanner', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG'], element: React.createElement(QRScannerPage) }) }),
+          React.createElement(Route, { key: 'qr-management', path: '/qr-management', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(QRManagementPage) }) }),
 
           React.createElement(Route, { key: 'router-catchall', path: '*', element: React.createElement(RoleGuard, { allow: ['ADMIN','GIANG_VIEN','LOP_TRUONG','SINH_VIEN','STUDENT'], element: React.createElement(HomeRouter) }) })
         )

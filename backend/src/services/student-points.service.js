@@ -139,21 +139,20 @@ class StudentPointsService {
     const currentYear = currentDate.getFullYear();
     const currentSemester = currentDate.getMonth() < 6 ? 'hoc_ky_2' : 'hoc_ky_1';
 
-    // Current semester points
+    // Current semester points - single year format only
     const currentSemesterRegistrations = completedRegistrations.filter(reg => {
       const activity = reg.hoat_dong;
-      return activity.hoc_ky === currentSemester && 
-             activity.nam_hoc === `${currentYear}-${currentYear + 1}`;
+      return activity.hoc_ky === currentSemester && activity.nam_hoc === String(currentYear);
     });
 
     const currentSemesterPoints = currentSemesterRegistrations.reduce((sum, reg) => {
       return sum + Number(reg.hoat_dong.diem_rl || 0);
     }, 0);
 
-    // Current year points
+    // Current year points - single year format only
     const currentYearRegistrations = completedRegistrations.filter(reg => {
       const activity = reg.hoat_dong;
-      return activity.nam_hoc === `${currentYear}-${currentYear + 1}`;
+      return activity.nam_hoc === String(currentYear);
     });
 
     const currentYearPoints = currentYearRegistrations.reduce((sum, reg) => {
@@ -169,7 +168,7 @@ class StudentPointsService {
       activitiesCount: filteredRegistrations.length,
       currentSemesterInfo: {
         semester: currentSemester,
-        year: `${currentYear}-${currentYear + 1}`
+        year: String(currentYear)
       },
       breakdown: {
         totalActivities: allRegistrations.length,

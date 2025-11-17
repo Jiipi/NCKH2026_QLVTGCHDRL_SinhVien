@@ -22,19 +22,19 @@ export default function ManageActivity(){
     const year = today.getFullYear();
     const m = today.getMonth() + 1;
     
-    // Logic năm học:
-    // - HK1 (7-11): năm học bắt đầu từ năm hiện tại (2025-2026)
-    // - HK2 (12): năm học bắt đầu từ năm hiện tại (2025-2026)
-    // - HK2 (1-4): năm học bắt đầu từ năm trước (2024-2025)
-    // - Nghỉ hè (5-6): năm học năm hiện tại (2025-2026)
+    // Logic năm học (single year format):
+    // - HK1 (7-11): năm hiện tại (2025)
+    // - HK2 (12): năm hiện tại (2025)
+    // - HK2 (1-4): năm hiện tại (2025 for HK2 2025)
+    // - Nghỉ hè (5-6): năm hiện tại (2025)
     if (m >= 7 && m <= 11) {
-      return `${year}-${year + 1}`; // HK1: ví dụ 2025-2026
+      return String(year); // HK1: ví dụ 2025
     } else if (m === 12) {
-      return `${year}-${year + 1}`; // Tháng 12: ví dụ 2025-2026
+      return String(year); // Tháng 12: ví dụ 2025
     } else if (m >= 1 && m <= 4) {
-      return `${year - 1}-${year}`; // HK2: ví dụ 2024-2025
+      return String(year); // HK2: ví dụ 2025
     } else {
-      return `${year}-${year + 1}`; // Tháng 5-6: mặc định năm học tiếp theo
+      return String(year); // Tháng 5-6: năm hiện tại
     }
   }
   
@@ -79,20 +79,13 @@ export default function ManageActivity(){
     
     if (match) {
       const hocKy = match[1]; // hoc_ky_1 hoặc hoc_ky_2
-      const year = parseInt(match[2]); // 2025
+      const year = match[2]; // '2025' as string
       
-      // Tự động tính năm học từ học kỳ và năm
-      let namHoc;
-      if (hocKy === 'hoc_ky_1') {
-        namHoc = `${year}-${year + 1}`; // HK1 2025 -> 2025-2026
-      } else {
-        namHoc = `${year - 1}-${year}`; // HK2 2025 -> 2024-2025
-      }
-      
+      // Use single year format directly
       setForm(function(prev){ 
         return Object.assign({}, prev, { 
           hoc_ky: hocKy,
-          nam_hoc: namHoc
+          nam_hoc: year // Single year: '2025'
         }); 
       });
       setFieldErrors(function(prev){ 

@@ -5,6 +5,7 @@
  */
 
 const { prisma } = require('../../infrastructure/prisma/client');
+const { parseSemesterString } = require('../../core/utils/semester');
 
 // Helper: get classes where teacher is homeroom (chu_nhiem)
 async function findTeacherClassesRaw(teacherId) {
@@ -19,10 +20,13 @@ const teachersRepo = {
    * Get teacher dashboard stats with semester support (V1 compatible).
    * Counts classes, students, activities, participation rate, avg score.
    * @param {string} teacherId - Teacher's user ID
-   * @param {Object} semesterFilter - Optional filter { hoc_ky, nam_hoc }
+   * @param {string} semester - Optional semester string (e.g., 'hoc_ky_1-2025')
    */
-  async getDashboardStats(teacherId, semesterFilter = {}) {
-    const classes = await findTeacherClassesRaw(teacherId);
+  async getDashboardStats(teacherId, semester = null, classId = null) {
+    let classes = await findTeacherClassesRaw(teacherId);
+    if (classId) {
+      classes = classes.filter(c => String(c.id) === String(classId));
+    }
     const classIds = classes.map(c => c.id);
 
     if (classIds.length === 0) {
@@ -45,11 +49,19 @@ const teachersRepo = {
     const studentIds = students.map(s => s.id);
     const studentUserIds = students.map(s => s.nguoi_dung_id).filter(Boolean);
 
-    // Build activity filter
+    // Build activity filter with simple semester matching
     const activityWhere = {
-      nguoi_tao_id: { in: studentUserIds },
-      ...semesterFilter
+      nguoi_tao_id: { in: studentUserIds }
     };
+    
+    if (semester) {
+      const { parseSemesterString } = require('../../core/utils/semester');
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        activityWhere.hoc_ky = parsed.semester;
+        activityWhere.nam_hoc = parsed.year;
+      }
+    }
 
     const [
       totalActivities,
@@ -129,11 +141,14 @@ const teachersRepo = {
   /**
    * Get pending activities from teacher's class students (V1 compatible).
    * @param {string} teacherId - Teacher's user ID
-   * @param {Object} semesterFilter - Optional filter { hoc_ky, nam_hoc }
+   * @param {string} semester - Optional semester string (e.g., 'hoc_ky_1-2025')
    * @param {number} limit - Max number of activities to return
    */
-  async getPendingActivitiesList(teacherId, semesterFilter = {}, limit = 10) {
-    const classes = await findTeacherClassesRaw(teacherId);
+  async getPendingActivitiesList(teacherId, semester = null, limit = 10, classId = null) {
+    let classes = await findTeacherClassesRaw(teacherId);
+    if (classId) {
+      classes = classes.filter(c => String(c.id) === String(classId));
+    }
     const classIds = classes.map(c => c.id);
 
     if (classIds.length === 0) {
@@ -148,13 +163,24 @@ const teachersRepo = {
 
     const studentUserIds = students.map(s => s.nguoi_dung_id).filter(Boolean);
 
+    // Build semester where clause using simple filter
+    const activityWhere = {
+      nguoi_tao_id: { in: studentUserIds },
+      trang_thai: 'cho_duyet'
+    };
+    
+    if (semester) {
+      const { parseSemesterString } = require('../../core/utils/semester');
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        activityWhere.hoc_ky = parsed.semester;
+        activityWhere.nam_hoc = parsed.year;
+      }
+    }
+
     // Get pending activities
     return prisma.hoatDong.findMany({
-      where: {
-        nguoi_tao_id: { in: studentUserIds },
-        trang_thai: 'cho_duyet',
-        ...semesterFilter
-      },
+      where: activityWhere,
       include: {
         loai_hd: true,
         nguoi_tao: {
@@ -196,7 +222,8 @@ const teachersRepo = {
    * Get classes assigned to teacher with counts.
    */
   async getTeacherClasses(teacherId, include = {}) {
-    return prisma.lop.findMany({
+    console.log('[getTeacherClasses] teacherId=', teacherId);
+    const result = await prisma.lop.findMany({
       where: { chu_nhiem: teacherId },
       include: {
         _count: {
@@ -208,6 +235,8 @@ const teachersRepo = {
       },
       orderBy: { ten_lop: 'asc' }
     });
+    console.log('[getTeacherClasses] found', result.length, 'classes');
+    return result;
   },
 
   /**
@@ -224,33 +253,69 @@ const teachersRepo = {
       return [];
     }
 
-    const { search, classFilter } = filters;
+    const { search, classId, semester } = filters;
 
-    // Build where clause (V1 compatible - query from NguoiDung)
-    const whereNguoiDung = {
-      vai_tro: { ten_vt: { in: ['SINH_VIEN', 'LOP_TRUONG'] } },
+    // Build where clause - query from SinhVien
+    const whereSinhVien = {
+      lop_id: classId ? String(classId) : { in: classIds },
       ...(search && {
         OR: [
-          { ho_ten: { contains: String(search), mode: 'insensitive' } },
-          { email: { contains: String(search), mode: 'insensitive' } },
-          { sinh_vien: { is: { mssv: { contains: String(search), mode: 'insensitive' } } } }
+          { mssv: { contains: String(search), mode: 'insensitive' } },
+          { nguoi_dung: { 
+            OR: [
+              { ho_ten: { contains: String(search), mode: 'insensitive' } },
+              { email: { contains: String(search), mode: 'insensitive' } }
+            ]
+          } }
         ]
-      }),
-      sinh_vien: {
-        is: {
-          lop_id: classFilter ? String(classFilter) : { in: classIds }
-        }
-      }
+      })
     };
 
-    return prisma.nguoiDung.findMany({
-      where: whereNguoiDung,
+    // Build semester where clause using simple filter
+    const registrationWhere = {
+      trang_thai_dk: 'da_tham_gia'
+    };
+    
+    if (semester) {
+      const { parseSemesterString } = require('../../core/utils/semester');
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        registrationWhere.hoat_dong = {
+          hoc_ky: parsed.semester,
+          nam_hoc: parsed.year
+        };
+      }
+    }
+
+    return prisma.sinhVien.findMany({
+      where: whereSinhVien,
       include: { 
-        sinh_vien: { 
-          include: { lop: true } 
-        } 
+        nguoi_dung: {
+          select: {
+            id: true,
+            ho_ten: true,
+            email: true,
+            anh_dai_dien: true
+          }
+        },
+        lop: {
+          select: {
+            id: true,
+            ten_lop: true
+          }
+        },
+        dang_ky_hd: {
+          where: registrationWhere,
+          select: {
+            hoat_dong: {
+              select: {
+                diem_rl: true
+              }
+            }
+          }
+        }
       },
-      orderBy: { ho_ten: 'asc' }
+      orderBy: { mssv: 'asc' }
     });
   },
 
@@ -403,6 +468,90 @@ const teachersRepo = {
 
     // Check if activity creator is a student in teacher's classes
     return studentUserIds.includes(activity.nguoi_tao_id);
+  },
+
+  /**
+   * Get all registrations from students in teacher's classes
+   */
+  async getClassRegistrations(classIds, filters = {}) {
+    try {
+      const { status, semester } = filters;
+      
+      console.log('[getClassRegistrations] classIds:', classIds);
+      console.log('[getClassRegistrations] filters:', filters);
+      
+      // Build where clause - filter by students in teacher's classes
+      const where = {
+        sinh_vien: {
+          lop_id: { in: classIds }
+        }
+      };
+      
+      // Only filter by status if it's not 'all'
+      if (status && status !== 'all') {
+        where.trang_thai_dk = status;
+      }
+      
+      // Build activity filter for semester using simple matcher
+      const activityFilter = {};
+      if (semester) {
+        const parsed = parseSemesterString(semester);
+        if (parsed && parsed.year) {
+          activityFilter.hoc_ky = parsed.semester;
+          activityFilter.nam_hoc = parsed.year;
+        }
+      }
+      
+      // Add activity filter to where clause if present
+      if (Object.keys(activityFilter).length > 0) {
+        where.hoat_dong = { is: activityFilter };
+      }
+      
+      console.log('[getClassRegistrations] where clause:', JSON.stringify(where, null, 2));
+      
+      // Get registrations with full relations
+      const registrations = await prisma.dangKyHoatDong.findMany({
+        where,
+        include: {
+          sinh_vien: {
+            include: {
+              nguoi_dung: { 
+                select: { 
+                  ho_ten: true, 
+                  email: true, 
+                  anh_dai_dien: true 
+                } 
+              },
+              lop: { 
+                select: { 
+                  ten_lop: true 
+                } 
+              }
+            }
+          },
+          hoat_dong: { 
+            select: { 
+              id: true,
+              ten_hd: true, 
+              ngay_bd: true, 
+              diem_rl: true, 
+              dia_diem: true, 
+              hinh_anh: true,
+              loai_hd: { select: { id: true, ten_loai_hd: true } }
+            } 
+          }
+        },
+        orderBy: { ngay_dang_ky: 'desc' },
+        take: 500
+      });
+      
+      console.log('[getClassRegistrations] Found registrations:', registrations.length);
+      
+      return registrations;
+    } catch (error) {
+      console.error('[getClassRegistrations] Error:', error);
+      throw error;
+    }
   }
 };
 

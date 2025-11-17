@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Bell, 
@@ -47,16 +47,16 @@ export default function TeacherPreferences() {
     try {
       // TODO: API call to save preferences
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      alert('Đã lưu cài đặt thành công!');
+      alert('ÄĂ£ lÆ°u cĂ i Ä‘áº·t thĂ nh cĂ´ng!');
     } catch (error) {
-      alert('Không thể lưu cài đặt');
+      alert('KhĂ´ng thá»ƒ lÆ°u cĂ i Ä‘áº·t');
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = () => {
-    if (window.confirm('Bạn có chắc muốn khôi phục cài đặt mặc định?')) {
+    if (window.confirm('Báº¡n cĂ³ cháº¯c muá»‘n khĂ´i phá»¥c cĂ i Ä‘áº·t máº·c Ä‘á»‹nh?')) {
       setPreferences({
         emailNotifications: true,
         smsNotifications: false,
@@ -81,8 +81,8 @@ export default function TeacherPreferences() {
     <div className="p-8 mx-auto" style={{ maxWidth: '960px' }}>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Tùy chọn</h1>
-        <p className="text-gray-600">Cấu hình và tùy chỉnh hệ thống</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">TĂ¹y chá»n</h1>
+        <p className="text-gray-600">Cáº¥u hĂ¬nh vĂ  tĂ¹y chá»‰nh há»‡ thá»‘ng</p>
       </div>
 
       <div className="max-w-4xl">
@@ -92,7 +92,7 @@ export default function TeacherPreferences() {
             <div className="p-2 bg-indigo-50 rounded-lg">
               <Bell className="w-5 h-5 text-indigo-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Cài đặt thông báo</h2>
+            <h2 className="text-xl font-semibold text-gray-900">CĂ i Ä‘áº·t thĂ´ng bĂ¡o</h2>
           </div>
 
           <div className="space-y-4">
@@ -100,8 +100,8 @@ export default function TeacherPreferences() {
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-gray-600" />
                 <div>
-                  <div className="font-medium text-gray-900">Thông báo qua Email</div>
-                  <div className="text-sm text-gray-600">Nhận thông báo qua địa chỉ email</div>
+                  <div className="font-medium text-gray-900">ThĂ´ng bĂ¡o qua Email</div>
+                  <div className="text-sm text-gray-600">Nháº­n thĂ´ng bĂ¡o qua Ä‘á»‹a chá»‰ email</div>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -119,8 +119,8 @@ export default function TeacherPreferences() {
               <div className="flex items-center gap-3">
                 <Smartphone className="w-5 h-5 text-gray-600" />
                 <div>
-                  <div className="font-medium text-gray-900">Thông báo qua SMS</div>
-                  <div className="text-sm text-gray-600">Nhận thông báo qua số điện thoại</div>
+                  <div className="font-medium text-gray-900">ThĂ´ng bĂ¡o qua SMS</div>
+                  <div className="text-sm text-gray-600">Nháº­n thĂ´ng bĂ¡o qua sá»‘ Ä‘iá»‡n thoáº¡i</div>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -138,8 +138,8 @@ export default function TeacherPreferences() {
               <div className="flex items-center gap-3">
                 <Bell className="w-5 h-5 text-gray-600" />
                 <div>
-                  <div className="font-medium text-gray-900">Thông báo trong hệ thống</div>
-                  <div className="text-sm text-gray-600">Hiển thị thông báo trên giao diện</div>
+                  <div className="font-medium text-gray-900">ThĂ´ng bĂ¡o trong há»‡ thá»‘ng</div>
+                  <div className="text-sm text-gray-600">Hiá»ƒn thá»‹ thĂ´ng bĂ¡o trĂªn giao diá»‡n</div>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -155,7 +155,7 @@ export default function TeacherPreferences() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-4">Loại thông báo</h3>
+            <h3 className="font-medium text-gray-900 mb-4">Loáº¡i thĂ´ng bĂ¡o</h3>
             <div className="space-y-3">
               <label className="flex items-center gap-3">
                 <input
@@ -164,7 +164,7 @@ export default function TeacherPreferences() {
                   onChange={(e) => setPreferences({...preferences, notifyOnNewActivity: e.target.checked})}
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <span className="text-gray-700">Hoạt động mới được tạo</span>
+                <span className="text-gray-700">Hoáº¡t Ä‘á»™ng má»›i Ä‘Æ°á»£c táº¡o</span>
               </label>
               <label className="flex items-center gap-3">
                 <input
@@ -173,7 +173,7 @@ export default function TeacherPreferences() {
                   onChange={(e) => setPreferences({...preferences, notifyOnStudentRegistration: e.target.checked})}
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <span className="text-gray-700">Sinh viên đăng ký hoạt động</span>
+                <span className="text-gray-700">Sinh viĂªn Ä‘Äƒng kĂ½ hoáº¡t Ä‘á»™ng</span>
               </label>
               <label className="flex items-center gap-3">
                 <input
@@ -182,7 +182,7 @@ export default function TeacherPreferences() {
                   onChange={(e) => setPreferences({...preferences, notifyOnApproval: e.target.checked})}
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <span className="text-gray-700">Hoạt động được duyệt/từ chối</span>
+                <span className="text-gray-700">Hoáº¡t Ä‘á»™ng Ä‘Æ°á»£c duyá»‡t/tá»« chá»‘i</span>
               </label>
             </div>
           </div>
@@ -194,42 +194,42 @@ export default function TeacherPreferences() {
             <div className="p-2 bg-purple-50 rounded-lg">
               <Eye className="w-5 h-5 text-purple-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Hiển thị</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Hiá»ƒn thá»‹</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giao diện
+                Giao diá»‡n
               </label>
               <select
                 value={preferences.theme}
                 onChange={(e) => setPreferences({...preferences, theme: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                <option value="light">Sáng</option>
-                <option value="dark">Tối</option>
-                <option value="auto">Tự động</option>
+                <option value="light">SĂ¡ng</option>
+                <option value="dark">Tá»‘i</option>
+                <option value="auto">Tá»± Ä‘á»™ng</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngôn ngữ
+                NgĂ´n ngá»¯
               </label>
               <select
                 value={preferences.language}
                 onChange={(e) => setPreferences({...preferences, language: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                <option value="vi">Tiếng Việt</option>
+                <option value="vi">Tiáº¿ng Viá»‡t</option>
                 <option value="en">English</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Định dạng ngày
+                Äá»‹nh dáº¡ng ngĂ y
               </label>
               <select
                 value={preferences.dateFormat}
@@ -244,7 +244,7 @@ export default function TeacherPreferences() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số mục mỗi trang
+                Sá»‘ má»¥c má»—i trang
               </label>
               <select
                 value={preferences.itemsPerPage}
@@ -266,14 +266,14 @@ export default function TeacherPreferences() {
             <div className="p-2 bg-green-50 rounded-lg">
               <Shield className="w-5 h-5 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Quyền riêng tư</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Quyá»n riĂªng tÆ°</h2>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <div className="font-medium text-gray-900">Hiển thị email</div>
-                <div className="text-sm text-gray-600">Cho phép sinh viên xem email của bạn</div>
+                <div className="font-medium text-gray-900">Hiá»ƒn thá»‹ email</div>
+                <div className="text-sm text-gray-600">Cho phĂ©p sinh viĂªn xem email cá»§a báº¡n</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -288,8 +288,8 @@ export default function TeacherPreferences() {
 
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <div className="font-medium text-gray-900">Hiển thị số điện thoại</div>
-                <div className="text-sm text-gray-600">Cho phép sinh viên xem số điện thoại của bạn</div>
+                <div className="font-medium text-gray-900">Hiá»ƒn thá»‹ sá»‘ Ä‘iá»‡n thoáº¡i</div>
+                <div className="text-sm text-gray-600">Cho phĂ©p sinh viĂªn xem sá»‘ Ä‘iá»‡n thoáº¡i cá»§a báº¡n</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -304,8 +304,8 @@ export default function TeacherPreferences() {
 
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <div className="font-medium text-gray-900">Cho phép tin nhắn từ sinh viên</div>
-                <div className="text-sm text-gray-600">Sinh viên có thể gửi tin nhắn cho bạn</div>
+                <div className="font-medium text-gray-900">Cho phĂ©p tin nháº¯n tá»« sinh viĂªn</div>
+                <div className="text-sm text-gray-600">Sinh viĂªn cĂ³ thá»ƒ gá»­i tin nháº¯n cho báº¡n</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -330,12 +330,12 @@ export default function TeacherPreferences() {
             {saving ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin" />
-                Đang lưu...
+                Äang lÆ°u...
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                Lưu thay đổi
+                LÆ°u thay Ä‘á»•i
               </>
             )}
           </button>
@@ -344,7 +344,7 @@ export default function TeacherPreferences() {
             className="flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
-            Khôi phục mặc định
+            KhĂ´i phá»¥c máº·c Ä‘á»‹nh
           </button>
         </div>
       </div>

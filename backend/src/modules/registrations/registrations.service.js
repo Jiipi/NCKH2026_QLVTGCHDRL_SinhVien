@@ -335,7 +335,7 @@ const registrationsService = {
    */
   async exportRegistrations(filters = {}) {
     const ExcelJS = require('exceljs');
-    const { buildRobustActivitySemesterWhere, parseSemesterString, buildSemesterFilter } = require('../../core/utils/semester');
+    const { parseSemesterString } = require('../../core/utils/semester');
 
     const { status, hoc_ky, nam_hoc, semester, classId } = filters;
 
@@ -345,8 +345,12 @@ const registrationsService = {
       if (!parsed) {
         throw new ValidationError('Tham số học kỳ không hợp lệ');
       }
-      const strict = buildSemesterFilter(semester, false);
-      semesterWhere = { hoat_dong: { ...strict } };
+      semesterWhere = {
+        hoat_dong: {
+          hoc_ky: parsed.semester,
+          nam_hoc: parsed.year
+        }
+      };
     } else if (hoc_ky || nam_hoc) {
       semesterWhere = {
         hoat_dong: {

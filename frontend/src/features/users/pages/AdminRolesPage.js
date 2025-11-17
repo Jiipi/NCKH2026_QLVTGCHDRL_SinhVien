@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Plus, Edit, Trash2, Eye, Search, X, Save, Crown, Key, Lock } from 'lucide-react';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 import { extractRolesFromAxiosResponse, extractUsersFromAxiosResponse } from '../../../shared/lib/apiNormalization';
 import { getUserAvatar, getStudentAvatar } from '../../../shared/lib/avatar';
 
@@ -52,8 +52,8 @@ export default function AdminRoles() {
   const getRoleIcon = (roleName) => {
     const name = (roleName || '').toLowerCase();
     if (name.includes('admin')) return <Crown size={18} style={{ color: '#f59e0b' }} />;
-    if (name.includes('gi?ng viên')) return <Key size={18} style={{ color: '#3b82f6' }} />;
-    if (name.includes('l?p trý?ng')) return <Shield size={18} style={{ color: '#8b5cf6' }} />;
+    if (name.includes('gi?ng viï¿½n')) return <Key size={18} style={{ color: '#3b82f6' }} />;
+    if (name.includes('l?p trï¿½?ng')) return <Shield size={18} style={{ color: '#8b5cf6' }} />;
     return <Users size={18} style={{ color: '#10b981' }} />;
   };
 
@@ -130,7 +130,7 @@ export default function AdminRoles() {
       pairs.forEach(([id, total]) => (map[id] = total));
       setRoleCounts(map);
     } catch (e) {
-      console.error('L?i ð?m s? ngý?i dùng theo vai tr?', e?.message);
+      console.error('L?i ï¿½?m s? ngï¿½?i dï¿½ng theo vai tr?', e?.message);
     }
   }
 
@@ -170,13 +170,13 @@ export default function AdminRoles() {
       if (!roleFilter && rs[0]) setRoleFilter(rs[0]);
       fetchRoleCounts(rs);
     } catch (e) {
-      console.error('Lýu vai tr? th?t b?i', e.response?.data || e.message);
+      console.error('Lï¿½u vai tr? th?t b?i', e.response?.data || e.message);
     }
   }
 
   async function deleteRole(roleId) {
-    if (!window.confirm('B?n có ch?c mu?n xóa vai tr? này?')) return;
-    if (!window.confirm('Xóa luôn T?T C? ngý?i dùng ðang thu?c vai tr? này? Hành ð?ng này không th? hoàn tác.')) return;
+    if (!window.confirm('B?n cï¿½ ch?c mu?n xï¿½a vai tr? nï¿½y?')) return;
+    if (!window.confirm('Xï¿½a luï¿½n T?T C? ngï¿½?i dï¿½ng ï¿½ang thu?c vai tr? nï¿½y? Hï¿½nh ï¿½?ng nï¿½y khï¿½ng th? hoï¿½n tï¿½c.')) return;
     try {
       await http.delete(`/admin/roles/${roleId}`, { params: { cascadeUsers: true } });
       const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles'));
@@ -184,7 +184,7 @@ export default function AdminRoles() {
       if (!rs.find(r => r.id === roleFilter?.id)) setRoleFilter(rs[0] || null);
       fetchRoleCounts(rs);
     } catch (e) {
-      console.error('Xóa vai tr? th?t b?i', e.response?.data || e.message);
+      console.error('Xï¿½a vai tr? th?t b?i', e.response?.data || e.message);
     }
   }
 
@@ -272,26 +272,26 @@ export default function AdminRoles() {
 
   const roleNotes = [
     { key: 'ADMIN', name: 'ADMIN', icon: getRoleIcon('ADMIN'), color: '#fff7ed', items: [
-      'Qu?n tr? h? th?ng, ngý?i dùng, vai tr?',
-      'Qu?n l? lo?i ho?t ð?ng'
+      'Qu?n tr? h? th?ng, ngï¿½?i dï¿½ng, vai tr?',
+      'Qu?n l? lo?i ho?t ï¿½?ng'
     ] },
-    { key: 'GIANG_VIEN', name: 'GI?NG VIÊN', icon: getRoleIcon('GIANG_VIEN'), color: '#eff6ff', items: [
-      'T?o và qu?n l? ho?t ð?ng',
-      'Ði?m danh, theo d?i ðãng k?'
+    { key: 'GIANG_VIEN', name: 'GI?NG VIï¿½N', icon: getRoleIcon('GIANG_VIEN'), color: '#eff6ff', items: [
+      'T?o vï¿½ qu?n l? ho?t ï¿½?ng',
+      'ï¿½i?m danh, theo d?i ï¿½ï¿½ng k?'
     ] },
-    { key: 'LOP_TRUONG', name: 'L?P TRÝ?NG', icon: getRoleIcon('LOP_TRUONG'), color: '#f5f3ff', items: [
-      'Theo d?i ho?t ð?ng l?p',
-      'H? tr? ði?m danh'
+    { key: 'LOP_TRUONG', name: 'L?P TRï¿½?NG', icon: getRoleIcon('LOP_TRUONG'), color: '#f5f3ff', items: [
+      'Theo d?i ho?t ï¿½?ng l?p',
+      'H? tr? ï¿½i?m danh'
     ] },
-    { key: 'SINH_VIEN', name: 'SINH VIÊN', icon: getRoleIcon('SINH_VIEN'), color: '#f0fdf4', items: [
-      'Ðãng k? tham gia ho?t ð?ng',
-      'Xem ði?m rèn luy?n'
+    { key: 'SINH_VIEN', name: 'SINH VIï¿½N', icon: getRoleIcon('SINH_VIEN'), color: '#f0fdf4', items: [
+      'ï¿½ï¿½ng k? tham gia ho?t ï¿½?ng',
+      'Xem ï¿½i?m rï¿½n luy?n'
     ] }
   ];
 
   if (authError) {
     return (
-      <div style={{ padding: 24 }}>B?n không có quy?n truy c?p ho?c phiên ð? h?t h?n.</div>
+      <div style={{ padding: 24 }}>B?n khï¿½ng cï¿½ quy?n truy c?p ho?c phiï¿½n ï¿½? h?t h?n.</div>
     );
   }
 
@@ -313,7 +313,7 @@ export default function AdminRoles() {
       const total = resp?.data?.data?.pagination?.total;
       setUserTotal(typeof total === 'number' ? total : list.length);
     } catch (e) {
-      console.error('L?i t?i ngý?i dùng', e.response?.data || e.message);
+      console.error('L?i t?i ngï¿½?i dï¿½ng', e.response?.data || e.message);
       setUsers([]);
       setUserTotal(0);
     } finally {
@@ -327,11 +327,11 @@ export default function AdminRoles() {
         <h2 style={{ margin: 0 }}>Vai tr? & Quy?n</h2>
   <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative' }}>
-            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="T?m theo tên/email" style={{ ...inputStyle, paddingLeft: 32, width: 260 }} />
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="T?m theo tï¿½n/email" style={{ ...inputStyle, paddingLeft: 32, width: 260 }} />
             <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
           </div>
           <button onClick={applySearch} style={buttonStyle}>T?m</button>
-          {/* Nút test slug chu?n ð? ðý?c yêu c?u g? b? */}
+          {/* Nï¿½t test slug chu?n ï¿½? ï¿½ï¿½?c yï¿½u c?u g? b? */}
           <button onClick={openCreateRole} style={{ ...buttonStyle, background: '#eef2ff', borderColor: '#c7d2fe', color: '#4338ca' }}>
             <Plus size={16} /> T?o vai tr?
           </button>
@@ -348,8 +348,8 @@ export default function AdminRoles() {
                 {getRoleIcon(r.ten_vt)} <span>{r.ten_vt}</span>
                 <span style={{ color: '#6b7280' }}> ({roleCounts[r.id] ?? 0})</span>
               </button>
-              {/* Nút xóa vai tr? */}
-              <button onClick={() => deleteRole(r.id)} title="Xóa vai tr? (kèm xóa m?i ngý?i dùng thu?c vai tr?)" style={{ ...buttonStyle, background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
+              {/* Nï¿½t xï¿½a vai tr? */}
+              <button onClick={() => deleteRole(r.id)} title="Xï¿½a vai tr? (kï¿½m xï¿½a m?i ngï¿½?i dï¿½ng thu?c vai tr?)" style={{ ...buttonStyle, background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}>
                 <Trash2 size={16} />
               </button>
             </div>
@@ -374,7 +374,7 @@ export default function AdminRoles() {
               setRoleFilter(cur);
               fetchRoleCounts(rs);
             } catch (e) {
-              console.error('Khôi ph?c quy?n c? th?t b?i', e.response?.data || e.message);
+              console.error('Khï¿½i ph?c quy?n c? th?t b?i', e.response?.data || e.message);
             }
           } : null}
           onSaved={async (updated) => {
@@ -414,16 +414,16 @@ export default function AdminRoles() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 0.6fr', padding: '8px 10px', background: '#f9fafb', color: '#6b7280', fontWeight: 600, borderRadius: 8 }}>
-        <div>Thông tin</div>
+        <div>Thï¿½ng tin</div>
         <div>Email</div>
-        {isStudent ? (<><div>L?p</div><div>Khoa</div></>) : isAdmin ? (<><div>Quy?n</div><div>HÐ t?o</div></>) : (<><div>L?p CN</div><div>HÐ t?o</div></>)}
-        <div>Tr?ng thái</div>
+        {isStudent ? (<><div>L?p</div><div>Khoa</div></>) : isAdmin ? (<><div>Quy?n</div><div>Hï¿½ t?o</div></>) : (<><div>L?p CN</div><div>Hï¿½ t?o</div></>)}
+        <div>Tr?ng thï¿½i</div>
       </div>
 
       {usersLoading ? (
-        <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Ðang t?i ngý?i dùng...</div>
+        <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>ï¿½ang t?i ngï¿½?i dï¿½ng...</div>
       ) : users.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>Không có ngý?i dùng</div>
+        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>Khï¿½ng cï¿½ ngï¿½?i dï¿½ng</div>
       ) : (
         users.map((u) => {
           const avatar = u?.sinh_vien ? getStudentAvatar(u.sinh_vien) : getUserAvatar(u);
@@ -471,7 +471,7 @@ export default function AdminRoles() {
               )}
               <div>
                 <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 9999, background: u.trang_thai === 'hoat_dong' ? '#dcfce7' : '#fee2e2', color: u.trang_thai === 'hoat_dong' ? '#166534' : '#991b1b' }}>
-                  {u.trang_thai === 'hoat_dong' ? 'Ho?t ð?ng' : 'Khóa'}
+                  {u.trang_thai === 'hoat_dong' ? 'Ho?t ï¿½?ng' : 'Khï¿½a'}
                 </span>
               </div>
             </div>
@@ -481,10 +481,10 @@ export default function AdminRoles() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
         <div style={{ color: '#6b7280', fontSize: 13 }}>
-          Ðang hi?n th? {users.length ? (userPage - 1) * userLimit + 1 : 0} - {Math.min(userPage * userLimit, userTotal)} / {userTotal}
+          ï¿½ang hi?n th? {users.length ? (userPage - 1) * userLimit + 1 : 0} - {Math.min(userPage * userLimit, userTotal)} / {userTotal}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ ...buttonStyle, opacity: userPage <= 1 ? 0.6 : 1 }}>Trý?c</button>
+          <button disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ ...buttonStyle, opacity: userPage <= 1 ? 0.6 : 1 }}>Trï¿½?c</button>
           <div style={{ alignSelf: 'center', color: '#6b7280', fontSize: 13 }}>Trang {userPage} / {Math.max(1, Math.ceil(userTotal / userLimit))}</div>
           <button disabled={userPage >= Math.ceil(userTotal / userLimit)} onClick={() => setUserPage(p => Math.min(Math.ceil(userTotal / userLimit), p + 1))} style={{ ...buttonStyle, opacity: userPage >= Math.ceil(userTotal / userLimit) ? 0.6 : 1 }}>Ti?p</button>
         </div>
@@ -497,7 +497,7 @@ export default function AdminRoles() {
               <h3 style={{ margin: 0 }}>{isCreate ? 'T?o vai tr? m?i' : 'Ch?nh s?a vai tr?'}</h3>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={saveRole} style={{ ...buttonStyle, background: '#10b981', color: 'white', borderColor: '#10b981' }}>
-                  <Save size={16} /> Lýu
+                  <Save size={16} /> Lï¿½u
                 </button>
                 <button onClick={() => { setShowRoleModal(false); setEditingRole(null); }} style={{ ...buttonStyle }}>
                   <X size={16} />
@@ -506,12 +506,12 @@ export default function AdminRoles() {
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tên vai tr?</label>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tï¿½n vai tr?</label>
                 <input value={editingRole.ten_vt || ''} onChange={(e) => setEditingRole({ ...editingRole, ten_vt: e.target.value })} style={inputStyle} placeholder="VD: ADMIN, GIANG_VIEN" />
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mô t?</label>
-                <textarea value={editingRole.mo_ta || ''} onChange={(e) => setEditingRole({ ...editingRole, mo_ta: e.target.value })} style={{ ...inputStyle, minHeight: 80 }} placeholder="Mô t? vai tr?" />
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mï¿½ t?</label>
+                <textarea value={editingRole.mo_ta || ''} onChange={(e) => setEditingRole({ ...editingRole, mo_ta: e.target.value })} style={{ ...inputStyle, minHeight: 80 }} placeholder="Mï¿½ t? vai tr?" />
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Quy?n h?n</label>
@@ -662,11 +662,11 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
     <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fafafa', display: 'grid', gap: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tên vai tr?</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tï¿½n vai tr?</label>
           <input style={inputStyle} value={name} onChange={(e) => { setName(e.target.value); setSetDirty(true); }} />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mô t?</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Mï¿½ t?</label>
           <input style={inputStyle} value={desc} onChange={(e) => { setDesc(e.target.value); setSetDirty(true); }} />
         </div>
       </div>
@@ -693,10 +693,10 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         {useCanonical && typeof onRestoreOriginal === 'function' ? (
-          <button onClick={onRestoreOriginal} style={{ ...buttonStyle, background: '#fff7ed', borderColor: '#fdba74', color: '#b45309' }}>Khôi ph?c quy?n g?c</button>
+          <button onClick={onRestoreOriginal} style={{ ...buttonStyle, background: '#fff7ed', borderColor: '#fdba74', color: '#b45309' }}>Khï¿½i ph?c quy?n g?c</button>
         ) : null}
-        <button disabled={!setDirty} onClick={reset} style={{ ...buttonStyle, opacity: setDirty ? 1 : 0.6 }}>Hoàn tác</button>
-        <button disabled={!setDirty} onClick={save} style={{ ...buttonStyle, background: setDirty ? '#10b981' : '#d1d5db', color: 'white', borderColor: setDirty ? '#10b981' : '#d1d5db', cursor: setDirty ? 'pointer' : 'not-allowed' }}>Lýu</button>
+        <button disabled={!setDirty} onClick={reset} style={{ ...buttonStyle, opacity: setDirty ? 1 : 0.6 }}>Hoï¿½n tï¿½c</button>
+        <button disabled={!setDirty} onClick={save} style={{ ...buttonStyle, background: setDirty ? '#10b981' : '#d1d5db', color: 'white', borderColor: setDirty ? '#10b981' : '#d1d5db', cursor: setDirty ? 'pointer' : 'not-allowed' }}>Lï¿½u</button>
       </div>
     </div>
   );

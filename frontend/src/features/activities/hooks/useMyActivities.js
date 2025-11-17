@@ -23,26 +23,14 @@ export function useMyActivities(initialSemester) {
   const [activityTypes, setActivityTypes] = useState([]);
 
   /**
-   * Parses a semester string (e.g., 'hoc_ky_1-2023') into legacy format.
-   */
-  const parseSemesterToLegacy = useCallback((value) => {
-    const match = String(value || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!match) return { hoc_ky: '', nam_hoc: '' };
-    const [, hoc_ky, yearStr] = match;
-    const year = parseInt(yearStr, 10);
-    const nam_hoc = hoc_ky === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-    return { hoc_ky, nam_hoc };
-  }, []);
-
-  /**
    * Fetches the user's registered activities from the API.
    */
   const loadMyActivities = useCallback(async () => {
     setLoading(true);
     setError('');
 
-    const legacySemester = parseSemesterToLegacy(semester);
-    const params = semester ? { semester, ...legacySemester } : {};
+    // Pass semester directly without conversion
+    const params = semester ? { semester } : {};
 
     const result = await activitiesApi.getMyActivities(params);
 
@@ -53,7 +41,7 @@ export function useMyActivities(initialSemester) {
     }
 
     setLoading(false);
-  }, [semester, parseSemesterToLegacy]);
+  }, [semester]); // Removed parseSemesterToLegacy from dependencies
 
   /**
    * Fetches the list of available activity types for filtering.

@@ -6,33 +6,53 @@ const teachersRepo = require('./teachers.repo');
 const activitiesService = require('../activities/activities.service');
 const registrationsService = require('../registrations/registrations.service');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
+const { buildScope } = require('../../app/scopes/scopeBuilder');
 
 const teachersService = {
   /**
    * Get teacher dashboard data (V1 compatible)
    * @param {Object} user - User object with id and role
-   * @param {Object} semesterFilter - Optional filter { hoc_ky, nam_hoc }
+   * @param {string} semester - Optional semester string (e.g., 'hoc_ky_1-2025')
    */
-  async getDashboard(user, semesterFilter = {}) {
+  async getDashboard(user, semester = null, classId = null) {
     if (user.role !== 'GIANG_VIEN') {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
-    const [stats, classes, pendingActivities, recentNotifications] = await Promise.all([
-      teachersRepo.getDashboardStats(user.id, semesterFilter),
-      teachersRepo.getTeacherClasses(user.id),
-      teachersRepo.getPendingActivitiesList(user.id, semesterFilter, 5),
-      teachersRepo.getRecentNotifications(user.id, 5)
+    // Use user.sub (from JWT) or user.id (from middleware)
+    const userId = user.sub || user.id;
+
+    const [stats, classes, pendingActivities, pendingRegistrations, students] = await Promise.all([
+      teachersRepo.getDashboardStats(userId, semester, classId),
+      teachersRepo.getTeacherClasses(userId),
+      teachersRepo.getPendingActivitiesList(userId, semester, 5, classId),
+      registrationsService.list(user, { status: 'PENDING' }, { page: 1, limit: 5 }),
+      teachersRepo.getTeacherStudents(userId, { classId, semester })
     ]);
 
     return {
       summary: stats,
       pendingActivities,
-      recentNotifications,
+      pendingRegistrations: pendingRegistrations.data || [],
       classes: classes.map(c => ({
         id: c.id,
         ten_lop: c.ten_lop
-      }))
+      })),
+      students: students.map(s => {
+        const totalPoints = s.dang_ky_hd?.reduce((sum, dk) => {
+          const points = parseFloat(dk.hoat_dong?.diem_rl || 0);
+          return sum + points;
+        }, 0) || 0;
+        
+        return {
+          id: s.nguoi_dung?.id,
+          ho_ten: s.nguoi_dung?.ho_ten,
+          avatar: s.nguoi_dung?.anh_dai_dien,
+          mssv: s.mssv,
+          lop: s.lop?.ten_lop,
+          diem_rl: totalPoints
+        };
+      })
     };
   },
 
@@ -44,15 +64,8 @@ const teachersService = {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
-    return await teachersRepo.getTeacherClasses(user.id, {
-      students: {
-        select: {
-          id: true,
-          mssv: true,
-          fullName: true
-        }
-      }
-    });
+    // Include shape must match Prisma schema. Use counts only to avoid invalid relation names.
+    return await teachersRepo.getTeacherClasses(user.id);
   },
 
   /**
@@ -79,9 +92,13 @@ const teachersService = {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
+    // Build scope for teacher (only activities from their classes)
+    const scope = await buildScope('activities', user);
+
     // Use activities service list(filters, user)
     return await activitiesService.list({
       trangThai: 'cho_duyet',
+      scope: { activityFilter: scope },
       page: pagination.page,
       limit: pagination.limit
     }, user);
@@ -95,9 +112,28 @@ const teachersService = {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
+    // Build scope for teacher (only activities from their classes)
+    const scope = await buildScope('activities', user);
+    
+    // Get all activities for teacher (pending + approved + rejected)
+    // Then filter client-side or let activitiesService handle it
+    const listFilters = {};
+    
+    // If specifically filtering one status
+    if (filters && typeof filters.status === 'string' && ['cho_duyet', 'da_duyet', 'tu_choi'].includes(filters.status)) {
+      listFilters.trangThai = filters.status;
+    }
+    // Otherwise, get all (no filter on trangThai)
+    
+    if (filters && typeof filters.semester === 'string' && filters.semester) {
+      listFilters.semester = filters.semester; // e.g., hoc_ky_1-2025
+    }
+
+    // Apply scope filter
+    listFilters.scope = { activityFilter: scope };
+
     return await activitiesService.list({
-      trangThai: { in: ['da_duyet', 'tu_choi'] },
-      ...filters,
+      ...listFilters,
       page: pagination.page,
       limit: pagination.limit
     }, user);
@@ -134,16 +170,88 @@ const teachersService = {
   },
 
   /**
-   * Get pending registrations
+   * Get all registrations for teacher's classes
    */
-  async getPendingRegistrations(user, pagination = {}) {
+  async getAllRegistrations(user, filters = {}) {
     if (user.role !== 'GIANG_VIEN') {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
+    const { status, semester, classId } = filters;
+    
+    // Use user.sub (from JWT) or user.id (from middleware)
+    const userId = user.sub || user.id;
+    
+    console.log('[getAllRegistrations] user:', userId, 'filters:', filters);
+    
+    // Get teacher's classes
+    let classes = await teachersRepo.getTeacherClasses(userId);
+    console.log('[getAllRegistrations] Found classes:', classes.length);
+    
+    // Filter by specific class if provided
+    if (classId) {
+      classes = classes.filter(c => String(c.id) === String(classId));
+      console.log('[getAllRegistrations] Filtered to class:', classId, 'found:', classes.length);
+    }
+    
+    if (!classes || classes.length === 0) {
+      console.log('[getAllRegistrations] No classes found for teacher');
+      return [];
+    }
+    
+    const classIds = classes.map(c => c.id);
+    console.log('[getAllRegistrations] Class IDs:', classIds);
+    
+    // Get all registrations from students in teacher's classes
+    const registrations = await teachersRepo.getClassRegistrations(classIds, {
+      status,
+      semester
+    });
+    
+    console.log('[getAllRegistrations] Found registrations:', registrations.length);
+    
+    return registrations;
+  },
+
+  /**
+   * Get pending registrations
+   */
+  async getPendingRegistrations(user, options = {}) {
+    if (user.role !== 'GIANG_VIEN') {
+      throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
+    }
+
+    const { page, limit, classId, semester, status } = options;
+    
+    // If classId or semester provided, use getAllRegistrations with filters
+    if (classId || semester) {
+      const registrations = await this.getAllRegistrations(user, {
+        status: status || 'cho_duyet',
+        semester,
+        classId
+      });
+      
+      // Apply pagination
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+      const startIdx = (pageNum - 1) * limitNum;
+      const endIdx = startIdx + limitNum;
+      
+      return {
+        items: registrations.slice(startIdx, endIdx),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: registrations.length,
+          totalPages: Math.ceil(registrations.length / limitNum)
+        }
+      };
+    }
+    
+    // Use registrations service for default behavior
     return await registrationsService.list(user, {
       status: 'PENDING'
-    }, pagination);
+    }, { page, limit });
   },
 
   /**

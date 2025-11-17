@@ -17,7 +17,7 @@ import { useAppStore } from '../shared/store/useAppStore';
 import sessionStorageManager from '../shared/api/sessionStorageManager';
 
 // Layouts
-import AdminStudentLayout from '../components/AdminStudentLayout';
+import AdminStudentLayout from '../widgets/layout/ui/AdminStudentLayout';
 import StudentLayout from '../widgets/layout/ui/StudentLayout';
 import ModernTeacherLayout from '../widgets/layout/ui/TeacherLayout';
 import MonitorLayout from '../widgets/layout/ui/MonitorLayout';

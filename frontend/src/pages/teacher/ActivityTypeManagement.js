@@ -1,15 +1,15 @@
-import React from 'react';
+﻿import React from 'react';
 import { Plus, Edit2, Trash2, Search, Tag, FileText, Award, Image as ImageIcon, X, Check, Upload, Filter, Grid3x3, List, TrendingUp } from 'lucide-react';
 import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 
-// Danh sách ảnh mặc định
+// Danh sĂ¡ch áº£nh máº·c Ä‘á»‹nh
 const DEFAULT_IMAGES = [
-  { id: 'academic', path: '/images/activity-academic.svg', label: 'Học thuật', color: 'from-blue-500 to-indigo-600' },
-  { id: 'sports', path: '/images/activity-sports.svg', label: 'Thể thao', color: 'from-green-500 to-emerald-600' },
-  { id: 'cultural', path: '/images/activity-cultural.svg', label: 'Văn hóa', color: 'from-purple-500 to-pink-600' },
-  { id: 'volunteer', path: '/images/activity-volunteer.svg', label: 'Tình nguyện', color: 'from-orange-500 to-red-600' },
-  { id: 'default', path: '/images/default-activity.svg', label: 'Mặc định', color: 'from-gray-500 to-slate-600' }
+  { id: 'academic', path: '/images/activity-academic.svg', label: 'Há»c thuáº­t', color: 'from-blue-500 to-indigo-600' },
+  { id: 'sports', path: '/images/activity-sports.svg', label: 'Thá»ƒ thao', color: 'from-green-500 to-emerald-600' },
+  { id: 'cultural', path: '/images/activity-cultural.svg', label: 'VÄƒn hĂ³a', color: 'from-purple-500 to-pink-600' },
+  { id: 'volunteer', path: '/images/activity-volunteer.svg', label: 'TĂ¬nh nguyá»‡n', color: 'from-orange-500 to-red-600' },
+  { id: 'default', path: '/images/default-activity.svg', label: 'Máº·c Ä‘á»‹nh', color: 'from-gray-500 to-slate-600' }
 ];
 
 export default function ActivityTypeManagement() {
@@ -76,13 +76,13 @@ export default function ActivityTypeManagement() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      showError('Vui lòng chọn file ảnh (JPG, PNG, GIF, SVG)');
+      showError('Vui lĂ²ng chá»n file áº£nh (JPG, PNG, GIF, SVG)');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showError('Kích thước ảnh không được vượt quá 5MB');
+      showError('KĂ­ch thÆ°á»›c áº£nh khĂ´ng Ä‘Æ°á»£c vÆ°á»£t quĂ¡ 5MB');
       return;
     }
 
@@ -102,7 +102,7 @@ export default function ActivityTypeManagement() {
     e.preventDefault();
     
     if (!form.ten_loai_hd.trim()) {
-      showError('Vui lòng nhập tên loại hoạt động');
+      showError('Vui lĂ²ng nháº­p tĂªn loáº¡i hoáº¡t Ä‘á»™ng');
       return;
     }
 
@@ -137,10 +137,10 @@ export default function ActivityTypeManagement() {
       
       if (form.id) {
         await http.put(`/teacher/activity-types/${form.id}`, dataToSend);
-        showSuccess('Cập nhật loại hoạt động thành công!');
+        showSuccess('Cáº­p nháº­t loáº¡i hoáº¡t Ä‘á»™ng thĂ nh cĂ´ng!');
       } else {
         await http.post('/teacher/activity-types', dataToSend);
-        showSuccess('Tạo loại hoạt động thành công!');
+        showSuccess('Táº¡o loáº¡i hoáº¡t Ä‘á»™ng thĂ nh cĂ´ng!');
       }
       
       // Reset form and close modal first
@@ -150,7 +150,7 @@ export default function ActivityTypeManagement() {
       await load();
       
     } catch (err) {
-      showError(err.response?.data?.message || err.message || 'Không thể thực hiện thao tác');
+      showError(err.response?.data?.message || err.message || 'KhĂ´ng thá»ƒ thá»±c hiá»‡n thao tĂ¡c');
     } finally {
       setLoading(false);
     }
@@ -158,10 +158,10 @@ export default function ActivityTypeManagement() {
 
   async function remove(id){
     const confirmed = await confirm({
-      title: 'Xác nhận xóa',
-      message: 'Bạn có chắc muốn xóa loại hoạt động này? Hành động này không thể hoàn tác.',
-      confirmText: 'Xóa',
-      cancelText: 'Hủy'
+      title: 'XĂ¡c nháº­n xĂ³a',
+      message: 'Báº¡n cĂ³ cháº¯c muá»‘n xĂ³a loáº¡i hoáº¡t Ä‘á»™ng nĂ y? HĂ nh Ä‘á»™ng nĂ y khĂ´ng thá»ƒ hoĂ n tĂ¡c.',
+      confirmText: 'XĂ³a',
+      cancelText: 'Há»§y'
     });
     
     if (!confirmed) return;
@@ -169,10 +169,10 @@ export default function ActivityTypeManagement() {
     setLoading(true);
     try {
       await http.delete(`/teacher/activity-types/${id}`);
-      showSuccess('Xóa loại hoạt động thành công!');
+      showSuccess('XĂ³a loáº¡i hoáº¡t Ä‘á»™ng thĂ nh cĂ´ng!');
       load();
     } catch (err) {
-      showError(err.response?.data?.message || err.message || 'Không thể xóa loại hoạt động');
+      showError(err.response?.data?.message || err.message || 'KhĂ´ng thá»ƒ xĂ³a loáº¡i hoáº¡t Ä‘á»™ng');
     } finally {
       setLoading(false);
     }
@@ -253,7 +253,7 @@ export default function ActivityTypeManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6">
       <div className="space-y-6">
-        {/* Modern Header với gradient */}
+        {/* Modern Header vá»›i gradient */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 shadow-2xl">
           <div className="absolute inset-0 bg-grid-white/10"></div>
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
@@ -267,10 +267,10 @@ export default function ActivityTypeManagement() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-black text-white drop-shadow-lg mb-1">
-                    Quản lý Loại Hoạt Động
+                    Quáº£n lĂ½ Loáº¡i Hoáº¡t Äá»™ng
                   </h1>
                   <p className="text-blue-100 text-lg">
-                    Tạo và quản lý danh mục hoạt động rèn luyện
+                    Táº¡o vĂ  quáº£n lĂ½ danh má»¥c hoáº¡t Ä‘á»™ng rĂ¨n luyá»‡n
                   </p>
                 </div>
               </div>
@@ -280,13 +280,13 @@ export default function ActivityTypeManagement() {
                 className="group flex items-center gap-3 px-8 py-4 bg-white text-indigo-600 rounded-2xl hover:bg-blue-50 transition-all duration-300 shadow-2xl hover:shadow-blue-500/50 hover:scale-105 font-bold text-lg disabled:opacity-50"
               >
                 <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
-                Thêm mới
+                ThĂªm má»›i
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards với animation */}
+        {/* Stats Cards vá»›i animation */}
         <div className="grid grid-cols-1 gap-6">
           <div className="group bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
             <div className="flex items-center justify-between mb-4">
@@ -296,7 +296,7 @@ export default function ActivityTypeManagement() {
               <TrendingUp className="h-5 w-5 text-indigo-400" />
             </div>
             <div className="text-4xl font-black text-gray-900 mb-1">{stats.total}</div>
-            <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">Tổng loại hoạt động</div>
+            <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">Tá»•ng loáº¡i hoáº¡t Ä‘á»™ng</div>
           </div>
         </div>
 
@@ -307,7 +307,7 @@ export default function ActivityTypeManagement() {
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input 
-                placeholder="Tìm kiếm theo tên loại hoạt động..." 
+                placeholder="TĂ¬m kiáº¿m theo tĂªn loáº¡i hoáº¡t Ä‘á»™ng..." 
                 value={search} 
                 onChange={e=>setSearch(e.target.value)} 
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-gray-50 focus:bg-white font-medium"
@@ -322,9 +322,9 @@ export default function ActivityTypeManagement() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="pl-10 pr-8 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-gray-50 hover:bg-white font-medium cursor-pointer appearance-none"
               >
-                <option value="newest">Mới nhất</option>
-                <option value="oldest">Cũ nhất</option>
-                <option value="name">Tên A-Z</option>
+                <option value="newest">Má»›i nháº¥t</option>
+                <option value="oldest">CÅ© nháº¥t</option>
+                <option value="name">TĂªn A-Z</option>
               </select>
             </div>
 
@@ -333,14 +333,14 @@ export default function ActivityTypeManagement() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-3 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-md text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
-                title="Xem dạng lưới"
+                title="Xem dáº¡ng lÆ°á»›i"
               >
                 <Grid3x3 className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-3 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-md text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
-                title="Xem dạng danh sách"
+                title="Xem dáº¡ng danh sĂ¡ch"
               >
                 <List className="h-5 w-5" />
               </button>
@@ -350,7 +350,7 @@ export default function ActivityTypeManagement() {
           {/* Results count */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              Hiển thị <span className="font-bold text-indigo-600">{sorted.length}</span> trong tổng số <span className="font-bold text-indigo-600">{stats.total}</span> loại hoạt động
+              Hiá»ƒn thá»‹ <span className="font-bold text-indigo-600">{sorted.length}</span> trong tá»•ng sá»‘ <span className="font-bold text-indigo-600">{stats.total}</span> loáº¡i hoáº¡t Ä‘á»™ng
             </p>
           </div>
         </div>
@@ -387,7 +387,7 @@ export default function ActivityTypeManagement() {
                   {/* Description */}
                   <div className="mb-4">
                     <p className="text-sm text-gray-600 line-clamp-2 min-h-[2.5rem]">
-                      {item.mo_ta || 'Phẩm chất công dân'}
+                      {item.mo_ta || 'Pháº©m cháº¥t cĂ´ng dĂ¢n'}
                     </p>
                   </div>
 
@@ -396,7 +396,7 @@ export default function ActivityTypeManagement() {
                     <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
                       <div className="flex items-center gap-2 mb-1">
                         <Award className="h-4 w-4 text-indigo-600" />
-                        <span className="text-xs text-gray-600 font-medium">Mặc định</span>
+                        <span className="text-xs text-gray-600 font-medium">Máº·c Ä‘á»‹nh</span>
                       </div>
                       <p className="text-2xl font-black text-indigo-600">
                         {item.diem_mac_dinh || 0}
@@ -406,7 +406,7 @@ export default function ActivityTypeManagement() {
                     <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                       <div className="flex items-center gap-2 mb-1">
                         <Award className="h-4 w-4 text-emerald-600" />
-                        <span className="text-xs text-gray-600 font-medium">Tối đa</span>
+                        <span className="text-xs text-gray-600 font-medium">Tá»‘i Ä‘a</span>
                       </div>
                       <p className="text-2xl font-black text-emerald-600">
                         {item.diem_toi_da || 10}
@@ -421,14 +421,14 @@ export default function ActivityTypeManagement() {
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all shadow-md hover:shadow-lg font-semibold"
                     >
                       <Edit2 className="h-4 w-4" />
-                      Sửa
+                      Sá»­a
                     </button>
                     <button
                       onClick={() => remove(item.id)}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-all shadow-md hover:shadow-lg font-semibold"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Xóa
+                      XĂ³a
                     </button>
                   </div>
                 </div>
@@ -462,20 +462,20 @@ export default function ActivityTypeManagement() {
 
                       {/* Description */}
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {item.mo_ta || 'Phẩm chất công dân'}
+                        {item.mo_ta || 'Pháº©m cháº¥t cĂ´ng dĂ¢n'}
                       </p>
 
                       {/* Stats - Inline */}
                       <div className="flex gap-4 mb-4">
                         <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg border border-indigo-100">
                           <Award className="h-4 w-4 text-indigo-600" />
-                          <span className="text-sm text-gray-600 font-medium">Mặc định:</span>
+                          <span className="text-sm text-gray-600 font-medium">Máº·c Ä‘á»‹nh:</span>
                           <span className="text-lg font-bold text-indigo-600">{item.diem_mac_dinh || 0}</span>
                         </div>
 
                         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
                           <Award className="h-4 w-4 text-emerald-600" />
-                          <span className="text-sm text-gray-600 font-medium">Tối đa:</span>
+                          <span className="text-sm text-gray-600 font-medium">Tá»‘i Ä‘a:</span>
                           <span className="text-lg font-bold text-emerald-600">{item.diem_toi_da || 10}</span>
                         </div>
                       </div>
@@ -488,14 +488,14 @@ export default function ActivityTypeManagement() {
                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all shadow-md hover:shadow-lg font-semibold"
                       >
                         <Edit2 className="h-4 w-4" />
-                        Sửa
+                        Sá»­a
                       </button>
                       <button
                         onClick={() => remove(item.id)}
                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-all shadow-md hover:shadow-lg font-semibold"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Xóa
+                        XĂ³a
                       </button>
                     </div>
                   </div>
@@ -517,12 +517,12 @@ export default function ActivityTypeManagement() {
                 </div>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                {search ? 'Không tìm thấy kết quả' : 'Chưa có loại hoạt động nào'}
+                {search ? 'KhĂ´ng tĂ¬m tháº¥y káº¿t quáº£' : 'ChÆ°a cĂ³ loáº¡i hoáº¡t Ä‘á»™ng nĂ o'}
               </h3>
               <p className="text-gray-600 text-lg mb-8">
                 {search 
-                  ? `Không tìm thấy loại hoạt động nào khớp với "${search}"`
-                  : 'Hãy tạo loại hoạt động đầu tiên để bắt đầu phân loại các hoạt động rèn luyện'}
+                  ? `KhĂ´ng tĂ¬m tháº¥y loáº¡i hoáº¡t Ä‘á»™ng nĂ o khá»›p vá»›i "${search}"`
+                  : 'HĂ£y táº¡o loáº¡i hoáº¡t Ä‘á»™ng Ä‘áº§u tiĂªn Ä‘á»ƒ báº¯t Ä‘áº§u phĂ¢n loáº¡i cĂ¡c hoáº¡t Ä‘á»™ng rĂ¨n luyá»‡n'}
               </p>
               {!search && (
                 <button
@@ -530,7 +530,7 @@ export default function ActivityTypeManagement() {
                   className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-2xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-xl hover:shadow-2xl hover:scale-105 font-bold text-lg"
                 >
                   <Plus className="h-6 w-6" />
-                  Tạo loại hoạt động mới
+                  Táº¡o loáº¡i hoáº¡t Ä‘á»™ng má»›i
                 </button>
               )}
             </div>
@@ -545,7 +545,7 @@ export default function ActivityTypeManagement() {
               <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-3xl">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold">
-                    {form.id ? 'Chỉnh sửa loại hoạt động' : 'Tạo loại hoạt động mới'}
+                    {form.id ? 'Chá»‰nh sá»­a loáº¡i hoáº¡t Ä‘á»™ng' : 'Táº¡o loáº¡i hoáº¡t Ä‘á»™ng má»›i'}
                   </h2>
                   <button
                     onClick={resetForm}
@@ -558,44 +558,44 @@ export default function ActivityTypeManagement() {
 
               {/* Modal Body */}
               <form onSubmit={submit} className="p-6 space-y-6">
-                {/* Tên loại hoạt động */}
+                {/* TĂªn loáº¡i hoáº¡t Ä‘á»™ng */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                     <Tag className="h-4 w-4 text-indigo-600" />
-                    Tên loại hoạt động
+                    TĂªn loáº¡i hoáº¡t Ä‘á»™ng
                     <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.ten_loai_hd}
                     onChange={e => setForm({...form, ten_loai_hd: e.target.value})}
-                    placeholder="Ví dụ: Đoàn - Hội, Thể thao, Văn nghệ..."
+                    placeholder="VĂ­ dá»¥: ÄoĂ n - Há»™i, Thá»ƒ thao, VÄƒn nghá»‡..."
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     required
                   />
                 </div>
 
-                {/* Mô tả */}
+                {/* MĂ´ táº£ */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                     <FileText className="h-4 w-4 text-indigo-600" />
-                    Mô tả
+                    MĂ´ táº£
                   </label>
                   <textarea
                     value={form.mo_ta}
                     onChange={e => setForm({...form, mo_ta: e.target.value})}
-                    placeholder="Mô tả chi tiết về loại hoạt động này..."
+                    placeholder="MĂ´ táº£ chi tiáº¿t vá» loáº¡i hoáº¡t Ä‘á»™ng nĂ y..."
                     rows={4}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
                   />
                 </div>
 
-                {/* Điểm */}
+                {/* Äiá»ƒm */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                       <Award className="h-4 w-4 text-indigo-600" />
-                      Điểm mặc định
+                      Äiá»ƒm máº·c Ä‘á»‹nh
                     </label>
                     <input
                       type="number"
@@ -610,7 +610,7 @@ export default function ActivityTypeManagement() {
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                       <Award className="h-4 w-4 text-emerald-600" />
-                      Điểm tối đa
+                      Äiá»ƒm tá»‘i Ä‘a
                     </label>
                     <input
                       type="number"
@@ -623,11 +623,11 @@ export default function ActivityTypeManagement() {
                   </div>
                 </div>
 
-                {/* Hình ảnh */}
+                {/* HĂ¬nh áº£nh */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
                     <ImageIcon className="h-4 w-4 text-indigo-600" />
-                    Hình ảnh đại diện
+                    HĂ¬nh áº£nh Ä‘áº¡i diá»‡n
                     <span className="text-rose-500">*</span>
                   </label>
                   
@@ -642,7 +642,7 @@ export default function ActivityTypeManagement() {
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Ảnh mặc định
+                      áº¢nh máº·c Ä‘á»‹nh
                     </button>
                     <button
                       type="button"
@@ -653,7 +653,7 @@ export default function ActivityTypeManagement() {
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Tải lên
+                      Táº£i lĂªn
                     </button>
                   </div>
                   
@@ -712,10 +712,10 @@ export default function ActivityTypeManagement() {
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-gray-700">
-                              {loading ? 'Đang tải lên...' : 'Nhấn để chọn ảnh'}
+                              {loading ? 'Äang táº£i lĂªn...' : 'Nháº¥n Ä‘á»ƒ chá»n áº£nh'}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              JPG, PNG, GIF, WebP (tối đa 5MB)
+                              JPG, PNG, GIF, WebP (tá»‘i Ä‘a 5MB)
                             </p>
                           </div>
                         </div>
@@ -747,7 +747,7 @@ export default function ActivityTypeManagement() {
 
                 {/* Preview */}
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border-2 border-indigo-100">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Xem trước:</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Xem trÆ°á»›c:</p>
                   <div className="bg-white rounded-lg overflow-hidden border-2 border-gray-200">
                     <div className="h-40 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
                       <img 
@@ -759,17 +759,17 @@ export default function ActivityTypeManagement() {
                     </div>
                     <div className="p-4">
                       <h4 className="font-bold text-gray-900 mb-1">
-                        {form.ten_loai_hd || 'Tên loại hoạt động'}
+                        {form.ten_loai_hd || 'TĂªn loáº¡i hoáº¡t Ä‘á»™ng'}
                       </h4>
                       <p className="text-sm text-gray-600 mb-3">
-                        {form.mo_ta || 'Mô tả loại hoạt động'}
+                        {form.mo_ta || 'MĂ´ táº£ loáº¡i hoáº¡t Ä‘á»™ng'}
                       </p>
                       <div className="flex gap-2">
                         <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold">
-                          {form.diem_mac_dinh} điểm mặc định
+                          {form.diem_mac_dinh} Ä‘iá»ƒm máº·c Ä‘á»‹nh
                         </span>
                         <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold">
-                          {form.diem_toi_da} điểm tối đa
+                          {form.diem_toi_da} Ä‘iá»ƒm tá»‘i Ä‘a
                         </span>
                       </div>
                     </div>
@@ -783,7 +783,7 @@ export default function ActivityTypeManagement() {
                     onClick={resetForm}
                     className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
                   >
-                    Hủy
+                    Há»§y
                   </button>
                   <button
                     type="submit"
@@ -791,7 +791,7 @@ export default function ActivityTypeManagement() {
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl font-semibold disabled:opacity-50"
                   >
                     <Check className="h-5 w-5" />
-                    {form.id ? 'Cập nhật' : 'Tạo mới'}
+                    {form.id ? 'Cáº­p nháº­t' : 'Táº¡o má»›i'}
                   </button>
                 </div>
               </form>

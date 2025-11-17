@@ -61,7 +61,19 @@ function parseSemesterString(semesterStr) {
   if (!semesterStr || semesterStr === 'current') {
     return getCurrentSemester();
   }
-  
+
+  // Support new simplified format: 'hoc_ky_1' or 'hoc_ky_2' (semester-only)
+  const semesterOnlyMatch = semesterStr.match(/^hoc_ky_(\d+)$/);
+  if (semesterOnlyMatch) {
+    const semesterNum = semesterOnlyMatch[1];
+    return {
+      semester: `hoc_ky_${semesterNum}`,
+      year: null,
+      yearLabel: null
+    };
+  }
+
+  // Legacy / explicit format: 'hoc_ky_1-2025'
   const match = semesterStr.match(/^hoc_ky_(\d+)-(\d{4})$/);
   if (match) {
     const semesterNum = match[1];
@@ -69,10 +81,10 @@ function parseSemesterString(semesterStr) {
     return {
       semester: `hoc_ky_${semesterNum}`,
       year: year,
-      yearLabel: `${year}-${parseInt(year) + 1}` // For HK1, or adjusted for HK2
+      yearLabel: year
     };
   }
-  
+
   return null;
 }
 
@@ -91,41 +103,30 @@ function buildSemesterFilter(semesterStr, useDynamicFilter = false) {
   if (!semesterInfo) {
     return {}; // No filter if invalid
   }
-  
+
+  const { semester, year } = semesterInfo;
+
   if (useDynamicFilter) {
-    // Dynamic filter: Tự xác định từ ngay_bd
-    const { semester, year } = semesterInfo;
-    
-    // Xác định khoảng thời gian cho học kỳ
+    // Dynamic filter: derive time window from year; if year missing, fallback to current year's window
+    const effectiveYear = year ? parseInt(year, 10) : new Date().getFullYear();
     let startDate, endDate;
-    const yearNum = parseInt(year);
-    
     if (semester === 'hoc_ky_1') {
-      // HK1: July 1 - November 30
-      startDate = new Date(yearNum, 6, 1); // Month 6 = July (0-indexed)
-      endDate = new Date(yearNum, 10, 30, 23, 59, 59); // Month 10 = November
+      startDate = new Date(effectiveYear, 6, 1); // July 1
+      endDate = new Date(effectiveYear, 10, 30, 23, 59, 59); // Nov 30
     } else {
-      // HK2: December 1 - April 30 (của năm sau)
-      startDate = new Date(yearNum, 11, 1); // Month 11 = December
-      endDate = new Date(yearNum + 1, 3, 30, 23, 59, 59); // Month 3 = April
+      startDate = new Date(effectiveYear, 11, 1); // Dec 1
+      endDate = new Date(effectiveYear + 1, 3, 30, 23, 59, 59); // Apr 30 of next year
     }
-    
-    return {
-      ngay_bd: {
-        gte: startDate,
-        lte: endDate
-      }
-    };
-  } else {
-    // Strict filter: Dùng trường hoc_ky và nam_hoc trong DB
-    // Tránh trùng lặp giữa các năm (ví dụ: '2025' match cả '2024-2025' và '2025-2026')
-    const yearNum = parseInt(semesterInfo.year, 10);
-    const fullYearLabel = `${yearNum}-${yearNum + 1}`;
-    return {
-      hoc_ky: semesterInfo.semester,
-      nam_hoc: fullYearLabel
-    };
+    return { ngay_bd: { gte: startDate, lte: endDate } };
   }
+
+  // Strict filter:
+  // After normalization nam_hoc is single-year 'YYYY'. If year absent => only filter by hoc_ky.
+  if (!year) {
+    return { hoc_ky: semester };
+  }
+
+  return { hoc_ky: semester, nam_hoc: year };
 }
 
 /**
@@ -145,23 +146,26 @@ function isActivityInSemester(activity, targetSemester, targetYear) {
 }
 
 /**
- * Robust activity relation where for semester filtering.
- * Trả về điều kiện Prisma cho quan hệ hoat_dong, bao gồm:
- *  - Khớp chính xác hoc_ky + nam_hoc với 2 biến thể nhãn năm: 'YYYY-YYYY+1' và 'YYYY - YYYY+1'
- *  - Khớp chứa năm (compat cũ)
- *  - Khớp theo khoảng thời gian ngay_bd (dynamic)
+ * Build activity where clause for semester filtering.
+ * Chỉ dùng single year format (YYYY) - không hỗ trợ double year (YYYY-YYYY).
+ * 
+ * @param {string} semesterStr - Format: 'hoc_ky_1-2025'
+ * @returns {Object} Prisma where clause
  */
 function buildRobustActivitySemesterWhere(semesterStr) {
   const si = parseSemesterString(semesterStr);
   if (!si) return {};
-  const yearNum = parseInt(si.year, 10);
-  const exact1 = `${yearNum}-${yearNum + 1}`;
-  const exact2 = `${yearNum} - ${yearNum + 1}`;
-  const strict1 = { hoc_ky: si.semester, nam_hoc: exact1 };
-  const strict2 = { hoc_ky: si.semester, nam_hoc: exact2 };
-  const containsYear = { hoc_ky: si.semester, nam_hoc: { contains: si.year } };
-  const dynamic = buildSemesterFilter(semesterStr, true); // { ngay_bd: { gte, lte } }
-  return { OR: [ { ...strict1 }, { ...strict2 }, { ...containsYear }, { ...dynamic } ] };
+
+  // If only semester provided (no year) - filter by hoc_ky only
+  if (!si.year) {
+    return { hoc_ky: si.semester };
+  }
+
+  // Single year format only: hoc_ky_1 + '2025'
+  return {
+    hoc_ky: si.semester,
+    nam_hoc: si.year
+  };
 }
 
 module.exports = {

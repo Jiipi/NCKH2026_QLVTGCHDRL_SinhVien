@@ -187,10 +187,23 @@ class AuthController {
 
       const otp = AuthService.generateOtp(email);
 
-      // TODO: Send OTP via email
-      // For now, log it (development only)
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`OTP for ${email}: ${otp}`);
+      // Send OTP via email (uses SMTP_* env or logs in dev if missing)
+      try {
+        const { sendMail } = require('../../core/utils/mailer');
+        const subject = 'Mã xác minh đặt lại mật khẩu';
+        const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6">
+          <p>Xin chào ${user.ho_ten || ''},</p>
+          <p>Bạn vừa yêu cầu đặt lại mật khẩu. Mã xác minh (OTP) của bạn là:</p>
+          <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${otp}</p>
+          <p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
+          <p>Trân trọng.</p>
+        </div>`;
+        const text = `Ma xac minh dat lai mat khau: ${otp} (hieu luc 10 phut)`;
+        await sendMail({ to: email, subject, html, text });
+      } catch (mailErr) {
+        // Do not expose mail error to client for security; log for operators
+        const { logError } = require('../../core/logger');
+        logError('FORGOT_MAIL_SEND_FAILED', mailErr, { email });
       }
 
       return sendResponse(

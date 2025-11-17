@@ -1,7 +1,18 @@
 import React from 'react';
 import { LabeledInput } from '../../../shared/components/forms/LabeledInput';
 
-export const ActivityForm = ({ form, activityTypes, onFormChange, onSubmit, fieldErrors, status, isEditMode }) => {
+export const ActivityForm = ({ 
+  form,
+  activityTypes,
+  onFormChange,
+  onSubmit,
+  fieldErrors,
+  status,
+  isEditMode,
+  semesterOptions = [],
+  currentSemesterValue = '',
+  onSemesterChange,
+}) => {
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-2 gap-4">
       {/* Tên & Loại */}
@@ -18,6 +29,34 @@ export const ActivityForm = ({ form, activityTypes, onFormChange, onSubmit, fiel
         />
       </LabeledInput>
       
+      {/* Năm học & Học kỳ */}
+      <LabeledInput id="nam_hoc" label="Năm học" error={fieldErrors.nam_hoc} className="col-span-2 md:col-span-1">
+        <input
+          id="nam_hoc"
+          name="nam_hoc"
+          value={form.nam_hoc}
+          onChange={onFormChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="VD: 2024-2025"
+          readOnly
+          title="Năm học sẽ tự cập nhật theo học kỳ"
+        />
+      </LabeledInput>
+
+      <LabeledInput id="hoc_ky" label="Học kỳ" error={fieldErrors.hoc_ky} className="col-span-2 md:col-span-1">
+        <select
+          id="hoc_ky"
+          name="hoc_ky"
+          value={currentSemesterValue}
+          onChange={onSemesterChange || onFormChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          {(Array.isArray(semesterOptions) ? semesterOptions : []).map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </LabeledInput>
+
       <LabeledInput id="loai_hd_id" label="Loại hoạt động" error={fieldErrors.loai_hd_id} className="col-span-2 md:col-span-1">
         <select 
           id="loai_hd_id" 
@@ -27,7 +66,7 @@ export const ActivityForm = ({ form, activityTypes, onFormChange, onSubmit, fiel
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Chọn loại hoạt động</option>
-          {activityTypes.map(t => (
+          {(Array.isArray(activityTypes) ? activityTypes : []).map(t => (
             <option key={t.id} value={t.id}>{t.ten_loai_hd || t.name}</option>
           ))}
         </select>

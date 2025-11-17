@@ -23,6 +23,13 @@ const validate = (schema) => {
           field: err.path.join('.'),
           message: err.message,
         }));
+        // Log validation errors for debugging
+        console.error('❌ Validation failed:', {
+          errors,
+          body: req.body,
+          query: req.query,
+          params: req.params,
+        });
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -113,10 +120,9 @@ const createActivitySchema = z.object({
       .nullable(),
     
     loai_hoat_dong_id: z
-      .number()
-      .int()
-      .positive('Loại hoạt động không hợp lệ')
-      .or(z.string().transform((val) => parseInt(val, 10))),
+      .string()
+      .min(1, 'Loại hoạt động không được để trống')
+      .or(z.number().int().positive()),
     
     ngay_bat_dau: dateString,
     
@@ -163,6 +169,15 @@ const createActivitySchema = z.object({
       .or(z.string().transform((val) => parseInt(val, 10)))
       .optional()
       .nullable(),
+    
+    // Semester fields (required)
+    hoc_ky: z
+      .string()
+      .min(1, 'Học kỳ không được để trống'),
+    
+    nam_hoc: z
+      .string()
+      .min(1, 'Năm học không được để trống'),
     
     trang_thai: activityStatusEnum.optional().default('cho_duyet'),
   }).refine(
@@ -218,10 +233,9 @@ const updateActivitySchema = z.object({
       .nullable(),
     
     loai_hoat_dong_id: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().transform((val) => parseInt(val, 10)))
+      .string()
+      .min(1, 'Loại hoạt động không được để trống')
+      .or(z.number().int().positive())
       .optional(),
     
     ngay_bat_dau: dateString.optional(),
@@ -269,6 +283,17 @@ const updateActivitySchema = z.object({
       .or(z.string().transform((val) => parseInt(val, 10)))
       .optional()
       .nullable(),
+    
+    // Semester fields (optional for update)
+    hoc_ky: z
+      .string()
+      .min(1, 'Học kỳ không được để trống')
+      .optional(),
+    
+    nam_hoc: z
+      .string()
+      .min(1, 'Năm học không được để trống')
+      .optional(),
     
     trang_thai: activityStatusEnum.optional(),
   }).refine(

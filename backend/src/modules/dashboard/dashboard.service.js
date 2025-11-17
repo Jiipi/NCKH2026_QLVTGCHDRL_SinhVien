@@ -1,4 +1,5 @@
 const dashboardRepo = require('./dashboard.repo');
+const { parseSemesterString } = require('../../core/utils/semester');
 
 /**
  * Dashboard Service
@@ -18,32 +19,28 @@ class DashboardService {
 
   /**
    * Parse semester filter from query params
-   * Supports both 'semester' (legacy) and 'semesterValue' (new) for backward compatibility
+   * Single year format only: { hoc_ky: 'hoc_ky_1', nam_hoc: '2025' }
    */
   parseSemesterFilter(query) {
     const { semester, semesterValue, hoc_ky, nam_hoc } = query;
-    const semesterFilter = {};
     
     // Support both 'semester' (legacy) and 'semesterValue' (new)
     const semesterParam = semesterValue || semester;
     
     if (semesterParam) {
-      // New format: "hoc_ky_1-2024" or "hoc_ky_2-2024"
-      const match = String(semesterParam).match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-      if (match) {
-        const hocKy = match[1];
-        const year = parseInt(match[2], 10);
-        const namHoc = hocKy === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-        semesterFilter.hoc_ky = hocKy;
-        semesterFilter.nam_hoc = namHoc;
+      const parsed = parseSemesterString(semesterParam);
+      if (parsed && parsed.year) {
+        return {
+          hoc_ky: parsed.semester,
+          nam_hoc: parsed.year
+        };
       }
     } else if (hoc_ky && nam_hoc) {
-      // Legacy format support
-      semesterFilter.hoc_ky = hoc_ky;
-      semesterFilter.nam_hoc = nam_hoc;
+      // Legacy format: hoc_ky + nam_hoc passed separately
+      return { hoc_ky, nam_hoc };
     }
     
-    return semesterFilter;
+    return {};
   }
 
   /**

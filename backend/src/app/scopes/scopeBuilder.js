@@ -10,7 +10,7 @@
 
 const { prisma } = require('../../infrastructure/prisma/client');
 const { logError } = require('../../core/logger');
-const { normalizeRole } = require('../policies');
+const { normalizeRoleName } = require('../../core/utils/roleHelper');
 
 /**
  * Build scope WHERE clause for a resource based on user role
@@ -20,7 +20,7 @@ const { normalizeRole } = require('../policies');
  */
 async function buildScope(resource, user) {
   const { role, sub: userId } = user;
-  const normalizedRole = normalizeRole(role);
+  const normalizedRole = normalizeRoleName(role);
   
   try {
     switch (normalizedRole) {
@@ -177,7 +177,7 @@ async function buildStudentScope(resource, userId) {
  */
 async function buildOwnershipScope(resource, user) {
   const { role, sub: userId } = user;
-  const normalizedRole = normalizeRole(role);
+  const normalizedRole = normalizeRoleName(role);
   
   // Admin can see all even with ownership filter
   if (normalizedRole === 'ADMIN') {
@@ -211,7 +211,7 @@ async function buildOwnershipScope(resource, user) {
  */
 async function canAccessItem(resource, itemId, user) {
   const { role, sub: userId } = user;
-  const normalizedRole = normalizeRole(role);
+  const normalizedRole = normalizeRoleName(role);
   
   // Admin can access everything
   if (normalizedRole === 'ADMIN') {

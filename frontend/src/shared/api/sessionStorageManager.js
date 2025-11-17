@@ -336,7 +336,10 @@ class SessionStorageManager {
   handleStorageEvent(event) {
     if (event.key === this.SYNC_EVENT_KEY) {
       try {
+        // When the key is removed, newValue is null. Guard before parsing.
+        if (!event.newValue) return;
         const data = JSON.parse(event.newValue);
+        if (!data || typeof data !== 'object') return;
         
         // Ignore events từ chính tab này
         if (data.tabId === this.tabId) return;
