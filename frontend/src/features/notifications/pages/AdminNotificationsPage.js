@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Calendar, TrendingUp, Zap, Shield, Building2, GraduationCap } from 'lucide-react';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 import { useNotification } from '../../../contexts/NotificationContext';
 
 export default function AdminNotifications() {

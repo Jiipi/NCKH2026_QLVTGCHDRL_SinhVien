@@ -3,7 +3,7 @@ const { auth: authenticateJWT, requireAdmin } = require('../core/http/middleware
 const registrationsService = require('../modules/registrations/registrations.service');
 const { ApiResponse, sendResponse } = require('../core/http/response/apiResponse');
 const { logError, logInfo } = require('../core/logger');
-const { buildRobustActivitySemesterWhere, parseSemesterString } = require('../core/utils/semester');
+const { parseSemesterString } = require('../core/utils/semester');
 const { prisma } = require('../infrastructure/prisma/client');
 
 const router = Router();
@@ -28,7 +28,12 @@ router.get('/', async (req, res) => {
       if (!parsed) {
         return sendResponse(res, 400, ApiResponse.error('Tham số học kỳ không hợp lệ'));
       }
-      semesterWhere = { hoat_dong: buildRobustActivitySemesterWhere(semester) };
+      semesterWhere = {
+        hoat_dong: {
+          hoc_ky: parsed.semester,
+          nam_hoc: parsed.year
+        }
+      };
     } else if (hoc_ky || nam_hoc) {
       semesterWhere = {
         hoat_dong: {

@@ -37,8 +37,8 @@ router.get('/summary', async (req, res) => {
       return sendResponse(res, 401, ApiResponse.error('Không xác định được người dùng', 401));
     }
 
-    const { hoc_ky, nam_hoc } = req.query;
-    const filters = { hoc_ky, nam_hoc };
+    const { semester } = req.query; // Accept semester in format: hoc_ky_1-2025
+    const filters = { semester };
 
     const result = await service.getPointsSummary(userId, filters);
 
@@ -64,8 +64,8 @@ router.get('/detail', async (req, res) => {
       return sendResponse(res, 401, ApiResponse.error('Không xác định được người dùng', 401));
     }
 
-    const { hoc_ky, nam_hoc, page = 1, limit = 10 } = req.query;
-    const filters = { hoc_ky, nam_hoc };
+    const { semester, page = 1, limit = 10 } = req.query; // Accept semester in format: hoc_ky_1-2025
+    const filters = { semester };
     const pagination = { page, limit };
 
     const result = await service.getPointsDetail(userId, filters, pagination);

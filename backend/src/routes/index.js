@@ -113,13 +113,13 @@ router.use('/semesters', semesters);
 // These routes provide backward compatibility for frontend still calling V1 endpoints
 // All routes are proxied to V2 modules with appropriate data transformation
 // Refactored into separate files for better maintainability
-const v1Routes = require('./v1');
-
-router.use('/class', v1Routes);           // /api/class/* → V1 Class Routes
-router.use('/teacher', v1Routes);         // /api/teacher/* → V1 Teacher Routes
-router.use('/activities', v1Routes);      // /api/activities/* → V1 Activities Routes
-router.use('/monitor', v1Routes);         // /api/monitor/* → V1 Class Routes (alias)
-router.use('/notifications', v1Routes);   // /api/notifications/* → V1 Notifications Routes
+// const v1Routes = require('./v1');
+//
+// router.use('/class', v1Routes);           // /api/class/* → V1 Class Routes
+// router.use('/teacher', v1Routes);         // /api/teacher/* → V1 Teacher Routes
+// router.use('/activities', v1Routes);      // /api/activities/* → V1 Activities Routes
+// router.use('/monitor', v1Routes);         // /api/monitor/* → V1 Class Routes (alias)
+// router.use('/notifications', v1Routes);   // /api/notifications/* → V1 Notifications Routes
 
 
 // Demo-only routes removed to avoid referencing removed roles

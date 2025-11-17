@@ -56,7 +56,7 @@ export default function TeacherRegistrationApprovals() {
 
   useEffect(() => {
     loadRegistrations();
-  }, [semester, page, limit, statusFilter, searchTerm]);
+  }, [semester, page, limit, statusFilter, searchTerm, classId]);
 
   useEffect(() => {
     // Load classes teacher owns
@@ -66,6 +66,10 @@ export default function TeacherRegistrationApprovals() {
         const payload = res?.data?.data || res?.data || {};
         const list = Array.isArray(payload?.classes) ? payload.classes : (Array.isArray(payload) ? payload : []);
         setClasses(list);
+        // Auto-select first class if none selected
+        if (list.length > 0 && !classId) {
+          setClassId(list[0].id);
+        }
       } catch (_) {
         setClasses([]);
       }

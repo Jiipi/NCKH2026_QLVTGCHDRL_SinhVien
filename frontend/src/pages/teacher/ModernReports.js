@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import http from '../../shared/api/http';
 import useSemesterData from '../../hooks/useSemesterData';
-import SemesterFilter from '../../widgets/semester/ui/SemesterSwitcher';
+import SemesterFilter from '../../components/SemesterFilter';
 
 export default function ModernReports() {
   const [stats, setStats] = useState({});
@@ -95,7 +95,7 @@ export default function ModernReports() {
       }
       const res = await http.get('/teacher/reports/export', {
         params,
-        responseType: 'text' // Backend trả về CSV string
+        responseType: 'text'
       });
       
       // Create download link
@@ -129,13 +129,13 @@ export default function ModernReports() {
     return (
       <div className="p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
+          <h3 className="text-lg font-semibold text-red-800 mb-2">CĂ³ lá»—i xáº£y ra</h3>
           <p className="text-red-600">{error}</p>
           <button 
             onClick={loadStatistics}
             className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
           >
-            Thử lại
+            Thá»­ láº¡i
           </button>
         </div>
       </div>
@@ -146,8 +146,8 @@ export default function ModernReports() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Báo cáo & Thống kê</h1>
-        <p className="text-gray-600">Xem thống kê chi tiết và xuất báo cáo</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">BĂ¡o cĂ¡o & Thá»‘ng kĂª</h1>
+        <p className="text-gray-600">Xem thá»‘ng kĂª chi tiáº¿t vĂ  xuáº¥t bĂ¡o cĂ¡o</p>
       </div>
 
       {/* Filter Mode Toggle & Filters */}
@@ -164,7 +164,7 @@ export default function ModernReports() {
               }`}
             >
               <Calendar className="w-4 h-4 inline mr-2" />
-              Lọc theo học kỳ
+              Lá»c theo há»c ká»³
             </button>
             <button
               onClick={() => setFilterMode('dateRange')}
@@ -175,7 +175,7 @@ export default function ModernReports() {
               }`}
             >
               <Filter className="w-4 h-4 inline mr-2" />
-              Lọc theo khoảng thời gian
+              Lá»c theo khoáº£ng thá»i gian
             </button>
           </div>
         </div>
@@ -184,14 +184,14 @@ export default function ModernReports() {
           {/* Semester or Date Range Filter */}
           {filterMode === 'semester' ? (
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Học kỳ</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Há»c ká»³</h3>
               <div className="max-w-md">
                 <SemesterFilter value={semester} onChange={setSemester} label="" />
               </div>
             </div>
           ) : (
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Khoảng thời gian</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Khoáº£ng thá»i gian</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setDateRange('week')}
@@ -201,7 +201,7 @@ export default function ModernReports() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Tuần này
+                  Tuáº§n nĂ y
                 </button>
                 <button
                   onClick={() => setDateRange('month')}
@@ -211,7 +211,7 @@ export default function ModernReports() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Tháng này
+                  ThĂ¡ng nĂ y
                 </button>
                 <button
                   onClick={() => setDateRange('year')}
@@ -221,7 +221,7 @@ export default function ModernReports() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Năm này
+                  NÄƒm nĂ y
                 </button>
               </div>
             </div>
@@ -234,21 +234,21 @@ export default function ModernReports() {
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              Làm mới
+              LĂ m má»›i
             </button>
             <button
               onClick={() => handleExport('excel')}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Download className="w-4 h-4" />
-              Xuất Excel
+              Xuáº¥t Excel
             </button>
             <button
               onClick={() => handleExport('pdf')}
               className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               <Download className="w-4 h-4" />
-              Xuất PDF
+              Xuáº¥t PDF
             </button>
           </div>
         </div>
@@ -261,10 +261,10 @@ export default function ModernReports() {
             <div className="p-3 bg-white bg-opacity-20 rounded-lg">
               <Activity className="w-6 h-6" />
             </div>
-            <span className="text-blue-200 text-sm">Tổng hoạt động</span>
+            <span className="text-blue-200 text-sm">Tá»•ng hoáº¡t Ä‘á»™ng</span>
           </div>
           <div className="text-3xl font-bold mb-1">{stats.totalActivities || 0}</div>
-          <div className="text-blue-200 text-sm">Trong khoảng thời gian</div>
+          <div className="text-blue-200 text-sm">Trong khoáº£ng thá»i gian</div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
@@ -272,10 +272,10 @@ export default function ModernReports() {
             <div className="p-3 bg-white bg-opacity-20 rounded-lg">
               <Users className="w-6 h-6" />
             </div>
-            <span className="text-green-200 text-sm">Sinh viên tham gia</span>
+            <span className="text-green-200 text-sm">Sinh viĂªn tham gia</span>
           </div>
           <div className="text-3xl font-bold mb-1">{stats.totalStudents || 0}</div>
-          <div className="text-green-200 text-sm">Tổng số sinh viên</div>
+          <div className="text-green-200 text-sm">Tá»•ng sá»‘ sinh viĂªn</div>
         </div>
 
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
@@ -283,10 +283,10 @@ export default function ModernReports() {
             <div className="p-3 bg-white bg-opacity-20 rounded-lg">
               <TrendingUp className="w-6 h-6" />
             </div>
-            <span className="text-purple-200 text-sm">Tỷ lệ tham gia</span>
+            <span className="text-purple-200 text-sm">Tá»· lá»‡ tham gia</span>
           </div>
           <div className="text-3xl font-bold mb-1">{Math.round(stats.participationRate || 0)}%</div>
-          <div className="text-purple-200 text-sm">Trung bình</div>
+          <div className="text-purple-200 text-sm">Trung bĂ¬nh</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white">
@@ -294,16 +294,16 @@ export default function ModernReports() {
             <div className="p-3 bg-white bg-opacity-20 rounded-lg">
               <Award className="w-6 h-6" />
             </div>
-            <span className="text-orange-200 text-sm">Điểm trung bình</span>
+            <span className="text-orange-200 text-sm">Äiá»ƒm trung bĂ¬nh</span>
           </div>
           <div className="text-3xl font-bold mb-1">{parseFloat(stats.averageScore || 0).toFixed(1)}</div>
-          <div className="text-orange-200 text-sm">Điểm rèn luyện</div>
+          <div className="text-orange-200 text-sm">Äiá»ƒm rĂ¨n luyá»‡n</div>
         </div>
       </div>
 
       {/* Additional Stats */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Chi tiết thống kê</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Chi tiáº¿t thá»‘ng kĂª</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-50 rounded-lg">
@@ -311,7 +311,7 @@ export default function ModernReports() {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">{stats.totalRegistrations || 0}</div>
-              <div className="text-sm text-gray-600">Lượt đăng ký hoạt động</div>
+              <div className="text-sm text-gray-600">LÆ°á»£t Ä‘Äƒng kĂ½ hoáº¡t Ä‘á»™ng</div>
             </div>
           </div>
           
@@ -321,7 +321,7 @@ export default function ModernReports() {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">{stats.totalStudents || 0}</div>
-              <div className="text-sm text-gray-600">Tổng sinh viên quản lý</div>
+              <div className="text-sm text-gray-600">Tá»•ng sinh viĂªn quáº£n lĂ½</div>
             </div>
           </div>
           
@@ -331,7 +331,7 @@ export default function ModernReports() {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">{Math.round(stats.participationRate || 0)}%</div>
-              <div className="text-sm text-gray-600">Tỷ lệ sinh viên tham gia</div>
+              <div className="text-sm text-gray-600">Tá»· lá»‡ sinh viĂªn tham gia</div>
             </div>
           </div>
         </div>
@@ -341,7 +341,7 @@ export default function ModernReports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Hoạt động theo tháng</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Hoáº¡t Ä‘á»™ng theo thĂ¡ng</h3>
             <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
               <Eye className="w-5 h-5" />
             </button>
@@ -349,14 +349,14 @@ export default function ModernReports() {
           <div className="h-64 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p>Biểu đồ sẽ được hiển thị ở đây</p>
+              <p>Biá»ƒu Ä‘á»“ sáº½ Ä‘Æ°á»£c hiá»ƒn thá»‹ á»Ÿ Ä‘Ă¢y</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Tỷ lệ tham gia</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Tá»· lá»‡ tham gia</h3>
             <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
               <Eye className="w-5 h-5" />
             </button>
@@ -364,7 +364,7 @@ export default function ModernReports() {
           <div className="h-64 flex items-center justify-center text-gray-500">
             <div className="text-center">
               <TrendingUp className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p>Biểu đồ sẽ được hiển thị ở đây</p>
+              <p>Biá»ƒu Ä‘á»“ sáº½ Ä‘Æ°á»£c hiá»ƒn thá»‹ á»Ÿ Ä‘Ă¢y</p>
             </div>
           </div>
         </div>
@@ -373,23 +373,23 @@ export default function ModernReports() {
       {/* Detailed Reports */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Báo cáo chi tiết</h3>
+          <h3 className="text-lg font-semibold text-gray-900">BĂ¡o cĂ¡o chi tiáº¿t</h3>
           <div className="flex gap-2">
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="w-4 h-4" />
-              Lọc
+              Lá»c
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
               <Download className="w-4 h-4" />
-              Xuất báo cáo
+              Xuáº¥t bĂ¡o cĂ¡o
             </button>
           </div>
         </div>
         
         <div className="text-center py-12">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h4 className="text-lg font-semibold text-gray-500 mb-2">Chưa có dữ liệu báo cáo</h4>
-          <p className="text-gray-400">Dữ liệu báo cáo sẽ được hiển thị khi có hoạt động</p>
+          <h4 className="text-lg font-semibold text-gray-500 mb-2">ChÆ°a cĂ³ dá»¯ liá»‡u bĂ¡o cĂ¡o</h4>
+          <p className="text-gray-400">Dá»¯ liá»‡u bĂ¡o cĂ¡o sáº½ Ä‘Æ°á»£c hiá»ƒn thá»‹ khi cĂ³ hoáº¡t Ä‘á»™ng</p>
         </div>
       </div>
     </div>

@@ -293,6 +293,11 @@ function TeacherSidebar(props) {
     const cleanMenuPath = menuPath.replace(/\/$/, '');
     const cleanCurrentPath = path.replace(/\/$/, '');
     
+    // Special-case dashboard: only active on exact '/teacher'
+    if (cleanMenuPath === '/teacher') {
+      return cleanCurrentPath === '/teacher';
+    }
+    
     // Direct comparison (exact match)
     if (cleanCurrentPath === cleanMenuPath) return true;
     

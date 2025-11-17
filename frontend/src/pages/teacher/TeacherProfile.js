@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, MapPin, Clock, CheckCircle, BookOpen } from 'lucide-react';
 import http from '../../shared/api/http';
 import { useAppStore } from '../../store/useAppStore';
 import { useNotification } from '../../contexts/NotificationContext';
-import { formatDateVN } from '../../shared/lib/date';
-import AvatarUpload from '../../entities/user/ui/Avatar';
+import { formatDateVN } from '../../shared/lib/dateFormat';
+import AvatarUpload from '../../components/AvatarUpload';
 
 export default function TeacherProfile() {
   const { showSuccess, showError } = useNotification();
@@ -42,7 +42,7 @@ export default function TeacherProfile() {
       setLoading(true);
       let response;
       try {
-        response = await http.get('/core/profile');
+        response = await http.get('/users/profile');
       } catch (e) {
         response = await http.get('/auth/profile');
       }
@@ -70,7 +70,7 @@ export default function TeacherProfile() {
         sdt: profileData.sdt || ''
       });
     } catch (error) {
-      showError('Không thể tải thông tin profile');
+      showError('KhĂ´ng thá»ƒ táº£i thĂ´ng tin profile');
     } finally {
       setLoading(false);
     }
@@ -79,14 +79,14 @@ export default function TeacherProfile() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      // Giảng viên chỉ có thể cập nhật 3 trường trong bảng nguoi_dung
+      // Giáº£ng viĂªn chá»‰ cĂ³ thá»ƒ cáº­p nháº­t 3 trÆ°á»ng trong báº£ng nguoi_dung
       const updateData = {
         ho_ten: formData.ho_ten,
         email: formData.email,
         anh_dai_dien: formData.anh_dai_dien
       };
       
-      await http.put('/core/profile', updateData);
+      await http.put('/users/profile', updateData);
       setEditing(false);
       loadProfile();
       
@@ -97,14 +97,14 @@ export default function TeacherProfile() {
         detail: { profile: updatedProfile } 
       }));
       
-      showSuccess('Cập nhật thông tin thành công', 'Thành công', 8000);
+      showSuccess('Cáº­p nháº­t thĂ´ng tin thĂ nh cĂ´ng', 'ThĂ nh cĂ´ng', 8000);
     } catch (error) {
       console.error('Profile update error:', error);
       const errorMessage = error.response?.data?.message || error.message;
-      if (errorMessage.includes('quá dài')) {
-        showError('URL ảnh đại diện quá dài. Vui lòng sử dụng URL ngắn hơn hoặc ảnh có kích thước nhỏ hơn.');
+      if (errorMessage.includes('quĂ¡ dĂ i')) {
+        showError('URL áº£nh Ä‘áº¡i diá»‡n quĂ¡ dĂ i. Vui lĂ²ng sá»­ dá»¥ng URL ngáº¯n hÆ¡n hoáº·c áº£nh cĂ³ kĂ­ch thÆ°á»›c nhá» hÆ¡n.');
       } else {
-        showError('Lỗi cập nhật: ' + errorMessage);
+        showError('Lá»—i cáº­p nháº­t: ' + errorMessage);
       }
     }
   };
@@ -112,33 +112,33 @@ export default function TeacherProfile() {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (passwordData.new_password !== passwordData.confirm_password) {
-      showError('Mật khẩu mới và xác nhận không khớp');
+      showError('Máº­t kháº©u má»›i vĂ  xĂ¡c nháº­n khĂ´ng khá»›p');
       return;
     }
     try {
       await http.put('/users/change-password', passwordData);
       setChangingPassword(false);
       setPasswordData({ old_password: '', new_password: '', confirm_password: '' });
-      showSuccess('Đổi mật khẩu thành công', 'Thành công', 8000);
+      showSuccess('Äá»•i máº­t kháº©u thĂ nh cĂ´ng', 'ThĂ nh cĂ´ng', 8000);
     } catch (error) {
-      showError('Lỗi đổi mật khẩu: ' + (error.response?.data?.message || error.message));
+      showError('Lá»—i Ä‘á»•i máº­t kháº©u: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const getGenderText = (gender) => {
     const genderMap = {
       'nam': 'Nam',
-      'nu': 'Nữ', 
-      'khac': 'Khác'
+      'nu': 'Ná»¯', 
+      'khac': 'KhĂ¡c'
     };
     return genderMap[gender] || '';
   };
 
   const getStatusText = (status) => {
     const statusMap = {
-      'hoat_dong': 'Hoạt động',
-      'khong_hoat_dong': 'Không hoạt động',
-      'khoa': 'Khóa'
+      'hoat_dong': 'Hoáº¡t Ä‘á»™ng',
+      'khong_hoat_dong': 'KhĂ´ng hoáº¡t Ä‘á»™ng',
+      'khoa': 'KhĂ³a'
     };
     return statusMap[status] || status;
   };
@@ -312,7 +312,7 @@ export default function TeacherProfile() {
     // Format classes for display
     const classNames = classes.length > 0 
       ? classes.map(c => c.ten_lop).join(', ')
-      : '—';
+      : 'â€”';
     
     console.log('Avatar debug:', {
       originalUrl: profile.anh_dai_dien,
@@ -323,13 +323,13 @@ export default function TeacherProfile() {
     
     return (
     <div className="space-y-6">
-      {/* Avatar và thông tin cơ bản */}
+      {/* Avatar vĂ  thĂ´ng tin cÆ¡ báº£n */}
       <div className="flex items-center gap-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
         <div className="w-24 h-24 rounded-full shadow-lg overflow-hidden relative">
           {canDisplayImage ? (
             <img 
               src={directImageUrl} 
-              alt="Ảnh đại diện" 
+              alt="áº¢nh Ä‘áº¡i diá»‡n" 
               className="w-full h-full object-cover"
               onError={(e) => {
                 console.log('Image load error:', e.target.src);
@@ -350,10 +350,10 @@ export default function TeacherProfile() {
           </div>
         </div>
         <div className="flex-1">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">{profile.ho_ten || 'Chưa cập nhật'}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{profile.ho_ten || 'ChÆ°a cáº­p nháº­t'}</h3>
           <div className="flex items-center gap-2 mb-2">
             <Shield className="h-5 w-5 text-indigo-600" />
-            <span className="text-lg font-medium text-indigo-600">{profile.vai_tro?.ten_vt || 'Giảng viên'}</span>
+            <span className="text-lg font-medium text-indigo-600">{profile.vai_tro?.ten_vt || 'Giáº£ng viĂªn'}</span>
           </div>
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(profile.trang_thai)}`}>
             <CheckCircle className="h-4 w-4 mr-1" />
@@ -362,17 +362,17 @@ export default function TeacherProfile() {
         </div>
       </div>
 
-      {/* Thông tin chi tiết */}
+      {/* ThĂ´ng tin chi tiáº¿t */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {renderField('Họ và tên', profile.ho_ten, null, <User className="h-5 w-5" />)}
+        {renderField('Há» vĂ  tĂªn', profile.ho_ten, null, <User className="h-5 w-5" />)}
         {renderField('Email', profile.email, null, <Mail className="h-5 w-5" />)}
-        {renderField('Tên đăng nhập', profile.ten_dn, null, <User className="h-5 w-5" />)}
-        {renderField('Vai trò', profile.vai_tro?.ten_vt, null, <Shield className="h-5 w-5" />)}
-        {renderField('Lớp phụ trách', classNames, null, <BookOpen className="h-5 w-5" />)}
-        {renderField('Ngày tạo tài khoản', profile.ngay_tao, formatDateVN, <Calendar className="h-5 w-5" />)}
-        {renderField('Cập nhật lần cuối', profile.ngay_cap_nhat, formatDateVN, <Clock className="h-5 w-5" />)}
-        {renderField('Lần đăng nhập cuối', profile.lan_cuoi_dn, formatDateVN, <Clock className="h-5 w-5" />)}
-        {renderField('Trạng thái tài khoản', getStatusText(profile.trang_thai), null, <CheckCircle className="h-5 w-5" />)}
+        {renderField('TĂªn Ä‘Äƒng nháº­p', profile.ten_dn, null, <User className="h-5 w-5" />)}
+        {renderField('Vai trĂ²', profile.vai_tro?.ten_vt, null, <Shield className="h-5 w-5" />)}
+        {renderField('Lá»›p phá»¥ trĂ¡ch', classNames, null, <BookOpen className="h-5 w-5" />)}
+        {renderField('NgĂ y táº¡o tĂ i khoáº£n', profile.ngay_tao, formatDateVN, <Calendar className="h-5 w-5" />)}
+        {renderField('Cáº­p nháº­t láº§n cuá»‘i', profile.ngay_cap_nhat, formatDateVN, <Clock className="h-5 w-5" />)}
+        {renderField('Láº§n Ä‘Äƒng nháº­p cuá»‘i', profile.lan_cuoi_dn, formatDateVN, <Clock className="h-5 w-5" />)}
+        {renderField('Tráº¡ng thĂ¡i tĂ i khoáº£n', getStatusText(profile.trang_thai), null, <CheckCircle className="h-5 w-5" />)}
       </div>
 
     </div>
@@ -413,7 +413,7 @@ export default function TeacherProfile() {
     return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Há» vĂ  tĂªn</label>
         <input 
           type="text" 
           value={formData.ho_ten} 
@@ -433,7 +433,7 @@ export default function TeacherProfile() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-4">Ảnh đại diện</label>
+        <label className="block text-sm font-medium text-gray-700 mb-4">áº¢nh Ä‘áº¡i diá»‡n</label>
         <AvatarUpload
           value={formData.anh_dai_dien}
           onChange={(url) => setFormData(p => ({...p, anh_dai_dien: url}))}
@@ -453,13 +453,13 @@ export default function TeacherProfile() {
           onClick={() => setEditing(false)} 
           className="flex items-center gap-2 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
         >
-          <X className="h-4 w-4" /> Hủy
+          <X className="h-4 w-4" /> Há»§y
         </button>
         <button 
           type="submit" 
           className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          <Save className="h-4 w-4" /> Lưu thay đổi
+          <Save className="h-4 w-4" /> LÆ°u thay Ä‘á»•i
         </button>
       </div>
     </form>
@@ -481,7 +481,7 @@ export default function TeacherProfile() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="text-center py-8">
-          <p className="text-gray-500">Không thể tải thông tin profile</p>
+          <p className="text-gray-500">KhĂ´ng thá»ƒ táº£i thĂ´ng tin profile</p>
         </div>
       </div>
     );
@@ -497,8 +497,8 @@ export default function TeacherProfile() {
               <User className="h-8 w-8 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
-              <p className="text-gray-600 mt-1">Quản lý thông tin tài khoản giảng viên</p>
+              <h1 className="text-3xl font-bold text-gray-900">ThĂ´ng tin cĂ¡ nhĂ¢n</h1>
+              <p className="text-gray-600 mt-1">Quáº£n lĂ½ thĂ´ng tin tĂ i khoáº£n giáº£ng viĂªn</p>
             </div>
           </div>
           {!editing && !changingPassword && (
@@ -507,13 +507,13 @@ export default function TeacherProfile() {
                 onClick={() => setChangingPassword(true)} 
                 className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 transition-colors shadow-sm"
               >
-                <Key className="h-4 w-4" /> Đổi mật khẩu
+                <Key className="h-4 w-4" /> Äá»•i máº­t kháº©u
               </button>
               <button 
                 onClick={() => setEditing(true)} 
                 className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
               >
-                <Edit3 className="h-4 w-4" /> Chỉnh sửa
+                <Edit3 className="h-4 w-4" /> Chá»‰nh sá»­a
               </button>
             </div>
           )}
@@ -533,9 +533,9 @@ export default function TeacherProfile() {
               >
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  <span>Thông tin cơ bản</span>
+                  <span>ThĂ´ng tin cÆ¡ báº£n</span>
                 </div>
-                <span className="text-xs text-gray-400 font-normal">Họ tên, email, ảnh đại diện</span>
+                <span className="text-xs text-gray-400 font-normal">Há» tĂªn, email, áº£nh Ä‘áº¡i diá»‡n</span>
               </button>
             </nav>
           </div>
@@ -550,11 +550,11 @@ export default function TeacherProfile() {
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Key className="h-6 w-6 text-yellow-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">Đổi mật khẩu</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Äá»•i máº­t kháº©u</h3>
               </div>
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu hiện tại</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Máº­t kháº©u hiá»‡n táº¡i</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.old ? 'text' : 'password'} 
@@ -573,7 +573,7 @@ export default function TeacherProfile() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu mới</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Máº­t kháº©u má»›i</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.new ? 'text' : 'password'} 
@@ -592,7 +592,7 @@ export default function TeacherProfile() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Xác nhận mật khẩu mới</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">XĂ¡c nháº­n máº­t kháº©u má»›i</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.confirm ? 'text' : 'password'} 
@@ -616,13 +616,13 @@ export default function TeacherProfile() {
                     onClick={() => setChangingPassword(false)} 
                     className="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Hủy
+                    Há»§y
                   </button>
                   <button 
                     type="submit" 
                     className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
-                    Đổi mật khẩu
+                    Äá»•i máº­t kháº©u
                   </button>
                 </div>
               </form>

@@ -1,6 +1,6 @@
 const monitorRepo = require('./monitor.repo');
 const { logInfo, logError } = require('../../core/logger');
-const { parseSemesterString, buildRobustActivitySemesterWhere } = require('../../core/utils/semester');
+const { parseSemesterString } = require('../../core/utils/semester');
 const SemesterClosure = require('../../services/semesterClosure.service');
 
 class MonitorService {
@@ -15,8 +15,26 @@ class MonitorService {
     try {
       logInfo('Getting class students', { classId, semester });
 
-      // Build robust semester filter for activities (matches exact labels, contains year, or date range)
-      const activityFilter = semester ? buildRobustActivitySemesterWhere(semester) : buildRobustActivitySemesterWhere('current');
+      // Build simple semester filter for activities
+      let activityFilter = {};
+      if (semester) {
+        const parsed = parseSemesterString(semester);
+        if (parsed && parsed.year) {
+          activityFilter = {
+            hoc_ky: parsed.semester,
+            nam_hoc: parsed.year
+          };
+        }
+      } else {
+        // Default to current semester
+        const current = parseSemesterString('current');
+        if (current && current.year) {
+          activityFilter = {
+            hoc_ky: current.semester,
+            nam_hoc: current.year
+          };
+        }
+      }
 
       // Get all students in the class
       const students = await monitorRepo.findStudentsByClass(classId);
@@ -89,7 +107,16 @@ class MonitorService {
       logInfo('Getting pending registrations', { classId, status, semester });
 
       // Build filters
-      const activityFilter = semester ? buildRobustActivitySemesterWhere(semester) : {};
+      let activityFilter = {};
+      if (semester) {
+        const parsed = parseSemesterString(semester);
+        if (parsed && parsed.year) {
+          activityFilter = {
+            hoc_ky: parsed.semester,
+            nam_hoc: parsed.year
+          };
+        }
+      }
       
       // Get class creators (students + homeroom teacher) for filtering
       const classStudents = await monitorRepo.findAllStudentsInClass(classId);
@@ -283,8 +310,15 @@ class MonitorService {
       logInfo('Getting monitor dashboard', { classId, className, semester });
 
       const semInfo = parseSemesterString(semester || 'current');
-      // Use robust filter to avoid missing records due to label variations
-      const baseActivityFilter = semester ? buildRobustActivitySemesterWhere(semester) : buildRobustActivitySemesterWhere('current');
+      
+      // Build simple activity filter
+      let baseActivityFilter = {};
+      if (semInfo && semInfo.year) {
+        baseActivityFilter = {
+          hoc_ky: semInfo.semester,
+          nam_hoc: semInfo.year
+        };
+      }
 
       // Get class creators (students + homeroom teacher) for filtering
       const classStudents = await monitorRepo.findAllStudentsInClass(classId);
@@ -317,8 +351,8 @@ class MonitorService {
         monitorRepo.findRecentRegistrations(classId, activityFilterWithClass, 5),
         monitorRepo.findUpcomingActivities(classId, activityFilterWithClass, 5),
         monitorRepo.findAllStudentsInClass(classId),
-        // Count ALL activities registered by class (not filtered by creator)
-        monitorRepo.findClassRegistrationsForCount(classId, baseActivityFilter),
+        // Count ONLY APPROVED activities registered by class (status: da_duyet)
+        monitorRepo.findClassRegistrationsForCountApproved(classId, baseActivityFilter),
         // IMPORTANT: Points must include ALL participated activities (no class-creator filter)
         monitorRepo.findClassRegistrationsForPoints(classId, baseActivityFilter)
       ]);
@@ -415,8 +449,14 @@ class MonitorService {
       const now = new Date();
       let activityWhere = {};
       if (semester) {
-        // Robust semester relation filter when semester provided
-        activityWhere = buildRobustActivitySemesterWhere(semester);
+        // Simple semester filter when semester provided
+        const parsed = parseSemesterString(semester);
+        if (parsed && parsed.year) {
+          activityWhere = {
+            hoc_ky: parsed.semester,
+            nam_hoc: parsed.year
+          };
+        }
         logInfo('Semester filter applied', { semester, activityWhere: JSON.stringify(activityWhere) });
       } else {
         let startDate;
@@ -433,18 +473,16 @@ class MonitorService {
         activityWhere = { ngay_bd: { gte: startDate } };
       }
 
-      const [totalStudents, regs, allRegsForPoints, approvedActivitiesCount, strictActivitiesCount] = await Promise.all([
+      const [totalStudents, regs, allRegsForPoints, strictActivitiesCount] = await Promise.all([
         monitorRepo.countStudentsByClass(classId),
         monitorRepo.findClassRegistrationsForReports(classId, activityWhere),
         // ✅ Lấy thêm registrations đã tham gia (da_tham_gia) để tính điểm và tỷ lệ tham gia
         monitorRepo.findClassRegistrationsForPoints(classId, activityWhere),
-        // ✅ Đếm số hoạt động "Có sẵn" được lớp tạo và đã được duyệt (khớp thẻ hoạt động lớp)
-        monitorRepo.countApprovedActivitiesForClass(classId, activityWhere),
         // ✅ Đếm tổng hoạt động lớp tạo theo filter học kỳ STRICT (khớp trang Hoạt động lớp - Tổng hoạt động)
         (async () => {
           if (semester) {
             const sem = parseSemesterString(semester);
-            const strictWhere = sem?.semester && sem?.yearLabel ? { hoc_ky: sem.semester, nam_hoc: sem.yearLabel } : {};
+            const strictWhere = sem?.semester && sem?.year ? { hoc_ky: sem.semester, nam_hoc: sem.year } : {};
             return monitorRepo.countActivitiesForClassStrict(classId, strictWhere);
           }
           return 0;
@@ -457,7 +495,7 @@ class MonitorService {
         logInfo('Reports data check', {
           semester,
           semesterInfo,
-          totalActivitiesApprovedClassCreated: approvedActivitiesCount,
+          totalActivitiesStrictCount: strictActivitiesCount,
           totalRegistrations: regs.length,
           totalParticipatedRegistrations: allRegsForPoints.length,
           uniqueSemesters: [...new Set(regs.map(r => `${r.hoat_dong?.hoc_ky || 'N/A'}_${r.hoat_dong?.nam_hoc || 'N/A'}`))],
@@ -494,8 +532,8 @@ class MonitorService {
 
       // ✅ Tổng số hoạt động KHỚP trang Hoạt động lớp (header "TỔNG HOẠT ĐỘNG")
       //    - Đếm theo strict semester (hoc_ky + nam_hoc) và do lớp tạo (không ép trạng thái)
-      //    - Nếu không có semester, fallback về số 0 (hoặc có thể dùng approvedActivitiesCount)
-      const totalActivities = semester ? strictActivitiesCount : approvedActivitiesCount;
+      //    - Luôn dùng strictActivitiesCount khi có semester filter
+      const totalActivities = strictActivitiesCount;
 
       return {
         overview: {

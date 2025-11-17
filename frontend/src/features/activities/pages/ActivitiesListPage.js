@@ -6,16 +6,13 @@ import { useActivitiesList } from '../hooks/useActivitiesList';
 import { ActivityCard } from '../components/ActivityCard';
 import { ActivityFilters } from '../components/ActivityFilters';
 import activitiesApi from '../services/activitiesApi';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 // Shared components - CORRECTED PATHS
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import SemesterClosureBanner from '../../../components/SemesterClosureBanner';
 import useSemesterData from '../../../hooks/useSemesterData';
-import LoadingSpinner from '../../../shared/components/common/LoadingSpinner';
-import ErrorMessage from '../../../shared/components/common/ErrorMessage';
-import EmptyState from '../../../shared/components/common/EmptyState';
-import Pagination from '../../../shared/components/common/Pagination';
+import { LoadingSpinner, ErrorMessage, EmptyState, Pagination } from '../../../shared/components/common';
 
 // Main Component Refactored
 export default function ActivitiesListPage() {
@@ -118,7 +115,7 @@ export default function ActivitiesListPage() {
                                 />
                             ))}
                         </div>
-                        <Pagination page={pagination.page} total={pagination.total} limit={pagination.limit} onChange={handlePageChange} />
+                        <Pagination pagination={pagination} onPageChange={(newPage) => handlePageChange(newPage)} />
                     </>
                  )
                 }

@@ -10,7 +10,8 @@ export default function ManageActivityPage() {
   const location = useLocation();
   const { 
     isEditMode, form, activityTypes, status, 
-    fieldErrors, handleFormChange, handleSubmit 
+    fieldErrors, handleFormChange, handleSubmit,
+    semesterOptions, currentSemesterValue, handleSemesterChange,
   } = useManageActivity();
 
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -32,6 +33,9 @@ export default function ManageActivityPage() {
           fieldErrors={fieldErrors}
           status={status}
           isEditMode={isEditMode}
+          semesterOptions={semesterOptions}
+          currentSemesterValue={currentSemesterValue}
+          onSemesterChange={handleSemesterChange}
         />
       )}
     </div>

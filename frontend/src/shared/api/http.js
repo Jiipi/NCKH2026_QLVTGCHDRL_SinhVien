@@ -219,13 +219,27 @@ http.interceptors.request.use(
       }
 
       // Teacher-specific legacy routes
-      if (typeof config.url === 'string' && config.url.startsWith('/teacher/activity-types')) {
-        const originalUrl2 = config.url;
-        const rewriteStarts2 = (fromPrefix, toPrefix) => { if (config.url.startsWith(fromPrefix)) config.url = toPrefix + config.url.slice(fromPrefix.length); };
-        rewriteStarts2('/teacher/activity-types/', '/core/activity-types/');
-        if (config.url === '/teacher/activity-types') config.url = '/core/activity-types';
-        if (originalUrl2 !== config.url && process.env.NODE_ENV === 'development') {
-          console.log('[HTTP] Rewrote legacy teacher URL ->', originalUrl2, '=>', config.url);
+      if (typeof config.url === 'string') {
+        // Teacher-specific legacy routes (activity-types only)
+        if (config.url.startsWith('/teacher/activity-types')) {
+          const originalUrl2 = config.url;
+          const rewriteStarts2 = (fromPrefix, toPrefix) => { if (config.url.startsWith(fromPrefix)) config.url = toPrefix + config.url.slice(fromPrefix.length); };
+          rewriteStarts2('/teacher/activity-types/', '/core/activity-types/');
+          if (config.url === '/teacher/activity-types') config.url = '/core/activity-types';
+          if (originalUrl2 !== config.url && process.env.NODE_ENV === 'development') {
+            console.log('[HTTP] Rewrote legacy teacher URL ->', originalUrl2, '=>', config.url);
+          }
+        }
+
+        // ================== TEACHER v1 -> v2 PREFIX FIX ==================
+        // Frontend historically called /teacher/* but backend v2 exposes /core/teachers/*
+        // Normalize all /teacher/* (singular) to /core/teachers/*
+        if (config.url.startsWith('/teacher/')) {
+          const original = config.url;
+          config.url = '/core/teachers/' + config.url.slice('/teacher/'.length);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[HTTP] Normalized teacher URL ->', original, '=>', config.url);
+          }
         }
       }
       

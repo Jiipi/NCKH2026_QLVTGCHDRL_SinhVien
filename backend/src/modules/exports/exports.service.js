@@ -2,6 +2,26 @@ const { logInfo, logError } = require('../../core/logger');
 const { parseSemesterString, buildSemesterFilter } = require('../../core/utils/semester');
 const exportsRepo = require('./exports.repo');
 
+// Helper function to build activity where clause from semester param
+function buildActivityWhereFromSemester(semester, hoc_ky, nam_hoc) {
+  if (semester) {
+    const parsed = parseSemesterString(semester);
+    if (parsed && parsed.year) {
+      return {
+        hoc_ky: parsed.semester,
+        nam_hoc: parsed.year
+      };
+    }
+    throw new Error('INVALID_SEMESTER');
+  } else if (hoc_ky || nam_hoc) {
+    return { 
+      hoc_ky: hoc_ky || undefined, 
+      ...(nam_hoc ? { nam_hoc } : {}) 
+    };
+  }
+  return {};
+}
+
 class ExportsService {
   /**
    * Get overview statistics
@@ -14,20 +34,7 @@ class ExportsService {
       
       logInfo('Getting overview statistics', { semester, hoc_ky, nam_hoc });
 
-      let activityWhere = {};
-      
-      if (semester) {
-        const si = parseSemesterString(semester);
-        if (!si) {
-          throw new Error('INVALID_SEMESTER');
-        }
-        activityWhere = buildSemesterFilter(semester, true);
-      } else if (hoc_ky || nam_hoc) {
-        activityWhere = { 
-          hoc_ky: hoc_ky || undefined, 
-          ...(nam_hoc ? { nam_hoc } : {}) 
-        };
-      }
+      const activityWhere = buildActivityWhereFromSemester(semester, hoc_ky, nam_hoc);
 
       const [byStatus, topActivities, dailyRegs] = await Promise.all([
         // Group by status
@@ -72,20 +79,7 @@ class ExportsService {
       
       logInfo('Exporting activities', { semester, hoc_ky, nam_hoc });
 
-      let activityWhere = {};
-      
-      if (semester) {
-        const si = parseSemesterString(semester);
-        if (!si) {
-          throw new Error('INVALID_SEMESTER');
-        }
-        activityWhere = buildSemesterFilter(semester, true);
-      } else if (hoc_ky || nam_hoc) {
-        activityWhere = { 
-          hoc_ky: hoc_ky || undefined, 
-          ...(nam_hoc ? { nam_hoc } : {}) 
-        };
-      }
+      const activityWhere = buildActivityWhereFromSemester(semester, hoc_ky, nam_hoc);
 
       let rows;
       try {
@@ -149,20 +143,7 @@ class ExportsService {
       
       logInfo('Exporting registrations', { semester, hoc_ky, nam_hoc });
 
-      let activityWhere = {};
-      
-      if (semester) {
-        const si = parseSemesterString(semester);
-        if (!si) {
-          throw new Error('INVALID_SEMESTER');
-        }
-        activityWhere = buildSemesterFilter(semester, false);
-      } else if (hoc_ky || nam_hoc) {
-        activityWhere = { 
-          hoc_ky: hoc_ky || undefined, 
-          ...(nam_hoc ? { nam_hoc } : {}) 
-        };
-      }
+      const activityWhere = buildActivityWhereFromSemester(semester, hoc_ky, nam_hoc);
 
       const rows = await exportsRepo.findRegistrationsForExport(activityWhere);
 

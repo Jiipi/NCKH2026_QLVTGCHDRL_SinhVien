@@ -3,7 +3,7 @@ import {
   Settings, Save, RefreshCw, Database, Shield, 
   Globe, Mail, Bell, Users, Calendar, Activity
 } from 'lucide-react';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 const SimpleAdminSettings = () => {
   const [settings, setSettings] = useState({});

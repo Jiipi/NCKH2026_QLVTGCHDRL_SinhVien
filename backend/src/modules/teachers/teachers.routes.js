@@ -16,7 +16,10 @@ const { asyncHandler } = require('../../app/errors/AppError');
  * Get teacher dashboard with stats and classes
  */
 router.get('/dashboard', auth, asyncHandler(async (req, res) => {
-  const dashboard = await teachersService.getDashboard(req.user);
+  const { semester, classId } = req.query;
+
+  // Pass semester param directly (e.g., "hoc_ky_1-2025")
+  const dashboard = await teachersService.getDashboard(req.user, semester, classId);
   
   res.json({
     success: true,
@@ -78,16 +81,13 @@ router.get('/activities/pending', auth, asyncHandler(async (req, res) => {
  * Get approved/rejected activities history
  */
 router.get('/activities/history', auth, asyncHandler(async (req, res) => {
-  const { page, limit, status, semesterId } = req.query;
-  
+  const { page, limit, status, semester } = req.query;
+
   const filters = {};
-  if (status) filters.status = status;
-  if (semesterId) filters.semesterId = parseInt(semesterId);
-  
-  const result = await teachersService.getActivityHistory(req.user, filters, {
-    page,
-    limit
-  });
+  if (status) filters.status = status; // semantic status (open/soon/closed) not used here but safe
+  if (semester) filters.semester = String(semester); // prefer semantic semester string like hoc_ky_1-2025
+
+  const result = await teachersService.getActivityHistory(req.user, filters, { page, limit });
   
   res.json({
     success: true,
@@ -130,15 +130,37 @@ router.post('/activities/:id/reject', auth, asyncHandler(async (req, res) => {
 }));
 
 /**
+ * GET /teachers/registrations
+ * Get all registrations for teacher's classes with filters
+ */
+router.get('/registrations', auth, asyncHandler(async (req, res) => {
+  const { status, semester, classId } = req.query;
+  
+  const result = await teachersService.getAllRegistrations(req.user, {
+    status,
+    semester,
+    classId
+  });
+  
+  res.json({
+    success: true,
+    data: result
+  });
+}));
+
+/**
  * GET /teachers/registrations/pending
  * Get pending registrations
  */
 router.get('/registrations/pending', auth, asyncHandler(async (req, res) => {
-  const { page, limit } = req.query;
+  const { page, limit, classId, semester, status } = req.query;
   
   const result = await teachersService.getPendingRegistrations(req.user, {
     page,
-    limit
+    limit,
+    classId,
+    semester,
+    status
   });
   
   res.json({

@@ -4,6 +4,7 @@
  */
 
 const { prisma } = require('../../infrastructure/prisma/client');
+const { parseSemesterString } = require('../../core/utils/semester');
 
 class PointsRepository {
   /**
@@ -34,20 +35,22 @@ class PointsRepository {
    * Find attended activity registrations for student
    */
   async findAttendedRegistrations(studentId, filters = {}) {
-    const { hoc_ky, nam_hoc } = filters;
+    const { semester } = filters; // Accept semester param in new format
     
     const where = {
       sv_id: studentId,
       trang_thai_dk: 'da_tham_gia' // Only attended activities
     };
 
-    // Build activity filters
-    const activityFilter = {};
-    if (hoc_ky) activityFilter.hoc_ky = hoc_ky;
-    if (nam_hoc) activityFilter.nam_hoc = nam_hoc;
-
-    if (Object.keys(activityFilter).length > 0) {
-      where.hoat_dong = activityFilter;
+    // Use simple semester filter if provided
+    if (semester) {
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        where.hoat_dong = {
+          hoc_ky: parsed.semester,
+          nam_hoc: parsed.year
+        };
+      }
     }
 
     return await prisma.dangKyHoatDong.findMany({
@@ -103,19 +106,26 @@ class PointsRepository {
    * Find registrations with pagination
    */
   async findRegistrationsWithPagination(studentId, filters, pagination) {
-    const { hoc_ky, nam_hoc } = filters;
+    const { semester } = filters; // Accept semester param in new format
     const { page = 1, limit = 10 } = pagination;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereCondition = { sv_id: studentId };
-    const activityFilter = {};
     
-    if (hoc_ky) activityFilter.hoc_ky = hoc_ky;
-    if (nam_hoc) activityFilter.nam_hoc = nam_hoc;
-
-    const where = Object.keys(activityFilter).length > 0
-      ? { ...whereCondition, hoat_dong: activityFilter }
-      : whereCondition;
+    // Use simple semester filter if provided
+    let where = whereCondition;
+    if (semester) {
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        where = { 
+          ...whereCondition, 
+          hoat_dong: {
+            hoc_ky: parsed.semester,
+            nam_hoc: parsed.year
+          }
+        };
+      }
+    }
 
     const [registrations, total] = await Promise.all([
       prisma.dangKyHoatDong.findMany({

@@ -7,7 +7,7 @@ import ScanResultDisplay from '../components/ScanResultDisplay';
 import ScannerControls from '../components/ScannerControls';
 
 // Shared components
-import ErrorMessage from '../../../shared/components/common/ErrorMessage';
+// Inline error box (replace shared ErrorMessage if missing)
 
 const QRScannerHeader = () => (
     <div className="p-8 bg-gradient-to-br from-blue-600 to-cyan-500 text-white rounded-2xl shadow-lg">
@@ -48,7 +48,11 @@ export default function QRScannerPage() {
                 ) : (
                     <>
                         <ScannerView ref={videoRef} isScanning={isScanning} isStarting={isStarting} />
-                        {error && <ErrorMessage message={error} />}
+                        {error && (
+                            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg">
+                                {error}
+                            </div>
+                        )}
                         <ScannerControls 
                             isScanning={isScanning}
                             isStarting={isStarting}

@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import http from '../shared/api/http';
 
 const OPTIONS_CACHE_KEY = 'semester_options';
-const CURRENT_CACHE_KEY = 'current_semester';
+// Store backend-reported current semester under a separate key to avoid
+// overwriting the user-selected session key `current_semester` used by pages
+// like Teacher/Monitor dashboards.
+const CURRENT_CACHE_KEY = 'backend_current_semester';
 const STATUS_CACHE_KEY = 'semester_status_cache';
 
 function parseJSON(value, fallback) {
@@ -106,8 +109,10 @@ export default function useSemesterData(semesterValue, { autoFetchStatus = true 
       }
 
       const response = await http.get('/semesters/options');
-      const fetched = response.data?.data || [];
-      saveOptionsCache(Array.isArray(fetched) ? fetched : []);
+      const fetchedRaw = response.data?.data || [];
+      // Use labels directly from backend (already formatted as "Học kỳ X - YYYY")
+      const fetched = Array.isArray(fetchedRaw) ? fetchedRaw : [];
+      saveOptionsCache(fetched);
 
       try {
         const currentRes = await http.get('/semesters/current');

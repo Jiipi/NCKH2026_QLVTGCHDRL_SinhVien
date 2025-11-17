@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Users, Eye, CheckCircle, QrCode, RefreshCw } from 'lucide-react';
-import http from '../../../shared/services/api/client';
-import ClassManagementLayout from '../../../shared/components/layout/ClassManagementLayout';
+import http from '../../../shared/api/http';
+import ClassManagementLayout from '../../../components/ClassManagementLayout';
 import AdminStudentLayout from '../../../components/AdminStudentLayout';
-import { useAppStore } from '../../../shared/store/useAppStore';
+import { useAppStore } from '../../../store/useAppStore';
 
 export default function QRAttendanceManagement() {
   const [activities, setActivities] = useState([]);

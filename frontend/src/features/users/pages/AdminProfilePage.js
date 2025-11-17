@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, MapPin, Clock, CheckCircle } from 'lucide-react';
-import http from '../../../shared/services/api/client';
-import { useAppStore } from '../../../shared/store/useAppStore';
+import http from '../../../shared/api/http';
+import { useAppStore } from '../../../store/useAppStore';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { formatDateVN } from '../../../shared/lib/date';
 import AvatarUpload from '../../../entities/user/ui/Avatar';

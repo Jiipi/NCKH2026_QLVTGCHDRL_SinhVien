@@ -37,23 +37,11 @@ export default function ProfilePage(){
   }, []);
 
   // Function to load points with filters
-  const parseSemesterToLegacy = React.useCallback(function(semester){
-    const m = String(semester || '').match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!m) return { hoc_ky: '', nam_hoc: '' };
-    const hoc_ky = m[1];
-    const y = parseInt(m[2], 10);
-    const nam_hoc = hoc_ky === 'hoc_ky_1' ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-    return { hoc_ky, nam_hoc };
-  }, []);
-
   const loadPoints = React.useCallback(function(semester) {
     setLoading(true);
     const params = {};
     if (semester) {
       params.semester = semester;
-      const { hoc_ky, nam_hoc } = parseSemesterToLegacy(semester);
-      if (hoc_ky) params.hoc_ky = hoc_ky;
-      if (nam_hoc) params.nam_hoc = nam_hoc;
     }
     
     http.get('/auth/points', { params })
@@ -84,9 +72,6 @@ export default function ProfilePage(){
     const params = {};
     if (semester) {
       params.semester = semester;
-      const { hoc_ky, nam_hoc } = parseSemesterToLegacy(semester);
-      if (hoc_ky) params.hoc_ky = hoc_ky;
-      if (nam_hoc) params.nam_hoc = nam_hoc;
     }
     if (status) params.status = status;
     

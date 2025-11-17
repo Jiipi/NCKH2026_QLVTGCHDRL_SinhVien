@@ -201,14 +201,14 @@ export default function ModernTeacherDashboard() {
     return stored === 'true';
   });
   
+  // Unified semester options from backend
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+  
   // Semester filter state (sync with backend current + session cache)
   const [semester, setSemester] = useState(() => {
     const cached = sessionStorage.getItem('current_semester');
-    return cached || '';
+    return cached || currentSemester || '';
   });
-
-  // Unified semester options from backend
-  const { options: semesterOptions, currentSemester } = useSemesterData();
 
   // ✅ USE TEACHER DASHBOARD HOOK - Replaces ~40 lines of manual fetch logic
   const { 
@@ -223,10 +223,19 @@ export default function ModernTeacherDashboard() {
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
+    if (currentSemester) {
+      if (!semester || currentSemester !== semester) {
+        setSemester(currentSemester);
+      }
     }
-  }, [currentSemester]);
+  }, [currentSemester, semester]);
+
+  // Persist selection for other pages/tabs in the session
+  useEffect(() => {
+    if (semester) {
+      try { sessionStorage.setItem('current_semester', semester); } catch (_) {}
+    }
+  }, [semester]);
 
   // Listen for sidebar state changes
   useEffect(() => {

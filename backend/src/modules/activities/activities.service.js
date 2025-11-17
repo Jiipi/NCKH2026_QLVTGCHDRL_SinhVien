@@ -10,10 +10,48 @@ const activitiesRepo = require('./activities.repo');
 const { buildScope, canAccessItem } = require('../../app/scopes/scopeBuilder');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
 const { normalizeRole } = require('../../core/utils/roleHelper');
-const { determineSemesterFromDate } = require('../../core/utils/semester');
+const { determineSemesterFromDate, parseSemesterString } = require('../../core/utils/semester');
 const crypto = require('crypto');
 
 class ActivitiesService {
+  /**
+   * Map incoming request fields to Prisma model fields and drop unsupported keys
+   */
+  mapIncomingFields(data) {
+    const src = data || {};
+    const mapped = {};
+
+    // Name fields (support both legacy and new keys)
+    mapped.ten_hd = src.ten_hd ?? src.ten_hoat_dong ?? '';
+    mapped.mo_ta = src.mo_ta ?? null;
+
+    // Activity type (UUID string expected by Prisma schema)
+    mapped.loai_hd_id = src.loai_hd_id ?? src.loai_hoat_dong_id ?? null;
+
+    // Dates
+    mapped.ngay_bd = src.ngay_bd ?? src.ngay_bat_dau ?? null;
+    mapped.ngay_kt = src.ngay_kt ?? src.ngay_ket_thuc ?? null;
+    mapped.han_dk = src.han_dk ?? null;
+
+    // Optional fields with normalization
+    const toNumberOrNull = (v) => {
+      if (v === undefined || v === null || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    mapped.sl_toi_da = toNumberOrNull(src.sl_toi_da ?? src.so_luong_toi_da);
+    mapped.diem_rl = toNumberOrNull(src.diem_rl ?? src.diem_ren_luyen);
+    mapped.dia_diem = src.dia_diem ?? null;
+
+    // Semester fields (may be filled later if missing)
+    mapped.hoc_ky = src.hoc_ky ?? null;
+    mapped.nam_hoc = src.nam_hoc ?? null;
+
+    // Explicitly DO NOT carry unsupported keys to Prisma (pham_vi, lop_id, khoa_id, etc.)
+    // These may be used for validation upstream but are not part of the HoatDong model.
+
+    return mapped;
+  }
   /**
    * List activities with filters and scope
    */
@@ -92,19 +130,15 @@ class ActivitiesService {
       }
     }
     
-    // Semester filter
+    // Semester filter - simple single year format
     if (semester) {
-      const semesterInfo = this.parseSemester(semester);
-      if (semesterInfo.hoc_ky && semesterInfo.nam_hoc) {
-        where.hoc_ky = semesterInfo.hoc_ky;
-        where.nam_hoc = semesterInfo.nam_hoc;
-        console.log('✅ Applied semester filter:', { 
-          semester, 
-          parsed: semesterInfo,
-          filter: { hoc_ky: semesterInfo.hoc_ky, nam_hoc: semesterInfo.nam_hoc }
-        });
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        where.hoc_ky = parsed.semester;
+        where.nam_hoc = parsed.year;
+        console.log('✅ Applied semester filter:', { semester, filter: { hoc_ky: parsed.semester, nam_hoc: parsed.year } });
       } else {
-        console.warn('⚠️ Failed to parse semester:', semester, 'parsed:', semesterInfo);
+        console.warn('⚠️ Failed to parse semester:', semester);
       }
     } else {
       console.log('ℹ️ No semester filter applied');
@@ -301,17 +335,17 @@ class ActivitiesService {
    * Create new activity
    */
   async create(data, user) {
-    // Normalize and validate
-    const normalized = this.normalizeActivityData(data);
+    // Map incoming to model fields then normalize
+    const normalized = this.normalizeActivityData(this.mapIncomingFields(data));
     
     // Validate dates
     this.validateDates(normalized);
     
-    // Auto-infer semester if missing
+    // Auto-infer semester if missing (requires valid start date)
     if (!normalized.hoc_ky || !normalized.nam_hoc) {
       const semesterInfo = determineSemesterFromDate(new Date(normalized.ngay_bd));
       normalized.hoc_ky = normalized.hoc_ky || `hoc_ky_${semesterInfo.semester === 1 ? '1' : '2'}`;
-      normalized.nam_hoc = normalized.nam_hoc || `${semesterInfo.year}-${semesterInfo.year + 1}`;
+      normalized.nam_hoc = normalized.nam_hoc || String(semesterInfo.year); // Use single year format
     }
     
     // Set creator
@@ -327,7 +361,27 @@ class ActivitiesService {
     // Generate QR token (field name is 'qr' in Prisma schema)
     normalized.qr = this.generateQRToken();
     
-    return activitiesRepo.create(normalized);
+    // Whitelist only Prisma model fields for create
+    const createData = {
+      ten_hd: normalized.ten_hd,
+      mo_ta: normalized.mo_ta ?? null,
+      loai_hd_id: normalized.loai_hd_id,
+      diem_rl: normalized.diem_rl ?? 0,
+      dia_diem: normalized.dia_diem ?? null,
+      ngay_bd: normalized.ngay_bd,
+      ngay_kt: normalized.ngay_kt,
+      han_dk: normalized.han_dk ?? null,
+      sl_toi_da: normalized.sl_toi_da ?? 1,
+      trang_thai: normalized.trang_thai,
+      qr: normalized.qr,
+      hinh_anh: Array.isArray(normalized.hinh_anh) ? normalized.hinh_anh : [],
+      tep_dinh_kem: Array.isArray(normalized.tep_dinh_kem) ? normalized.tep_dinh_kem : [],
+      nguoi_tao_id: normalized.nguoi_tao_id,
+      hoc_ky: normalized.hoc_ky,
+      nam_hoc: normalized.nam_hoc ?? null,
+    };
+
+    return activitiesRepo.create(createData);
   }
   
   /**
@@ -347,8 +401,8 @@ class ActivitiesService {
       throw new ForbiddenError('Bạn không có quyền sửa hoạt động này');
     }
     
-    // Normalize data
-    const normalized = this.normalizeActivityData(data);
+    // Normalize data after mapping field names
+    const normalized = this.normalizeActivityData(this.mapIncomingFields(data));
     
     // Validate dates if provided
     if (normalized.ngay_bd || normalized.ngay_kt || normalized.han_dk) {
@@ -362,7 +416,24 @@ class ActivitiesService {
     // Don't allow changing creator
     delete normalized.nguoi_tao_id;
     
-    return activitiesRepo.update(id, normalized);
+    // Whitelist fields allowed to update
+    const updateData = {
+      ...(normalized.ten_hd !== undefined ? { ten_hd: normalized.ten_hd } : {}),
+      ...(normalized.mo_ta !== undefined ? { mo_ta: normalized.mo_ta } : {}),
+      ...(normalized.loai_hd_id !== undefined ? { loai_hd_id: normalized.loai_hd_id } : {}),
+      ...(normalized.ngay_bd !== undefined ? { ngay_bd: normalized.ngay_bd } : {}),
+      ...(normalized.ngay_kt !== undefined ? { ngay_kt: normalized.ngay_kt } : {}),
+      ...(normalized.han_dk !== undefined ? { han_dk: normalized.han_dk } : {}),
+      ...(normalized.dia_diem !== undefined ? { dia_diem: normalized.dia_diem } : {}),
+      ...(normalized.sl_toi_da !== undefined ? { sl_toi_da: normalized.sl_toi_da } : {}),
+      ...(normalized.diem_rl !== undefined ? { diem_rl: normalized.diem_rl } : {}),
+      ...(normalized.hinh_anh !== undefined ? { hinh_anh: Array.isArray(normalized.hinh_anh) ? normalized.hinh_anh : [] } : {}),
+      ...(normalized.tep_dinh_kem !== undefined ? { tep_dinh_kem: Array.isArray(normalized.tep_dinh_kem) ? normalized.tep_dinh_kem : [] } : {}),
+      ...(normalized.hoc_ky !== undefined ? { hoc_ky: normalized.hoc_ky } : {}),
+      ...(normalized.nam_hoc !== undefined ? { nam_hoc: normalized.nam_hoc } : {}),
+    };
+
+    return activitiesRepo.update(id, updateData);
   }
   
   /**
@@ -519,24 +590,16 @@ class ActivitiesService {
    * Parse semester string
    */
   parseSemester(semester) {
-    const s = String(semester || '');
-    // Accept both dash and underscore formats: hoc_ky_1-2025 and hoc_ky_1_2025
-    const normalized = s.replace(/_(\d{4})$/, '-$1');
-    const match = normalized.match(/^(hoc_ky_1|hoc_ky_2)-(\d{4})$/);
-    if (!match) {
-      try {
-        console.warn('[Activities] parseSemester failed for input:', s);
-      } catch (_) {}
+    const parsed = parseSemesterString(semester);
+    if (!parsed || !parsed.semester) {
+      console.warn('[Activities] parseSemester failed for input:', semester);
       return {};
     }
-    
-    const hoc_ky = match[1];
-    const year = parseInt(match[2]);
-    const nam_hoc = hoc_ky === 'hoc_ky_1' 
-      ? `${year}-${year + 1}` 
-      : `${year - 1}-${year}`;
-    
-    return { hoc_ky, nam_hoc };
+    // Return single-year format (normalized)
+    return { 
+      hoc_ky: parsed.semester, 
+      nam_hoc: parsed.year // Already single year after normalization
+    };
   }
   
   /**

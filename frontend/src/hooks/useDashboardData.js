@@ -471,16 +471,14 @@ export const useTeacherDashboard = ({ semester } = {}) => {
   const [error, setError] = useState(null);
 
   const fetchTeacherData = useCallback(async () => {
-    if (!semester) return;
-
     try {
       setLoading(true);
       setError(null);
 
-      console.log('[useTeacherDashboard] Fetching for semester:', semester);
+      console.log('[useTeacherDashboard] Fetching for semester:', semester || 'current');
 
       const response = await http.get('/teacher/dashboard', {
-        params: { semester }
+        params: semester ? { semester } : {}
       });
 
       const dashboardData = response.data?.data || {};
@@ -513,9 +511,7 @@ export const useTeacherDashboard = ({ semester } = {}) => {
   }, [semester]);
 
   useEffect(() => {
-    if (semester) {
-      fetchTeacherData();
-    }
+    fetchTeacherData();
   }, [semester, fetchTeacherData]);
 
   return {

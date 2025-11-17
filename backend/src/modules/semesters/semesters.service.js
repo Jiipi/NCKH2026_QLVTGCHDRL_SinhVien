@@ -42,13 +42,14 @@ class SemestersService {
         // Extract semester number from hoc_ky (hoc_ky_1 → 1, hoc_ky_2 → 2)
         const semesterNum = r.hoc_ky === 'hoc_ky_1' ? '1' : r.hoc_ky === 'hoc_ky_2' ? '2' : r.hoc_ky;
 
-        // Parse academic year (2025-2026)
-        const yearMatch = r.nam_hoc.match(/(\d{4})-(\d{4})/);
+        // After normalization, nam_hoc is single year (YYYY)
+        // Support legacy format (YYYY-YYYY) and new format (YYYY)
+        const yearMatch = r.nam_hoc.match(/(\d{4})/);
         const year = yearMatch ? yearMatch[1] : r.nam_hoc;
 
         // Value should use dash format to align with activation & UI parsing logic (hoc_ky_1-2025)
         const value = `${r.hoc_ky}-${year}`;
-        const label = `HK${semesterNum}_${year} (${r.nam_hoc})`;
+        const label = `Học kỳ ${semesterNum} - ${year}`;
 
         // Prevent duplicates if multiple activities share same hoc_ky/nam_hoc
         if (seen.has(value)) return null;
@@ -58,6 +59,8 @@ class SemestersService {
         return {
           value,
           label,
+          semester: r.hoc_ky,
+          year: year,
           is_active: isActive,
           status: isActive ? 'ACTIVE' : null,
         };
@@ -287,7 +290,7 @@ class SemestersService {
     if (!latestSemester) {
       const currentYear = new Date().getFullYear();
       const newHocKy = 'hoc_ky_1';
-      const newNamHoc = `${currentYear}-${currentYear + 1}`;
+      const newNamHoc = String(currentYear);
       
       await prisma.hoatDong.create({
         data: {
