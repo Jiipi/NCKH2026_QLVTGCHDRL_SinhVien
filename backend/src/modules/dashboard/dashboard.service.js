@@ -467,28 +467,69 @@ class DashboardService {
   async getAdminDashboard() {
     const { prisma } = require('../../infrastructure/prisma/client');
     
+    // Get today's date range
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    
+    // Get start of current month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
     const [
       totalUsers,
       totalActivities,
       totalRegistrations,
-      activeUsers
+      activeUsers,
+      pendingApprovals,
+      todayApprovals,
+      newUsersThisMonth
     ] = await Promise.all([
+      // Total users in system
       prisma.nguoiDung.count(),
+      
+      // Total activities
       prisma.hoatDong.count(),
+      
+      // Total registrations
       prisma.dangKyHoatDong.count(),
-      prisma.nguoiDung.count({ where: { trang_thai: 'hoat_dong' } })
+      
+      // Active users
+      prisma.nguoiDung.count({ where: { trang_thai: 'hoat_dong' } }),
+      
+      // Pending approvals (registrations)
+      prisma.dangKyHoatDong.count({
+        where: { trang_thai_dk: 'cho_duyet' }
+      }),
+      
+      // Today's approvals - use ngay_duyet (approval timestamp)
+      prisma.dangKyHoatDong.count({
+        where: {
+          trang_thai_dk: 'da_duyet',
+          ngay_duyet: {
+            gte: startOfToday,
+            lte: endOfToday
+          }
+        }
+      }),
+      
+      // New users this month
+      prisma.nguoiDung.count({
+        where: {
+          ngay_tao: {
+            gte: startOfMonth
+          }
+        }
+      })
     ]);
-
-    const pendingApprovals = await prisma.dangKyHoatDong.count({
-      where: { trang_thai_dk: 'cho_duyet' }
-    });
 
     return {
       totalUsers,
       totalActivities,
       totalRegistrations,
       activeUsers,
-      pendingApprovals
+      pendingApprovals,
+      todayApprovals,
+      newUsersThisMonth
     };
   }
 }

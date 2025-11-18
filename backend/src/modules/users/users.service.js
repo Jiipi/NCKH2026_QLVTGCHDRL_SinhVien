@@ -12,40 +12,111 @@ const usersService = {
    * Lấy danh sách users với scope filtering
    */
   async list(user, filters = {}, pagination = {}) {
-    // Build scope
+    // Build scope (currently returns {}) for users
     const scope = await buildScope('users', user);
-    const where = { ...scope, ...filters, isActive: true };
+    // Map incoming filters to actual Prisma schema fields
+    const mappedFilters = { ...filters };
+    // Capture requested role for later fallback logic
+    let requestedRawRole = null;
+    if (mappedFilters.vai_tro && mappedFilters.vai_tro.ten_vt) {
+      requestedRawRole = mappedFilters.vai_tro.ten_vt;
+      mappedFilters.vai_tro = {
+        ten_vt: { equals: requestedRawRole, mode: 'insensitive' }
+      };
+    }
+    // Replace legacy isActive with trang_thai filter; always show active accounts
+    mappedFilters.trang_thai = 'hoat_dong';
+    // If consumer passed filters.fullName / role etc (legacy), ensure they are mapped
+    if (mappedFilters.fullName) {
+      mappedFilters.ho_ten = mappedFilters.fullName;
+      delete mappedFilters.fullName;
+    }
+    // Merge scope and mapped filters
+    let where = { ...scope, ...mappedFilters };
+
+    // Expand teacher role synonyms if GIANG_VIEN requested
+    const teacherRequested = requestedRawRole && requestedRawRole.toUpperCase().includes('GIANG_VIEN');
+    if (teacherRequested) {
+      // Build OR variants (diacritics, spacing, abbreviation)
+      where = {
+        ...Object.fromEntries(Object.entries(where).filter(([k]) => k !== 'vai_tro')),
+        OR: [
+          { vai_tro: { ten_vt: { equals: 'GIANG_VIEN', mode: 'insensitive' } } },
+          { vai_tro: { ten_vt: { equals: 'GIANG VIEN', mode: 'insensitive' } } },
+          { vai_tro: { ten_vt: { equals: 'Giảng viên', mode: 'insensitive' } } },
+          { vai_tro: { ten_vt: { equals: 'GIẢNG_VIÊN', mode: 'insensitive' } } },
+          { vai_tro: { ten_vt: { equals: 'GV', mode: 'insensitive' } } }
+        ],
+        trang_thai: 'hoat_dong'
+      };
+    }
 
     // Pagination
     const page = parseInt(pagination.page) || 1;
     const limit = parseInt(pagination.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Don't return password
-    const select = {
-      id: true,
-      mssv: true,
-      fullName: true,
-      email: true,
-      role: true,
-      class: true,
-      major: true,
-      faculty: true,
-      phone: true,
-      isActive: true,
-      createdAt: true
-    };
+    // Fetch raw records (repo already includes relations)
+    let result = await usersRepo.findMany({ where, skip, limit, select: {} });
 
-    const result = await usersRepo.findMany({ where, skip, limit, select });
-
-    return {
-      data: result.items,
-      pagination: {
-        page,
-        limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit)
+    // Fallback: if teacher role requested but no explicit users found, derive from homeroom teachers
+    if (teacherRequested && result.items.length === 0) {
+      const { prisma } = require('../../infrastructure/prisma/client');
+      // Try a broader variant list via IN before structural fallback
+      const roleVariants = ['GIANG_VIEN','GIANG VIEN','Giảng viên','GIẢNG_VIÊN','GV'];
+      const variantResult = await prisma.nguoiDung.findMany({
+        where: {
+          trang_thai: 'hoat_dong',
+          vai_tro: { ten_vt: { in: roleVariants, mode: 'insensitive' } }
+        },
+        include: {
+          vai_tro: true,
+          sinh_vien: { include: { lop: true } }
+        }
+      });
+      if (variantResult.length > 0) {
+        result = { items: variantResult, total: variantResult.length };
+      } else {
+        // Structural fallback: homeroom teachers from classes
+        const classRows = await prisma.lop.findMany({
+          select: { id: true, ten_lop: true, chu_nhiem: true }
+        });
+        const teacherIds = [...new Set(classRows.map(c => c.chu_nhiem).filter(Boolean))];
+        if (teacherIds.length) {
+          const teacherUsers = await prisma.nguoiDung.findMany({
+            where: { id: { in: teacherIds } },
+            include: {
+              vai_tro: true,
+              sinh_vien: { include: { lop: true } }
+            }
+          });
+          result = { items: teacherUsers, total: teacherUsers.length };
+        }
       }
+    }
+
+    // Transform to legacy frontend shape expected by current UI
+    const transformed = result.items.map(u => ({
+      id: u.id,
+      mssv: u.sinh_vien?.mssv || null,
+      fullName: u.ho_ten || u.ten_dn,
+      email: u.email,
+      role: u.vai_tro?.ten_vt || (teacherRequested ? 'GIANG_VIEN' : null),
+      class: u.sinh_vien?.lop?.ten_lop || null,
+      faculty: u.sinh_vien?.lop?.khoa || null,
+      phone: u.sinh_vien?.sdt || null,
+      isActive: u.trang_thai === 'hoat_dong',
+      createdAt: u.ngay_tao
+    }));
+
+    // Return consistent structure for API response: {items, total, page, limit}
+    // Controller will wrap in ApiResponse.success() making final: {success, data: {items, total, ...}}
+    return {
+      items: transformed,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit)
     };
   },
 
