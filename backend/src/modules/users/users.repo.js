@@ -8,16 +8,24 @@ const usersRepo = {
   /**
    * Lấy danh sách users
    */
-  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { createdAt: 'desc' }, select = {} }) {
+  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { ngay_tao: 'desc' }, select = {} }) {
     const [items, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.nguoiDung.findMany({
         where,
         skip,
         take: limit,
         orderBy,
-        select: Object.keys(select).length > 0 ? select : undefined
+        select: Object.keys(select).length > 0 ? select : undefined,
+        include: {
+          vai_tro: true,
+          sinh_vien: {
+            include: {
+              lop: true
+            }
+          }
+        }
       }),
-      prisma.user.count({ where })
+      prisma.nguoiDung.count({ where })
     ]);
 
     return { items, total };
@@ -27,8 +35,8 @@ const usersRepo = {
    * Lấy user theo ID
    */
   async findById(id, select = {}) {
-    return prisma.user.findUnique({
-      where: { id: parseInt(id) },
+    return prisma.nguoiDung.findUnique({
+      where: { id: id },
       select: Object.keys(select).length > 0 ? select : undefined
     });
   },
@@ -37,7 +45,7 @@ const usersRepo = {
    * Lấy user theo MSSV
    */
   async findByMSSV(mssv, select = {}) {
-    return prisma.user.findUnique({
+    return prisma.nguoiDung.findUnique({
       where: { mssv },
       select: Object.keys(select).length > 0 ? select : undefined
     });
@@ -47,7 +55,7 @@ const usersRepo = {
    * Lấy user theo email
    */
   async findByEmail(email, select = {}) {
-    return prisma.user.findUnique({
+    return prisma.nguoiDung.findUnique({
       where: { email },
       select: Object.keys(select).length > 0 ? select : undefined
     });
@@ -57,7 +65,7 @@ const usersRepo = {
    * Tạo user mới
    */
   async create(data) {
-    return prisma.user.create({
+    return prisma.nguoiDung.create({
       data: {
         mssv: data.mssv,
         fullName: data.fullName,
@@ -90,7 +98,7 @@ const usersRepo = {
     if (data.address !== undefined) updateData.address = data.address;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-    return prisma.user.update({
+    return prisma.nguoiDung.update({
       where: { id: parseInt(id) },
       data: updateData
     });
@@ -100,7 +108,7 @@ const usersRepo = {
    * Xóa user (soft delete - set isActive = false)
    */
   async softDelete(id) {
-    return prisma.user.update({
+    return prisma.nguoiDung.update({
       where: { id: parseInt(id) },
       data: { isActive: false }
     });
@@ -110,7 +118,7 @@ const usersRepo = {
    * Xóa user (hard delete)
    */
   async delete(id) {
-    return prisma.user.delete({
+    return prisma.nguoiDung.delete({
       where: { id: parseInt(id) }
     });
   },
@@ -119,7 +127,7 @@ const usersRepo = {
    * Check user exists
    */
   async exists(id) {
-    const count = await prisma.user.count({
+    const count = await prisma.nguoiDung.count({
       where: { id: parseInt(id) }
     });
     return count > 0;
@@ -129,7 +137,7 @@ const usersRepo = {
    * Đếm users theo role
    */
   async countByRole(role) {
-    return prisma.user.count({
+    return prisma.nguoiDung.count({
       where: { role }
     });
   },
@@ -138,7 +146,7 @@ const usersRepo = {
    * Lấy users theo class
    */
   async findByClass(className) {
-    return prisma.user.findMany({
+    return prisma.nguoiDung.findMany({
       where: { class: className },
       orderBy: { mssv: 'asc' }
     });
@@ -148,7 +156,7 @@ const usersRepo = {
    * Lấy users theo faculty
    */
   async findByFaculty(faculty) {
-    return prisma.user.findMany({
+    return prisma.nguoiDung.findMany({
       where: { faculty },
       orderBy: { fullName: 'asc' }
     });
@@ -158,7 +166,7 @@ const usersRepo = {
    * Search users
    */
   async search(searchTerm) {
-    return prisma.user.findMany({
+    return prisma.nguoiDung.findMany({
       where: {
         OR: [
           { mssv: { contains: searchTerm } },
@@ -175,12 +183,12 @@ const usersRepo = {
    */
   async getStats() {
     const [total, admin, giangVien, lopTruong, sinhVien, active] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { role: 'ADMIN' } }),
-      prisma.user.count({ where: { role: 'GIANG_VIEN' } }),
-      prisma.user.count({ where: { role: 'LOP_TRUONG' } }),
-      prisma.user.count({ where: { role: 'SINH_VIEN' } }),
-      prisma.user.count({ where: { isActive: true } })
+      prisma.nguoiDung.count(),
+      prisma.nguoiDung.count({ where: { role: 'ADMIN' } }),
+      prisma.nguoiDung.count({ where: { role: 'GIANG_VIEN' } }),
+      prisma.nguoiDung.count({ where: { role: 'LOP_TRUONG' } }),
+      prisma.nguoiDung.count({ where: { role: 'SINH_VIEN' } }),
+      prisma.nguoiDung.count({ where: { isActive: true } })
     ]);
 
     return {

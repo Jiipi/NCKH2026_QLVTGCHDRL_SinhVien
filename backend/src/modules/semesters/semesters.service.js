@@ -146,15 +146,40 @@ class SemestersService {
    * Get all classes
    */
   static async getAllClasses() {
-    return await prisma.lop.findMany({
+    const rows = await prisma.lop.findMany({
       select: {
         id: true,
         ten_lop: true,
         khoa: true,
         nien_khoa: true,
+        chu_nhiem_rel: { select: { ho_ten: true, ten_dn: true, email: true } },
+        lop_truong_rel: {
+          select: {
+            mssv: true,
+            nguoi_dung: { select: { ho_ten: true } }
+          }
+        },
+        _count: { select: { sinh_viens: true } }
       },
-      orderBy: { ten_lop: 'asc' },
+      orderBy: { ten_lop: 'asc' }
     });
+
+    // Normalize to shape expected by frontend (studentCount, teacher, monitor)
+    return rows.map(r => ({
+      id: r.id,
+      ten_lop: r.ten_lop,
+      khoa: r.khoa,
+      nien_khoa: r.nien_khoa,
+      studentCount: r._count?.sinh_viens || 0,
+      teacher: r.chu_nhiem_rel ? {
+        name: r.chu_nhiem_rel.ho_ten || r.chu_nhiem_rel.ten_dn,
+        email: r.chu_nhiem_rel.email
+      } : null,
+      monitor: r.lop_truong_rel ? {
+        mssv: r.lop_truong_rel.mssv,
+        name: r.lop_truong_rel.nguoi_dung?.ho_ten || null
+      } : null
+    }));
   }
 
   /**
@@ -261,6 +286,23 @@ class SemestersService {
   static async createNextSemester(user) {
     const { prisma } = require('../../infrastructure/prisma/client');
     
+    // Get or create system activity type for semester management
+    let systemActivityType = await prisma.loaiHoatDong.findFirst({
+      where: { ten_loai_hd: 'Hệ thống' },
+    });
+    
+    if (!systemActivityType) {
+      systemActivityType = await prisma.loaiHoatDong.create({
+        data: {
+          ten_loai_hd: 'Hệ thống',
+          mo_ta: 'Loại hoạt động hệ thống để quản lý học kỳ',
+          diem_mac_dinh: 0,
+          diem_toi_da: 0,
+          mau_sac: '#94a3b8',
+        },
+      });
+    }
+    
     // Get latest semester from database
     const rows = await prisma.hoatDong.findMany({
       select: { hoc_ky: true, nam_hoc: true },
@@ -270,16 +312,15 @@ class SemestersService {
       },
     });
 
-    // Filter valid semesters (format: YYYY-YYYY)
-    const valid = rows.filter(r => /(\d{4})-(\d{4})/.test(r.nam_hoc || ''));
+    // Filter valid semesters (format: YYYY - single year)
+    const valid = rows.filter(r => /^\d{4}$/.test(r.nam_hoc || ''));
     
     let latestSemester = null;
     if (valid.length > 0) {
       // Sort by year and semester
       const withIndex = valid.map(r => {
-        const [, y1, y2] = (r.nam_hoc || '').match(/(\d{4})-(\d{4})/);
-        const baseYear = r.hoc_ky === 'hoc_ky_1' ? parseInt(y1) : parseInt(y2);
-        const idx = baseYear * 2 + (r.hoc_ky === 'hoc_ky_2' ? 1 : 0);
+        const year = parseInt(r.nam_hoc);
+        const idx = year * 2 + (r.hoc_ky === 'hoc_ky_2' ? 1 : 0);
         return { ...r, idx };
       });
       withIndex.sort((a, b) => b.idx - a.idx);
@@ -301,7 +342,7 @@ class SemestersService {
           ngay_bd: new Date(`${currentYear}-09-01`),
           ngay_kt: new Date(`${currentYear + 1}-01-01`),
           ngay_tao: new Date(),
-          loai_hd_id: 'SYSTEM',
+          loai_hd_id: systemActivityType.id,
           nguoi_tao_id: user?.sub || 'admin',
           trang_thai: 'da_duyet',
         },
@@ -320,32 +361,24 @@ class SemestersService {
     
     // Calculate next semester
     const currentHocKy = latestSemester.hoc_ky;
-    const yearMatch = (latestSemester.nam_hoc || '').match(/(\d{4})-(\d{4})/);
+    const currentYear = parseInt(latestSemester.nam_hoc);
     
     let newHocKy, newNamHoc, newYear, startDate, endDate;
     
     if (currentHocKy === 'hoc_ky_1') {
-      // HK1 → HK2 (same academic year)
+      // HK1 → HK2 (same year)
       newHocKy = 'hoc_ky_2';
-      if (yearMatch) {
-        const [_, year1, year2] = yearMatch;
-        newNamHoc = latestSemester.nam_hoc;
-        newYear = parseInt(year2);
-        startDate = new Date(`${year2}-02-01`);
-        endDate = new Date(`${year2}-06-30`);
-      }
+      newNamHoc = String(currentYear);
+      newYear = currentYear;
+      startDate = new Date(`${currentYear}-02-01`);
+      endDate = new Date(`${currentYear}-06-30`);
     } else {
-      // HK2 → HK1 (next academic year)
+      // HK2 → HK1 (next year)
       newHocKy = 'hoc_ky_1';
-      if (yearMatch) {
-        const [_, year1, year2] = yearMatch;
-        const nextYear1 = parseInt(year2);
-        const nextYear2 = nextYear1 + 1;
-        newYear = nextYear1;
-        newNamHoc = `${nextYear1}-${nextYear2}`;
-        startDate = new Date(`${nextYear1}-09-01`);
-        endDate = new Date(`${nextYear2}-01-31`);
-      }
+      newYear = currentYear + 1;
+      newNamHoc = String(newYear);
+      startDate = new Date(`${newYear}-09-01`);
+      endDate = new Date(`${newYear + 1}-01-31`);
     }
     
     // Check if semester already exists
@@ -373,7 +406,7 @@ class SemestersService {
         ngay_bd: startDate,
         ngay_kt: endDate,
         ngay_tao: new Date(),
-        loai_hd_id: 'SYSTEM',
+        loai_hd_id: systemActivityType.id,
         nguoi_tao_id: user?.sub || 'admin',
         trang_thai: 'da_duyet',
       },

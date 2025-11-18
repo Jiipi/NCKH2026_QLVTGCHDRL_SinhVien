@@ -17,14 +17,24 @@ class UsersController {
     try {
       const { page, limit, search, role, khoa, lop } = req.query;
       
-      const result = await usersService.findAll({
+      // Build filters from query params
+      const filters = {};
+      if (search) filters.search = search;
+      // Filter by vai_tro relation if role specified
+      if (role) {
+        filters.vai_tro = {
+          ten_vt: role
+        };
+      }
+      if (khoa) filters.khoa = khoa;
+      if (lop) filters.lop = lop;
+      
+      const pagination = {
         page: parseInt(page) || 1,
-        limit: parseInt(limit) || 10,
-        search,
-        role,
-        khoa,
-        lop,
-      }, req.user);
+        limit: parseInt(limit) || 10
+      };
+      
+      const result = await usersService.list(req.user, filters, pagination);
 
       return sendResponse(res, 200, ApiResponse.success(result, 'Danh sách người dùng'));
     } catch (error) {
