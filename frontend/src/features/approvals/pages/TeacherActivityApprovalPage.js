@@ -44,8 +44,15 @@ export default function ModernActivityApproval() {
   }, []);
 
   useEffect(() => {
+    // Clear old data immediately when semester/activeTab/filter changes
+    setActivities([]);
+    if (activeTab === 'pending') {
+      setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    }
+    setError('');
+    
     loadActivities();
-  }, [semester, activeTab]);
+  }, [semester, activeTab, filter]);
 
   // Helper function to get current semester
   const getCurrentSemesterValue = () => {
@@ -71,6 +78,7 @@ export default function ModernActivityApproval() {
   const loadActivities = async () => {
     try {
       setLoading(true);
+      setError('');
       
       // Chọn endpoint dựa trên tab hiện tại
       const endpoint = activeTab === 'pending' 
@@ -88,6 +96,8 @@ export default function ModernActivityApproval() {
       if (activeTab === 'history' && filter !== 'all') {
         params.status = filter;
       }
+      
+      console.log('[TeacherActivityApproval] Loading activities:', { endpoint, params, activeTab });
       
       const res = await http.get(endpoint, { params });
       
@@ -374,7 +384,7 @@ export default function ModernActivityApproval() {
           filteredActivities.map(activity => (
             <div key={activity.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
               {/* Activity Image */}
-              <div className="relative w-full h-48 overflow-hidden">
+              <div className="relative w-full h-36 overflow-hidden">
                 <img 
                   src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
                   alt={activity.ten_hd}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, Activity, CheckCircle, Clock,
@@ -28,10 +28,18 @@ export default function AdminDashboardPage() {
   const [registrations, setRegistrations] = useState([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [processingId, setProcessingId] = useState(null);
+  const [classStudents, setClassStudents] = useState([]);
+  const [loadingClassDetail, setLoadingClassDetail] = useState(false);
+  const [classDetailError, setClassDetailError] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [showTeacherDetail, setShowTeacherDetail] = useState(false);
+  const [loadingTeacherDetail, setLoadingTeacherDetail] = useState(false);
+  const [teacherDetailError, setTeacherDetailError] = useState(null);
 
   // States for teachers (sidebar)
   const [teachers, setTeachers] = useState([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState('classes');
 
   // Initial fetch for sidebar lists
   useEffect(() => {
@@ -141,9 +149,123 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const extractClassId = (classItem) => (
+    classItem?.id ||
+    classItem?.class_id ||
+    classItem?.classId ||
+    classItem?.ma_lop ||
+    classItem?.value ||
+    classItem?.code
+  );
+
+  const normalizeStudents = (raw) => {
+    if (Array.isArray(raw)) return raw;
+    if (raw?.items) return raw.items;
+    if (raw?.data) return raw.data;
+    if (raw?.students) return raw.students;
+    if (raw?._count?.students && Array.isArray(raw?.students?.items)) return raw.students.items;
+    return [];
+  };
+
   const handleClassDetail = async (classItem) => {
-    setSelectedClass(classItem);
+    const classId = extractClassId(classItem);
+    let hasStudents = Array.isArray(classItem?.students) && classItem.students.length > 0;
+
+    setSelectedClass(prev => ({
+      ...classItem,
+      id: classId || classItem?.id
+    }));
+    setClassStudents(Array.isArray(classItem?.students) ? classItem.students : []);
+    setClassDetailError(null);
     setShowClassDetail(true);
+
+    if (!classId) {
+      setClassDetailError('Không xác định được mã lớp để tải chi tiết.');
+      return;
+    }
+
+    setLoadingClassDetail(true);
+    try {
+      const detailEndpoint = API_ENDPOINTS.classes.detail(classId);
+      const studentsEndpoint = API_ENDPOINTS.classes.students(classId);
+      const [detailRes, studentsRes] = await Promise.allSettled([
+        http.get(detailEndpoint),
+        http.get(studentsEndpoint)
+      ]);
+
+      if (detailRes.status === 'fulfilled') {
+        const detailPayload = detailRes.value.data?.data || detailRes.value.data;
+        setSelectedClass(prev => ({
+          ...prev,
+          ...detailPayload,
+          id: classId
+        }));
+        const embeddedStudents = normalizeStudents(
+          detailPayload?.students ||
+          detailPayload?.danh_sach_sinh_vien ||
+          detailPayload?.sinhVien
+        );
+        if (embeddedStudents.length > 0) {
+          setClassStudents(embeddedStudents);
+          hasStudents = true;
+        }
+      }
+
+      if (studentsRes.status === 'fulfilled') {
+        const studentPayload = studentsRes.value.data?.data || studentsRes.value.data;
+        const studentsList = normalizeStudents(studentPayload);
+        if (studentsList.length > 0) {
+          setClassStudents(studentsList);
+          hasStudents = true;
+        }
+      }
+
+      if (
+        (detailRes.status === 'rejected' && studentsRes.status === 'rejected') ||
+        !hasStudents
+      ) {
+        setClassDetailError('Không thể tải danh sách sinh viên. Vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error('Error loading class detail:', error);
+      setClassDetailError('Có lỗi xảy ra khi tải chi tiết lớp.');
+    } finally {
+      setLoadingClassDetail(false);
+    }
+  };
+
+  const handleTeacherDetail = async (teacherItem) => {
+    const teacherId = teacherItem?.id || teacherItem?.user_id || teacherItem?.nguoi_dung_id;
+    setSelectedTeacher(prev => ({
+      ...teacherItem,
+      id: teacherId || teacherItem?.id
+    }));
+    setTeacherDetailError(null);
+    setShowTeacherDetail(true);
+
+    if (!teacherId) {
+      setTeacherDetailError('Không xác định được mã giảng viên.');
+      return;
+    }
+
+    setLoadingTeacherDetail(true);
+    try {
+      const response = await http.get(API_ENDPOINTS.users.detail(teacherId));
+      const payload = response.data?.data || response.data;
+      if (payload) {
+        setSelectedTeacher(prev => ({
+          ...prev,
+          ...payload
+        }));
+      } else {
+        setTeacherDetailError('Không tìm thấy dữ liệu chi tiết.');
+      }
+    } catch (error) {
+      console.error('Error loading teacher detail:', error);
+      setTeacherDetailError(error?.response?.data?.message || 'Có lỗi xảy ra khi tải chi tiết giảng viên.');
+    } finally {
+      setLoadingTeacherDetail(false);
+    }
   };
 
   const handleApproveRegistration = async (registrationId) => {
@@ -178,6 +300,156 @@ export default function AdminDashboardPage() {
 
   const adminName = 'Quản trị viên';
   const adminInitials = 'QT';
+
+  const adminActionTypeStyles = {
+    approval: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      iconBg: 'bg-green-100',
+      badge: 'bg-green-100 text-green-700',
+      iconColor: 'text-green-700',
+      icon: CheckCircle
+    },
+    create: {
+      bg: 'bg-orange-50',
+      border: 'border-orange-200',
+      iconBg: 'bg-orange-100',
+      badge: 'bg-orange-100 text-orange-700',
+      iconColor: 'text-orange-600',
+      icon: Activity
+    },
+    update: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      iconBg: 'bg-blue-100',
+      badge: 'bg-blue-100 text-blue-700',
+      iconColor: 'text-blue-600',
+      icon: FileCheck
+    },
+    account: {
+      bg: 'bg-purple-50',
+      border: 'border-purple-200',
+      iconBg: 'bg-purple-100',
+      badge: 'bg-purple-100 text-purple-700',
+      iconColor: 'text-purple-600',
+      icon: UserCheck
+    },
+    incident: {
+      bg: 'bg-red-50',
+      border: 'border-red-200',
+      iconBg: 'bg-red-100',
+      badge: 'bg-red-100 text-red-700',
+      iconColor: 'text-red-600',
+      icon: AlertCircle
+    },
+    default: {
+      bg: 'bg-gray-50',
+      border: 'border-gray-200',
+      iconBg: 'bg-gray-100',
+      badge: 'bg-gray-200 text-gray-700',
+      iconColor: 'text-gray-600',
+      icon: Bell
+    }
+  };
+
+  const adminActionFeed = useMemo(() => {
+    const timeline = [];
+
+    if (Array.isArray(registrations) && registrations.length > 0) {
+      registrations.slice(0, 5).forEach((reg, idx) => {
+        const status = (reg.trang_thai_dk || reg.status || '').toString().toLowerCase();
+        const isPending = status === 'cho_duyet' || status === 'pending' || status === 'pending_approval';
+        const statusLabel = status === 'da_duyet' ? 'Đã phê duyệt'
+          : status === 'da_tham_gia' ? 'Đã tham gia'
+          : status === 'tu_choi' ? 'Từ chối'
+          : 'Chờ xử lý';
+
+        timeline.push({
+          key: `registration-${reg.id || idx}`,
+          type: 'approval',
+          title: `${reg.hoat_dong?.ten_hd || 'Hoạt động'} - ${reg.sinh_vien?.nguoi_dung?.ho_ten || 'Sinh viên'}`,
+          description: isPending
+            ? 'Đăng ký cần bạn phê duyệt'
+            : `Bạn đã ${status === 'tu_choi' ? 'từ chối' : 'xử lý'} đăng ký này`,
+          timestamp: reg.ngay_dang_ky,
+          statusLabel,
+          actionLabel: 'Xử lý ngay',
+          actionPath: '/admin/approvals'
+        });
+      });
+    }
+
+    if (Array.isArray(classes) && classes.length > 0) {
+      classes.slice(0, 2).forEach((classItem, idx) => {
+        timeline.push({
+          key: `class-${classItem.id || idx}`,
+          type: 'update',
+          title: `Cập nhật lớp ${classItem.name || classItem.ten_lop || 'Chưa đặt tên'}`,
+          description: classItem.teacher
+            ? `Điều chỉnh giảng viên: ${classItem.teacher.name || classItem.teacher.full_name}`
+            : 'Điều chỉnh thông tin lớp và sinh viên',
+          timestamp: classItem.updated_at || classItem.updatedAt || classItem.created_at || classItem.createdAt,
+          statusLabel: 'Cập nhật lớp',
+          actionLabel: 'Xem lớp',
+          actionPath: `/admin/classes/${classItem.id || ''}`
+        });
+      });
+    }
+
+    if (Array.isArray(teachers) && teachers.length > 0) {
+      teachers.slice(0, 2).forEach((teacher, idx) => {
+        timeline.push({
+          key: `teacher-${teacher.id || idx}`,
+          type: 'account',
+          title: `Quản lý tài khoản ${teacher.ho_ten || teacher.full_name || teacher.name || 'Giảng viên'}`,
+          description: teacher.email ? `Email: ${teacher.email}` : 'Cập nhật thông tin tài khoản giảng viên',
+          timestamp: teacher.updated_at || teacher.created_at,
+          statusLabel: 'Tài khoản GV',
+          actionLabel: 'Quản lý',
+          actionPath: `/admin/users/${teacher.id || teacher.user_id || ''}`
+        });
+      });
+    }
+
+    if (timeline.length === 0) {
+      timeline.push(
+        {
+          key: 'default-create-activity',
+          type: 'create',
+          title: 'Tạo hoạt động mới',
+          description: 'Khởi tạo hoạt động và chia sẻ cho sinh viên.',
+          timestamp: new Date().toISOString(),
+          statusLabel: 'Tạo hoạt động',
+          actionLabel: 'Quản lý hoạt động',
+          actionPath: '/admin/activities'
+        },
+        {
+          key: 'default-manage-roles',
+          type: 'account',
+          title: 'Phân quyền tài khoản',
+          description: 'Thiết lập role cho giảng viên hoặc cán bộ.',
+          timestamp: new Date().toISOString(),
+          statusLabel: 'Quản lý role',
+          actionLabel: 'Thiết lập role',
+          actionPath: '/admin/roles'
+        }
+      );
+    }
+
+    return timeline.slice(0, 8);
+  }, [registrations, classes, teachers]);
+
+  const formatActionTime = (value) => {
+    if (!value) return 'Vừa cập nhật';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Vừa cập nhật';
+    return date.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   if (loading) {
     return (
@@ -316,8 +588,8 @@ export default function AdminDashboardPage() {
       
 
       {/* Main Content: Tabs (left) + Sidebar (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-6 xl:col-span-7">
           <div className="bg-white rounded-xl shadow-md border border-gray-200">
             {/* Tab Headers */}
             <div className="border-b border-gray-200">
@@ -363,41 +635,57 @@ export default function AdminDashboardPage() {
               <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#6366f1 #f3f4f6' }}>
                 {activeTab === 'recent' && (
                   <>
-                    {!Array.isArray(registrations) || registrations.length === 0 ? (
+                    {adminActionFeed.length === 0 ? (
                       <div className="text-center py-12 text-gray-500">
                         <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p className="text-sm">Chưa có hoạt động gần đây</p>
+                        <p className="text-sm">Chưa có ghi nhận thao tác quản trị nào</p>
                       </div>
                     ) : (
-                      registrations.slice(0, 10).map((reg, idx) => {
-                        const statusColor = reg.trang_thai_dk === 'da_duyet' || reg.trang_thai_dk === 'da_tham_gia'
-                          ? 'green' : reg.trang_thai_dk === 'cho_duyet' ? 'yellow' : 'red';
-                        const statusLabel = reg.trang_thai_dk === 'da_duyet' ? 'Đã duyệt' 
-                          : reg.trang_thai_dk === 'da_tham_gia' ? 'Đã tham gia'
-                          : reg.trang_thai_dk === 'cho_duyet' ? 'Chờ duyệt' : 'Từ chối';
-                        const Icon = statusColor === 'green' ? CheckCircle : statusColor === 'yellow' ? AlertCircle : Activity;
-                        return (
-                          <div key={reg.id || idx} className={`flex items-center gap-3 p-4 bg-${statusColor}-50 border border-${statusColor}-200 rounded-lg hover:shadow-md transition-all cursor-pointer`}>
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-${statusColor}-500 flex items-center justify-center`}>
-                              <Icon className="h-5 w-5 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900 text-sm mb-1">
-                                {reg.sinh_vien?.nguoi_dung?.ho_ten || 'N/A'} - {reg.hoat_dong?.ten_hd || 'N/A'}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-600 flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {reg.ngay_dang_ky ? new Date(reg.ngay_dang_ky).toLocaleDateString('vi-VN') : 'N/A'}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full bg-${statusColor}-100 text-${statusColor}-700 font-medium`}>
-                                  {statusLabel.toUpperCase()}
-                                </span>
+                      <div className="space-y-3">
+                        {adminActionFeed.map((action) => {
+                          const style = adminActionTypeStyles[action.type] || adminActionTypeStyles.default;
+                          const Icon = style.icon;
+                          return (
+                            <div
+                              key={action.key}
+                              className={`p-4 rounded-xl border ${style.border} ${style.bg} hover:shadow-md transition-all`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${style.iconBg}`}>
+                                  <Icon className={`h-5 w-5 ${style.iconColor}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-900 text-sm mb-0.5 truncate">
+                                    {action.title}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mb-3">
+                                    {action.description}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {formatActionTime(action.timestamp)}
+                                    </span>
+                                    {action.statusLabel && (
+                                      <span className={`px-2 py-0.5 rounded-full ${style.badge} font-semibold`}>
+                                        {action.statusLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {action.actionPath && (
+                                  <button
+                                    onClick={() => navigate(action.actionPath)}
+                                    className="px-3 py-1.5 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                                  >
+                                    {action.actionLabel || 'Chi tiết'}
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </div>
                     )}
                   </>
                 )}
@@ -544,20 +832,52 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Sidebar column with two-column grid */}
-        <aside>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sidebar: Danh sách lớp */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-bold text-gray-900">Danh sách lớp</h3>
-                </div>
-                <button onClick={() => navigate('/admin/classes')} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  Xem tất cả →
+        <aside className="lg:col-span-6 xl:col-span-5">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarTab('classes')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    sidebarTab === 'classes'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  Danh sách lớp
+                </button>
+                <button
+                  onClick={() => setSidebarTab('teachers')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    sidebarTab === 'teachers'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  Danh sách giảng viên
                 </button>
               </div>
-              {loadingClasses ? (
+              {sidebarTab === 'classes' ? (
+                <button
+                  onClick={() => navigate('/admin/classes')}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Xem tất cả →
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/admin/users?role=GIANG_VIEN')}
+                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                >
+                  Quản lý →
+                </button>
+              )}
+            </div>
+
+            {sidebarTab === 'classes' ? (
+              loadingClasses ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mx-auto mb-2"></div>
                   <p className="text-gray-500 text-sm">Đang tải...</p>
@@ -568,7 +888,7 @@ export default function AdminDashboardPage() {
                   <p className="text-sm">Chưa có lớp</p>
                 </div>
               ) : (
-                <div className="max-h-[400px] overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 #f3f4f6' }}>
+                <div className="max-h-[460px] overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 #f3f4f6' }}>
                   {classes.map((c, idx) => (
                     <div
                       key={c.id || c.ma_lop || c.class_id || c._id || idx}
@@ -590,61 +910,47 @@ export default function AdminDashboardPage() {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-
-            {/* Sidebar: Danh sách giảng viên */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-indigo-600" />
-                  <h3 className="font-bold text-gray-900">Danh sách giảng viên</h3>
-                </div>
-                <button onClick={() => navigate('/admin/users?role=GIANG_VIEN')} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
-                  Quản lý →
-                </button>
+              )
+            ) : loadingTeachers ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent mx-auto mb-2"></div>
+                <p className="text-gray-500 text-sm">Đang tải...</p>
               </div>
-              {loadingTeachers ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent mx-auto mb-2"></div>
-                  <p className="text-gray-500 text-sm">Đang tải...</p>
-                </div>
-              ) : teachers.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">Chưa có dữ liệu</p>
-                </div>
-              ) : (
-                <div className="max-h-[400px] overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#6366f1 #f3f4f6' }}>
+            ) : teachers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">Chưa có dữ liệu</p>
+              </div>
+            ) : (
+              <div className="max-h-[460px] overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#6366f1 #f3f4f6' }}>
                   {teachers.map((t, idx) => (
                     <div
                       key={t.id || t.user_id || t._id || idx}
                       className="rounded-lg p-3 border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 transition-all cursor-pointer"
-                      onClick={() => navigate(`/admin/users/${t.id || t.user_id}`)}
+                      onClick={() => handleTeacherDetail(t)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="relative flex-shrink-0">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-indigo-400 to-purple-500 text-white font-bold text-sm">
-                            {(t.ho_ten || t.fullName || t.full_name || t.name || t.ten_dn || 'G')?.split(' ').pop()?.charAt(0)?.toUpperCase() || 'G'}
-                          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-indigo-400 to-purple-500 text-white font-bold text-sm">
+                          {(t.ho_ten || t.fullName || t.full_name || t.name || t.ten_dn || 'G')?.split(' ').pop()?.charAt(0)?.toUpperCase() || 'G'}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate">
-                            {t.ho_ten || t.fullName || t.full_name || t.name || t.ten_dn || 'Giảng viên'}
-                          </h4>
-                          <p className="text-xs text-gray-600 truncate">
-                            {t.email || t.ten_dn || t.username || '—'}
-                          </p>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium flex-shrink-0">
-                          GV
-                        </span>
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate">
+                          {t.ho_ten || t.fullName || t.full_name || t.name || t.ten_dn || 'Giảng viên'}
+                        </h4>
+                        <p className="text-xs text-gray-600 truncate">
+                          {t.email || t.ten_dn || t.username || '—'}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium flex-shrink-0">
+                        GV
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -698,20 +1004,165 @@ export default function AdminDashboardPage() {
                     <p className="text-gray-900">{selectedClass.description}</p>
                   </div>
                 )}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-bold text-gray-900">
+                      Danh sách sinh viên ({classStudents.length})
+                    </h3>
+                    {loadingClassDetail && (
+                      <span className="text-xs text-gray-500">Đang tải...</span>
+                    )}
+                  </div>
+                  {classDetailError && (
+                    <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                      {classDetailError}
+                    </div>
+                  )}
+                  {loadingClassDetail ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-gray-500">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mb-2"></div>
+                      <p className="text-sm">Đang tải danh sách sinh viên...</p>
+                    </div>
+                  ) : classStudents.length === 0 ? (
+                    <div className="py-6 text-center text-gray-500">
+                      <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">Chưa có dữ liệu sinh viên cho lớp này</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 #f3f4f6' }}>
+                      {classStudents.map((student, index) => {
+                        const studentName = student.ho_ten || student.fullName || student.full_name || student.name || student.ten_sv || 'Sinh viên';
+                        const studentCode = student.ma_sv || student.studentCode || student.code || student.username || student.email;
+                        return (
+                          <div
+                            key={student.id || student.user_id || student.ma_sv || index}
+                            className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">
+                              {(studentName || 'SV').split(' ').pop()?.charAt(0)?.toUpperCase() || 'S'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{studentName}</p>
+                              <p className="text-xs text-gray-600 truncate">{studentCode || 'Chưa có mã'}</p>
+                            </div>
+                            {student.trang_thai || student.status ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                                {student.trang_thai || student.status}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
               <button 
                 onClick={() => setShowClassDetail(false)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTeacherDetail && selectedTeacher && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Users className="h-8 w-8" />
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedTeacher.ho_ten || selectedTeacher.fullName || selectedTeacher.name || 'Giảng viên'}</h2>
+                    <p className="text-indigo-100 text-sm">Thông tin giảng viên</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowTeacherDetail(false)}
+                  className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)] space-y-4">
+              {teacherDetailError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                  {teacherDetailError}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                  <p className="text-sm text-gray-600 mb-1">Email</p>
+                  <p className="text-base font-semibold text-gray-900 break-words">
+                    {selectedTeacher.email || selectedTeacher.nguoi_dung?.email || '—'}
+                  </p>
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                  <p className="text-sm text-gray-600 mb-1">Tên đăng nhập</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedTeacher.ten_dn || selectedTeacher.username || selectedTeacher.account || '—'}
+                  </p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <p className="text-sm text-gray-600 mb-1">Vai trò</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {(selectedTeacher.vai_tro?.ten_vt) || selectedTeacher.role || 'Giảng viên'}
+                  </p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <p className="text-sm text-gray-600 mb-1">Trạng thái</p>
+                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                    {(selectedTeacher.trang_thai || 'Hoạt động').replace(/_/g, ' ')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600 mb-1">Số điện thoại</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {selectedTeacher.sdt || selectedTeacher.phone || 'Chưa cập nhật'}
+                </p>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-bold text-gray-900">Thông tin khác</h3>
+                  {loadingTeacherDetail && (
+                    <span className="text-xs text-gray-500">Đang tải...</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Ngày tạo</span>
+                    <span className="text-gray-900 font-medium">
+                      {selectedTeacher.ngay_tao 
+                        ? new Date(selectedTeacher.ngay_tao).toLocaleDateString('vi-VN')
+                        : (selectedTeacher.created_at ? new Date(selectedTeacher.created_at).toLocaleDateString('vi-VN') : '—')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Đăng nhập gần nhất</span>
+                    <span className="text-gray-900 font-medium">
+                      {selectedTeacher.lan_cuoi_dn
+                        ? new Date(selectedTeacher.lan_cuoi_dn).toLocaleString('vi-VN')
+                        : (selectedTeacher.last_login ? new Date(selectedTeacher.last_login).toLocaleString('vi-VN') : '—')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
               <button 
-                onClick={() => navigate(`/admin/classes/${selectedClass.id}`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                onClick={() => setShowTeacherDetail(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
               >
-                Xem chi tiết đầy đủ
+                Đóng
               </button>
             </div>
           </div>

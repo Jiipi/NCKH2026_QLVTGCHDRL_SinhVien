@@ -115,10 +115,10 @@ const API_ENDPOINTS = {
 
   // Classes endpoints
   classes: {
-    list: '/classes',
-    detail: (id) => `/classes/${id}`,
-    students: (id) => `/classes/${id}/students`,
-    activities: (id) => `/classes/${id}/activities`,
+    list: '/semesters/classes',
+    detail: (id) => `/semesters/classes/${id}`,
+    students: (id) => `/semesters/classes/${id}/students`,
+    activities: (id) => `/semesters/classes/${id}/activities`,
   },
 
   // Notifications endpoints

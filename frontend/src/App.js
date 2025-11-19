@@ -68,6 +68,7 @@ import MonitorApprovalsPage from './features/monitor/ui/MonitorApprovalsPage';
 import ClassNotificationsPage from './features/monitor/ui/ClassNotificationsPage';
 import { useAppStore } from './store/useAppStore';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { useSessionTracking } from './shared/hooks/useSessionTracking';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
 // Modern auth pages (legacy path kept due to different shared structure)
 import LoginPage from './features/auth/ui/LoginPage';
@@ -127,6 +128,10 @@ function HomeRouter() {
 
 function App() {
   const [hydrated, setHydrated] = React.useState(false);
+  const token = useAppStore(s => s.token);
+  
+  // Enable session tracking when authenticated
+  useSessionTracking(!!token);
 
   // Central route change logger for deep debugging of unexpected redirects
   function RouteLogger() {
@@ -249,7 +254,6 @@ function App() {
             React.createElement(Route, { key: 'teacher-activities', path: 'activities', element: React.createElement(TeacherActivitiesPage) }),
             React.createElement(Route, { key: 'teacher-approve', path: 'approve', element: React.createElement(TeacherActivityApprovalPage) }),
             React.createElement(Route, { key: 'teacher-registrations-approve', path: 'registrations/approve', element: React.createElement(TeacherRegistrationApprovalsPage) }),
-            React.createElement(Route, { key: 'teacher-types', path: 'activity-types', element: React.createElement(ActivityTypesManagementPage) }),
             React.createElement(Route, { key: 'teacher-attendance', path: 'attendance', element: React.createElement(TeacherAttendancePage) }),
             React.createElement(Route, { key: 'teacher-student-scores', path: 'student-scores', element: React.createElement(TeacherStudentScoresPage) }),
             React.createElement(Route, { key: 'teacher-students', path: 'students', element: React.createElement(ModernStudentManagement) }),

@@ -19,9 +19,8 @@ export function useActivityTypes() {
   const create = async (data) => { await activityTypesApi.create(data); await load(); };
   const update = async (id, data) => { await activityTypesApi.update(id, data); await load(); };
   const remove = async (id) => { await activityTypesApi.remove(id); await load(); };
-  const uploadImage = async (file) => activityTypesApi.uploadImage(file);
 
   React.useEffect(() => { load(); }, [load]);
 
-  return { items, loading, error, load, create, update, remove, uploadImage };
+  return { items, loading, error, load, create, update, remove };
 }

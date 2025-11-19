@@ -90,7 +90,7 @@ export default function ModernStudentManagement() {
   }, [searchTerm, selectedClass]);
 
   // Helper: collect and show backend validation errors (400) nicely
-  const showValidationErrors = (err, fallback = 'CĂ³ lá»—i xáº£y ra') => {
+  const showValidationErrors = (err, fallback = 'Có lỗi xảy ra') => {
     try {
       const data = err?.response?.data;
       const errors = Array.isArray(data?.errors) ? data.errors : [];
@@ -107,29 +107,29 @@ export default function ModernStudentManagement() {
     const msgs = [];
     const f = formData;
     // Required
-    if (!f.ho_ten?.trim()) msgs.push('Há» vĂ  tĂªn lĂ  báº¯t buá»™c');
-    if (!f.mssv?.trim()) msgs.push('MSSV lĂ  báº¯t buá»™c');
-    if (!f.email?.trim()) msgs.push('Email lĂ  báº¯t buá»™c');
-    if (!f.ten_dn?.trim()) msgs.push('TĂªn Ä‘Äƒng nháº­p lĂ  báº¯t buá»™c');
-    if (!f.mat_khau?.trim()) msgs.push('Máº­t kháº©u lĂ  báº¯t buá»™c');
-    if (!f.lop_id) msgs.push('Lá»›p lĂ  báº¯t buá»™c');
+    if (!f.ho_ten?.trim()) msgs.push('Họ và tên là bắt buộc');
+    if (!f.mssv?.trim()) msgs.push('MSSV là bắt buộc');
+    if (!f.email?.trim()) msgs.push('Email là bắt buộc');
+    if (!f.ten_dn?.trim()) msgs.push('Tên đăng nhập là bắt buộc');
+    if (!f.mat_khau?.trim()) msgs.push('Mật khẩu là bắt buộc');
+    if (!f.lop_id) msgs.push('Lớp là bắt buộc');
 
     // Length constraints
-    if (f.mssv && String(f.mssv).trim().length > 10) msgs.push('MSSV tá»‘i Ä‘a 10 kĂ½ tá»±');
-    if (f.email && String(f.email).trim().length > 100) msgs.push('Email tá»‘i Ä‘a 100 kĂ½ tá»±');
-    if (f.ho_ten && String(f.ho_ten).trim().length > 50) msgs.push('Há» tĂªn tá»‘i Ä‘a 50 kĂ½ tá»±');
-    if (f.ten_dn && String(f.ten_dn).trim().length > 50) msgs.push('TĂªn Ä‘Äƒng nháº­p tá»‘i Ä‘a 50 kĂ½ tá»±');
+    if (f.mssv && String(f.mssv).trim().length > 10) msgs.push('MSSV tối đa 10 ký tự');
+    if (f.email && String(f.email).trim().length > 100) msgs.push('Email tối đa 100 ký tự');
+    if (f.ho_ten && String(f.ho_ten).trim().length > 50) msgs.push('Họ tên tối đa 50 ký tự');
+    if (f.ten_dn && String(f.ten_dn).trim().length > 50) msgs.push('Tên đăng nhập tối đa 50 ký tự');
 
     // Phone: digits only <= 10
     if (f.sdt) {
       const digits = String(f.sdt).replace(/\D/g, '');
-      if (digits.length > 10) msgs.push('Sá»‘ Ä‘iá»‡n thoáº¡i tá»‘i Ä‘a 10 chá»¯ sá»‘');
+      if (digits.length > 10) msgs.push('Số điện thoại tối đa 10 chữ số');
     }
 
     // Date format
     if (f.ngay_sinh) {
       const d = new Date(f.ngay_sinh);
-      if (isNaN(d.getTime())) msgs.push('NgĂ y sinh khĂ´ng há»£p lá»‡ (YYYY-MM-DD)');
+      if (isNaN(d.getTime())) msgs.push('Ngày sinh không hợp lệ (YYYY-MM-DD)');
     }
 
     return msgs;
@@ -147,17 +147,45 @@ export default function ModernStudentManagement() {
         http.get('/teacher/classes')
       ]);
       
-      const studentsData = studentsRes.data?.data?.students || [];
-      const classesData = classesRes.data?.data?.classes || [];
+      const rawStudents = studentsRes.data?.data ?? studentsRes.data ?? [];
+      const studentsData = Array.isArray(rawStudents)
+        ? rawStudents
+        : (Array.isArray(rawStudents?.students) ? rawStudents.students : []);
+      const rawClasses = classesRes.data?.data ?? classesRes.data ?? [];
+      const classesData = Array.isArray(rawClasses)
+        ? rawClasses
+        : (Array.isArray(rawClasses?.classes) ? rawClasses.classes : []);
       
       // Normalize student data to ensure anh_dai_dien is properly mapped
-      const normalizedStudents = (Array.isArray(studentsData) ? studentsData : []).map(student => ({
-        ...student,
-        anh_dai_dien: student.anh_dai_dien || student.avatar || student.profile_image || student.image
-      }));
+      const normalizedStudents = (Array.isArray(studentsData) ? studentsData : []).map(s => {
+        const user = s.nguoi_dung || {};
+        const sv = s.sinh_vien || s; // repo returns SinhVien at root
+        return {
+          // Keep original fields for safety
+          ...s,
+          // Flatten for UI consumption
+          id: user.id || s.id,
+          ho_ten: user.ho_ten || s.ho_ten,
+          email: user.email || s.email,
+          anh_dai_dien: user.anh_dai_dien || s.anh_dai_dien || s.avatar || s.profile_image || s.image,
+          sinh_vien: {
+            ...(sv && typeof sv === 'object' ? sv : {}),
+            mssv: sv.mssv || s.mssv,
+            sdt: sv.sdt || s.sdt,
+            lop: {
+              ...(sv?.lop || s.lop || {}),
+              ten_lop: (sv?.lop?.ten_lop) || (s.lop?.ten_lop) || ''
+            }
+          }
+        };
+      });
       
       setStudents(normalizedStudents);
-      setClasses(Array.isArray(classesData) ? classesData : []);
+      const normalizedClasses = (Array.isArray(classesData) ? classesData : []).map(c => ({
+        ...c,
+        so_sinh_vien: c.so_sinh_vien ?? c._count?.sinh_viens ?? 0
+      }));
+      setClasses(normalizedClasses);
       
       // Auto-select first class if none selected
       if (!selectedClass && classesData.length > 0) {
@@ -179,8 +207,8 @@ export default function ModernStudentManagement() {
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('KhĂ´ng thá»ƒ táº£i dá»¯ liá»‡u sinh viĂªn');
-      showError('Lá»—i khi táº£i dá»¯ liá»‡u sinh viĂªn');
+      setError('Không thể tải dữ liệu sinh viên');
+      showError('Lỗi khi tải dữ liệu sinh viên');
     } finally {
       setLoading(false);
     }
@@ -188,6 +216,7 @@ export default function ModernStudentManagement() {
   
   const loadClassStatistics = async (classId) => {
     try {
+      // Backend provides ID-based alias at /teachers/classes/:id/statistics via interceptor
       const response = await http.get(`/teacher/classes/${classId}/statistics`);
       const stats = response.data?.data || {};
       setClassStatistics({
@@ -204,11 +233,11 @@ export default function ModernStudentManagement() {
   
   const handleAssignMonitor = async () => {
     if (!selectedMonitorId) {
-      showWarning('Vui lĂ²ng chá»n sinh viĂªn lĂ m lá»›p trÆ°á»Ÿng');
+      showWarning('Vui lòng chọn sinh viên làm lớp trưởng');
       return;
     }
     if (!selectedClass) {
-      showWarning('Vui lĂ²ng chá»n má»™t lá»›p');
+      showWarning('Vui lòng chọn một lớp');
       return;
     }
 
@@ -217,11 +246,11 @@ export default function ModernStudentManagement() {
       await http.patch(`/teacher/classes/${selectedClass}/monitor`, {
         sinh_vien_id: selectedMonitorId
       });
-      showSuccess('GĂ¡n lá»›p trÆ°á»Ÿng thĂ nh cĂ´ng');
+      showSuccess('Gán lớp trưởng thành công');
       await loadData();
     } catch (err) {
       console.error('Assign monitor error:', err);
-      showError(err.response?.data?.message || 'KhĂ´ng thá»ƒ gĂ¡n lá»›p trÆ°á»Ÿng');
+      showError(err.response?.data?.message || 'Không thể gán lớp trưởng');
     } finally {
       setAssigningMonitor(false);
     }
@@ -265,27 +294,27 @@ export default function ModernStudentManagement() {
   };
   
   const handleDeleteStudent = async (studentId) => {
-    if (!window.confirm('Báº¡n cĂ³ cháº¯c cháº¯n muá»‘n xĂ³a sinh viĂªn nĂ y?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sinh viên này?')) return;
     
     try {
       await http.delete(`/teacher/students/${studentId}`);
-      showSuccess('XĂ³a sinh viĂªn thĂ nh cĂ´ng');
+      showSuccess('Xóa sinh viên thành công');
       loadData();
     } catch (err) {
       console.error('Delete error:', err);
-      showError(err.response?.data?.message || 'KhĂ´ng thá»ƒ xĂ³a sinh viĂªn');
+      showError(err.response?.data?.message || 'Không thể xóa sinh viên');
     }
   };
   
   const handleSaveEdit = async () => {
     try {
       await http.put(`/teacher/students/${selectedStudent.id}`, formData);
-      showSuccess('Cáº­p nháº­t thĂ´ng tin sinh viĂªn thĂ nh cĂ´ng');
+      showSuccess('Cập nhật thông tin sinh viên thành công');
       setEditModalOpen(false);
       loadData();
     } catch (err) {
       console.error('Update error:', err);
-      showError(err.response?.data?.message || 'KhĂ´ng thá»ƒ cáº­p nháº­t sinh viĂªn');
+      showError(err.response?.data?.message || 'Không thể cập nhật sinh viên');
     }
   };
   
@@ -302,12 +331,12 @@ export default function ModernStudentManagement() {
       if (payload.sdt) payload.sdt = String(payload.sdt).replace(/\D/g, '');
 
       await http.post('/teacher/students', payload);
-      showSuccess('ThĂªm sinh viĂªn thĂ nh cĂ´ng');
+      showSuccess('Thêm sinh viên thành công');
       setAddModalOpen(false);
       loadData();
     } catch (err) {
       console.error('Add error:', err);
-      showValidationErrors(err, 'KhĂ´ng thá»ƒ thĂªm sinh viĂªn');
+      showValidationErrors(err, 'Không thể thêm sinh viên');
     }
   };
   
@@ -332,7 +361,7 @@ export default function ModernStudentManagement() {
       window.URL.revokeObjectURL(href);
     } catch (err) {
       console.error('Export error:', err);
-      showError(err.response?.data?.message || 'KhĂ´ng thá»ƒ xuáº¥t danh sĂ¡ch');
+      showError(err.response?.data?.message || 'Không thể xuất danh sách');
     }
   };
 
@@ -343,7 +372,7 @@ export default function ModernStudentManagement() {
   };
   
   const formatGender = (gt) => {
-    const genderMap = { 'nam': 'Nam', 'nu': 'Ná»¯', 'khac': 'KhĂ¡c' };
+    const genderMap = { 'nam': 'Nam', 'nu': 'Nữ', 'khac': 'Khác' };
     return genderMap[gt] || 'N/A';
   };
 
@@ -377,13 +406,13 @@ export default function ModernStudentManagement() {
     return (
       <div className="p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">CĂ³ lá»—i xáº£y ra</h3>
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
           <p className="text-red-600">{error}</p>
           <button 
             onClick={loadData}
             className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
           >
-            Thá»­ láº¡i
+            Thử lại
           </button>
         </div>
       </div>
@@ -394,8 +423,8 @@ export default function ModernStudentManagement() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quáº£n lĂ½ sinh viĂªn & Lá»›p</h1>
-        <p className="text-gray-600">Xem vĂ  quáº£n lĂ½ danh sĂ¡ch sinh viĂªn, lá»›p phá»¥ trĂ¡ch</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý sinh viên & Lớp</h1>
+        <p className="text-gray-600">Xem và quản lý danh sách sinh viên, lớp phụ trách</p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -403,8 +432,8 @@ export default function ModernStudentManagement() {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h3 className="font-semibold text-gray-900">Danh sĂ¡ch lá»›p</h3>
-              <p className="text-sm text-gray-600">{classes.length} lá»›p phá»¥ trĂ¡ch</p>
+              <h3 className="font-semibold text-gray-900">Danh sách lớp</h3>
+              <p className="text-sm text-gray-600">{classes.length} lớp phụ trách</p>
             </div>
             <div className="divide-y divide-gray-200">
               {classes.map((cls) => (
@@ -422,7 +451,7 @@ export default function ModernStudentManagement() {
                       <h4 className="font-semibold text-gray-900">{cls.ten_lop}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{cls.so_sinh_vien || 0} sinh viĂªn</span>
+                        <span className="text-sm text-gray-600">{cls.so_sinh_vien || 0} sinh viên</span>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -441,9 +470,9 @@ export default function ModernStudentManagement() {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {classes.find(c => c.id === selectedClass)?.ten_lop || 'Lá»›p'}
+                    {classes.find(c => c.id === selectedClass)?.ten_lop || 'Lớp'}
                   </h2>
-                  <p className="text-gray-600">Thá»‘ng kĂª lá»›p há»c</p>
+                  <p className="text-gray-600">Thống kê lớp học</p>
                 </div>
                 <div className="p-3 bg-indigo-100 rounded-lg">
                   <GraduationCap className="w-6 h-6 text-indigo-600" />
@@ -451,11 +480,11 @@ export default function ModernStudentManagement() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-sm text-gray-600">Tá»•ng sinh viĂªn</div>
+                  <div className="text-sm text-gray-600">Tổng sinh viên</div>
                   <div className="text-2xl font-bold">{classStatistics.totalStudents}</div>
                 </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-sm text-gray-600">Hoáº¡t Ä‘á»™ng</div>
+                  <div className="text-sm text-gray-600">Hoạt động</div>
                   <div className="text-2xl font-bold">{classStatistics.totalActivities}</div>
                 </div>
               </div>
@@ -467,7 +496,7 @@ export default function ModernStudentManagement() {
             <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <UserCheck className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">GĂ¡n lá»›p trÆ°á»Ÿng</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Gán lớp trưởng</h3>
               </div>
               <div className="flex gap-3">
                 <select
@@ -475,7 +504,7 @@ export default function ModernStudentManagement() {
                   onChange={(e) => setSelectedMonitorId(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
-                  <option value="">Chá»n sinh viĂªn lĂ m lá»›p trÆ°á»Ÿng</option>
+                  <option value="">Chọn sinh viên làm lớp trưởng</option>
                   {students.map((student) => (
                     <option key={student.sinh_vien?.id || student.id} value={student.sinh_vien?.id}>
                       {student.ho_ten} - {student.sinh_vien?.mssv}
@@ -487,7 +516,7 @@ export default function ModernStudentManagement() {
                   disabled={assigningMonitor}
                   className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {assigningMonitor ? 'Äang xá»­ lĂ½...' : 'GĂ¡n lá»›p trÆ°á»Ÿng'}
+                  {assigningMonitor ? 'Đang xử lý...' : 'Gán lớp trưởng'}
                 </button>
               </div>
             </div>
@@ -501,7 +530,7 @@ export default function ModernStudentManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="TĂ¬m kiáº¿m sinh viĂªn..."
+                placeholder="Tìm kiếm sinh viên..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -523,10 +552,10 @@ export default function ModernStudentManagement() {
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              ThĂªm sinh viĂªn
+              Thêm sinh viên
             </button>
             <button 
-              onClick={() => navigate('/teacher/students/import')}
+              onClick={() => navigate(`/teacher/students/import?classId=${selectedClass || ''}`)}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Upload className="w-4 h-4" />
@@ -535,10 +564,10 @@ export default function ModernStudentManagement() {
             <button 
               onClick={() => handleExport('xlsx')}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              title="Xuáº¥t Excel"
+              title="Xuất Excel"
             >
               <Download className="w-4 h-4" />
-              Xuáº¥t Excel
+              Xuất Excel
             </button>
           </div>
         </div>
@@ -547,7 +576,7 @@ export default function ModernStudentManagement() {
       {/* Students List */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Danh sĂ¡ch sinh viĂªn</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Danh sách sinh viên</h3>
         </div>
         
         {paginatedStudents.length > 0 ? (
@@ -571,7 +600,7 @@ export default function ModernStudentManagement() {
                       </div>
                     )}
                     <div>
-                      <h4 className="font-semibold text-gray-900">{student.ho_ten || 'ChÆ°a cĂ³ tĂªn'}</h4>
+                      <h4 className="font-semibold text-gray-900">{student.ho_ten || 'Chưa có tên'}</h4>
                       <p className="text-sm text-gray-600">MSSV: {student.sinh_vien?.mssv || 'N/A'}</p>
                     </div>
                   </div>
@@ -595,21 +624,21 @@ export default function ModernStudentManagement() {
                     <button 
                       onClick={() => handleViewStudent(student)}
                       className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
-                      title="Xem chi tiáº¿t"
+                      title="Xem chi tiết"
                     >
                       <Eye className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => handleEditStudent(student)}
                       className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                      title="Chá»‰nh sá»­a"
+                      title="Chỉnh sửa"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => handleDeleteStudent(student.id)}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                      title="XĂ³a"
+                      title="Xóa"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -622,11 +651,11 @@ export default function ModernStudentManagement() {
         ) : (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-500 mb-2">KhĂ´ng cĂ³ sinh viĂªn nĂ o</h3>
+            <h3 className="text-lg font-semibold text-gray-500 mb-2">Không có sinh viên nào</h3>
             <p className="text-gray-400">
               {searchTerm 
-                ? 'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn phĂ¹ há»£p vá»›i bá»™ lá»c' 
-                : 'ChÆ°a cĂ³ sinh viĂªn nĂ o trong lá»›p nĂ y'
+                ? 'Không tìm thấy sinh viên phù hợp với bộ lọc' 
+                : 'Chưa có sinh viên nào trong lớp này'
               }
             </p>
           </div>
@@ -636,7 +665,7 @@ export default function ModernStudentManagement() {
         {filteredStudents.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
             <div className="text-sm text-gray-600">
-              Hiá»ƒn thá»‹ {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} cá»§a {filteredStudents.length} sinh viĂªn
+              Hiển thị {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} của {filteredStudents.length} sinh viên
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -644,7 +673,7 @@ export default function ModernStudentManagement() {
                 disabled={currentPage === 1}
                 className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                TrÆ°á»›c
+                Trước
               </button>
               
               {/* Page numbers */}
@@ -704,7 +733,7 @@ export default function ModernStudentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">ThĂ´ng tin sinh viĂªn</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Thông tin sinh viên</h2>
               <button onClick={() => setViewModalOpen(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-6 h-6" />
               </button>
@@ -722,7 +751,7 @@ export default function ModernStudentManagement() {
               >
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  CÆ¡ báº£n
+                  Cơ bản
                 </div>
               </button>
               <button
@@ -735,7 +764,7 @@ export default function ModernStudentManagement() {
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
-                  Há»c táº­p
+                  Học tập
                 </div>
               </button>
               <button
@@ -748,7 +777,7 @@ export default function ModernStudentManagement() {
               >
                 <div className="flex items-center gap-2">
                   <Home className="w-4 h-4" />
-                  CĂ¡ nhĂ¢n
+                  Cá nhân
                 </div>
               </button>
             </div>
@@ -780,7 +809,7 @@ export default function ModernStudentManagement() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Há» vĂ  tĂªn</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Họ và tên</label>
                       <p className="text-base font-semibold text-gray-900">{selectedStudent.ho_ten || 'N/A'}</p>
                     </div>
                     <div>
@@ -792,7 +821,7 @@ export default function ModernStudentManagement() {
                       <p className="text-base text-gray-900">{selectedStudent.email || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Lá»›p</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Lớp</label>
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
                     </div>
                   </div>
@@ -803,7 +832,7 @@ export default function ModernStudentManagement() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Lá»›p</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Lớp</label>
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
                     </div>
                     <div>
@@ -811,11 +840,11 @@ export default function ModernStudentManagement() {
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.khoa || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">NiĂªn khĂ³a</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Niên khóa</label>
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.nien_khoa || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">NÄƒm nháº­p há»c</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Năm nhập học</label>
                       <p className="text-base text-gray-900">{formatDate(selectedStudent.sinh_vien?.lop?.nam_nhap_hoc)}</p>
                     </div>
                   </div>
@@ -826,19 +855,19 @@ export default function ModernStudentManagement() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">NgĂ y sinh</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Ngày sinh</label>
                       <p className="text-base text-gray-900">{formatDate(selectedStudent.sinh_vien?.ngay_sinh)}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Giá»›i tĂ­nh</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Giới tính</label>
                       <p className="text-base text-gray-900">{formatGender(selectedStudent.sinh_vien?.gt)}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Số điện thoại</label>
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.sdt || 'N/A'}</p>
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Äá»‹a chá»‰</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Địa chỉ</label>
                       <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.dia_chi || 'N/A'}</p>
                     </div>
                   </div>
@@ -854,7 +883,7 @@ export default function ModernStudentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">Chá»‰nh sá»­a sinh viĂªn</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Chỉnh sửa sinh viên</h2>
               <button onClick={() => setEditModalOpen(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-6 h-6" />
               </button>
@@ -864,7 +893,7 @@ export default function ModernStudentManagement() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Há» vĂ  tĂªn *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
                     <input
                       type="text"
                       value={formData.ho_ten}
@@ -892,7 +921,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NgĂ y sinh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
                     <input
                       type="date"
                       value={formData.ngay_sinh}
@@ -901,19 +930,19 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Giá»›i tĂ­nh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
                     <select
                       value={formData.gt}
                       onChange={(e) => setFormData({...formData, gt: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="nam">Nam</option>
-                      <option value="nu">Ná»¯</option>
-                      <option value="khac">KhĂ¡c</option>
+                      <option value="nu">Nữ</option>
+                      <option value="khac">Khác</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lá»›p</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Lớp</label>
                     <select
                       value={formData.lop_id}
                       onChange={(e) => setFormData({...formData, lop_id: e.target.value})}
@@ -925,7 +954,7 @@ export default function ModernStudentManagement() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
                     <input
                       type="tel"
                       value={formData.sdt}
@@ -934,7 +963,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Äá»‹a chá»‰</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
                     <textarea
                       value={formData.dia_chi}
                       onChange={(e) => setFormData({...formData, dia_chi: e.target.value})}
@@ -951,14 +980,14 @@ export default function ModernStudentManagement() {
                 onClick={() => setEditModalOpen(false)}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Há»§y
+                Hủy
               </button>
               <button
                 onClick={handleSaveEdit}
                 className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 <Save className="w-4 h-4" />
-                LÆ°u thay Ä‘á»•i
+                Lưu thay đổi
               </button>
             </div>
           </div>
@@ -970,7 +999,7 @@ export default function ModernStudentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">ThĂªm sinh viĂªn má»›i</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Thêm sinh viên mới</h2>
               <button onClick={() => setAddModalOpen(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-6 h-6" />
               </button>
@@ -980,7 +1009,7 @@ export default function ModernStudentManagement() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Há» vĂ  tĂªn *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
                     <input
                       type="text"
                       value={formData.ho_ten}
@@ -1007,7 +1036,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">TĂªn Ä‘Äƒng nháº­p *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập *</label>
                     <input
                       type="text"
                       value={formData.ten_dn}
@@ -1016,7 +1045,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Máº­t kháº©u *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu *</label>
                     <input
                       type="password"
                       value={formData.mat_khau}
@@ -1025,7 +1054,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NgĂ y sinh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
                     <input
                       type="date"
                       value={formData.ngay_sinh}
@@ -1034,32 +1063,32 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Giá»›i tĂ­nh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
                     <select
                       value={formData.gt}
                       onChange={(e) => setFormData({...formData, gt: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="nam">Nam</option>
-                      <option value="nu">Ná»¯</option>
-                      <option value="khac">KhĂ¡c</option>
+                      <option value="nu">Nữ</option>
+                      <option value="khac">Khác</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lá»›p *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Lớp *</label>
                     <select
                       value={formData.lop_id}
                       onChange={(e) => setFormData({...formData, lop_id: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
-                      <option value="">Chá»n lá»›p</option>
+                      <option value="">Chọn lớp</option>
                       {classes.map(cls => (
                         <option key={cls.id} value={cls.id}>{cls.ten_lop}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
                     <input
                       type="tel"
                       value={formData.sdt}
@@ -1068,7 +1097,7 @@ export default function ModernStudentManagement() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Äá»‹a chá»‰</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
                     <textarea
                       value={formData.dia_chi}
                       onChange={(e) => setFormData({...formData, dia_chi: e.target.value})}
@@ -1085,14 +1114,14 @@ export default function ModernStudentManagement() {
                 onClick={() => setAddModalOpen(false)}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Há»§y
+                Hủy
               </button>
               <button
                 onClick={handleSaveAdd}
                 className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                ThĂªm sinh viĂªn
+                Thêm sinh viên
               </button>
             </div>
           </div>

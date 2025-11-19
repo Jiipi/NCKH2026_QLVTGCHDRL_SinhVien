@@ -12,16 +12,17 @@ export default function useMonitorDashboard() {
   const [activeTab, setActiveTab] = React.useState('upcoming');
   const [recentFilter, setRecentFilter] = React.useState('all');
 
+  // Initialize semester from sessionStorage
   const [semester, setSemester] = React.useState(() => {
     try {
       const cached = sessionStorage.getItem('current_semester');
-      return cached || '';
+      return cached || null;
     } catch (_) {
-      return '';
+      return null;
     }
   });
 
-  const { currentSemester } = useSemesterData(semester);
+  const { currentSemester, options: semesterOptions, loading: semesterLoading } = useSemesterData(semester);
 
   const {
     upcoming,
@@ -33,13 +34,28 @@ export default function useMonitorDashboard() {
     classSummary,
     approvals,
     loading
-  } = useDashboardData({ semester, role: 'monitor' });
+  } = useDashboardData({ semester: semester || undefined, role: 'monitor' });
 
+  // Set initial semester only once
   React.useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
+    if (!semester && !semesterLoading) {
+      if (currentSemester) {
+        setSemester(currentSemester);
+      } else if (semesterOptions.length > 0) {
+        setSemester(semesterOptions[0]?.value || null);
+      }
     }
-  }, [currentSemester]);
+  }, [currentSemester, semesterOptions, semesterLoading, semester]);
+
+  // Persist semester whenever it changes
+  const handleSetSemester = React.useCallback((newSemester) => {
+    setSemester(newSemester);
+    if (newSemester) {
+      try {
+        sessionStorage.setItem('current_semester', newSemester);
+      } catch (_) {}
+    }
+  }, []);
 
   React.useEffect(() => {
     if (semester) {
@@ -127,7 +143,7 @@ export default function useMonitorDashboard() {
   return {
     // semester
     semester,
-    setSemester,
+    setSemester: handleSetSemester,
 
     // tabs and filters
     activeTab,

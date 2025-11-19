@@ -3,7 +3,7 @@ import http from '../../../shared/api/http';
 // Service cho hoạt động giáo viên
 // Đảm bảo giữ đúng parity với trang legacy TeacherActivities
 
-export async function listActivities({ page = 1, limit = 20, semester }) {
+export async function listActivities({ page = 1, limit = 100, semester }) {
   const params = { page, limit };
   if (semester) params.semester = semester;
   const res = await http.get('/activities', { params });

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -96,17 +96,51 @@ function ActivityCard({ activity, onSelect, onApprove, onReject }) {
 
 export default function TeacherDashboardPage() {
   const navigate = useNavigate();
-  // Semester filter state (sync with backend current + session cache)
+  
+  // Semester filter state (initialize from sessionStorage)
   const [semester, setSemester] = useState(() => {
-    const cached = sessionStorage.getItem('current_semester');
-    return cached || '';
+    try {
+      const cached = sessionStorage.getItem('current_semester');
+      return cached || null;
+    } catch {
+      return null;
+    }
   });
 
   // Selected homeroom class (must be declared BEFORE using in hooks below)
   const [selectedClassId, setSelectedClassId] = useState(null);
 
   // Unified semester options from backend
-  const { options: semesterOptions, currentSemester } = useSemesterData();
+  const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
+
+  // Set initial semester only once
+  useEffect(() => {
+    if (!semester && !semesterLoading) {
+      if (currentSemester) {
+        setSemester(currentSemester);
+      } else if (semesterOptions.length > 0) {
+        setSemester(semesterOptions[0]?.value || null);
+      }
+    }
+  }, [currentSemester, semesterOptions, semesterLoading, semester]);
+
+  // Persist semester whenever it changes
+  const handleSetSemester = useCallback((newSemester) => {
+    setSemester(newSemester);
+    if (newSemester) {
+      try {
+        sessionStorage.setItem('current_semester', newSemester);
+      } catch (_) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (semester) {
+      try {
+        sessionStorage.setItem('current_semester', semester);
+      } catch (_) {}
+    }
+  }, [semester]);
 
   // ✅ USE TEACHER DASHBOARD HOOK - Replaces ~40 lines of manual fetch logic
   const { 
@@ -160,13 +194,6 @@ export default function TeacherDashboardPage() {
     })();
     return () => { canceled = true; };
   }, []);
-
-  // Keep selected semester in sync with backend-reported current active
-  useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
-    }
-  }, [currentSemester]);
 
   // No sidebar-specific handling here; layout manages it
 
@@ -283,7 +310,7 @@ export default function TeacherDashboardPage() {
                 <h3 className="text-base font-black text-black uppercase tracking-wider">BỘ LỌC HỌC KỲ</h3>
               </div>
               <div className="bg-white rounded-xl p-3 border-2 border-black shadow-lg mb-3">
-                <SemesterFilter value={semester} onChange={setSemester} />
+                <SemesterFilter value={semester} onChange={handleSetSemester} />
               </div>
               <div className="bg-white/90 rounded-xl p-3 border-2 border-black">
                 <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} className="!p-0 !bg-transparent !border-0" />

@@ -346,16 +346,9 @@ function TeacherSidebar(props) {
           badge: pendingCount > 0 ? pendingCount : null
         },
         {
-          key: 'activity-types',
-          to: '/teacher/activity-types',
-          label: 'Loại hoạt động',
-          icon: <FolderOpen className="w-4 h-4" />,
-          active: getActiveState('/teacher/activity-types')
-        },
-        {
           key: 'all-activities',
           to: '/teacher/activities',
-          label: 'Tất cả hoạt động',
+          label: 'Danh mục hoạt động',
           icon: <Calendar className="w-4 h-4" />,
           active: getActiveState('/teacher/activities')
         }

@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Users, Search, Plus, Edit, Trash2, Eye, Filter, X,
   User, Mail, Calendar, Award, CheckCircle, XCircle,
   Phone, MapPin, GraduationCap, Star, Settings, Save,
-  UserPlus, Activity, Clock, Target, Heart, Shield
+  UserPlus, Activity, Clock, Target, Heart, Shield,
+  LayoutGrid, Sparkles
 } from 'lucide-react';
 import http from '../../../shared/api/http';
-import sessionStorageManager from '../../../shared/api/sessionStorageManager';
 import { extractUsersFromAxiosResponse, extractRolesFromAxiosResponse } from '../../../shared/lib/apiNormalization';
 import { getUserAvatar, getStudentAvatar } from '../../../shared/lib/avatar';
+import Pagination from '../../../shared/components/common/Pagination';
+
+const DEFAULT_PAGE_LIMIT = 20;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -17,7 +20,7 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: DEFAULT_PAGE_LIMIT, total: 0, totalPages: 0 });
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -28,11 +31,108 @@ export default function AdminUsersPage() {
   const [formError, setFormError] = useState('');
   const [createRoleTab, setCreateRoleTab] = useState('Admin');
   const [classes, setClasses] = useState([]);
+  const [userStats, setUserStats] = useState({
+    total: 0,
+    byRole: { ADMIN: 0, GIANG_VIEN: 0, LOP_TRUONG: 0, SINH_VIEN: 0 },
+    active: 0,
+    inactive: 0,
+    locked: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [realTimeSessions, setRealTimeSessions] = useState(0);
+  const [activeUserIds, setActiveUserIds] = useState(new Set());
+  const [activeUsersCount, setActiveUsersCount] = useState(0);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const normalizeUserRecord = useCallback((user = {}) => {
+    if (!user) return null;
+    const roleField = typeof user.vai_tro === 'string'
+      ? { ten_vt: user.vai_tro }
+      : (user.vai_tro || null);
+    const roleName = user.role || roleField?.ten_vt || '';
+    const matchedRole = roles.find(r => r.id === user.vai_tro_id || r.ten_vt === roleName);
+    const resolvedRole = matchedRole
+      ? { id: matchedRole.id, ten_vt: matchedRole.ten_vt }
+      : roleField;
+    let student = null;
+    if (user.sinh_vien) {
+      student = {
+        ...user.sinh_vien,
+        lop_id: user.sinh_vien.lop_id || user.sinh_vien.lop?.id || user.lop_id || null
+      };
+    }
+
+    return {
+      ...user,
+      role: roleName || matchedRole?.ten_vt || resolvedRole?.ten_vt || '',
+      vai_tro: resolvedRole || null,
+      vai_tro_id: user.vai_tro_id || matchedRole?.id || resolvedRole?.id || null,
+      sinh_vien: student
+    };
+  }, [roles]);
+
+  const fetchRealTimeSessions = useCallback(async () => {
+    try {
+      const response = await http.get('/core/sessions/active-users?minutes=5');
+      const data = response.data?.data;
+      if (data) {
+        const sessionCount = data.sessionCount ?? data.userIds?.length ?? 0;
+        setRealTimeSessions(sessionCount);
+
+        const activeIds = new Set();
+        if (Array.isArray(data.userIds)) {
+          data.userIds.forEach(id => {
+            if (id != null) activeIds.add(String(id));
+          });
+        }
+        if (Array.isArray(data.userCodes)) {
+          data.userCodes.forEach(code => {
+            if (code) activeIds.add(String(code));
+          });
+        }
+        if (Array.isArray(data.users)) {
+          data.users.forEach(user => {
+            if (user?.user_id) activeIds.add(String(user.user_id));
+            if (user?.ten_dn) activeIds.add(String(user.ten_dn));
+            if (user?.mssv) activeIds.add(String(user.mssv));
+          });
+        }
+        setActiveUserIds(activeIds);
+        const uniqueActiveUsers = Array.isArray(data.userIds)
+          ? data.userIds.length
+          : (Array.isArray(data.users) ? new Set(data.users.map(u => u.user_id)).size : sessionCount);
+        setActiveUsersCount(uniqueActiveUsers || 0);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải phiên hoạt động:', error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
     fetchRoles();
-  }, []);
+    fetchUserStats();
+    fetchRealTimeSessions();
+    
+    // Refresh real-time sessions every 5 seconds for near real-time updates
+    const interval = setInterval(() => {
+      fetchRealTimeSessions();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [fetchRealTimeSessions]);
+
+  useEffect(() => {
+    const syncHandler = () => fetchRealTimeSessions();
+    window.addEventListener('tab_session_sync', syncHandler);
+    window.addEventListener('focus', syncHandler);
+    document.addEventListener('visibilitychange', syncHandler);
+    return () => {
+      window.removeEventListener('tab_session_sync', syncHandler);
+      window.removeEventListener('focus', syncHandler);
+      document.removeEventListener('visibilitychange', syncHandler);
+    };
+  }, [fetchRealTimeSessions]);
 
   useEffect(() => {
     fetchUsers(pagination.page, pagination.limit);
@@ -55,10 +155,23 @@ export default function AdminUsersPage() {
       const data = response.data?.data || response.data;
       if (data.users && data.pagination) {
         setUsers(data.users);
-        setPagination(data.pagination);
+        setPagination(prev => ({
+          ...prev,
+          page: data.pagination.page || page,
+          limit: data.pagination.limit || limit,
+          total: data.pagination.total ?? data.users.length ?? prev.total,
+          totalPages: data.pagination.totalPages ?? (Math.ceil((data.pagination.total ?? data.users.length ?? 0) / (data.pagination.limit || limit)) || 1)
+        }));
       } else {
         const normalized = extractUsersFromAxiosResponse(response);
         setUsers(normalized);
+        setPagination(prev => ({
+          ...prev,
+          page,
+          limit,
+          total: normalized.length,
+          totalPages: Math.ceil(normalized.length / limit) || 1
+        }));
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -78,7 +191,6 @@ export default function AdminUsersPage() {
       setRoles([]);
     }
   };
-
   useEffect(() => {
     const loadClasses = async () => {
       try {
@@ -93,37 +205,76 @@ export default function AdminUsersPage() {
     loadClasses();
   }, []);
 
-  const fetchUserDetails = async (userId) => {
+  const fetchUserStats = async () => {
     try {
-      const response = await http.get(`/admin/users/${userId}`);
-      const userData = response.data?.data || response.data;
-      setSelectedUser(userData);
-      if (userData?.sinh_vien) {
-        const pointsResponse = await http.get(`/admin/users/${userId}/points`);
-        const pr = pointsResponse.data?.data || pointsResponse.data;
-        let pointsArray = [];
-        if (Array.isArray(pr)) {
-          pointsArray = pr;
-        } else if (Array.isArray(pr?.details)) {
-          pointsArray = pr.details.map(d => ({
-            activity_name: d.name || d.activity || 'Hoạt động',
-            date: d.date,
-            points: d.points || 0,
-            raw: d
-          }));
-        } else if (Array.isArray(pr?.attendance)) {
-          pointsArray = pr.attendance.map(a => ({
-            activity_name: a.activity || 'Điểm danh',
-            date: a.date,
-            points: a.points || 0,
-            raw: a
-          }));
-        }
-        setUserPoints(pointsArray);
+      setStatsLoading(true);
+      const res = await http.get('/core/users/stats');
+      const data = res.data?.data || res.data || {};
+      setUserStats({
+        total: data.total || 0,
+        byRole: {
+          ADMIN: data.byRole?.ADMIN || 0,
+          GIANG_VIEN: data.byRole?.GIANG_VIEN || 0,
+          LOP_TRUONG: data.byRole?.LOP_TRUONG || 0,
+          SINH_VIEN: data.byRole?.SINH_VIEN || 0,
+        },
+        active: data.active || 0,
+        inactive: data.inactive ?? Math.max((data.total || 0) - (data.active || 0), 0),
+        locked: data.locked ?? data.inactive ?? Math.max((data.total || 0) - (data.active || 0), 0)
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchUserDetails = async (userId) => {
+    const response = await http.get(`/admin/users/${userId}`);
+    const userData = response.data?.data || response.data;
+    if (userData?.sinh_vien) {
+      const pointsResponse = await http.get(`/admin/users/${userId}/points`);
+      const pr = pointsResponse.data?.data || pointsResponse.data;
+      let pointsArray = [];
+      if (Array.isArray(pr)) {
+        pointsArray = pr;
+      } else if (Array.isArray(pr?.details)) {
+        pointsArray = pr.details.map(d => ({
+          activity_name: d.name || d.activity || 'Hoạt động',
+          date: d.date,
+          points: d.points || 0,
+          raw: d
+        }));
+      } else if (Array.isArray(pr?.attendance)) {
+        pointsArray = pr.attendance.map(a => ({
+          activity_name: a.activity || 'Điểm danh',
+          date: a.date,
+          points: a.points || 0,
+          raw: a
+        }));
       }
-      setShowDetailModal(true);
+      setUserPoints(pointsArray);
+    } else {
+      setUserPoints([]);
+    }
+    return userData;
+  };
+
+  const handleViewDetails = async (user) => {
+    const baseUser = normalizeUserRecord(user) || user;
+    setSelectedUser(baseUser || null);
+    setUserPoints([]);
+    setShowDetailModal(true);
+    setEditMode(false);
+    setDetailLoading(true);
+    try {
+      const detailData = await fetchUserDetails(user.id);
+      const merged = normalizeUserRecord({ ...baseUser, ...detailData });
+      setSelectedUser(merged);
     } catch (error) {
       console.error('Lỗi khi tải chi tiết người dùng:', error);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -133,10 +284,23 @@ export default function AdminUsersPage() {
     try {
       if (selectedUser.id) {
         const payload = {};
+        if (selectedUser.ten_dn && selectedUser.ten_dn.trim()) payload.maso = selectedUser.ten_dn.trim();
         if (selectedUser.ho_ten && selectedUser.ho_ten.trim()) payload.hoten = selectedUser.ho_ten.trim();
         if (selectedUser.email && selectedUser.email.trim()) payload.email = selectedUser.email.trim();
         if (selectedUser.mat_khau && String(selectedUser.mat_khau).length >= 6) payload.password = selectedUser.mat_khau;
-        if (selectedUser.vai_tro?.ten_vt === 'ADMIN') payload.role = 'ADMIN';
+        if (selectedUser.trang_thai) payload.trang_thai = selectedUser.trang_thai;
+        const roleName = selectedUser.role || selectedUser.vai_tro?.ten_vt;
+        if (roleName) payload.role = roleName;
+        if (selectedUser.sinh_vien) {
+          payload.student = {
+            mssv: selectedUser.sinh_vien.mssv?.trim(),
+            ngay_sinh: selectedUser.sinh_vien.ngay_sinh || null,
+            gt: selectedUser.sinh_vien.gt || null,
+            dia_chi: selectedUser.sinh_vien.dia_chi || null,
+            sdt: selectedUser.sinh_vien.sdt || null,
+            lop_id: selectedUser.sinh_vien.lop_id || selectedUser.sinh_vien.lop?.id || null
+          };
+        }
         await http.put(`/admin/users/${selectedUser.id}`, payload);
       } else {
         const maso = (selectedUser.ten_dn || '').trim();
@@ -172,6 +336,7 @@ export default function AdminUsersPage() {
         await http.post('/admin/users', payload);
       }
       await fetchUsers();
+      await fetchUserStats();
       setShowDetailModal(false);
       setShowCreateModal(false);
       setSelectedUser(null);
@@ -183,6 +348,17 @@ export default function AdminUsersPage() {
     } finally {
       setSubmitLoading(false);
     }
+  };
+
+  const handleRoleSelect = (roleId) => {
+    if (!editMode) return;
+    const selectedRole = roles.find(r => String(r.id) === String(roleId));
+    setSelectedUser(prev => ({
+      ...prev,
+      vai_tro_id: roleId,
+      role: selectedRole?.ten_vt || prev?.role || '',
+      vai_tro: selectedRole ? { id: selectedRole.id, ten_vt: selectedRole.ten_vt } : prev?.vai_tro || null
+    }));
   };
 
   const handleDeleteUser = async (userId) => {
@@ -210,6 +386,7 @@ export default function AdminUsersPage() {
       await http.delete(`/admin/users/${userId}`);
       alert(`✓ Đã xóa ${userName} và toàn bộ dữ liệu liên quan khỏi hệ thống.`);
       await fetchUsers();
+      await fetchUserStats();
     } catch (error) {
       console.error('Lỗi khi xóa người dùng:', error);
       const errorMessage = error?.response?.data?.message || 'Không thể xóa người dùng';
@@ -217,41 +394,9 @@ export default function AdminUsersPage() {
     }
   };
 
-  const getActiveAccountIdentifiers = () => {
-    const ids = new Set();
-    const codes = new Set();
-    try {
-      const tabs = sessionStorageManager.getActiveTabs?.() || [];
-      const now = Date.now();
-      tabs.forEach(t => {
-        const fresh = typeof t.timeSinceActivity === 'number' ? t.timeSinceActivity < 2 * 60 * 1000 : ((now - (t.lastActivity || 0)) < 2 * 60 * 1000);
-        if (fresh && t.isActive && t.hasSession) {
-          if (t.userId) ids.add(String(t.userId));
-          if (t.userCode) codes.add(String(t.userCode));
-        }
-      });
-      const msRaw = localStorage.getItem('multi_session_data');
-      if (msRaw) {
-        const ms = JSON.parse(msRaw);
-        Object.values(ms || {}).forEach(sess => {
-          const hasToken = !!sess?.token;
-          const isActive = sess?.isActive === true;
-          const last = sess?.lastActivity || sess?.timestamp;
-          const fresh = last ? (now - last) < 2 * 60 * 1000 : false;
-          if (hasToken && isActive && fresh) {
-            const u = sess.user || {};
-            if (u.id) ids.add(String(u.id));
-            if (u.maso) codes.add(String(u.maso));
-            if (u.ten_dn) codes.add(String(u.ten_dn));
-          }
-        });
-      }
-    } catch (_) {}
-    return { ids, codes };
-  };
+  // Removed: getActiveAccountIdentifiers - now using activeUserIds from session API
 
-  const { ids: activeIds, codes: activeCodes } = getActiveAccountIdentifiers();
-
+  const allUsers = Array.isArray(users) ? users : [];
   const filteredUsers = Array.isArray(users) ? users.filter(user => {
     const needle = searchTerm.toLowerCase();
     const matchesSearch = !needle ||
@@ -259,12 +404,15 @@ export default function AdminUsersPage() {
       user.ten_dn?.toLowerCase().includes(needle) ||
       user.email?.toLowerCase().includes(needle) ||
       user.sinh_vien?.mssv?.toLowerCase().includes(needle);
-    const sameId = user.id && activeIds.has(String(user.id));
-    const sameCode = (user.maso && activeCodes.has(String(user.maso))) ||
-      (user.ten_dn && activeCodes.has(String(user.ten_dn))) ||
-      (user.sinh_vien?.mssv && activeCodes.has(String(user.sinh_vien.mssv)));
+    
+    // Check if user is currently active (has active session)
+    const isActiveNow = activeUserIds.has(String(user.id)) || 
+                        activeUserIds.has(String(user.ten_dn)) ||
+                        (user.sinh_vien?.mssv && activeUserIds.has(String(user.sinh_vien.mssv)));
+    
     const locked = user.trang_thai === 'khoa' || user.khoa === true;
-    const derivedStatus = locked ? 'khoa' : (sameId || sameCode ? 'hoat_dong' : 'khong_hoat_dong');
+    const derivedStatus = locked ? 'khoa' : (isActiveNow ? 'hoat_dong' : 'khong_hoat_dong');
+    
     const matchesRole = !roleFilter || user.vai_tro?.ten_vt === roleFilter;
     const matchesStatus = !statusFilter || derivedStatus === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
@@ -279,6 +427,19 @@ export default function AdminUsersPage() {
     }
   };
 
+  const openCreateModal = () => {
+    const defaultRole = roles?.[0]?.ten_vt || 'Admin';
+    setSelectedUser({
+      ten_dn: '',
+      email: '',
+      ho_ten: '',
+      role: defaultRole,
+      sinh_vien: null
+    });
+    setCreateRoleTab(defaultRole);
+    setShowCreateModal(true);
+  };
+
   const getRoleColor = (role) => {
     switch (role) {
       case 'Admin': return { bg: '#fef2f2', color: '#dc2626' };
@@ -288,6 +449,16 @@ export default function AdminUsersPage() {
       default: return { bg: '#f3f4f6', color: '#374151' };
     }
   };
+
+  const normalizeRoleKey = (role) => (role || '').toString().toUpperCase().replace(/\s+/g, '_');
+  const totalAccounts = userStats.total || pagination.total || allUsers.length || 0;
+  const adminCount = userStats.byRole?.ADMIN || 0;
+  const teacherCount = userStats.byRole?.GIANG_VIEN || 0;
+  const studentCount = userStats.byRole?.SINH_VIEN || 0;
+  const lockedAccounts = userStats.locked ?? Math.max(totalAccounts - (userStats.active || 0), 0);
+  const liveSessions = realTimeSessions;
+  const activeNowCount = Math.min(activeUsersCount || 0, totalAccounts);
+  const inactiveCount = Math.max(totalAccounts - lockedAccounts - activeNowCount, 0);
 
   const buttonStyle = {
     padding: '8px 16px',
@@ -342,126 +513,163 @@ export default function AdminUsersPage() {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
+          @keyframes neo-float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+          }
         `}
       </style>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px'
-      }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-            Quản Lý Tài Khoản Tích Hợp
-          </h1>
-          <p style={{ color: '#6b7280' }}>
-            Quản lý tài khoản, thông tin cá nhân và điểm rèn luyện trong một giao diện
-          </p>
+      <div className="space-y-6 mb-8">
+        <div className="relative min-h-[280px]">
+          <div className="absolute inset-0 overflow-hidden rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
+            <div className="absolute inset-0" style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+              backgroundSize: '50px 50px'
+            }}></div>
+          </div>
+
+          <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce"></div>
+          <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full"></div>
+
+          <div className="relative z-10 p-6 sm:p-8">
+            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl">
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-indigo-400 blur-xl opacity-50 animate-pulse"></div>
+                      <div className="relative bg-black text-indigo-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-indigo-400">
+                        🛡️ NEO ADMIN
+                      </div>
+                    </div>
+                    <div className="h-8 w-1 bg-white/40"></div>
+                    <div className="text-white/90 font-bold text-sm flex items-center gap-2">
+                      <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
+                      {totalAccounts} tài khoản
+                    </div>
+                  </div>
+                  <button
+                    onClick={openCreateModal}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 shadow-xl hover:shadow-white/50 hover:scale-105 font-bold"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    Thêm tài khoản
+                  </button>
+                </div>
+
+                <div>
+                  <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight">
+                    Quản lý tài khoản
+                    <br />
+                    <span className="text-pink-200">TẬP TRUNG</span>
+                  </h1>
+                  <p className="text-white/80 text-lg font-medium max-w-2xl mt-3">
+                    Theo dõi hoạt động đăng nhập, trạng thái khóa/kích hoạt và phân bổ vai trò cho toàn bộ hệ thống chỉ trong một màn hình.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { icon: Users, label: 'Tổng tài khoản', value: totalAccounts, accent: 'bg-gradient-to-br from-yellow-200 to-yellow-50' },
+                    { icon: Clock, label: 'Phiên đang hoạt động', value: liveSessions, accent: 'bg-gradient-to-br from-emerald-200 to-emerald-50' },
+                    { icon: Shield, label: 'Tài khoản bị khóa', value: lockedAccounts, accent: 'bg-gradient-to-br from-rose-200 to-rose-50' },
+                  { icon: LayoutGrid, label: 'Admin • GV • LT • SV', value: `${adminCount}/${teacherCount}/${userStats.byRole?.LOP_TRUONG || 0}/${studentCount}`, accent: 'bg-gradient-to-br from-sky-200 to-sky-50' }
+                  ].map((stat) => (
+                    <div key={stat.label} className="group relative">
+                      <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl transition-all duration-300 group-hover:translate-x-3 group-hover:translate-y-3"></div>
+                      <div className={`relative border-4 border-black ${stat.accent} p-4 rounded-2xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1`}>
+                        <stat.icon className="h-6 w-6 text-black mb-2" />
+                        <p className="text-3xl font-black text-black">{stat.value}</p>
+                        <p className="text-xs font-black text-black/70 uppercase tracking-wider">{stat.label}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes bounce-slow {
+              0%, 100% { transform: translateY(0) rotate(45deg); }
+              50% { transform: translateY(-20px) rotate(45deg); }
+            }
+            .animate-bounce {
+              animation: bounce-slow 3s ease-in-out infinite;
+            }
+          `}</style>
         </div>
-        <button 
-          onClick={() => {
-            setSelectedUser({
-              ten_dn: '',
-              email: '',
-              ho_ten: '',
-              role: roles?.[0]?.ten_vt || 'Admin',
-              sinh_vien: null
-            });
-            setShowCreateModal(true);
-          }}
-          style={{
-            ...buttonStyle,
-            backgroundColor: '#3b82f6',
-            color: 'white'
-          }}
-        >
-          <UserPlus size={20} />
-          Thêm Người Dùng
-        </button>
       </div>
 
-      <div style={{ 
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '24px',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px'
-        }}>
-          <div style={{ position: 'relative' }}>
-            <Search 
-              size={20} 
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} 
-            />
-            <input
-              type="text"
-              placeholder="Tìm kiếm người dùng..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 12px 12px 44px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <Filter 
-              size={20} 
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} 
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 12px 12px 44px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="hoat_dong">Hoạt động</option>
-              <option value="khong_hoat_dong">Không hoạt động</option>
-              <option value="khoa">Bị khóa</option>
-            </select>
+      <div className="space-y-4 mb-6">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm">
+          <div className="p-6 space-y-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Tìm kiếm người dùng..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-indigo-300"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 bg-gray-100 border-2 border-gray-200 rounded-2xl px-4 py-2 text-sm font-semibold text-gray-700">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="bg-transparent focus:outline-none cursor-pointer"
+                >
+                  <option value="">Tất cả vai trò</option>
+                  {roles.map((role, idx) => (
+                    <option key={idx} value={role.ten_vt}>{role.ten_vt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-sm font-semibold text-gray-500">
+                {filteredUsers.length} tài khoản
+              </div>
+              <button
+                onClick={() => { setSearchTerm(''); setRoleFilter(''); setStatusFilter(''); }}
+                className="ml-auto px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-          <button
-            onClick={() => { setStatusFilter(''); setPagination(prev => ({ ...prev, page: 1 })); }}
-            style={{ ...buttonStyle, backgroundColor: statusFilter === '' ? '#3b82f6' : '#f3f4f6', color: statusFilter === '' ? 'white' : '#374151', flex: 1 }}
-          >
-            <Users size={18} />
-            Tất cả ({users.length})
-          </button>
-          <button
-            onClick={() => { setStatusFilter('hoat_dong'); setPagination(prev => ({ ...prev, page: 1 })); }}
-            style={{ ...buttonStyle, backgroundColor: statusFilter === 'hoat_dong' ? '#10b981' : '#f3f4f6', color: statusFilter === 'hoat_dong' ? 'white' : '#374151', flex: 1 }}
-          >
-            <CheckCircle size={18} />
-            {(() => { const active = users.filter(u => (u.trang_thai === 'khoa' || u.khoa === true) ? false : ( (u.id && activeIds.has(String(u.id))) || (u.maso && activeCodes.has(String(u.maso))) || (u.ten_dn && activeCodes.has(String(u.ten_dn))) || (u.sinh_vien?.mssv && activeCodes.has(String(u.sinh_vien.mssv))) ) ).length; return `Hoạt động (${active})`; })()}
-          </button>
-          <button
-            onClick={() => { setStatusFilter('khoa'); setPagination(prev => ({ ...prev, page: 1 })); }}
-            style={{ ...buttonStyle, backgroundColor: statusFilter === 'khoa' ? '#ef4444' : '#f3f4f6', color: statusFilter === 'khoa' ? 'white' : '#374151', flex: 1 }}
-          >
-            <XCircle size={18} />
-            {(() => { const locked = users.filter(u => u.trang_thai === 'khoa' || u.khoa === true).length; return `Bị khóa (${locked})`; })()}
-          </button>
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm">
+          <div className="px-6 pt-4 text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-purple-500" />
+            Trạng thái tài khoản
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { key: '', label: `Tất cả (${totalAccounts})`, classes: 'bg-gray-100 border-gray-200 text-gray-900', dot: 'bg-gray-600' },
+              { key: 'hoat_dong', label: `Hoạt động (${activeNowCount})`, classes: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
+              { key: 'khoa', label: `Bị khóa (${lockedAccounts})`, classes: 'bg-rose-50 border-rose-200 text-rose-700', dot: 'bg-rose-500' },
+              { key: 'khong_hoat_dong', label: `Không hoạt động (${inactiveCount})`, classes: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500' }
+            ].map((chip) => (
+              <button
+                key={chip.key || 'all'}
+                onClick={() => { setStatusFilter(chip.key); setPagination(prev => ({ ...prev, page: 1 })); }}
+                className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl font-semibold border-2 transition-all hover:-translate-y-0.5 ${chip.classes} ${statusFilter === chip.key ? 'shadow-[0_8px_30px_rgba(0,0,0,0.12)] ring-2 ring-offset-2 ring-white/70' : ''}`}
+              >
+                <span className="text-sm">{chip.label}</span>
+                <div className={`w-2 h-2 rounded-full ${chip.dot}`}></div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -476,10 +684,11 @@ export default function AdminUsersPage() {
         ) : (
           filteredUsers.map((user) => {
             const avatarInfo = user.sinh_vien ? getStudentAvatar(user.sinh_vien) : getUserAvatar(user);
-            const sameId = user.id && activeIds.has(String(user.id));
-            const sameCode = (user.maso && activeCodes.has(String(user.maso))) || (user.ten_dn && activeCodes.has(String(user.ten_dn)));
+            const isActiveNow = activeUserIds.has(String(user.id)) || 
+                                activeUserIds.has(String(user.ten_dn)) ||
+                                (user.sinh_vien?.mssv && activeUserIds.has(String(user.sinh_vien.mssv)));
             const locked = user.trang_thai === 'khoa' || user.khoa === true;
-            const derivedStatus = locked ? 'khoa' : (sameId || sameCode ? 'hoat_dong' : 'khong_hoat_dong');
+            const derivedStatus = locked ? 'khoa' : (isActiveNow ? 'hoat_dong' : 'khong_hoat_dong');
             const statusInfo = getStatusColor(derivedStatus);
             const roleInfo = getRoleColor(user.vai_tro?.ten_vt);
             return (
@@ -548,7 +757,8 @@ export default function AdminUsersPage() {
 
                 <div style={{ display: 'flex', gap: '8px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
                   <button 
-                    onClick={() => fetchUserDetails(user.id)}
+                    type="button"
+                    onClick={() => handleViewDetails(user)}
                     style={{ ...buttonStyle, backgroundColor: '#3b82f6', color: 'white', flex: 1, justifyContent: 'center' }}
                   >
                     <Eye size={16} />
@@ -566,57 +776,6 @@ export default function AdminUsersPage() {
           })
         )}
       </div>
-
-      {pagination.totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '32px', padding: '24px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-            disabled={pagination.page === 1}
-            style={{ padding: '10px 20px', backgroundColor: pagination.page === 1 ? '#f3f4f6' : '#3b82f6', color: pagination.page === 1 ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-            </svg>
-            Trước
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-              let pageNum;
-              if (pagination.totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (pagination.page <= 3) {
-                pageNum = i + 1;
-              } else if (pagination.page >= pagination.totalPages - 2) {
-                pageNum = pagination.totalPages - 4 + i;
-              } else {
-                pageNum = pagination.page - 2 + i;
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
-                  style={{ padding: '10px 16px', backgroundColor: pagination.page === pageNum ? '#3b82f6' : '#f3f4f6', color: pagination.page === pageNum ? 'white' : '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: pagination.page === pageNum ? '600' : '500', minWidth: '40px' }}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-            disabled={pagination.page === pagination.totalPages}
-            style={{ padding: '10px 20px', backgroundColor: pagination.page === pagination.totalPages ? '#f3f4f6' : '#3b82f6', color: pagination.page === pagination.totalPages ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', cursor: pagination.page === pagination.totalPages ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            Sau
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-            </svg>
-          </button>
-          <span style={{ padding: '8px 16px', backgroundColor: '#f9fafb', borderRadius: '6px', fontSize: '14px', color: '#6b7280' }}>
-            Trang {pagination.page} / {pagination.totalPages} (Tổng: {pagination.total})
-          </span>
-        </div>
-      )}
 
       {showDetailModal && selectedUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -659,6 +818,11 @@ export default function AdminUsersPage() {
               ))}
             </div>
             <div style={{ padding: '24px' }}>
+              {detailLoading && (
+                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '12px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontWeight: 600 }}>
+                  Đang tải dữ liệu chi tiết...
+                </div>
+              )}
               {activeTab === 'account' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
                   <div>
@@ -675,7 +839,7 @@ export default function AdminUsersPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px', display: 'block' }}>Vai trò</label>
-                    <select value={selectedUser.vai_tro_id || ''} onChange={(e) => editMode && setSelectedUser({...selectedUser, vai_tro_id: e.target.value})} disabled={!editMode} style={inputStyle}>
+                    <select value={selectedUser.vai_tro_id || ''} onChange={(e) => handleRoleSelect(e.target.value)} disabled={!editMode} style={inputStyle}>
                       {roles.map(role => (
                         <option key={role.id} value={role.id}>{role.ten_vt}</option>
                       ))}
@@ -872,6 +1036,17 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {pagination.total > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6 mt-8">
+          <Pagination
+            pagination={{ page: pagination.page, limit: pagination.limit, total: pagination.total || totalAccounts }}
+            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+            itemLabel="tài khoản"
+            showLimitSelector={true}
+          />
         </div>
       )}
     </div>
