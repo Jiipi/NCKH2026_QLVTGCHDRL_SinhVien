@@ -190,7 +190,7 @@ export default function StudentScoresPage() {
           </div>
         </div>
 
-        <style jsx>{`
+        <style>{`
           @keyframes grid-move { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
           @keyframes bounce-slow { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
           @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -292,7 +292,7 @@ export default function StudentScoresPage() {
                     </div>
                   )}
                 </div>
-                <style jsx>{`
+                <style>{`
                   .custom-scrollbar::-webkit-scrollbar { width: 8px; }
                   .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
                   .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }

@@ -7,8 +7,3 @@ module.exports = {
   activityTypesService,
   activityTypesRoutes,
 };
-
-
-
-
-

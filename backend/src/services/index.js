@@ -5,9 +5,8 @@
 
 const AuthService = require('./auth.service');
 const ReferenceDataService = require('./reference-data.service');
-const StudentPointsService = require('./student-points.service');
-const AdminReportsService = require('./admin-reports.service');
-const AdminUsersService = require('./admin-users.service');
+// AdminReportsService moved to modules/admin-reports
+// AdminUsersService moved to modules/admin-users
 const BroadcastService = require('./broadcast.service');
 const QRAttendanceService = require('./qr-attendance.service');
 const SemesterClosureService = require('./semesterClosure.service');
@@ -17,9 +16,8 @@ const SessionTrackingService = require('./session-tracking.service');
 module.exports = {
   AuthService,
   ReferenceDataService,
-  StudentPointsService,
-  AdminReportsService,
-  AdminUsersService,
+  // AdminReportsService - use modules/admin-reports instead
+  // AdminUsersService - use modules/admin-users instead
   BroadcastService,
   QRAttendanceService,
   SemesterClosureService,

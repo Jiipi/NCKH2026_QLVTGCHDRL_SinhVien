@@ -20,36 +20,36 @@ class SessionTrackingService {
         return null;
       }
 
-      // Check if session exists
-      const existingSession = await prisma.phienDangNhap.findUnique({
-        where: { ma_tab: tabId }
-      });
-
-      if (existingSession) {
-        // Update existing session (lan_hoat_dong auto-updates via @updatedAt)
-        const updated = await prisma.phienDangNhap.update({
-          where: { ma_tab: tabId },
-          data: {
-            vai_tro: role || existingSession.vai_tro
-          }
-        });
-        
-        logInfo('Session updated', { userId, tabId });
-        return updated;
-      }
-
-      // Create new session
-      const newSession = await prisma.phienDangNhap.create({
-        data: {
+      // Use upsert to avoid race condition
+      // This will create if not exists, or update if exists
+      const session = await prisma.phienDangNhap.upsert({
+        where: { ma_tab: tabId },
+        update: {
+          // Update user and role if changed, and trigger @updatedAt on lan_hoat_dong
+          nguoi_dung_id: userId,
+          vai_tro: role || undefined
+        },
+        create: {
           nguoi_dung_id: userId,
           ma_tab: tabId,
           vai_tro: role
         }
       });
 
-      logInfo('Session created', { userId, tabId });
-      return newSession;
+      logInfo('Session tracked', { userId, tabId, wasCreated: !session.lan_hoat_dong || session.lan_hoat_dong === session.ngay_tao });
+      return session;
     } catch (error) {
+      // Handle unique constraint error gracefully (shouldn't happen with upsert, but just in case)
+      if (error.code === 'P2002') {
+        // Session already exists, try to get it
+        const existingSession = await prisma.phienDangNhap.findUnique({
+          where: { ma_tab: tabId }
+        });
+        if (existingSession) {
+          logInfo('Session already exists, returning existing', { userId, tabId });
+          return existingSession;
+        }
+      }
       logError('Failed to track session', error, { userId, tabId });
       return null;
     }
@@ -64,6 +64,22 @@ class SessionTrackingService {
     try {
       if (!tabId) return false;
 
+      // Check if session exists first
+      const existingSession = await prisma.phienDangNhap.findUnique({
+        where: { ma_tab: tabId }
+      });
+
+      if (!existingSession) {
+        // Session doesn't exist - this can happen if:
+        // 1. Session was cleaned up
+        // 2. Session was never created (login failed)
+        // 3. User logged out in another tab
+        // Just return false silently - not a critical error
+        logInfo('Session not found for heartbeat', { tabId });
+        return false;
+      }
+
+      // Update the session to trigger @updatedAt on lan_hoat_dong
       await prisma.phienDangNhap.update({
         where: { ma_tab: tabId },
         data: {
@@ -73,6 +89,11 @@ class SessionTrackingService {
 
       return true;
     } catch (error) {
+      // Handle P2025 (record not found) gracefully
+      if (error.code === 'P2025') {
+        logInfo('Session not found for heartbeat (from error)', { tabId });
+        return false;
+      }
       logError('Failed to update session activity', error, { tabId });
       return false;
     }

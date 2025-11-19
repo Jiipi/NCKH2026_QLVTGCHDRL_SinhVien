@@ -4,7 +4,7 @@
 
 const usersRepo = require('./users.repo');
 const { buildScope } = require('../../app/scopes/scopeBuilder');
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../app/errors/AppError');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../core/errors/AppError');
 const bcrypt = require('bcryptjs');
 
 const usersService = {

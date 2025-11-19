@@ -1,89 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const ProfileService = require('./profile.service');
-const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { createProfileController } = require('./presentation/profile.factory');
 const { auth, requireDynamicPermission } = require('../../core/http/middleware');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
+
+const profileController = createProfileController();
 
 /**
  * @route   GET /api/core/profile
  * @desc    Get current user profile
  * @access  Private (Requires profile.read permission)
  */
-router.get('/', auth, requireDynamicPermission('profile.read'), async (req, res) => {
-  try {
-    const userId = req.user.sub;
-    const profile = await ProfileService.getProfile(userId);
-    return sendResponse(res, 200, ApiResponse.success(profile));
-  } catch (error) {
-    if (error.message === 'USER_NOT_FOUND') {
-      return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
-    }
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy thông tin người dùng'));
-  }
-});
+router.get('/', auth, requireDynamicPermission('profile.read'), asyncHandler((req, res) => profileController.getProfile(req, res)));
 
 /**
  * @route   PUT /api/core/profile
  * @desc    Update current user profile
  * @access  Private (Requires profile.update permission)
  */
-router.put('/', auth, requireDynamicPermission('profile.update'), async (req, res) => {
-  try {
-    const userId = req.user.sub;
-    const profile = await ProfileService.updateProfile(userId, req.body);
-    return sendResponse(res, 200, ApiResponse.success(profile, 'Cập nhật thông tin thành công'));
-  } catch (error) {
-    if (error.message === 'USER_NOT_FOUND') {
-      return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
-    }
-    if (error.message === 'EMAIL_ALREADY_EXISTS') {
-      return sendResponse(res, 400, ApiResponse.error('Email đã được sử dụng'));
-    }
-    if (error.name === 'ZodError') {
-      return sendResponse(res, 400, ApiResponse.error('Dữ liệu không hợp lệ', error.errors));
-    }
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi cập nhật thông tin'));
-  }
-});
+router.put('/', auth, requireDynamicPermission('profile.update'), asyncHandler((req, res) => profileController.updateProfile(req, res)));
 
 /**
  * @route   POST /api/core/profile/change-password
  * @desc    Change current user password
  * @access  Private
  */
-router.post('/change-password', auth, async (req, res) => {
-  try {
-    const userId = req.user.sub;
-    await ProfileService.changePassword(userId, req.body);
-    return sendResponse(res, 200, ApiResponse.success(null, 'Đổi mật khẩu thành công'));
-  } catch (error) {
-    if (error.message === 'USER_NOT_FOUND') {
-      return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy người dùng'));
-    }
-    if (error.message === 'INVALID_OLD_PASSWORD') {
-      return sendResponse(res, 400, ApiResponse.error('Mật khẩu cũ không đúng'));
-    }
-    if (error.name === 'ZodError') {
-      return sendResponse(res, 400, ApiResponse.error('Dữ liệu không hợp lệ', error.errors));
-    }
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi đổi mật khẩu'));
-  }
-});
+router.post('/change-password', auth, asyncHandler((req, res) => profileController.changePassword(req, res)));
 
 /**
  * @route   GET /api/core/profile/monitor-status
  * @desc    Check if current user is a class monitor
  * @access  Private
  */
-router.get('/monitor-status', auth, async (req, res) => {
-  try {
-    const userId = req.user.sub;
-    const monitorStatus = await ProfileService.checkClassMonitor(userId);
-    return sendResponse(res, 200, ApiResponse.success(monitorStatus));
-  } catch (error) {
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi kiểm tra quyền lớp trưởng'));
-  }
-});
+router.get('/monitor-status', auth, asyncHandler((req, res) => profileController.checkMonitorStatus(req, res)));
 
 module.exports = router;
 

@@ -17,10 +17,10 @@
 
 const express = require('express');
 const router = express.Router();
-const ActivitiesController = require('./activities.controller');
+const { createActivitiesController } = require('./presentation/activities.factory');
 const validators = require('./activities.validators');
 const { auth, requireDynamicPermission } = require('../../core/http/middleware');
-const { asyncHandler } = require('../../app/errors/AppError');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
 const { extractClassContext, applyClassScope } = require('../../core/http/middleware/classScope');
 
 // All routes require authentication
@@ -32,6 +32,9 @@ router.use(asyncHandler(extractClassContext));
 // Apply class-based scope (students/monitors see only their class activities)
 router.use(applyClassScope());
 
+// Create controller with all dependencies (Dependency Injection)
+const activitiesController = createActivitiesController();
+
 // ==================== CRUD ROUTES ====================
 
 // List all activities (Requires activities.read)
@@ -39,7 +42,7 @@ router.get(
   '/',
   requireDynamicPermission('activities.read'),
   validators.validateGetAll,
-  asyncHandler(ActivitiesController.getAll)
+  asyncHandler((req, res) => activitiesController.getAll(req, res))
 );
 
 // Get QR data for activity (must be before /:id route)
@@ -47,7 +50,7 @@ router.get(
   '/:id/qr-data',
   requireDynamicPermission('activities.read'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.getQRData)
+  asyncHandler((req, res) => activitiesController.getQRData(req, res))
 );
 
 // Get activity details with registrations
@@ -55,7 +58,7 @@ router.get(
   '/:id/details',
   requireDynamicPermission('activities.read'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.getDetails)
+  asyncHandler((req, res) => activitiesController.getDetails(req, res))
 );
 
 // Get single activity
@@ -63,7 +66,7 @@ router.get(
   '/:id',
   requireDynamicPermission('activities.read'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.getById)
+  asyncHandler((req, res) => activitiesController.getById(req, res))
 );
 
 // Create activity (Requires activities.write)
@@ -71,7 +74,7 @@ router.post(
   '/',
   requireDynamicPermission('activities.write'),
   validators.validateCreate,
-  asyncHandler(ActivitiesController.create)
+  asyncHandler((req, res) => activitiesController.create(req, res))
 );
 
 // Update activity (Requires activities.write)
@@ -79,7 +82,7 @@ router.put(
   '/:id',
   requireDynamicPermission('activities.write'),
   validators.validateUpdate,
-  asyncHandler(ActivitiesController.update)
+  asyncHandler((req, res) => activitiesController.update(req, res))
 );
 
 // Delete activity (Requires activities.delete)
@@ -87,7 +90,7 @@ router.delete(
   '/:id',
   requireDynamicPermission('activities.delete'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.delete)
+  asyncHandler((req, res) => activitiesController.delete(req, res))
 );
 
 // ==================== APPROVAL ROUTES ====================
@@ -97,7 +100,7 @@ router.post(
   '/:id/approve',
   requireDynamicPermission('activities.approve'),
   validators.validateApprove,
-  asyncHandler(ActivitiesController.approve)
+  asyncHandler((req, res) => activitiesController.approve(req, res))
 );
 
 // Reject activity (Requires activities.approve)
@@ -105,7 +108,7 @@ router.post(
   '/:id/reject',
   requireDynamicPermission('activities.approve'),
   validators.validateReject,
-  asyncHandler(ActivitiesController.reject)
+  asyncHandler((req, res) => activitiesController.reject(req, res))
 );
 
 // ==================== REGISTRATION ROUTES ====================
@@ -115,7 +118,7 @@ router.post(
   '/:id/register',
   requireDynamicPermission('registrations.write'),
   validators.validateRegister,
-  asyncHandler(ActivitiesController.register)
+  asyncHandler((req, res) => activitiesController.register(req, res))
 );
 
 // Cancel registration (student) (Requires registrations.delete)
@@ -123,7 +126,7 @@ router.post(
   '/:id/cancel',
   requireDynamicPermission('registrations.delete'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.cancelRegistration)
+  asyncHandler((req, res) => activitiesController.cancelRegistration(req, res))
 );
 
 // ==================== ATTENDANCE (QR SELF-SCAN) ====================
@@ -133,7 +136,7 @@ router.post(
   '/:id/attendance/scan',
   requireDynamicPermission('attendance.write'),
   validators.validateGetById,
-  asyncHandler(ActivitiesController.scanAttendance)
+  asyncHandler((req, res) => activitiesController.scanAttendance(req, res))
 );
 
 module.exports = router;

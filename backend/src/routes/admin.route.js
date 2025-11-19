@@ -2,7 +2,7 @@ const { Router } = require('express');
 // ❌ REMOVED: AdminController - Migrated to V2 services (admin-users, admin-reports, broadcast)
 // ❌ REMOVED: AdminActivityTypesController - Migrated to V2 modules/activity-types
 // ❌ REMOVED: All admin controllers - Migrated to V2 modules
-const notificationsService = require('../modules/notifications/notifications.service');
+// notificationsService removed - use notifications module use cases instead
 const notificationTypesService = require('../modules/notification-types/notification-types.service');
 const { auth, requireAdmin } = require('../core/http/middleware/authJwt');
 const { enforceAdminWritable } = require('../core/http/middleware/semesterLock.middleware');
@@ -114,7 +114,7 @@ router.post('/registrations/bulk', AdminRegistrationsController.bulkUpdate);
 // Attendance management - ⚠️ DEPRECATED: Use /api/core/admin/reports/attendance
 // router.get('/attendance', AdminController.getAttendance);
 
-// Reports & exports (⚠️ TODO: Migrate to services/admin-reports.service.js)
+// Reports & exports (✅ Migrated to modules/admin-reports)
 router.get('/reports/overview', AdminReportsController.getOverview);
 router.get('/reports/export/activities', AdminReportsController.exportActivities);
 router.get('/reports/export/registrations', AdminReportsController.exportRegistrations);

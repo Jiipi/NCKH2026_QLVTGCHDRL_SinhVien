@@ -164,7 +164,7 @@ export default function AdminRoles() {
     'users.read','users.write','users.delete',
     'activities.view','activities.create','activities.update','activities.delete','activities.approve','activities.reject',
     'registrations.register','registrations.cancel','registrations.approve','registrations.reject',
-    'attendance.view','attendance.mark',
+    'attendance.view','attendance.mark','attendance.write',
     'reports.read','reports.export','roles.read','roles.write','roles.delete',
     'notifications.view','notifications.create','notifications.manage',
     'students.read','students.update','classmates.read','classmates.assist',
@@ -190,7 +190,7 @@ export default function AdminRoles() {
     'registrations.delete': [],
     // Attendance
     'attendance.read': ['attendance.view'],
-    'attendance.write': ['attendance.mark'],
+    'attendance.write': ['attendance.write'], // Map trực tiếp sang attendance.write (không phải attendance.mark)
     'attendance.delete': [],
     // Notifications
     'notifications.read': ['notifications.view'],

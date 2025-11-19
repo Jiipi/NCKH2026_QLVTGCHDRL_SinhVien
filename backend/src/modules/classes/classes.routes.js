@@ -5,10 +5,12 @@
 
 const express = require('express');
 const router = express.Router();
-const ClassesController = require('./classes.controller');
+const { createClassesController } = require('./presentation/classes.factory');
 const validators = require('./classes.validators');
 const { auth } = require('../../core/http/middleware/authJwt');
-const { asyncHandler } = require('../../app/errors/AppError');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
+
+const classesController = createClassesController();
 
 // All routes require authentication
 router.use(auth);
@@ -19,21 +21,21 @@ router.use(auth);
 router.post(
   '/:id/assign-teacher',
   validators.validateAssignTeacher,
-  asyncHandler(ClassesController.assignTeacher)
+  asyncHandler((req, res) => classesController.assignTeacher(req, res))
 );
 
 // Get students in class
 router.get(
   '/:id/students',
   validators.validateGetById,
-  asyncHandler(ClassesController.getStudents)
+  asyncHandler((req, res) => classesController.getStudents(req, res))
 );
 
 // Get activities for class
 router.get(
   '/:id/activities',
   validators.validateGetById,
-  asyncHandler(ClassesController.getActivities)
+  asyncHandler((req, res) => classesController.getActivities(req, res))
 );
 
 // ==================== CRUD ROUTES ====================
@@ -42,35 +44,35 @@ router.get(
 router.get(
   '/',
   validators.validateGetAll,
-  asyncHandler(ClassesController.getAll)
+  asyncHandler((req, res) => classesController.getAll(req, res))
 );
 
 // Get single class
 router.get(
   '/:id',
   validators.validateGetById,
-  asyncHandler(ClassesController.getById)
+  asyncHandler((req, res) => classesController.getById(req, res))
 );
 
 // Create class
 router.post(
   '/',
   validators.validateCreate,
-  asyncHandler(ClassesController.create)
+  asyncHandler((req, res) => classesController.create(req, res))
 );
 
 // Update class
 router.put(
   '/:id',
   validators.validateUpdate,
-  asyncHandler(ClassesController.update)
+  asyncHandler((req, res) => classesController.update(req, res))
 );
 
 // Delete class
 router.delete(
   '/:id',
   validators.validateGetById,
-  asyncHandler(ClassesController.delete)
+  asyncHandler((req, res) => classesController.delete(req, res))
 );
 
 module.exports = router;

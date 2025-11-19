@@ -5,10 +5,12 @@
 
 const express = require('express');
 const router = express.Router();
-const UsersController = require('./users.controller');
+const { createUsersController } = require('./presentation/users.factory');
 const validators = require('./users.validators');
 const { auth } = require('../../core/http/middleware/authJwt');
-const { asyncHandler } = require('../../app/errors/AppError');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
+
+const usersController = createUsersController();
 
 // All routes require authentication
 router.use(auth);
@@ -19,26 +21,26 @@ router.use(auth);
 router.get(
   '/search',
   validators.validateSearch,
-  asyncHandler(UsersController.search)
+  asyncHandler((req, res) => usersController.search(req, res))
 );
 
 // Get user statistics
 router.get(
   '/stats',
-  asyncHandler(UsersController.getStats)
+  asyncHandler((req, res) => usersController.getStats(req, res))
 );
 
 // Get current user profile
 router.get(
   '/me',
-  asyncHandler(UsersController.getMe)
+  asyncHandler((req, res) => usersController.getMe(req, res))
 );
 
 // Get users by class
 router.get(
   '/class/:className',
   validators.validateGetByClass,
-  asyncHandler(UsersController.getByClass)
+  asyncHandler((req, res) => usersController.getByClass(req, res))
 );
 
 // ==================== CRUD ROUTES ====================
@@ -47,35 +49,35 @@ router.get(
 router.get(
   '/',
   validators.validateGetAll,
-  asyncHandler(UsersController.getAll)
+  asyncHandler((req, res) => usersController.getAll(req, res))
 );
 
 // Get single user
 router.get(
   '/:id',
   validators.validateGetById,
-  asyncHandler(UsersController.getById)
+  asyncHandler((req, res) => usersController.getById(req, res))
 );
 
 // Create user
 router.post(
   '/',
   validators.validateCreate,
-  asyncHandler(UsersController.create)
+  asyncHandler((req, res) => usersController.create(req, res))
 );
 
 // Update user
 router.put(
   '/:id',
   validators.validateUpdate,
-  asyncHandler(UsersController.update)
+  asyncHandler((req, res) => usersController.update(req, res))
 );
 
 // Delete user
 router.delete(
   '/:id',
   validators.validateGetById,
-  asyncHandler(UsersController.delete)
+  asyncHandler((req, res) => usersController.delete(req, res))
 );
 
 module.exports = router;
