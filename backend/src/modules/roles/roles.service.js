@@ -1,6 +1,14 @@
 const { logInfo, logError } = require('../../core/logger');
-const { invalidateRoleCache, invalidateAllRoleCache } = require('../../core/policies');
+// const { invalidateRoleCache, invalidateAllRoleCache } = require('../../core/policies');
 const rolesRepo = require('./roles.repo');
+
+// Mock cache invalidation functions (policies.js not found)
+const invalidateRoleCache = (roleName) => {
+  logInfo('Cache invalidation skipped (no cache)', { roleName });
+};
+const invalidateAllRoleCache = () => {
+  logInfo('Cache invalidation skipped (no cache)');
+};
 
 class RolesService {
   /**

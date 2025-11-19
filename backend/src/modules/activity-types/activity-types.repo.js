@@ -51,12 +51,12 @@ class ActivityTypesRepository {
 
   /**
    * Find activity type by ID
-   * @param {number} id - Activity type ID
+   * @param {string} id - Activity type ID (UUID)
    * @returns {Promise<Object|null>} Activity type or null
    */
   async findById(id) {
     return prisma.loaiHoatDong.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: String(id) },
     });
   }
 
@@ -95,7 +95,7 @@ class ActivityTypesRepository {
 
   /**
    * Update existing activity type
-   * @param {number} id - Activity type ID
+   * @param {string} id - Activity type ID (UUID)
    * @param {Object} data - Update data
    * @returns {Promise<Object>} Updated activity type
    */
@@ -107,21 +107,22 @@ class ActivityTypesRepository {
     if (data.diem_mac_dinh !== undefined) updateData.diem_mac_dinh = Number(data.diem_mac_dinh);
     if (data.diem_toi_da !== undefined) updateData.diem_toi_da = Number(data.diem_toi_da);
     if (data.mau_sac !== undefined) updateData.mau_sac = data.mau_sac;
+    if (data.hinh_anh !== undefined) updateData.hinh_anh = data.hinh_anh;
 
     return prisma.loaiHoatDong.update({
-      where: { id: parseInt(id) },
+      where: { id: String(id) },
       data: updateData,
     });
   }
 
   /**
    * Delete activity type by ID
-   * @param {number} id - Activity type ID
+   * @param {string} id - Activity type ID (UUID)
    * @returns {Promise<Object>} Deleted activity type
    */
   async delete(id) {
     return prisma.loaiHoatDong.delete({
-      where: { id: parseInt(id) },
+      where: { id: String(id) },
     });
   }
 }

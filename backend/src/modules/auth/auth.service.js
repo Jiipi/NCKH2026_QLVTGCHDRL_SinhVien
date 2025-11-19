@@ -121,7 +121,7 @@ class AuthService {
   /**
    * Login user
    */
-  static async login(maso, password, remember = false, ip = null) {
+  static async login(maso, password, remember = false, ip = null, tabId = null) {
     logInfo('LOGIN_ATTEMPT', { maso });
 
     // Find user
@@ -153,6 +153,21 @@ class AuthService {
     // Update login info
     await this.updateLoginInfo(user.id, ip);
 
+    // Track session if tabId provided
+    if (tabId) {
+      try {
+        const SessionTrackingService = require('../../services/session-tracking.service');
+        await SessionTrackingService.trackSession(
+          user.id, 
+          tabId, 
+          user.vai_tro?.ten_vt
+        );
+      } catch (error) {
+        logError('Failed to track session on login', error);
+        // Don't fail login if session tracking fails
+      }
+    }
+
     // Generate token
     const token = this.generateToken(user, remember);
 
@@ -160,7 +175,8 @@ class AuthService {
       userId: user.id, 
       maso: user.ten_dn, 
       role: user.vai_tro?.ten_vt,
-      ip 
+      ip,
+      tabId 
     });
 
     return {

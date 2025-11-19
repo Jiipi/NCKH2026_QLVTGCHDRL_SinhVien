@@ -99,6 +99,13 @@ router.use('/core/roles', rolesV2.routes);
 
 // Search V2 - Global search functionality
 const searchV2 = require('../modules/search');
+router.use('/core/search', searchV2.routes);
+
+// Sessions V2 - Session tracking and activity monitoring
+// Mounted under both /core/sessions and /sessions for backward compatibility
+const sessionsV2 = require('./sessions.route');
+router.use('/core/sessions', sessionsV2);
+router.use('/sessions', sessionsV2); // legacy/non-core prefix fallback
 router.use('/search', searchV2.routes);
 
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const RolesService = require('./roles.service');
 const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
-const { auth, requireAdmin } = require('../../core/http/middleware/authJwt');
+const { auth, requireAdmin, clearPermissionsCache } = require('../../core/http/middleware');
 
 /**
  * @route   GET /api/core/roles
@@ -67,9 +67,14 @@ router.put('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const role = await RolesService.update(id, req.body);
+    
+    // Clear permissions cache khi update role để users có quyền mới ngay lập tức
+    clearPermissionsCache();
+    
     return sendResponse(res, 200, ApiResponse.success(role, 'Cập nhật vai trò thành công'));
   } catch (error) {
-    return sendResponse(res, 500, ApiResponse.error('Lỗi cập nhật vai trò'));
+    console.error('❌ Error updating role:', error);
+    return sendResponse(res, 500, ApiResponse.error('Lỗi cập nhật vai trò: ' + error.message));
   }
 });
 

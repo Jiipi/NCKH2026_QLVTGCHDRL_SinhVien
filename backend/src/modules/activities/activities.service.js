@@ -476,11 +476,18 @@ class ActivitiesService {
       throw new ValidationError('Hoạt động đã được duyệt');
     }
     
+    // Generate QR token if not exists
+    const updateData = {
+      trang_thai: 'da_duyet'
+    };
+    
+    if (!activity.qr) {
+      updateData.qr = this.generateQRToken();
+    }
+    
     // Schema doesn't have nguoi_duyet_id/ngay_duyet fields
     // Only update trang_thai (ngay_cap_nhat will auto-update via @updatedAt)
-    return activitiesRepo.update(id, {
-      trang_thai: 'da_duyet'
-    });
+    return activitiesRepo.update(id, updateData);
   }
   
   /**
@@ -607,6 +614,26 @@ class ActivitiesService {
    */
   generateQRToken() {
     return crypto.randomBytes(16).toString('hex');
+  }
+  
+  /**
+   * Generate QR token for activity if it doesn't have one
+   */
+  async generateQRForActivity(id) {
+    const activity = await activitiesRepo.findById(id);
+    
+    if (!activity) {
+      throw new NotFoundError('Hoạt động', id);
+    }
+    
+    // If already has QR, return as is
+    if (activity.qr) {
+      return activity;
+    }
+    
+    // Generate and update
+    const qrToken = this.generateQRToken();
+    return activitiesRepo.update(id, { qr: qrToken });
   }
   
   /**

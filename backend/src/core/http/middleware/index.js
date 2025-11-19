@@ -5,6 +5,8 @@
 
 const policies = require('../../policies');
 const classMonitor = require('./classMonitor');
+const sessionTracking = require('./sessionTracking');
+const dynamicPermission = require('./dynamicPermission');
 
 module.exports = {
   // Authentication & Authorization
@@ -17,8 +19,19 @@ module.exports = {
   ...classMonitor,
   isClassMonitor: classMonitor.getMonitorClass, // Alias for backward compatibility
   
-  // RBAC Policies
+  // Session Tracking
+  trackSession: sessionTracking.trackSession,
+  updateActivity: sessionTracking.updateActivity,
+  
+  // RBAC Policies (Old)
   requirePermission: policies.requirePermission,
+  
+  // Dynamic Permission (New - Real-time từ database)
+  requireDynamicPermission: dynamicPermission.requireDynamicPermission,
+  requireAnyPermission: dynamicPermission.requireAnyPermission,
+  requireAllPermissions: dynamicPermission.requireAllPermissions,
+  clearPermissionsCache: dynamicPermission.clearPermissionsCache,
+  getUserPermissions: dynamicPermission.getUserPermissions,
   
   // CORS
   cors: require('./cors'),

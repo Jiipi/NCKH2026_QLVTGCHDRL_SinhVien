@@ -26,12 +26,26 @@ const createUserSchema = z.object({
   set_lop_truong: z.boolean().optional()
 });
 
+const studentUpdateSchema = z.object({
+  mssv: z.string().optional(),
+  ngay_sinh: z.union([z.string(), z.date()]).optional(),
+  gt: z.enum(['nam', 'nu', 'khac']).optional(),
+  dia_chi: z.string().optional(),
+  sdt: z.string().optional(),
+  lop_id: z.string().optional()
+});
+
 const updateUserSchema = z.object({
   hoten: z.string().optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
-  role: z.string().optional()
+  role: z.string().optional(),
+  maso: z.string().min(3).optional(),
+  trang_thai: z.enum(['hoat_dong', 'khong_hoat_dong', 'khoa']).optional(),
+  student: studentUpdateSchema.optional()
 });
+
+const ADMIN_USERS_MAX_LIMIT = 1000;
 
 class AdminUsersService {
   /**
@@ -47,7 +61,7 @@ class AdminUsersService {
     const paginationParams = validatePaginationParams(params, {
       defaultPage: 1,
       defaultLimit: 20,
-      maxLimit: 100
+      maxLimit: ADMIN_USERS_MAX_LIMIT
     });
 
     const { search, role } = params;
@@ -137,7 +151,7 @@ class AdminUsersService {
         page: paginationParams.page,
         limit: paginationParams.limit,
         total,
-        maxLimit: 100
+        maxLimit: ADMIN_USERS_MAX_LIMIT
       })
     };
   }
@@ -270,7 +284,7 @@ class AdminUsersService {
 
     const existingUser = await prisma.nguoiDung.findUnique({
       where: { id },
-      include: { vai_tro: true }
+      include: { vai_tro: true, sinh_vien: true }
     });
 
     if (!existingUser) {
@@ -279,11 +293,25 @@ class AdminUsersService {
 
     const updateData = {};
 
+    if (validatedData.maso && validatedData.maso !== existingUser.ten_dn) {
+      const masoExists = await prisma.nguoiDung.findFirst({
+        where: { ten_dn: validatedData.maso }
+      });
+      if (masoExists) {
+        throw new Error('Mã số đã tồn tại');
+      }
+      updateData.ten_dn = validatedData.maso;
+    }
+
     if (validatedData.hoten) updateData.ho_ten = validatedData.hoten;
     if (validatedData.email) updateData.email = validatedData.email;
 
     if (validatedData.password) {
       updateData.mat_khau = await bcrypt.hash(validatedData.password, 10);
+    }
+
+    if (validatedData.trang_thai) {
+      updateData.trang_thai = validatedData.trang_thai;
     }
 
     if (validatedData.role && validatedData.role !== existingUser.vai_tro.ten_vt) {
@@ -308,6 +336,40 @@ class AdminUsersService {
       include: { vai_tro: true }
     });
 
+    if (validatedData.student) {
+      if (!existingUser.sinh_vien) {
+        throw new Error('Người dùng này không có hồ sơ sinh viên để cập nhật');
+      }
+      const studentUpdate = {};
+      const { student } = validatedData;
+      if (student.mssv) studentUpdate.mssv = student.mssv;
+      if (student.ngay_sinh) {
+        studentUpdate.ngay_sinh = new Date(student.ngay_sinh);
+      }
+      if (student.gt) studentUpdate.gt = student.gt;
+      if (student.dia_chi !== undefined) studentUpdate.dia_chi = student.dia_chi;
+      if (student.sdt) studentUpdate.sdt = student.sdt;
+      if (student.lop_id) studentUpdate.lop_id = student.lop_id;
+      if (Object.keys(studentUpdate).length > 0) {
+        await prisma.sinhVien.update({
+          where: { id: existingUser.sinh_vien.id },
+          data: studentUpdate
+        });
+      }
+    }
+
+    const refreshedUser = await prisma.nguoiDung.findUnique({
+      where: { id },
+      include: {
+        vai_tro: true,
+        sinh_vien: {
+          include: {
+            lop: true
+          }
+        }
+      }
+    });
+
     logInfo('User updated successfully', {
       adminId,
       updatedUserId: id,
@@ -315,11 +377,25 @@ class AdminUsersService {
     });
 
     return {
-      id: updatedUser.id,
-      maso: updatedUser.ten_dn,
-      hoten: updatedUser.ho_ten,
-      email: updatedUser.email,
-      role: updatedUser.vai_tro.ten_vt
+      id: refreshedUser.id,
+      maso: refreshedUser.ten_dn,
+      hoten: refreshedUser.ho_ten,
+      email: refreshedUser.email,
+      role: refreshedUser.vai_tro?.ten_vt,
+      trang_thai: refreshedUser.trang_thai,
+      sinh_vien: refreshedUser.sinh_vien ? {
+        mssv: refreshedUser.sinh_vien.mssv,
+        ngay_sinh: refreshedUser.sinh_vien.ngay_sinh,
+        gt: refreshedUser.sinh_vien.gt,
+        dia_chi: refreshedUser.sinh_vien.dia_chi,
+        sdt: refreshedUser.sinh_vien.sdt,
+        lop_id: refreshedUser.sinh_vien.lop_id,
+        lop: refreshedUser.sinh_vien.lop ? {
+          id: refreshedUser.sinh_vien.lop.id,
+          ten_lop: refreshedUser.sinh_vien.lop.ten_lop,
+          khoa: refreshedUser.sinh_vien.lop.khoa
+        } : null
+      } : null
     };
   }
 
