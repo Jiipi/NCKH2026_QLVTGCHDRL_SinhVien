@@ -3,7 +3,8 @@ const router = express.Router();
 const activityTypesService = require('./activity-types.service');
 const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
 const { logError } = require('../../core/logger');
-const { auth: authenticateJWT, requireAdmin } = require('../../core/http/middleware/authJwt');
+const { auth: authenticateJWT, requireAdmin, requireTeacher } = require('../../core/http/middleware/authJwt');
+const { uploadImage, handleUploadError } = require('../../core/http/middleware/upload');
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
@@ -45,9 +46,9 @@ router.get('/:id', async (req, res) => {
 /**
  * @route   POST /api/core/activity-types
  * @desc    Create new activity type
- * @access  Admin only
+ * @access  Teacher or Admin
  */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireTeacher, async (req, res) => {
   try {
     const activityType = await activityTypesService.create(req.body, req.user.id);
     return sendResponse(res, 201, ApiResponse.success(activityType, 'Tạo loại hoạt động thành công'));
@@ -58,11 +59,30 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 /**
+ * @route   POST /api/core/activity-types/upload-image
+ * @desc    Upload image for activity type
+ * @access  Teacher or Admin
+ */
+router.post('/upload-image', requireTeacher, uploadImage.single('image'), handleUploadError, async (req, res) => {
+  try {
+    if (!req.file) {
+      return sendResponse(res, 400, ApiResponse.error('Không có file ảnh được tải lên'));
+    }
+
+    const imagePath = `/uploads/images/${req.file.filename}`;
+    return sendResponse(res, 200, ApiResponse.success({ path: imagePath }, 'Tải ảnh thành công'));
+  } catch (error) {
+    logError('Error uploading activity type image:', error);
+    return sendResponse(res, 500, ApiResponse.error('Lỗi khi tải ảnh lên'));
+  }
+});
+
+/**
  * @route   PUT /api/core/activity-types/:id
  * @desc    Update existing activity type
- * @access  Admin only
+ * @access  Teacher or Admin
  */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const activityType = await activityTypesService.update(req.params.id, req.body, req.user.id);
     return sendResponse(res, 200, ApiResponse.success(activityType, 'Cập nhật loại hoạt động thành công'));
@@ -76,9 +96,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
 /**
  * @route   DELETE /api/core/activity-types/:id
  * @desc    Delete activity type
- * @access  Admin only
+ * @access  Teacher or Admin
  */
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireTeacher, async (req, res) => {
   try {
     await activityTypesService.delete(req.params.id, req.user.id);
     return sendResponse(res, 200, ApiResponse.success(null, 'Xóa loại hoạt động thành công'));

@@ -5,6 +5,7 @@
 
 const { Router } = require('express');
 const AuthController = require('./auth.controller');
+const PermissionsController = require('./permissions.controller');
 const { 
   validateLogin,
   validateRegister,
@@ -80,5 +81,19 @@ router.get('/faculties', AuthController.getFaculties);
  * @access  Public
  */
 router.get('/classes/:khoa', AuthController.getClassesByFaculty);
+
+/**
+ * @route   GET /api/auth/permissions
+ * @desc    Get current user permissions (for realtime permission checking)
+ * @access  Private
+ */
+router.get('/permissions', auth, PermissionsController.getCurrentPermissions);
+
+/**
+ * @route   POST /api/auth/permissions/clear-cache
+ * @desc    Clear permissions cache (Admin only)
+ * @access  Private
+ */
+router.post('/permissions/clear-cache', auth, PermissionsController.clearCache);
 
 module.exports = router;

@@ -183,6 +183,90 @@ class SemestersService {
   }
 
   /**
+   * Get class detail information
+   */
+  static async getClassDetail(classId) {
+    const classRow = await prisma.lop.findUnique({
+      where: { id: classId },
+      include: {
+        chu_nhiem_rel: { select: { id: true, ho_ten: true, ten_dn: true, email: true } },
+        lop_truong_rel: {
+          select: {
+            id: true,
+            mssv: true,
+            nguoi_dung: { select: { ho_ten: true, email: true } }
+          }
+        },
+        _count: { select: { sinh_viens: true } }
+      }
+    });
+
+    if (!classRow) {
+      throw new AppError('Không tìm thấy lớp', 404);
+    }
+
+    return {
+      id: classRow.id,
+      name: classRow.ten_lop,
+      faculty: classRow.khoa,
+      academicYear: classRow.nien_khoa,
+      studentCount: classRow._count?.sinh_viens || 0,
+      teacher: classRow.chu_nhiem_rel
+        ? {
+            id: classRow.chu_nhiem_rel.id,
+            name: classRow.chu_nhiem_rel.ho_ten || classRow.chu_nhiem_rel.ten_dn,
+            email: classRow.chu_nhiem_rel.email
+          }
+        : null,
+      monitor: classRow.lop_truong_rel
+        ? {
+            id: classRow.lop_truong_rel.id,
+            mssv: classRow.lop_truong_rel.mssv,
+            name: classRow.lop_truong_rel.nguoi_dung?.ho_ten || null,
+            email: classRow.lop_truong_rel.nguoi_dung?.email || null
+          }
+        : null
+    };
+  }
+
+  /**
+   * Get students of a class
+   */
+  static async getClassStudents(classId) {
+    const lop = await prisma.lop.findUnique({
+      where: { id: classId },
+      select: { id: true }
+    });
+
+    if (!lop) {
+      throw new AppError('Không tìm thấy lớp', 404);
+    }
+
+    const students = await prisma.sinhVien.findMany({
+      where: { lop_id: classId },
+      orderBy: [{ mssv: 'asc' }],
+      select: {
+        id: true,
+        mssv: true,
+        email: true,
+        sdt: true,
+        nguoi_dung: { select: { ho_ten: true, email: true } }
+      }
+    });
+
+    return students.map((student) => ({
+      id: student.id,
+      ho_ten: student.nguoi_dung?.ho_ten,
+      name: student.nguoi_dung?.ho_ten,
+      ten_sv: student.nguoi_dung?.ho_ten,
+      mssv: student.mssv,
+      ma_sv: student.mssv,
+      email: student.email || student.nguoi_dung?.email || null,
+      phone: student.sdt || null
+    }));
+  }
+
+  /**
    * Ensure system activity type exists
    */
   static async ensureSystemActivityTypeId() {

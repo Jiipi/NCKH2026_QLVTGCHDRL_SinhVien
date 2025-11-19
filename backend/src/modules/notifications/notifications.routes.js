@@ -8,7 +8,7 @@ const router = express.Router();
 const service = require('./notifications.service');
 const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
 const { logError, logInfo } = require('../../core/logger');
-const { auth: authenticateJWT } = require('../../core/http/middleware/authJwt');
+const { auth: authenticateJWT, requireDynamicPermission } = require('../../core/http/middleware');
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
@@ -17,8 +17,9 @@ router.use(authenticateJWT);
  * POST /api/core/notifications
  * Create new notification
  * Supports: single recipient, class broadcast, activity broadcast
+ * Requires: notifications.write permission
  */
-router.post('/', async (req, res) => {
+router.post('/', requireDynamicPermission('notifications.write'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     
@@ -45,8 +46,9 @@ router.post('/', async (req, res) => {
 /**
  * GET /api/core/notifications/unread-count
  * Get count of unread notifications
+ * Requires: notifications.read permission
  */
-router.get('/unread-count', async (req, res) => {
+router.get('/unread-count', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     
@@ -65,8 +67,9 @@ router.get('/unread-count', async (req, res) => {
 /**
  * PATCH /api/core/notifications/mark-all-read
  * Mark all notifications as read
+ * Requires: notifications.read permission
  */
-router.patch('/mark-all-read', async (req, res) => {
+router.patch('/mark-all-read', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     
@@ -85,8 +88,9 @@ router.patch('/mark-all-read', async (req, res) => {
 /**
  * GET /api/core/notifications/sent/:notificationId
  * Get sent notification detail
+ * Requires: notifications.read permission
  */
-router.get('/sent/:notificationId', async (req, res) => {
+router.get('/sent/:notificationId', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     const { notificationId } = req.params;
@@ -111,8 +115,9 @@ router.get('/sent/:notificationId', async (req, res) => {
 /**
  * GET /api/core/notifications/sent
  * Get sent notifications history
+ * Requires: notifications.read permission
  */
-router.get('/sent', async (req, res) => {
+router.get('/sent', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     
@@ -131,8 +136,9 @@ router.get('/sent', async (req, res) => {
 /**
  * GET /api/core/notifications
  * Get user's received notifications
+ * Requires: notifications.read permission
  */
-router.get('/', async (req, res) => {
+router.get('/', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     
@@ -177,8 +183,9 @@ router.patch('/:notificationId/read', async (req, res) => {
 /**
  * GET /api/core/notifications/:notificationId
  * Get notification detail by ID
+ * Requires: notifications.read permission
  */
-router.get('/:notificationId', async (req, res) => {
+router.get('/:notificationId', requireDynamicPermission('notifications.read'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     const { notificationId } = req.params;
@@ -203,8 +210,9 @@ router.get('/:notificationId', async (req, res) => {
 /**
  * DELETE /api/core/notifications/:notificationId
  * Delete notification
+ * Requires: notifications.delete permission
  */
-router.delete('/:notificationId', async (req, res) => {
+router.delete('/:notificationId', requireDynamicPermission('notifications.delete'), async (req, res) => {
   try {
     const userId = req.user?.sub || req.user?.id;
     const { notificationId } = req.params;

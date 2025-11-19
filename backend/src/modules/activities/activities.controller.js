@@ -346,17 +346,33 @@ class ActivitiesController {
   static async getQRData(req, res) {
     try {
       const { id } = req.params;
-      const activity = await activitiesService.getById(id, req.user);
+      console.log('[getQRData] Activity ID:', id);
+      console.log('[getQRData] User:', req.user?.sub);
+
+      // Pass scope correctly (from middleware) when fetching activity
+      const scope = req.scope || {};
+      const activity = await activitiesService.getById(id, scope, req.user);
+      console.log('[getQRData] Activity found:', !!activity);
 
       if (!activity) {
+        console.log('[getQRData] Activity not found, returning 404');
         return sendResponse(res, 404, ApiResponse.error('Hoạt động không tồn tại'));
       }
 
       // Get QR token from activity
-      const qrToken = activity.qr || activity.qr_token;
+      let qrToken = activity.qr || activity.qr_token;
+      console.log('[getQRData] QR Token:', qrToken);
       
+      // If no QR token exists, generate one (for backward compatibility with old data)
       if (!qrToken) {
-        return sendResponse(res, 404, ApiResponse.error('Hoạt động chưa có mã QR'));
+        console.log('[getQRData] No QR token found, generating new one');
+        const updatedActivity = await activitiesService.generateQRForActivity(id);
+        qrToken = updatedActivity.qr;
+        
+        if (!qrToken) {
+          console.log('[getQRData] Failed to generate QR token');
+          return sendResponse(res, 500, ApiResponse.error('Không thể tạo mã QR cho hoạt động'));
+        }
       }
 
       // Generate QR JSON data
@@ -371,6 +387,7 @@ class ActivitiesController {
         })
       };
 
+      console.log('[getQRData] Returning QR data successfully');
       return sendResponse(res, 200, ApiResponse.success(qrData, 'Mã QR hoạt động'));
     } catch (error) {
       logError('Get QR data error', error);
@@ -393,7 +410,8 @@ class ActivitiesController {
       }
 
       // Ensure activity exists and is accessible
-      const activity = await activitiesService.getById(id, req.user);
+      const scope = req.scope || {};
+      const activity = await activitiesService.getById(id, scope, req.user);
       if (!activity) {
         return sendResponse(res, 404, ApiResponse.error('Hoạt động không tồn tại'));
       }

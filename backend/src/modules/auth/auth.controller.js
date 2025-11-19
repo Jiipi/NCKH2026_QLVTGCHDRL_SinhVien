@@ -19,8 +19,9 @@ class AuthController {
     try {
       const { maso, password, remember } = req.body;
       const ip = req.ip;
+      const tabId = req.headers['x-tab-id'] || req.body.tabId || null;
 
-      const result = await AuthService.login(maso, password, remember, ip);
+      const result = await AuthService.login(maso, password, remember, ip, tabId);
       
       return sendResponse(
         res, 

@@ -58,8 +58,23 @@ model NguoiDung {
   sinh_vien           SinhVien?
   thong_bao_gui       ThongBao[]        @relation("NguoiGuiThongBao")
   thong_bao_nhan      ThongBao[]        @relation("NguoiNhanThongBao")
+  phien_dang_nhap     PhienDangNhap[]
 
   @@map("nguoi_dung")
+}
+
+model PhienDangNhap {
+  id             String     @id @default(uuid()) @db.Uuid
+  nguoi_dung_id  String     @db.Uuid
+  ma_tab         String     @unique @db.VarChar(255)
+  vai_tro        String?    @db.VarChar(50)
+  thoi_gian_tao  DateTime   @default(now()) @db.Timestamp(6)
+  lan_hoat_dong  DateTime   @updatedAt @db.Timestamp(6)
+  nguoi_dung     NguoiDung  @relation(fields: [nguoi_dung_id], references: [id])
+
+  @@index([nguoi_dung_id])
+  @@index([ma_tab])
+  @@map("phien_dang_nhap")
 }
 
 model SinhVien {

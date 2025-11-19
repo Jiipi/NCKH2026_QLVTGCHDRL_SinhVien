@@ -230,15 +230,21 @@ async function importStudents(students) {
   let imported = 0;
   let failed = 0;
   
+  // Get student role once before loop
+  let studentRole = await prisma.vaiTro.findFirst({ 
+    where: { ten_vt: { in: ['SINH_VIEN', 'SINH_VIÊN'] } } 
+  });
+  if (!studentRole) {
+    // Create if not exists (fallback)
+    studentRole = await prisma.vaiTro.create({ 
+      data: { ten_vt: 'SINH_VIEN', mo_ta: 'Vai trò Sinh viên' } 
+    });
+  }
+  
   for (const student of students) {
     try {
       // Hash password
       const hashedPassword = await bcrypt.hash(student.mat_khau, 10);
-      // Get student role id
-      const studentRole = await prisma.vaiTro.findFirst({ where: { ten_vt: 'SINH_VIÊN' } });
-      if (!studentRole) {
-        throw new Error('Không tìm thấy vai trò sinh viên');
-      }
       
       // Create account and student in transaction
       await prisma.$transaction(async (tx) => {
@@ -270,8 +276,9 @@ async function importStudents(students) {
       });
       
       imported++;
+      console.log(`✓ Imported student: ${student.mssv} - ${student.ho_ten}`);
     } catch (error) {
-      console.error(`Failed to import student ${student.mssv}:`, error);
+      console.error(`✗ Failed to import student ${student.mssv}:`, error.message);
       failed++;
     }
   }

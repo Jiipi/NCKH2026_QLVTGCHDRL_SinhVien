@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const ProfileService = require('./profile.service');
 const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
-const { auth } = require('../../core/http/middleware/authJwt');
+const { auth, requireDynamicPermission } = require('../../core/http/middleware');
 
 /**
  * @route   GET /api/core/profile
  * @desc    Get current user profile
- * @access  Private
+ * @access  Private (Requires profile.read permission)
  */
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, requireDynamicPermission('profile.read'), async (req, res) => {
   try {
     const userId = req.user.sub;
     const profile = await ProfileService.getProfile(userId);
@@ -25,9 +25,9 @@ router.get('/', auth, async (req, res) => {
 /**
  * @route   PUT /api/core/profile
  * @desc    Update current user profile
- * @access  Private
+ * @access  Private (Requires profile.update permission)
  */
-router.put('/', auth, async (req, res) => {
+router.put('/', auth, requireDynamicPermission('profile.update'), async (req, res) => {
   try {
     const userId = req.user.sub;
     const profile = await ProfileService.updateProfile(userId, req.body);

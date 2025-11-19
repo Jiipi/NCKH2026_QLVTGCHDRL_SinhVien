@@ -48,6 +48,8 @@ router.get('/current', SemestersController.getCurrentSemester);
  * @access  Private
  */
 router.get('/classes', SemestersController.getAllClasses);
+router.get('/classes/:classId', SemestersController.getClassDetail);
+router.get('/classes/:classId/students', SemestersController.getClassStudents);
 
 /**
  * @route   GET /api/semesters/status/:classId/:semester

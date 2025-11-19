@@ -256,6 +256,44 @@ class SemestersController {
   }
 
   /**
+   * @route   GET /api/semesters/classes/:classId
+   * @desc    Get class detail for admin tools
+   * @access  Private
+   */
+  static async getClassDetail(req, res) {
+    try {
+      const { classId } = req.params;
+      const detail = await SemestersService.getClassDetail(classId);
+      return sendResponse(res, 200, ApiResponse.success(detail, 'Chi tiết lớp học'));
+    } catch (error) {
+      logError('Get class detail error', error);
+      if (error.status === 404) {
+        return sendResponse(res, 404, ApiResponse.notFound(error.message || 'Không tìm thấy lớp'));
+      }
+      return sendResponse(res, 500, ApiResponse.error('Không lấy được chi tiết lớp'));
+    }
+  }
+
+  /**
+   * @route   GET /api/semesters/classes/:classId/students
+   * @desc    Get students of a class
+   * @access  Private
+   */
+  static async getClassStudents(req, res) {
+    try {
+      const { classId } = req.params;
+      const students = await SemestersService.getClassStudents(classId);
+      return sendResponse(res, 200, ApiResponse.success(students, 'Danh sách sinh viên'));
+    } catch (error) {
+      logError('Get class students error', error);
+      if (error.status === 404) {
+        return sendResponse(res, 404, ApiResponse.notFound(error.message || 'Không tìm thấy lớp'));
+      }
+      return sendResponse(res, 500, ApiResponse.error('Không lấy được danh sách sinh viên'));
+    }
+  }
+
+  /**
    * @route   GET /api/semesters/activities/:classId/:semester
    * @desc    Get activities summary for a semester
    * @access  Private

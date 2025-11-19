@@ -12,6 +12,7 @@ const BroadcastService = require('./broadcast.service');
 const QRAttendanceService = require('./qr-attendance.service');
 const SemesterClosureService = require('./semesterClosure.service');
 const AutoPointCalculationService = require('./auto-point-calculation.service');
+const SessionTrackingService = require('./session-tracking.service');
 
 module.exports = {
   AuthService,
@@ -22,7 +23,8 @@ module.exports = {
   BroadcastService,
   QRAttendanceService,
   SemesterClosureService,
-  AutoPointCalculationService
+  AutoPointCalculationService,
+  SessionTrackingService
 };
 
 
