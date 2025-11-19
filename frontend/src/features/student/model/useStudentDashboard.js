@@ -4,13 +4,25 @@ import useDashboardData from '../../../hooks/useDashboardData';
 
 export default function useStudentDashboard() {
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
-  const [semester, setSemester] = React.useState(null);
+  
+  // Initialize semester from sessionStorage or currentSemester
+  const [semester, setSemester] = React.useState(() => {
+    try {
+      const saved = sessionStorage.getItem('current_semester');
+      return saved || null;
+    } catch {
+      return null;
+    }
+  });
 
+  // Set initial semester only once
   React.useEffect(() => {
-    if (currentSemester && !semester) {
-      setSemester(currentSemester);
-    } else if (!currentSemester && !semesterLoading && semesterOptions.length > 0 && !semester) {
-      setSemester(semesterOptions[0]?.value || null);
+    if (!semester && !semesterLoading) {
+      if (currentSemester) {
+        setSemester(currentSemester);
+      } else if (semesterOptions.length > 0) {
+        setSemester(semesterOptions[0]?.value || null);
+      }
     }
   }, [currentSemester, semesterOptions, semesterLoading, semester]);
 
@@ -18,6 +30,16 @@ export default function useStudentDashboard() {
   const [recentActivities, setRecentActivities] = React.useState([]);
 
   const { upcoming, myActivities, summary, userProfile, studentInfo, loading } = useDashboardData({ semester: semester || undefined, role: 'student' });
+
+  // Persist semester to sessionStorage whenever it changes
+  const handleSetSemester = React.useCallback((newSemester) => {
+    setSemester(newSemester);
+    if (newSemester) {
+      try {
+        sessionStorage.setItem('current_semester', newSemester);
+      } catch (_) {}
+    }
+  }, []);
 
   React.useEffect(() => {
     if (semester) {
@@ -63,7 +85,7 @@ export default function useStudentDashboard() {
 
   return {
     semester,
-    setSemester,
+    setSemester: handleSetSemester,
     recentFilter,
     setRecentFilter,
     recentActivities,

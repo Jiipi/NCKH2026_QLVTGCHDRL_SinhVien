@@ -10,6 +10,7 @@
  * - Sync state với localStorage cho shared data (optional)
  * - Auto cleanup khi tab đóng
  */
+import { computeBaseURL } from './baseUrl';
 
 class SessionStorageManager {
   constructor() {
@@ -32,6 +33,7 @@ class SessionStorageManager {
     this.SESSION_KEY = `${this.SESSION_KEY_PREFIX}_${this.tabId}`;
     this.TAB_REGISTRY_KEY = 'all_tabs_registry';
     this.SYNC_EVENT_KEY = 'tab_sync_event';
+    this.apiBaseUrl = null;
 
     // Session state
     this.isAuthenticated = false;
@@ -173,6 +175,8 @@ class SessionStorageManager {
         user: data.user?.ho_ten
       });
       
+      this.sendSessionPing('heartbeat');
+      
       // Emit sync event
       this.emitSyncEvent('session_saved', sessionData);
       
@@ -239,6 +243,10 @@ class SessionStorageManager {
     try {
       // Clear sessionStorage (tab-specific only)
       sessionStorage.removeItem(this.SESSION_KEY);
+
+      if (this.sessionData?.token) {
+        this.sendSessionPing('logout');
+      }
       
       // Update state
       this.sessionData = null;
@@ -273,6 +281,10 @@ class SessionStorageManager {
         sessionStorage.removeItem(key);
       });
       
+      if (this.sessionData?.token) {
+        this.sendSessionPing('logout');
+      }
+
       // Clear session của tab hiện tại
       this.sessionData = null;
       this.isAuthenticated = false;
@@ -373,6 +385,9 @@ class SessionStorageManager {
    */
   handleBeforeUnload() {
     try {
+      if (this.sessionData?.token) {
+        this.sendSessionPing('logout');
+      }
       // Unregister tab
       const registry = this.getTabRegistry();
       delete registry[this.tabId];
@@ -430,12 +445,17 @@ class SessionStorageManager {
    * Start heartbeat để maintain tab activity
    */
   startHeartbeat() {
-    // Update activity mỗi 30 giây
-    this.heartbeatInterval = setInterval(() => {
-      if (!document.hidden && this.hasSession()) {
+    this.stopHeartbeat();
+    const beat = () => {
+      if (!document.hidden) {
         this.updateTabActivity();
       }
-    }, 30000);
+      if (this.hasSession()) {
+        this.sendSessionPing('heartbeat');
+      }
+    };
+    beat();
+    this.heartbeatInterval = setInterval(beat, 30000);
   }
 
   /**
@@ -546,6 +566,59 @@ class SessionStorageManager {
       }
     } catch (e) {
       console.warn('[SessionStorage] migrateLegacySessionIfNeeded failed', e);
+    }
+  }
+
+  getApiBaseUrl() {
+    if (this.apiBaseUrl) return this.apiBaseUrl;
+    if (typeof window === 'undefined') {
+      this.apiBaseUrl = 'http://localhost:3001/api';
+      return this.apiBaseUrl;
+    }
+    try {
+      const stored = window.localStorage.getItem('API_BASE_URL');
+      if (stored && /^https?:\/\//i.test(stored)) {
+        this.apiBaseUrl = stored.replace(/\/$/, '');
+        return this.apiBaseUrl;
+      }
+    } catch (_) {}
+    const computed = computeBaseURL?.();
+    this.apiBaseUrl = (computed || 'http://localhost:3001/api').replace(/\/$/, '');
+    return this.apiBaseUrl;
+  }
+
+  async sendSessionPing(type = 'heartbeat') {
+    try {
+      if (!this.hasSession()) return;
+      const baseUrl = this.getApiBaseUrl();
+      if (!baseUrl) return;
+
+      const endpoint = type === 'logout' ? '/core/sessions/logout' : '/core/sessions/heartbeat';
+      const legacyEndpoint = type === 'logout' ? '/sessions/logout' : '/sessions/heartbeat';
+      const method = type === 'logout' ? 'DELETE' : 'POST';
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Tab-Id': this.tabId,
+      };
+      if (this.sessionData?.token) {
+        headers.Authorization = `Bearer ${this.sessionData.token}`;
+      }
+
+      const options = {
+        method,
+        headers,
+        keepalive: true,
+      };
+
+      const send = async (path) => fetch(`${baseUrl}${path}`, options);
+      let response = await send(endpoint);
+      if (!response.ok && response.status === 404) {
+        response = await send(legacyEndpoint);
+      }
+      return response.ok;
+    } catch (error) {
+      console.warn('[SessionStorage] Session ping failed:', type, error);
+      return false;
     }
   }
 }

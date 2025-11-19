@@ -49,6 +49,11 @@ export default function TeacherActivityApprovalPage() {
   }, []);
 
   useEffect(() => {
+    // Clear old data immediately when semester/viewMode changes
+    setActivities([]);
+    setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    setError('');
+    
     loadActivities();
   }, [semester, viewMode]);
 
@@ -76,6 +81,7 @@ export default function TeacherActivityApprovalPage() {
   const loadActivities = async () => {
     try {
       setLoading(true);
+      setError('');
       
       // Luôn load tất cả hoạt động (pending + history)
       const params = { 
@@ -84,6 +90,8 @@ export default function TeacherActivityApprovalPage() {
         search: searchTerm || undefined,
         semester: semester || undefined
       };
+      
+      console.log('[TeacherActivityApproval] Loading activities with params:', params);
       
       const res = await http.get('/teacher/activities/history', { params });
       

@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import useSemesterData from '../hooks/useSemesterData';
 
-export default function SemesterFilter({ value, onChange, label = 'Há»c ká»³', className = '' }) {
+export default function SemesterFilter({ value, onChange, label = 'Học kỳ', className = '' }) {
   const { options, loading } = useSemesterData();
   return (
     <div className={className}>

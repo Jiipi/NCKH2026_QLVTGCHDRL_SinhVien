@@ -113,10 +113,36 @@ export default function TeacherRegistrationApprovalsPage() {
       
       // Parse response same as monitor
       const data = res.data?.data || res.data || [];
-      const items = Array.isArray(data) ? data : [];
+      let items = Array.isArray(data) ? data : [];
       
-      console.log('[Teacher] Parsed registrations:', items.length, 'items');
+      console.log('[Teacher] Raw items before dedup:', items.length);
+      
+      // Deduplicate by registration ID to prevent duplicate display
+      const seen = new Set();
+      items = items.filter(reg => {
+        if (!reg.id) return true; // Keep items without ID (shouldn't happen)
+        if (seen.has(reg.id)) {
+          console.warn('[Teacher] Duplicate registration found:', reg.id);
+          return false; // Skip duplicate
+        }
+        seen.add(reg.id);
+        return true;
+      });
+      
+      console.log('[Teacher] Parsed registrations:', items.length, 'items (after deduplication)');
       console.log('[Teacher] Sample registration:', items[0]);
+      
+      // Log all registrations to check for actual duplicates
+      if (items.length > 0) {
+        console.log('[Teacher] All registrations:', items.map(r => ({
+          id: r.id,
+          student: r.sinh_vien?.nguoi_dung?.ho_ten,
+          mssv: r.sinh_vien?.mssv,
+          activity: r.hoat_dong?.ten_hd,
+          activity_id: r.hd_id,
+          status: r.trang_thai_dk
+        })));
+      }
       
       setRegistrations(items);
       setError('');
@@ -1075,16 +1101,6 @@ export default function TeacherRegistrationApprovalsPage() {
         </div>
       )}
 
-      {/* Registrations Grid/List */}
-      <div>
-        {filteredRegistrations.length > 0 && (
-          <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
-            {filteredRegistrations.map(reg => (
-              <RegistrationCard key={reg.id} registration={reg} />
-            ))}
-          </div>
-        )}
-      </div>
       {/* Bulk Actions Bar */}
       {viewMode === 'pending' && filteredRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length > 0 && (
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl p-4 shadow-lg">
