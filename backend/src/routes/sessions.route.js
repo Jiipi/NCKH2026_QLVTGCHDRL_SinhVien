@@ -125,6 +125,8 @@ router.get('/status/:userId', auth, async (req, res) => {
 router.post('/heartbeat', auth, async (req, res) => {
   try {
     const tabId = req.headers['x-tab-id'] || req.body.tabId;
+    const userId = req.user?.sub;
+    const userRole = req.user?.role;
     
     if (!tabId) {
       return sendResponse(
@@ -134,7 +136,14 @@ router.post('/heartbeat', auth, async (req, res) => {
       );
     }
     
-    const success = await SessionTrackingService.updateSessionActivity(tabId);
+    // Try to update existing session, or create new one if doesn't exist
+    let success = await SessionTrackingService.updateSessionActivity(tabId);
+    
+    // If session doesn't exist and we have userId, create it
+    if (!success && userId) {
+      const newSession = await SessionTrackingService.trackSession(userId, tabId, userRole);
+      success = !!newSession;
+    }
     
     return sendResponse(
       res,

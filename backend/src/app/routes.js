@@ -79,12 +79,12 @@ const broadcastV2 = require('../routes/broadcast.route');
 router.use('/core/broadcast', broadcastV2);
 
 // Admin Users V2 - Admin user management (Admin only)
-const adminUsersV2 = require('../routes/admin-users.route');
-router.use('/core/admin/users', adminUsersV2);
+const adminUsersV2 = require('../modules/admin-users');
+router.use('/core/admin/users', adminUsersV2.routes);
 
 // Admin Reports V2 - Admin reporting and analytics
-const adminReportsV2 = require('../routes/admin-reports.route');
-router.use('/core/admin/reports', adminReportsV2);
+const adminReportsV2 = require('../modules/admin-reports');
+router.use('/core/admin/reports', adminReportsV2.routes);
 
 // Admin Registrations V2 - Registration management with counts/export
 const adminRegistrationsV2 = require('../routes/admin-registrations.route');
@@ -114,6 +114,12 @@ router.use('/core/monitor', monitorV2.routes);
 const exportsV2 = require('../modules/exports');
 router.use('/core/exports', exportsV2.routes);
 
+// Sessions V2 - Session tracking and activity monitoring
+// Mounted under both /core/sessions and /sessions for backward compatibility
+const sessionsV2 = require('../routes/sessions.route');
+router.use('/core/sessions', sessionsV2);
+router.use('/sessions', sessionsV2); // legacy/non-core prefix fallback
+
 // ==================== ADDITIONAL ROUTES ====================
 
 // Activities route (legacy, kept for compatibility)
@@ -124,13 +130,6 @@ try {
   // Ignore if route doesn't exist
 }
 
-// QR Attendance route
-try {
-  const qrAttendanceRoute = require('../routes/qr-attendance.route');
-  router.use('/qr-attendance', qrAttendanceRoute);
-} catch (e) {
-  // Ignore if route doesn't exist
-}
 
 module.exports = router;
 

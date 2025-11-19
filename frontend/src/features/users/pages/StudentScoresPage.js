@@ -448,7 +448,7 @@ export default function Scores(){
         </div>
 
         {/* Custom CSS for animations */}
-        <style jsx>{`
+        <style>{`
           @keyframes grid-move {
             0% { transform: translateY(0); }
             100% { transform: translateY(50px); }
@@ -572,7 +572,7 @@ export default function Scores(){
             </div>
             
             {/* Custom Scrollbar Styles */}
-            <style jsx>{`
+            <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 8px;
               }

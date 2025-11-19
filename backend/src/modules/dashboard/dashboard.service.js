@@ -1,11 +1,14 @@
-const dashboardRepo = require('./dashboard.repo');
 const { parseSemesterString } = require('../../core/utils/semester');
 
 /**
- * Dashboard Service
- * Handles business logic for dashboard data and calculations
+ * DashboardDomainService
+ * Domain service encapsulating dashboard calculations
  */
-class DashboardService {
+class DashboardDomainService {
+  constructor(dashboardRepository) {
+    this.dashboardRepo = dashboardRepository;
+  }
+
   /**
    * Classification thresholds for student points
    */
@@ -49,7 +52,7 @@ class DashboardService {
   async getClassCreators(lopId, chuNhiemId) {
     if (!lopId) return [];
     
-    const classStudents = await dashboardRepo.getClassStudents(lopId);
+    const classStudents = await this.dashboardRepo.getClassStudents(lopId);
     const classStudentUserIds = classStudents
       .map(s => s.nguoi_dung_id)
       .filter(Boolean);
@@ -66,8 +69,8 @@ class DashboardService {
    * Calculate points summary with type breakdown and max points cap
    */
   async calculatePointsSummary(svId, activityFilter) {
-    const registrations = await dashboardRepo.getStudentRegistrations(svId, activityFilter);
-    const activityTypes = await dashboardRepo.getActivityTypes();
+    const registrations = await this.dashboardRepo.getStudentRegistrations(svId, activityFilter);
+    const activityTypes = await this.dashboardRepo.getActivityTypes();
     
     // Align with Prisma Studio and monitor pages: count based on registration status 'da_tham_gia'
     const validRegistrations = registrations.filter(r => r.trang_thai_dk === 'da_tham_gia');
@@ -184,13 +187,13 @@ class DashboardService {
       return { rank: 1, total: 1 };
     }
     
-    const classmates = await dashboardRepo.getClassStudents(sinhVien.lop_id);
+    const classmates = await this.dashboardRepo.getClassStudents(sinhVien.lop_id);
     const totalStudentsInClass = classmates.length;
     
     // Calculate points for each student - same logic as calculatePointsSummary
     const classScores = await Promise.all(
       classmates.map(async (c) => {
-        const cRegs = await dashboardRepo.getStudentRegistrations(c.id, activityFilter);
+        const cRegs = await this.dashboardRepo.getStudentRegistrations(c.id, activityFilter);
         
         // Only count 'da_tham_gia' registrations to match points calculation
         const cValid = cRegs.filter(r => r.trang_thai_dk === 'da_tham_gia');
@@ -259,7 +262,7 @@ class DashboardService {
     console.log('🔍 getStudentDashboard called - userId:', userId, 'query:', query);
     
     // Get student info
-    const sinhVien = await dashboardRepo.getStudentInfo(userId);
+    const sinhVien = await this.dashboardRepo.getStudentInfo(userId);
     if (!sinhVien) {
       throw new Error('Không tìm thấy thông tin sinh viên');
     }
@@ -285,18 +288,18 @@ class DashboardService {
     const pointsSummary = await this.calculatePointsSummary(sinhVien.id, activityWhereClause);
     
     // Get upcoming activities
-    const upcomingActivities = await dashboardRepo.getUpcomingActivities(
+    const upcomingActivities = await this.dashboardRepo.getUpcomingActivities(
       sinhVien.id,
       classCreators,
       semesterFilter
     );
     
     // Get recent activities - only from 'da_tham_gia' registrations to match points calculation
-    const allRegistrations = await dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
+    const allRegistrations = await this.dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
     const validRegs = allRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia');
     
     // Get unread notifications
-    const unreadNotifications = await dashboardRepo.getUnreadNotificationsCount(userId);
+    const unreadNotifications = await this.dashboardRepo.getUnreadNotificationsCount(userId);
     
     // Build criteria progress
     const criteriaProgress = this.buildCriteriaProgress(
@@ -358,7 +361,7 @@ class DashboardService {
     console.log('🔍 getMyActivities called - userId:', userId, 'query:', query);
     
     // Get student info
-    const sinhVien = await dashboardRepo.getStudentInfo(userId);
+    const sinhVien = await this.dashboardRepo.getStudentInfo(userId);
     if (!sinhVien) {
       console.error('❌ Student not found for userId:', userId);
       throw new Error('Không tìm thấy thông tin sinh viên');
@@ -382,7 +385,7 @@ class DashboardService {
     console.log('🔍 Activity where clause:', JSON.stringify(activityWhereClause));
     
     // Get ALL registrations (not just top 5)
-    const registrations = await dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
+    const registrations = await this.dashboardRepo.getStudentRegistrations(sinhVien.id, activityWhereClause);
     console.log('📋 Found registrations:', registrations.length);
     
     // Log unique status values for debugging
@@ -446,9 +449,9 @@ class DashboardService {
         fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
     
-    const stats = await dashboardRepo.getActivityStatsByTimeRange(fromDate);
-    const totalActivities = await dashboardRepo.getTotalActivitiesCount(fromDate);
-    const totalRegistrations = await dashboardRepo.getTotalRegistrationsCount(fromDate);
+    const stats = await this.dashboardRepo.getActivityStatsByTimeRange(fromDate);
+    const totalActivities = await this.dashboardRepo.getTotalActivitiesCount(fromDate);
+    const totalRegistrations = await this.dashboardRepo.getTotalRegistrationsCount(fromDate);
     
     return {
       time_range: timeRange,
@@ -465,76 +468,11 @@ class DashboardService {
    * @returns {Promise<Object>} Dashboard statistics
    */
   async getAdminDashboard() {
-    const { prisma } = require('../../infrastructure/prisma/client');
-    
-    // Get today's date range
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    
-    // Get start of current month
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const [
-      totalUsers,
-      totalActivities,
-      totalRegistrations,
-      activeUsers,
-      pendingApprovals,
-      todayApprovals,
-      newUsersThisMonth
-    ] = await Promise.all([
-      // Total users in system
-      prisma.nguoiDung.count(),
-      
-      // Total activities
-      prisma.hoatDong.count(),
-      
-      // Total registrations
-      prisma.dangKyHoatDong.count(),
-      
-      // Active users
-      prisma.nguoiDung.count({ where: { trang_thai: 'hoat_dong' } }),
-      
-      // Pending approvals (registrations)
-      prisma.dangKyHoatDong.count({
-        where: { trang_thai_dk: 'cho_duyet' }
-      }),
-      
-      // Today's approvals - use ngay_duyet (approval timestamp)
-      prisma.dangKyHoatDong.count({
-        where: {
-          trang_thai_dk: 'da_duyet',
-          ngay_duyet: {
-            gte: startOfToday,
-            lte: endOfToday
-          }
-        }
-      }),
-      
-      // New users this month
-      prisma.nguoiDung.count({
-        where: {
-          ngay_tao: {
-            gte: startOfMonth
-          }
-        }
-      })
-    ]);
-
-    return {
-      totalUsers,
-      totalActivities,
-      totalRegistrations,
-      activeUsers,
-      pendingApprovals,
-      todayApprovals,
-      newUsersThisMonth
-    };
+    return await this.dashboardRepo.getAdminOverviewStats();
   }
 }
 
-module.exports = new DashboardService();
+module.exports = DashboardDomainService;
 
 
 

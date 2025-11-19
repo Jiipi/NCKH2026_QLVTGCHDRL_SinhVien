@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const activityTypesService = require('./activity-types.service');
-const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
-const { logError } = require('../../core/logger');
-const { auth: authenticateJWT, requireAdmin, requireTeacher } = require('../../core/http/middleware/authJwt');
+const { createActivityTypesController } = require('./presentation/activity-types.factory');
+const { auth: authenticateJWT, requireTeacher } = require('../../core/http/middleware/authJwt');
 const { uploadImage, handleUploadError } = require('../../core/http/middleware/upload');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
+
+const activityTypesController = createActivityTypesController();
 
 // Apply authentication to all routes
 router.use(authenticateJWT);
@@ -14,100 +15,42 @@ router.use(authenticateJWT);
  * @desc    Get paginated list of activity types with search
  * @access  Authenticated users (students need this for filtering)
  */
-router.get('/', async (req, res) => {
-  try {
-    const { page, limit, search } = req.query;
-    const result = await activityTypesService.getList({ page, limit, search });
-    return sendResponse(res, 200, ApiResponse.success(result));
-  } catch (error) {
-    logError('Error fetching activity types:', error);
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy danh sách loại hoạt động'));
-  }
-});
+router.get('/', asyncHandler((req, res) => activityTypesController.list(req, res)));
 
 /**
  * @route   GET /api/core/activity-types/:id
  * @desc    Get single activity type by ID
  * @access  Authenticated users
  */
-router.get('/:id', async (req, res) => {
-  try {
-    const activityType = await activityTypesService.getById(req.params.id);
-    if (!activityType) {
-      return sendResponse(res, 404, ApiResponse.notFound('Không tìm thấy loại hoạt động'));
-    }
-    return sendResponse(res, 200, ApiResponse.success(activityType));
-  } catch (error) {
-    logError('Error fetching activity type:', error);
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy thông tin loại hoạt động'));
-  }
-});
+router.get('/:id', asyncHandler((req, res) => activityTypesController.getById(req, res)));
 
 /**
  * @route   POST /api/core/activity-types
  * @desc    Create new activity type
  * @access  Teacher or Admin
  */
-router.post('/', requireTeacher, async (req, res) => {
-  try {
-    const activityType = await activityTypesService.create(req.body, req.user.id);
-    return sendResponse(res, 201, ApiResponse.success(activityType, 'Tạo loại hoạt động thành công'));
-  } catch (error) {
-    logError('Error creating activity type:', error);
-    return sendResponse(res, 400, ApiResponse.error(error.message || 'Lỗi khi tạo loại hoạt động'));
-  }
-});
+router.post('/', requireTeacher, asyncHandler((req, res) => activityTypesController.create(req, res)));
 
 /**
  * @route   POST /api/core/activity-types/upload-image
  * @desc    Upload image for activity type
  * @access  Teacher or Admin
  */
-router.post('/upload-image', requireTeacher, uploadImage.single('image'), handleUploadError, async (req, res) => {
-  try {
-    if (!req.file) {
-      return sendResponse(res, 400, ApiResponse.error('Không có file ảnh được tải lên'));
-    }
-
-    const imagePath = `/uploads/images/${req.file.filename}`;
-    return sendResponse(res, 200, ApiResponse.success({ path: imagePath }, 'Tải ảnh thành công'));
-  } catch (error) {
-    logError('Error uploading activity type image:', error);
-    return sendResponse(res, 500, ApiResponse.error('Lỗi khi tải ảnh lên'));
-  }
-});
+router.post('/upload-image', requireTeacher, uploadImage.single('image'), handleUploadError, asyncHandler((req, res) => activityTypesController.uploadImage(req, res)));
 
 /**
  * @route   PUT /api/core/activity-types/:id
  * @desc    Update existing activity type
  * @access  Teacher or Admin
  */
-router.put('/:id', requireTeacher, async (req, res) => {
-  try {
-    const activityType = await activityTypesService.update(req.params.id, req.body, req.user.id);
-    return sendResponse(res, 200, ApiResponse.success(activityType, 'Cập nhật loại hoạt động thành công'));
-  } catch (error) {
-    logError('Error updating activity type:', error);
-    const status = error.message.includes('không tồn tại') ? 404 : 400;
-    return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi khi cập nhật loại hoạt động'));
-  }
-});
+router.put('/:id', requireTeacher, asyncHandler((req, res) => activityTypesController.update(req, res)));
 
 /**
  * @route   DELETE /api/core/activity-types/:id
  * @desc    Delete activity type
  * @access  Teacher or Admin
  */
-router.delete('/:id', requireTeacher, async (req, res) => {
-  try {
-    await activityTypesService.delete(req.params.id, req.user.id);
-    return sendResponse(res, 200, ApiResponse.success(null, 'Xóa loại hoạt động thành công'));
-  } catch (error) {
-    logError('Error deleting activity type:', error);
-    const status = error.message.includes('không tồn tại') ? 404 : 400;
-    return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi khi xóa loại hoạt động'));
-  }
-});
+router.delete('/:id', requireTeacher, asyncHandler((req, res) => activityTypesController.delete(req, res)));
 
 module.exports = router;
 

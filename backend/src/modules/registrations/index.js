@@ -11,8 +11,3 @@ module.exports = {
   service: registrationsService,
   repo: registrationsRepo
 };
-
-
-
-
-

@@ -4,7 +4,7 @@
  */
 
 const { Router } = require('express');
-const SemestersController = require('./semesters.controller');
+const { createSemestersController } = require('./presentation/semesters.factory');
 const {
   validateProposeClosure,
   validateSoftLock,
@@ -15,8 +15,10 @@ const {
 } = require('./semesters.validators');
 const { auth } = require('../../core/http/middleware/authJwt');
 const { requirePermission } = require('../../core/policies');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
 
 const router = Router();
+const semestersController = createSemestersController();
 
 // All routes require authentication
 router.use(auth);
@@ -26,30 +28,30 @@ router.use(auth);
  * @desc    Get semester options for UI dropdowns
  * @access  Private
  */
-router.get('/options', SemestersController.getSemesterOptions);
+router.get('/options', asyncHandler((req, res) => semestersController.getSemesterOptions(req, res)));
 
 /**
  * @route   GET /api/semesters/list
  * @desc    Get all semesters list (same as options for compatibility)
  * @access  Private
  */
-router.get('/list', SemestersController.getSemesterOptions);
+router.get('/list', asyncHandler((req, res) => semestersController.getSemesterOptions(req, res)));
 
 /**
  * @route   GET /api/semesters/current
  * @desc    Get current semester info
  * @access  Private
  */
-router.get('/current', SemestersController.getCurrentSemester);
+router.get('/current', asyncHandler((req, res) => semestersController.getCurrentSemester(req, res)));
 
 /**
  * @route   GET /api/semesters/classes
  * @desc    Get all classes for semester management
  * @access  Private
  */
-router.get('/classes', SemestersController.getAllClasses);
-router.get('/classes/:classId', SemestersController.getClassDetail);
-router.get('/classes/:classId/students', SemestersController.getClassStudents);
+router.get('/classes', asyncHandler((req, res) => semestersController.getAllClasses(req, res)));
+router.get('/classes/:classId', asyncHandler((req, res) => semestersController.getClassDetail(req, res)));
+router.get('/classes/:classId/students', asyncHandler((req, res) => semestersController.getClassStudents(req, res)));
 
 /**
  * @route   GET /api/semesters/status/:classId/:semester
@@ -59,7 +61,7 @@ router.get('/classes/:classId/students', SemestersController.getClassStudents);
 router.get(
   '/status/:classId/:semester', 
   validateGetSemesterStatus,
-  SemestersController.getSemesterStatus
+  asyncHandler((req, res) => semestersController.getSemesterStatus(req, res))
 );
 
 /**
@@ -67,7 +69,7 @@ router.get(
  * @desc    Get current semester status (without params)
  * @access  Private
  */
-router.get('/status', SemestersController.getCurrentSemesterStatus);
+router.get('/status', asyncHandler((req, res) => semestersController.getCurrentSemesterStatus(req, res)));
 
 /**
  * @route   GET /api/semesters/activities/:classId/:semester
@@ -77,7 +79,7 @@ router.get('/status', SemestersController.getCurrentSemesterStatus);
 router.get(
   '/activities/:classId/:semester',
   validateGetActivitiesBySemester,
-  SemestersController.getActivitiesBySemester
+  asyncHandler((req, res) => semestersController.getActivitiesBySemester(req, res))
 );
 
 /**
@@ -88,7 +90,7 @@ router.get(
 router.get(
   '/registrations/:classId/:semester',
   validateGetActivitiesBySemester, // Same validation
-  SemestersController.getRegistrationsBySemester
+  asyncHandler((req, res) => semestersController.getRegistrationsBySemester(req, res))
 );
 
 /**
@@ -100,7 +102,7 @@ router.post(
   '/propose-close',
   requirePermission('create', 'semester'),
   validateProposeClosure,
-  SemestersController.proposeClosure
+  asyncHandler((req, res) => semestersController.proposeClosure(req, res))
 );
 
 /**
@@ -112,7 +114,7 @@ router.post(
   '/soft-lock',
   requirePermission('update', 'semester'),
   validateSoftLock,
-  SemestersController.softLock
+  asyncHandler((req, res) => semestersController.softLock(req, res))
 );
 
 /**
@@ -124,7 +126,7 @@ router.post(
   '/hard-lock',
   requirePermission('manage', 'semester'),
   validateHardLock,
-  SemestersController.hardLock
+  asyncHandler((req, res) => semestersController.hardLock(req, res))
 );
 
 /**
@@ -136,7 +138,7 @@ router.post(
   '/rollback',
   requirePermission('manage', 'semester'),
   validateRollback,
-  SemestersController.rollback
+  asyncHandler((req, res) => semestersController.rollback(req, res))
 );
 
 /**
@@ -144,14 +146,14 @@ router.post(
  * @desc    Create next semester automatically
  * @access  Private (Admin) - Role check in controller
  */
-router.post('/create-next', SemestersController.createNextSemester);
+router.post('/create-next', asyncHandler((req, res) => semestersController.createNextSemester(req, res)));
 
 /**
  * @route   POST /api/semesters/activate
  * @desc    Activate a semester (locks old, unlocks new)
  * @access  Private (Admin) - Role check in controller
  */
-router.post('/activate', SemestersController.activateSemester);
+router.post('/activate', asyncHandler((req, res) => semestersController.activateSemester(req, res)));
 
 /**
  * TODO: Add remaining routes from routes/semesters.route.js:

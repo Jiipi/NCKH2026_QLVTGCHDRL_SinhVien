@@ -5,7 +5,7 @@
  */
 
 const { logError } = require('../../core/logger');
-const { NotFoundError, InternalServerError } = require('../../app/errors/AppError');
+const { NotFoundError, InternalServerError } = require('../../core/errors/AppError');
 
 class BaseRepository {
   /**

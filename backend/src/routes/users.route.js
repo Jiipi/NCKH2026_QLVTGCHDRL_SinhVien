@@ -7,7 +7,6 @@ const { ApiResponse, sendResponse } = require('../core/http/response/apiResponse
 const profileV2 = require('../modules/profile');
 const usersV2 = require('../modules/users');
 const ProfileService = require('../modules/profile/profile.service');
-const UsersService = require('../modules/users/users.service');
 
 const router = Router();
 

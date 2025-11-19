@@ -10,17 +10,23 @@ const { logError } = require('../../logger');
 
 // Cache quyền của user trong 5 giây để tránh query liên tục
 const permissionsCache = new Map();
-const CACHE_TTL = 5000; // 5 seconds
+const CACHE_TTL = 0; // 0 = không cache (tắt cache để test permissions mới)
 
 /**
  * Lấy quyền của user từ database (có cache)
  */
-async function getUserPermissions(userId) {
+async function getUserPermissions(userId, forceRefresh = false) {
   const cacheKey = `user_${userId}`;
-  const cached = permissionsCache.get(cacheKey);
   
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.permissions;
+  // Nếu không force refresh, kiểm tra cache
+  if (!forceRefresh) {
+    const cached = permissionsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.permissions;
+    }
+  } else {
+    // Force refresh: xóa cache
+    permissionsCache.delete(cacheKey);
   }
 
   try {
@@ -40,7 +46,37 @@ async function getUserPermissions(userId) {
       return [];
     }
 
-    const permissions = user.vai_tro.quyen_han || [];
+    // Normalize quyen_han: có thể là array hoặc object
+    let permissions = user.vai_tro.quyen_han || [];
+    const originalType = typeof permissions;
+    const wasArray = Array.isArray(permissions);
+    
+    // Nếu là object, chuyển thành array
+    if (permissions && typeof permissions === 'object' && !Array.isArray(permissions)) {
+      // Nếu có property 'permissions', lấy nó
+      if (Array.isArray(permissions.permissions)) {
+        permissions = permissions.permissions;
+      } else {
+        // Nếu không, lấy tất cả values
+        permissions = Object.values(permissions);
+      }
+    }
+    
+    // Đảm bảo là array
+    if (!Array.isArray(permissions)) {
+      permissions = [];
+    }
+    
+    // Log normalization nếu cần (chỉ khi có vấn đề)
+    if (!wasArray && permissions.length > 0) {
+      console.log('[Permission Normalize]', {
+        userId,
+        originalType,
+        wasArray,
+        normalizedCount: permissions.length,
+        sample: permissions.slice(0, 3)
+      });
+    }
     
     // Cache permissions
     permissionsCache.set(cacheKey, {
@@ -117,19 +153,68 @@ function requireDynamicPermission(requiredPermission) {
 
       const userId = req.user.sub;
       
+      // Kiểm tra xem có yêu cầu force refresh không (query param ?refresh=true)
+      const forceRefresh = req.query.refresh === 'true';
+      
       // Lấy quyền từ database
-      const userPermissions = await getUserPermissions(userId);
+      const userPermissions = await getUserPermissions(userId, forceRefresh);
 
-      // Kiểm tra quyền
-      const hasPermission = userPermissions.includes(requiredPermission);
+      // Debug logging (chỉ trong development) - luôn log cho attendance.write
+      if (requiredPermission === 'attendance.write') {
+        console.log('[Permission Debug]', {
+          userId,
+          requiredPermission,
+          userPermissions,
+          permissionsCount: userPermissions.length,
+          hasPermission: userPermissions.includes(requiredPermission),
+          role: req.user?.role
+        });
+      }
+
+      // Kiểm tra quyền trực tiếp
+      let hasPermission = userPermissions.includes(requiredPermission);
+      
+      // Nếu không có quyền, kiểm tra backward compatibility:
+      // 1. Nếu yêu cầu .read nhưng user có .view thì cũng chấp nhận
+      if (!hasPermission && requiredPermission.endsWith('.read')) {
+        const viewPermission = requiredPermission.replace('.read', '.view');
+        hasPermission = userPermissions.includes(viewPermission);
+      }
+      
+      // 2. Nếu yêu cầu registrations.write nhưng user có registrations.register thì cũng chấp nhận
+      if (!hasPermission && requiredPermission === 'registrations.write') {
+        hasPermission = userPermissions.includes('registrations.register');
+      }
 
       if (!hasPermission) {
+        // Clear cache để force refresh permissions từ database
+        clearPermissionsCache(userId);
+        
+        // Log để debug (luôn log cho attendance.write)
+        if (requiredPermission === 'attendance.write' || process.env.NODE_ENV !== 'production') {
+          console.log('[Permission Denied]', {
+            userId,
+            requiredPermission,
+            userPermissions,
+            permissionsCount: userPermissions.length,
+            role: req.user?.role,
+            hasAttendanceView: userPermissions.includes('attendance.view'),
+            hasAttendanceMark: userPermissions.includes('attendance.mark'),
+            hasAttendanceWrite: userPermissions.includes('attendance.write')
+          });
+        }
+        
         return res.status(403).json({
           success: false,
           message: `Bạn không có quyền ${requiredPermission}`,
           code: 'FORBIDDEN',
           requiredPermission,
           userPermissions, // Để debug
+          debug: process.env.NODE_ENV !== 'production' ? {
+            userId,
+            role: req.user?.role,
+            permissionsCount: userPermissions.length
+          } : undefined
         });
       }
 

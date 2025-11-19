@@ -1,39 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const SearchService = require('./search.service');
-const { ApiResponse, sendResponse } = require('../../core/http/response/apiResponse');
+const { createSearchController } = require('./presentation/search.factory');
 const { auth } = require('../../core/http/middleware/authJwt');
+const { asyncHandler } = require('../../core/http/middleware/asyncHandler');
+
+const searchController = createSearchController();
 
 /**
  * @route   GET /api/search
  * @desc    Global search across activities, students, classes, teachers
  * @access  Private (All authenticated users)
  */
-router.get('/', auth, async (req, res) => {
-  try {
-    const { q } = req.query;
-    const user = req.user;
-
-    const results = await SearchService.globalSearch(q, user);
-    
-    return res.json({
-      success: true,
-      data: results
-    });
-  } catch (error) {
-    console.error('Search error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi tìm kiếm',
-      error: error.message
-    });
-  }
-});
+router.get('/', auth, asyncHandler((req, res) => searchController.globalSearch(req, res)));
 
 module.exports = router;
-
-
-
-
-
-
