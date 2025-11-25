@@ -158,15 +158,32 @@ export function useLegacyQRScanner() {
           barcodeDetectorRef.current = null;
         }
         videoRef.current.onloadedmetadata = () => {
-          const v = videoRef.current; if (!v || !v.srcObject) return;
+          const v = videoRef.current; 
+          if (!v || !v.srcObject) return;
+          // Kiểm tra element vẫn còn trong DOM trước khi play
+          if (!document.contains(v)) {
+            stopCamera();
+            return;
+          }
           (v.play?.() || Promise.resolve())
             .then(() => {
+              // Kiểm tra lại element vẫn còn trong DOM sau khi play
+              if (!document.contains(v) || !v.srcObject) {
+                stopCamera();
+                return;
+              }
               setIsScanning(true);
               scanningActiveRef.current = true;
               setTimeout(() => { setIsStarting(false); }, 500);
               setTimeout(() => { setupZXing().finally(() => { if (!zxingReaderRef.current && scanningActiveRef.current) startScanningLoop(); }); }, 300);
             })
-            .catch(() => { setError('Không thể phát video từ camera'); stopCamera(); });
+            .catch((err) => { 
+              // Bỏ qua AbortError vì đây là warning, không phải lỗi nghiêm trọng
+              if (err?.name !== 'AbortError') {
+                setError('Không thể phát video từ camera'); 
+                stopCamera();
+              }
+            });
         };
         videoRef.current.onerror = () => { setError('Lỗi video từ camera'); stopCamera(); };
       } else {
@@ -297,10 +314,53 @@ export function useLegacyQRScanner() {
         if (jsonStart >= 0 && jsonEnd > jsonStart) { try { payload = JSON.parse(qrData.slice(jsonStart, jsonEnd + 1)); } catch (_) {} }
       }
       if (!payload || !payload.activityId || !payload.token) throw { status: 400, message: 'Mã QR không hợp lệ' };
+      
+      console.log('[QR Scanner] Payload from QR:', {
+        activityId: payload.activityId,
+        token: payload.token ? payload.token.substring(0, 10) + '...' : 'null',
+        tokenLength: payload.token?.length
+      });
+      
       const qrRes = await http.get(`/activities/${payload.activityId}/qr-data`);
       const serverQR = qrRes?.data?.data || qrRes?.data || {};
       const serverToken = serverQR.qr_token || serverQR.token;
-      if (!serverToken || serverToken !== payload.token) throw { status: 400, message: 'Mã QR không khớp hoặc đã hết hạn' };
+      
+      console.log('[QR Scanner] Server QR data:', {
+        activityId: serverQR.activity_id,
+        token: serverToken ? serverToken.substring(0, 10) + '...' : 'null',
+        tokenLength: serverToken?.length
+      });
+      
+      // Normalize tokens for comparison
+      let normalizedPayloadToken = String(payload.token || '').trim();
+      const normalizedServerToken = String(serverToken || '').trim();
+      
+      // Backward compatibility: Nếu token trong QR code là 64 chars (token cũ) và server token là 32 chars (token mới)
+      // Chỉ so sánh 32 chars đầu của token trong QR code với token trong server
+      if (normalizedPayloadToken.length === 64 && normalizedServerToken.length === 32) {
+        console.log('[QR Scanner] Detected old 64-char token in QR, comparing first 32 chars');
+        normalizedPayloadToken = normalizedPayloadToken.substring(0, 32);
+      }
+      
+      console.log('[QR Scanner] Token comparison:', {
+        payloadToken: normalizedPayloadToken.substring(0, 10) + '...',
+        serverToken: normalizedServerToken.substring(0, 10) + '...',
+        match: normalizedPayloadToken === normalizedServerToken,
+        payloadLength: normalizedPayloadToken.length,
+        serverLength: normalizedServerToken.length
+      });
+      
+      if (!serverToken) {
+        console.error('[QR Scanner] Server token is missing');
+        throw { status: 400, message: 'Hoạt động chưa có mã QR. Vui lòng liên hệ quản trị viên.' };
+      }
+      
+      if (normalizedServerToken !== normalizedPayloadToken) {
+        console.error('[QR Scanner] Token mismatch!');
+        throw { status: 400, message: 'Mã QR không khớp hoặc đã hết hạn. Vui lòng tạo QR code mới.' };
+      }
+      
+      console.log('[QR Scanner] Tokens match, calling scan attendance...');
       const checkinRes = await http.post(`/activities/${payload.activityId}/attendance/scan`, { token: payload.token });
       const checkinData = checkinRes?.data?.data || checkinRes?.data || {};
       setScanResult({ success: true, message: 'Điểm danh thành công!', data: { activityId: checkinData.activityId || payload.activityId, activityName: checkinData.activityName || serverQR.activity_name || '', sessionName: checkinData.sessionName || 'Mặc định', timestamp: checkinData.timestamp || new Date().toISOString() } });

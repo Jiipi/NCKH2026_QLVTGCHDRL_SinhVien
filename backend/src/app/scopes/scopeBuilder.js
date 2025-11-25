@@ -8,7 +8,7 @@
  * - LOP_TRUONG / SINH_VIEN: Chỉ thấy data của lớp mình
  */
 
-const { prisma } = require('../../infrastructure/prisma/client');
+const { prisma } = require('../../data/infrastructure/prisma/client');
 const { logError } = require('../../core/logger');
 const { normalizeRoleName } = require('../../core/utils/roleHelper');
 

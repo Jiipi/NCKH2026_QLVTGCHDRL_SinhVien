@@ -1,29 +1,31 @@
-const SemesterPrismaRepository = require('../infrastructure/repositories/SemesterPrismaRepository');
-const GetSemesterOptionsUseCase = require('../application/use-cases/GetSemesterOptionsUseCase');
-const GetCurrentSemesterUseCase = require('../application/use-cases/GetCurrentSemesterUseCase');
-const GetAllClassesUseCase = require('../application/use-cases/GetAllClassesUseCase');
-const GetClassDetailUseCase = require('../application/use-cases/GetClassDetailUseCase');
-const GetClassStudentsUseCase = require('../application/use-cases/GetClassStudentsUseCase');
-const GetSemesterStatusUseCase = require('../application/use-cases/GetSemesterStatusUseCase');
-const ProposeClosureUseCase = require('../application/use-cases/ProposeClosureUseCase');
-const SoftLockSemesterUseCase = require('../application/use-cases/SoftLockSemesterUseCase');
-const HardLockSemesterUseCase = require('../application/use-cases/HardLockSemesterUseCase');
-const RollbackSemesterUseCase = require('../application/use-cases/RollbackSemesterUseCase');
-const GetActivitiesBySemesterUseCase = require('../application/use-cases/GetActivitiesBySemesterUseCase');
-const GetRegistrationsBySemesterUseCase = require('../application/use-cases/GetRegistrationsBySemesterUseCase');
-const CreateNextSemesterUseCase = require('../application/use-cases/CreateNextSemesterUseCase');
-const ActivateSemesterUseCase = require('../application/use-cases/ActivateSemesterUseCase');
-const GetCurrentSemesterStatusUseCase = require('../application/use-cases/GetCurrentSemesterStatusUseCase');
-const SemestersController = require('./SemestersController');
+const SemesterPrismaRepository = require('../data/repositories/SemesterPrismaRepository');
+const GetSemesterOptionsUseCase = require('../business/services/GetSemesterOptionsUseCase');
+const GetCurrentSemesterUseCase = require('../business/services/GetCurrentSemesterUseCase');
+const GetAllClassesUseCase = require('../business/services/GetAllClassesUseCase');
+const GetClassDetailUseCase = require('../business/services/GetClassDetailUseCase');
+const GetClassStudentsUseCase = require('../business/services/GetClassStudentsUseCase');
+const GetSemesterStatusUseCase = require('../business/services/GetSemesterStatusUseCase');
+const ProposeClosureUseCase = require('../business/services/ProposeClosureUseCase');
+const SoftLockSemesterUseCase = require('../business/services/SoftLockSemesterUseCase');
+const HardLockSemesterUseCase = require('../business/services/HardLockSemesterUseCase');
+const RollbackSemesterUseCase = require('../business/services/RollbackSemesterUseCase');
+const GetActivitiesBySemesterUseCase = require('../business/services/GetActivitiesBySemesterUseCase');
+const GetRegistrationsBySemesterUseCase = require('../business/services/GetRegistrationsBySemesterUseCase');
+const CreateNextSemesterUseCase = require('../business/services/CreateNextSemesterUseCase');
+const ActivateSemesterUseCase = require('../business/services/ActivateSemesterUseCase');
+const GetCurrentSemesterStatusUseCase = require('../business/services/GetCurrentSemesterStatusUseCase');
+const SemestersController = require('./controllers/SemestersController');
 
 /**
  * Factory function to create SemestersController with all dependencies
  * Follows Dependency Injection Principle (DIP)
  */
 function createSemestersController() {
+  // Data layer
   const semesterRepository = new SemesterPrismaRepository();
   const getCurrentSemesterUseCase = new GetCurrentSemesterUseCase();
 
+  // Business layer (Use Cases)
   const useCases = {
     getSemesterOptions: new GetSemesterOptionsUseCase(semesterRepository),
     getCurrentSemester: getCurrentSemesterUseCase,
@@ -42,6 +44,7 @@ function createSemestersController() {
     getCurrentSemesterStatus: new GetCurrentSemesterStatusUseCase(getCurrentSemesterUseCase)
   };
 
+  // Presentation layer
   return new SemestersController(useCases);
 }
 

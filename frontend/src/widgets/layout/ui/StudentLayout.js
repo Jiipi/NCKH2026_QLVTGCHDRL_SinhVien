@@ -6,7 +6,7 @@ import ModernFooter from '../../../widgets/header/ui/ModernFooter';
 import MobileSidebarWrapper from '../../../components/MobileSidebarWrapper';
 import MobileMenuButton from '../../../components/MobileMenuButton';
 
-export default function StudentLayout() {
+export default function StudentLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('student-sidebar-collapsed');
     console.log('[StudentLayout] Initial state:', stored === 'true');
@@ -83,7 +83,7 @@ export default function StudentLayout() {
         />
         <main className="flex-1 overflow-y-auto">
           <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-            <Outlet />
+            {children || <Outlet />}
           </div>
           <ModernFooter />
         </main>

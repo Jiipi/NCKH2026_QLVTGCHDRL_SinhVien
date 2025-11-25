@@ -1,55 +1,53 @@
-const ActivityPrismaRepository = require('../infrastructure/repositories/ActivityPrismaRepository');
-const GetActivitiesUseCase = require('../application/use-cases/GetActivitiesUseCase');
-const GetActivityByIdUseCase = require('../application/use-cases/GetActivityByIdUseCase');
-const CreateActivityUseCase = require('../application/use-cases/CreateActivityUseCase');
-const UpdateActivityUseCase = require('../application/use-cases/UpdateActivityUseCase');
-const DeleteActivityUseCase = require('../application/use-cases/DeleteActivityUseCase');
-const ApproveActivityUseCase = require('../application/use-cases/ApproveActivityUseCase');
-const RejectActivityUseCase = require('../application/use-cases/RejectActivityUseCase');
-const GetActivityDetailsUseCase = require('../application/use-cases/GetActivityDetailsUseCase');
-const RegisterActivityUseCase = require('../application/use-cases/RegisterActivityUseCase');
-const CancelActivityRegistrationUseCase = require('../application/use-cases/CancelActivityRegistrationUseCase');
-const GetActivityQRDataUseCase = require('../application/use-cases/GetActivityQRDataUseCase');
-const ScanAttendanceUseCase = require('../application/use-cases/ScanAttendanceUseCase');
-const ActivitiesController = require('./ActivitiesController');
+const activitiesRepository = require('../data/repositories/activities.repository');
+const GetActivitiesUseCase = require('../business/services/GetActivitiesUseCase');
+const GetActivityByIdUseCase = require('../business/services/GetActivityByIdUseCase');
+const CreateActivityUseCase = require('../business/services/CreateActivityUseCase');
+const UpdateActivityUseCase = require('../business/services/UpdateActivityUseCase');
+const DeleteActivityUseCase = require('../business/services/DeleteActivityUseCase');
+const ApproveActivityUseCase = require('../business/services/ApproveActivityUseCase');
+const RejectActivityUseCase = require('../business/services/RejectActivityUseCase');
+const GetActivityDetailsUseCase = require('../business/services/GetActivityDetailsUseCase');
+const RegisterActivityUseCase = require('../business/services/RegisterActivityUseCase');
+const CancelActivityRegistrationUseCase = require('../business/services/CancelActivityRegistrationUseCase');
+const GetActivityQRDataUseCase = require('../business/services/GetActivityQRDataUseCase');
+const ScanAttendanceUseCase = require('../business/services/ScanAttendanceUseCase');
+const ActivitiesController = require('./controllers/ActivitiesController');
+
+// Import use cases from registrations module
+const registrationsRepository = require('../../registrations/data/repositories/registrations.repository');
+const CreateRegistrationUseCase = require('../../registrations/business/services/CreateRegistrationUseCase');
+const CancelRegistrationUseCase = require('../../registrations/business/services/CancelRegistrationUseCase');
 
 /**
  * Factory for creating ActivitiesController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createActivitiesController() {
-  // Infrastructure layer
-  const activityRepository = new ActivityPrismaRepository();
+  // Data layer
+  const repo = activitiesRepository;
 
-  // Application layer (Use Cases)
-  const getActivitiesUseCase = new GetActivitiesUseCase(activityRepository);
-  const getActivityByIdUseCase = new GetActivityByIdUseCase(activityRepository);
-  const createActivityUseCase = new CreateActivityUseCase(activityRepository);
-  const updateActivityUseCase = new UpdateActivityUseCase(activityRepository);
-  const deleteActivityUseCase = new DeleteActivityUseCase(activityRepository);
-  const approveActivityUseCase = new ApproveActivityUseCase(activityRepository);
-  const rejectActivityUseCase = new RejectActivityUseCase(activityRepository);
-  const getActivityDetailsUseCase = new GetActivityDetailsUseCase(activityRepository);
-  const registerActivityUseCase = new RegisterActivityUseCase();
-  const cancelActivityRegistrationUseCase = new CancelActivityRegistrationUseCase();
-  const getActivityQRDataUseCase = new GetActivityQRDataUseCase(activityRepository);
-  const scanAttendanceUseCase = new ScanAttendanceUseCase(activityRepository);
+  // Registrations module use cases
+  const createRegistrationUseCase = new CreateRegistrationUseCase(registrationsRepository);
+  const cancelRegistrationUseCase = new CancelRegistrationUseCase(registrationsRepository);
+
+  // Business layer (Use Cases)
+  const useCases = {
+    getAll: new GetActivitiesUseCase(repo),
+    getById: new GetActivityByIdUseCase(repo),
+    create: new CreateActivityUseCase(repo),
+    update: new UpdateActivityUseCase(repo),
+    delete: new DeleteActivityUseCase(repo),
+    approve: new ApproveActivityUseCase(repo),
+    reject: new RejectActivityUseCase(repo),
+    getDetails: new GetActivityDetailsUseCase(repo),
+    register: new RegisterActivityUseCase(createRegistrationUseCase),
+    cancelRegistration: new CancelActivityRegistrationUseCase(cancelRegistrationUseCase),
+    getQRData: new GetActivityQRDataUseCase(repo),
+    scanAttendance: new ScanAttendanceUseCase(repo)
+  };
 
   // Presentation layer
-  const controller = new ActivitiesController(
-    getActivitiesUseCase,
-    getActivityByIdUseCase,
-    createActivityUseCase,
-    updateActivityUseCase,
-    deleteActivityUseCase,
-    approveActivityUseCase,
-    rejectActivityUseCase,
-    getActivityDetailsUseCase,
-    registerActivityUseCase,
-    cancelActivityRegistrationUseCase,
-    getActivityQRDataUseCase,
-    scanAttendanceUseCase
-  );
+  const controller = new ActivitiesController(useCases);
 
   return controller;
 }

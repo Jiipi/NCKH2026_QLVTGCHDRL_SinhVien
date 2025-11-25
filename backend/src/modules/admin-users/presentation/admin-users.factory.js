@@ -1,23 +1,23 @@
-const AdminUserPrismaRepository = require('../infrastructure/repositories/AdminUserPrismaRepository');
-const BcryptHashService = require('../infrastructure/services/BcryptHashService');
-const GetUsersUseCase = require('../application/use-cases/GetUsersUseCase');
-const GetUserByIdUseCase = require('../application/use-cases/GetUserByIdUseCase');
-const CreateUserUseCase = require('../application/use-cases/CreateUserUseCase');
-const UpdateUserUseCase = require('../application/use-cases/UpdateUserUseCase');
-const DeleteUserUseCase = require('../application/use-cases/DeleteUserUseCase');
-const ExportUsersUseCase = require('../application/use-cases/ExportUsersUseCase');
-const AdminUsersController = require('./AdminUsersController');
+const AdminUserPrismaRepository = require('../data/repositories/AdminUserPrismaRepository');
+const BcryptHashService = require('../business/services/BcryptHashService');
+const GetUsersUseCase = require('../business/services/GetUsersUseCase');
+const GetUserByIdUseCase = require('../business/services/GetUserByIdUseCase');
+const CreateUserUseCase = require('../business/services/CreateUserUseCase');
+const UpdateUserUseCase = require('../business/services/UpdateUserUseCase');
+const DeleteUserUseCase = require('../business/services/DeleteUserUseCase');
+const ExportUsersUseCase = require('../business/services/ExportUsersUseCase');
+const AdminUsersController = require('./controllers/AdminUsersController');
 
 /**
  * Factory for creating AdminUsersController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createAdminUsersController() {
-  // Infrastructure layer
+  // Data layer
   const adminUserRepository = new AdminUserPrismaRepository();
   const hashService = new BcryptHashService();
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const getUsersUseCase = new GetUsersUseCase(adminUserRepository);
   const getUserByIdUseCase = new GetUserByIdUseCase(adminUserRepository);
   const createUserUseCase = new CreateUserUseCase(adminUserRepository, hashService);

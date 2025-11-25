@@ -4,7 +4,7 @@
  */
 
 const { createServer } = require('./app/server');
-const { connectDB, disconnectDB } = require('./infrastructure/prisma/client');
+const { connectDB, disconnectDB } = require('./data/infrastructure/prisma/client');
 const { logInfo, logError } = require('./core/logger');
 const config = require('./core/config');
 
@@ -34,7 +34,7 @@ const startServer = async () => {
 
     // Initialize auto point calculation scheduler if available
     try {
-      const autoPointCalculationService = require('./services/auto-point-calculation.service');
+      const autoPointCalculationService = require('./business/services/auto-point-calculation.service');
       if (autoPointCalculationService && typeof autoPointCalculationService.init === 'function') {
         autoPointCalculationService.init();
       } else {

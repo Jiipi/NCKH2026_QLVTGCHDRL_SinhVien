@@ -44,22 +44,27 @@ export const useUserManagement = () => {
   const fetchUsers = async (page = pagination.page, limit = pagination.limit) => {
     try {
       setLoading(true);
-      const data = await userManagementApi.fetchUsers({
+      const result = await userManagementApi.fetchUsers({
         page,
         limit,
         search: searchTerm,
         role: roleFilter
       });
       
-      if (data.users && data.pagination) {
-        setUsers(data.users);
-        setPagination(data.pagination);
+      if (result.success) {
+        const data = result.data || {};
+        if (data.users && data.pagination) {
+          setUsers(data.users);
+          setPagination(data.pagination);
+        } else {
+          const normalized = Array.isArray(data) ? data : extractUsersFromAxiosResponse({ data });
+          setUsers(normalized);
+        }
+        console.log(`Users loaded: ${data.users?.length || 0}, Page: ${page}/${data.pagination?.totalPages || 1}`);
       } else {
-        const normalized = Array.isArray(data) ? data : extractUsersFromAxiosResponse({ data });
-        setUsers(normalized);
+        console.error('Lỗi tải người dùng', result);
+        setUsers([]);
       }
-      
-      console.log(`Users loaded: ${data.users?.length || 0}, Page: ${page}/${data.pagination?.totalPages || 1}`);
     } catch (error) {
       console.error('Error loading users:', error);
       setUsers([]);
@@ -70,9 +75,14 @@ export const useUserManagement = () => {
 
   const fetchRoles = async () => {
     try {
-      const data = await userManagementApi.fetchRoles();
-      const list = extractRolesFromAxiosResponse({ data });
-      setRoles(Array.isArray(list) ? list : []);
+      const result = await userManagementApi.fetchRoles();
+      if (result.success) {
+        const list = extractRolesFromAxiosResponse({ data: result.data });
+        setRoles(Array.isArray(list) ? list : []);
+      } else {
+        console.error('Lỗi khi tải danh sách vai trò:', result.error);
+        setRoles([]);
+      }
     } catch (error) {
       console.error('Lỗi khi tải danh sách vai trò:', error);
       setRoles([]);
@@ -81,8 +91,14 @@ export const useUserManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const data = await userManagementApi.fetchClasses();
-      setClasses(Array.isArray(data) ? data : []);
+      const result = await userManagementApi.fetchClasses();
+      if (result.success) {
+        const data = result.data || [];
+        setClasses(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Không thể tải danh sách lớp', result.error);
+        setClasses([]);
+      }
     } catch (error) {
       console.warn('Không thể tải danh sách lớp', error);
       setClasses([]);
@@ -91,36 +107,45 @@ export const useUserManagement = () => {
 
   const fetchUserDetails = async (userId) => {
     try {
-      const userData = await userManagementApi.fetchUserDetails(userId);
-      setSelectedUser(userData);
-      
-      // Fetch points if user is student
-      if (userData?.sinh_vien) {
-        const pointsData = await userManagementApi.fetchUserPoints(userId);
-        let pointsArray = [];
+      const result = await userManagementApi.fetchUserDetails(userId);
+      if (result.success) {
+        const userData = result.data || {};
+        setSelectedUser(userData);
         
-        if (Array.isArray(pointsData)) {
-          pointsArray = pointsData;
-        } else if (Array.isArray(pointsData?.details)) {
-          pointsArray = pointsData.details.map(d => ({
-            activity_name: d.name || d.activity || 'Hoạt động',
-            date: d.date,
-            points: d.points || 0,
-            raw: d
-          }));
-        } else if (Array.isArray(pointsData?.attendance)) {
-          pointsArray = pointsData.attendance.map(a => ({
-            activity_name: a.activity || 'Điểm danh',
-            date: a.date,
-            points: a.points || 0,
-            raw: a
-          }));
+        // Fetch points if user is student
+        if (userData?.sinh_vien) {
+          const pointsResult = await userManagementApi.fetchUserPoints(userId);
+          if (pointsResult.success) {
+            const pointsData = pointsResult.data || {};
+            let pointsArray = [];
+            
+            if (Array.isArray(pointsData)) {
+              pointsArray = pointsData;
+            } else if (Array.isArray(pointsData?.details)) {
+              pointsArray = pointsData.details.map(d => ({
+                activity_name: d.name || d.activity || 'Hoạt động',
+                date: d.date,
+                points: d.points || 0,
+                raw: d
+              }));
+            } else if (Array.isArray(pointsData?.attendance)) {
+              pointsArray = pointsData.attendance.map(a => ({
+                activity_name: a.activity || 'Điểm danh',
+                date: a.date,
+                points: a.points || 0,
+                raw: a
+              }));
+            }
+            
+            setUserPoints(pointsArray);
+          }
         }
         
-        setUserPoints(pointsArray);
+        return userData;
+      } else {
+        console.error('Lỗi khi tải chi tiết người dùng:', result.error);
+        throw new Error(result.error || 'Không thể tải chi tiết người dùng');
       }
-      
-      return userData;
     } catch (error) {
       console.error('Lỗi khi tải chi tiết người dùng:', error);
       throw error;
@@ -164,7 +189,10 @@ export const useUserManagement = () => {
       if (role === 'Lớp trưởng' && userData.set_lop_truong) payload.set_lop_truong = true;
     }
 
-    await userManagementApi.createUser(payload);
+    const result = await userManagementApi.createUser(payload);
+    if (!result.success) {
+      throw new Error(result.error || 'Không thể tạo người dùng');
+    }
     await fetchUsers();
   };
 
@@ -175,12 +203,18 @@ export const useUserManagement = () => {
     if (userData.mat_khau && String(userData.mat_khau).length >= 6) payload.password = userData.mat_khau;
     if (userData.vai_tro?.ten_vt === 'ADMIN') payload.role = 'ADMIN';
 
-    await userManagementApi.updateUser(userId, payload);
+    const result = await userManagementApi.updateUser(userId, payload);
+    if (!result.success) {
+      throw new Error(result.error || 'Không thể cập nhật người dùng');
+    }
     await fetchUsers();
   };
 
   const deleteUser = async (userId) => {
-    await userManagementApi.deleteUser(userId);
+    const result = await userManagementApi.deleteUser(userId);
+    if (!result.success) {
+      throw new Error(result.error || 'Không thể xóa người dùng');
+    }
     await fetchUsers();
   };
 

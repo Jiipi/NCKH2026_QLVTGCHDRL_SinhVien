@@ -1,15 +1,16 @@
 /**
- * Classes Module - Export
+ * Classes Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - validators, DTOs, use cases
+ * - data/ - repositories
  */
 
-const classesRoutes = require('./classes.routes');
-const classesService = require('./classes.service');
-const classesRepo = require('./classes.repo');
+const routes = require('./presentation/routes/classes.routes');
 
 module.exports = {
-  routes: classesRoutes,
-  service: classesService,
-  repo: classesRepo
+  routes,
 };
 
 

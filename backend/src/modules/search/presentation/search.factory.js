@@ -1,18 +1,18 @@
-const SearchPrismaRepository = require('../infrastructure/repositories/SearchPrismaRepository');
-const GlobalSearchUseCase = require('../application/use-cases/GlobalSearchUseCase');
-const SearchController = require('./SearchController');
+const searchRepository = require('../data/repositories/search.repository');
+const GlobalSearchUseCase = require('../business/services/GlobalSearchUseCase');
+const SearchController = require('./controllers/SearchController');
 
 /**
  * Factory for creating SearchController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createSearchController() {
-  // Infrastructure layer
-  const searchRepository = new SearchPrismaRepository();
+  // Data layer
+  const repo = searchRepository;
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
-    globalSearch: new GlobalSearchUseCase(searchRepository)
+    globalSearch: new GlobalSearchUseCase(repo)
   };
 
   // Presentation layer

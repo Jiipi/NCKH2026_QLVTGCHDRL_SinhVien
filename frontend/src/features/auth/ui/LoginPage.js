@@ -1,199 +1,89 @@
+/**
+ * Login Page (Tầng 1: UI)
+ * Chỉ render UI, không chứa business logic
+ */
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import http from '../../../shared/api/http';
-import { useAppStore } from '../../../store/useAppStore';
-import { useTabSession } from '../../../contexts/TabSessionContext';
-import { normalizeRole } from '../../../shared/lib/role';
+import useLogin from '../model/hooks/useLogin';
 import './AuthModern.css';
+import AuthLayout, { AuthPanel } from './components/AuthLayout';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const setAuth = useAppStore(function(s){ return s.setAuth; });
-  const { saveSession: saveTabSession } = useTabSession();
-  const [formData, setFormData] = React.useState({ username: '', password: '', remember: false });
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [errors, setErrors] = React.useState({});
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    try {
-      const savedUsername = localStorage.getItem('remember_username');
-      const savedRemember = localStorage.getItem('remember_flag');
-      setFormData(prev => ({
-        ...prev,
-        username: savedUsername || '',
-        remember: savedRemember === '1'
-      }));
-    } catch (err) {
-      console.error('Error loading saved remember settings:', err);
-    }
-  }, []);
-
-  function handleInputChange(e) {
-    const name = e.target.name;
-    const value = e.target.value;
-    setFormData(function update(prev) {
-      return Object.assign({}, prev, { [name]: value });
-    });
-    if (errors[name]) {
-      setErrors(function clear(prev) {
-        var next = Object.assign({}, prev);
-        delete next[name];
-        return next;
-      });
-    }
-  }
-
-  function validateForm() {
-    var newErrors = {};
-    if (!formData.username) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập hoặc email';
-    }
-    if (!formData.password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setIsLoading(true);
-    try {
-      var res = await http.post('/auth/login', { 
-        maso: String(formData.username || '').trim(), 
-        password: formData.password,
-        remember: !!formData.remember
-      });
-      var data = res.data?.data || res.data;
-      var token = data?.token || data?.data?.token;
-      if (token) {
-        var user = data?.user || null;
-        var roleRaw = (user?.role || user?.roleCode || '').toString();
-        var role = normalizeRole(roleRaw);
-        saveTabSession({ token, user, role });
-        try {
-          window.localStorage.setItem('token', token);
-          window.localStorage.setItem('user', JSON.stringify(user));
-        } catch(_) {}
-        try {
-          if (formData.remember) {
-            localStorage.setItem('remember_username', formData.username || '');
-            localStorage.setItem('remember_flag', '1');
-          } else {
-            localStorage.removeItem('remember_username');
-            localStorage.removeItem('remember_flag');
-          }
-        } catch (_) {}
-        try { setAuth({ token, user, role }); } catch(_) {}
-        var target = '/';
-        if (role === 'ADMIN') target = '/admin';
-        else if (role === 'GIANG_VIEN') target = '/teacher';
-        else if (role === 'LOP_TRUONG') target = '/monitor';
-        else if (role === 'SINH_VIEN' || role === 'STUDENT') target = '/student';
-        navigate(target);
-      } else {
-        setErrors({ submit: 'Đăng nhập thất bại' });
-      }
-    } catch (err) {
-      console.error('[Login] Error details:', err);
-      var status = err?.response?.status;
-      var backendMsg = err?.response?.data?.message;
-      var message;
-      if (status === 401) message = backendMsg || 'Sai tên đăng nhập hoặc mật khẩu';
-      else if (status === 500) message = 'Lỗi máy chủ. Vui lòng thử lại sau.';
-      else if (err?.code === 'ECONNABORTED') message = 'Kết nối quá thời gian. Vui lòng kiểm tra mạng và thử lại.';
-      else if (err?.message && /Network\s?Error/i.test(err.message)) message = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.';
-      else message = backendMsg || 'Đăng nhập không thành công. Vui lòng kiểm tra thông tin.';
-      setErrors({ submit: message });
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const {
+    formData,
+    showPassword,
+    errors,
+    isLoading,
+    handleInputChange,
+    setShowPassword,
+    handleLogin
+  } = useLogin();
 
   return (
-    <div
-      className="auth-container auth-container-login"
-      style={{
-        backgroundImage: `url(${process.env.PUBLIC_URL || ''}/images/VNUR.jpg)`
-      }}
-    >
-      <div className="auth-heading">
-        <span className="line1">HỆ THỐNG QUẢN LÝ</span>
-        <span className="line2">HOẠT ĐỘNG RÈN LUYỆN CỦA SINH VIÊN</span>
-      </div>
-      <div className="auth-group2">
-        <div className="box box-auth">
-          <div className="flip-card-inner">
-            <div className="box-login">
-            <ul>
-              <form onSubmit={handleSubmit}>
-                <h1 className="auth-form-title">ĐĂNG NHẬP</h1>
-                <div className="email-login">
-                  <input 
-                    className="inpt" 
-                    type="text" 
-                    name="username" 
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    placeholder="Mã số sinh viên hoặc Email" 
-                    required 
-                  />
-                  <i className='fa fa-envelope'></i>
-                </div>
-                {errors.username && <div className="error-message">{errors.username}</div>}
-
-                <div className="password-login">
-                  <input 
-                    className="inpt" 
-                    type={showPassword ? 'text' : 'password'} 
-                    name="password" 
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Mật khẩu" 
-                    required 
-                  />
-                  <i 
-                    id="eye-login" 
-                    className={showPassword ? "fa fa-eye" : "fa fa-eye-slash"}
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ cursor: 'pointer' }}
-                  ></i>
-                </div>
-                {errors.password && <div className="error-message">{errors.password}</div>}
-
-                <div className="forget" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      name="remember" 
-                      id="checkbox"
-                      checked={formData.remember}
-                      onChange={(e) => setFormData(p => ({ ...p, remember: e.target.checked }))}
-                      style={{ width: 16, height: 16, marginRight: 6 }}
-                    />
-                    <label htmlFor="checkbox" style={{ margin: 0 }}>Ghi nhớ đăng nhập</label>
-                  </div>
-                  <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Quên mật khẩu?</a>
-                </div>
-
-                {errors.submit && <div className="error-message">{errors.submit}</div>}
-
-                <button type="submit" className="btn" disabled={isLoading}>
-                  {isLoading ? 'Đang đăng nhập...' : 'ĐĂNG NHẬP'}
-                </button>
-              </form>
-              <div className="register-link">
-                <p>Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a></p>
-              </div>
-            </ul>
-            </div>
+    <AuthLayout variant="login">
+      <AuthPanel>
+        <form onSubmit={handleLogin}>
+          <h1 className="auth-form-title">ĐĂNG NHẬP</h1>
+          <div className="email-login">
+            <input
+              className="inpt"
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              placeholder="Mã số sinh viên hoặc Email"
+              required
+            />
+            <i className='fa fa-envelope'></i>
           </div>
+          {errors.username && <div className="error-message">{errors.username}</div>}
+
+          <div className="password-login">
+            <input
+              className="inpt"
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Mật khẩu"
+              required
+            />
+            <i
+              id="eye-login"
+              className={showPassword ? "fa fa-eye" : "fa fa-eye-slash"}
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ cursor: 'pointer' }}
+            ></i>
+          </div>
+          {errors.password && <div className="error-message">{errors.password}</div>}
+
+          <div className="forget" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                name="remember"
+                id="checkbox"
+                checked={formData.remember}
+                onChange={handleInputChange}
+                style={{ width: 16, height: 16, marginRight: 6 }}
+              />
+              <label htmlFor="checkbox" style={{ margin: 0 }}>Ghi nhớ đăng nhập</label>
+            </div>
+            <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Quên mật khẩu?</a>
+          </div>
+
+          {errors.submit && <div className="error-message">{errors.submit}</div>}
+
+          <button type="submit" className="btn" disabled={isLoading}>
+            {isLoading ? 'Đang đăng nhập...' : 'ĐĂNG NHẬP'}
+          </button>
+        </form>
+        <div className="register-link">
+          <p>Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a></p>
         </div>
-      </div>
-    </div>
+      </AuthPanel>
+    </AuthLayout>
   );
 }

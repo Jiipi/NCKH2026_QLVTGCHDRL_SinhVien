@@ -1,13 +1,14 @@
 /**
- * Registrations Module - Export
+ * Registrations Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - validators, DTOs, use cases
+ * - data/ - repositories
  */
 
-const registrationsRoutes = require('./registrations.routes');
-const registrationsService = require('./registrations.service');
-const registrationsRepo = require('./registrations.repo');
+const routes = require('./presentation/routes/registrations.routes');
 
 module.exports = {
-  routes: registrationsRoutes,
-  service: registrationsService,
-  repo: registrationsRepo
+  routes,
 };

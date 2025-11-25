@@ -1,28 +1,28 @@
-const RolePrismaRepository = require('../infrastructure/repositories/RolePrismaRepository');
-const ListRolesUseCase = require('../application/use-cases/ListRolesUseCase');
-const GetRoleByIdUseCase = require('../application/use-cases/GetRoleByIdUseCase');
-const CreateRoleUseCase = require('../application/use-cases/CreateRoleUseCase');
-const UpdateRoleUseCase = require('../application/use-cases/UpdateRoleUseCase');
-const DeleteRoleUseCase = require('../application/use-cases/DeleteRoleUseCase');
-const AssignRoleToUsersUseCase = require('../application/use-cases/AssignRoleToUsersUseCase');
-const RolesController = require('./RolesController');
+const rolesRepository = require('../data/repositories/roles.repository');
+const ListRolesUseCase = require('../business/services/ListRolesUseCase');
+const GetRoleByIdUseCase = require('../business/services/GetRoleByIdUseCase');
+const CreateRoleUseCase = require('../business/services/CreateRoleUseCase');
+const UpdateRoleUseCase = require('../business/services/UpdateRoleUseCase');
+const DeleteRoleUseCase = require('../business/services/DeleteRoleUseCase');
+const AssignRoleToUsersUseCase = require('../business/services/AssignRoleToUsersUseCase');
+const RolesController = require('./controllers/RolesController');
 
 /**
  * Factory for creating RolesController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createRolesController() {
-  // Infrastructure layer
-  const roleRepository = new RolePrismaRepository();
+  // Data layer
+  const repo = rolesRepository;
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
-    list: new ListRolesUseCase(roleRepository),
-    getById: new GetRoleByIdUseCase(roleRepository),
-    create: new CreateRoleUseCase(roleRepository),
-    update: new UpdateRoleUseCase(roleRepository),
-    delete: new DeleteRoleUseCase(roleRepository),
-    assignToUsers: new AssignRoleToUsersUseCase(roleRepository)
+    list: new ListRolesUseCase(repo),
+    getById: new GetRoleByIdUseCase(repo),
+    create: new CreateRoleUseCase(repo),
+    update: new UpdateRoleUseCase(repo),
+    delete: new DeleteRoleUseCase(repo),
+    assignToUsers: new AssignRoleToUsersUseCase(repo)
   };
 
   // Presentation layer

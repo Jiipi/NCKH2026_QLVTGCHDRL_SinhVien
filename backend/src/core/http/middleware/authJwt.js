@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../../config');
 const { ApiResponse, sendResponse } = require('../response/apiResponse');
 const { logError } = require('../../logger');
-const { prisma } = require('../../../infrastructure/prisma/client');
+const { prisma } = require('../../../data/infrastructure/prisma/client');
 const { UnauthorizedError } = require('../../errors/AppError');
 
 /**

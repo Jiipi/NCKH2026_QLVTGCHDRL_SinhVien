@@ -1,9 +1,15 @@
-const activityTypesRepo = require('./activity-types.repo');
-const activityTypesService = require('./activity-types.service');
-const activityTypesRoutes = require('./activity-types.routes');
+/**
+ * Activity Types Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - DTOs, use cases
+ * - data/ - repositories
+ */
+
+const routes = require('./presentation/routes/activity-types.routes');
 
 module.exports = {
-  activityTypesRepo,
-  activityTypesService,
-  activityTypesRoutes,
+  routes,
+  activityTypesRoutes: routes, // Backward compatibility
 };

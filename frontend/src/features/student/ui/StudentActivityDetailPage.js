@@ -1,17 +1,24 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Download, Image as ImageIcon, File } from 'lucide-react';
-import useStudentActivityDetail from '../model/useStudentActivityDetail';
+import useStudentActivityDetail from '../model/hooks/useStudentActivityDetail';
 import { getActivityImages } from '../../../shared/lib/activityImages';
 
 export default function StudentActivityDetailPage() {
-  const params = useParams();
-  const id = params.id;
+  const { id } = useParams();
   const { data, loading, err } = useStudentActivityDetail(id);
 
-  if (loading) return React.createElement('div', null, 'Đang tải...');
-  if (err) return React.createElement('div', { className: 'text-red-600' }, err);
-  if (!data) return React.createElement('div', null, 'Không có dữ liệu');
+  if (loading) {
+    return <div>Đang tải...</div>;
+  }
+
+  if (err) {
+    return <div className="text-red-600">{err}</div>;
+  }
+
+  if (!data) {
+    return <div>Không có dữ liệu</div>;
+  }
 
   const start = data?.ngay_bd ? new Date(data.ngay_bd) : null;
   const end = data?.ngay_kt ? new Date(data.ngay_kt) : null;
@@ -20,95 +27,115 @@ export default function StudentActivityDetailPage() {
   const canRegister = data?.trang_thai === 'da_duyet' && withinTime && !data?.is_registered;
 
   const activityImages = getActivityImages(data.hinh_anh, data.loai_hd?.ten_loai_hd || data.loai);
+  const metadata = [
+    { label: 'Loại hoạt động', value: data.loai || data.loai_hd?.ten_loai_hd || '—' },
+    { label: 'Điểm rèn luyện', value: String(data.diem_rl || 0) },
+    { label: 'Thời gian', value: data.ngay_bd || '—' },
+    { label: 'Địa điểm', value: data.dia_diem || '—' },
+    { label: 'SL tối đa', value: String(data.sl_toi_da || 0) },
+  ];
 
-  return React.createElement('div', { className: 'bg-white border rounded-xl p-6 space-y-6', 'data-ref': 'student-activity-detail-refactored' }, [
-    React.createElement('div', { key: 'title', className: 'text-2xl font-bold' }, data.ten_hd || data.name || 'Hoạt động'),
-    React.createElement('div', { key: 'img-gallery' }, [
-      React.createElement('div', { key: 'gallery-title', className: 'flex items-center gap-2 mb-3' }, [
-        React.createElement(ImageIcon, { key: 'icon', size: 20, className: 'text-indigo-600' }),
-        React.createElement('h3', { key: 'title', className: 'text-lg font-semibold text-gray-900' }, 'Hình ảnh hoạt động')
-      ]),
-      React.createElement('div', { key: 'gallery', className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
-        activityImages.map((url, idx) => 
-          React.createElement('a', { 
-            key: idx, 
-            href: url, 
-            target: '_blank', 
-            rel: 'noopener noreferrer',
-            className: 'group relative overflow-hidden rounded-xl border-2 border-gray-200 hover:border-indigo-500 transition-all hover:shadow-lg'
-          }, [
-            React.createElement('img', { 
-              key: 'img',
-              src: url, 
-              alt: `Hình ${idx + 1}`, 
-              className: 'w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300'
-            }),
-            React.createElement('div', {
-              key: 'overlay',
-              className: 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'
-            }, [
-              React.createElement('span', { key: 'text', className: 'text-white text-sm font-medium' }, 'Xem ảnh')
-            ])
-          ])
-        )
-      )
-    ]),
+  return (
+    <div className="space-y-6" data-ref="student-activity-detail-refactored">
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold">{data.ten_hd || data.name || 'Hoạt động'}</h1>
+        <p className="mt-4 text-gray-700">{data.mo_ta || '—'}</p>
+      </section>
 
-    React.createElement('div', { key: 'desc', className: 'text-gray-700' }, data.mo_ta || '—'),
-    React.createElement('div', { key: 'meta', className: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, [
-      meta('Loại hoạt động', data.loai || data.loai_hd?.ten_loai_hd || '—'),
-      meta('Điểm rèn luyện', String(data.diem_rl || 0)),
-      meta('Thời gian', data.ngay_bd || '—'),
-      meta('Địa điểm', data.dia_diem || '—'),
-      meta('SL tối đa', String(data.sl_toi_da || 0)),
-    ]),
-    data.tep_dinh_kem && data.tep_dinh_kem.length > 0 ? React.createElement('div', { key: 'attachments' }, [
-      React.createElement('div', { key: 'attach-title', className: 'flex items-center gap-2 mb-3' }, [
-        React.createElement(File, { key: 'icon', size: 20, className: 'text-indigo-600' }),
-        React.createElement('h3', { key: 'title', className: 'text-lg font-semibold text-gray-900' }, 'Tệp đính kèm')
-      ]),
-      React.createElement('div', { key: 'attach-list', className: 'space-y-2' },
-        data.tep_dinh_kem.map((url, idx) => {
-          const filename = url.split('/').pop();
-          const baseURL = (typeof window !== 'undefined' && window.location)
-            ? window.location.origin.replace(/\/$/, '') + '/api'
-            : (process.env.REACT_APP_API_URL || 'http://dacn_backend_dev:3001/api');
-          const backendBase = baseURL.replace('/api', '');
-          const downloadUrl = url.startsWith('http') ? url : `${backendBase}${url}`;
-          return React.createElement('a', {
-            key: idx,
-            href: downloadUrl,
-            download: filename,
-            target: '_blank',
-            rel: 'noopener noreferrer',
-            className: 'flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all group'
-          }, [
-            React.createElement('div', { 
-              key: 'icon-wrapper',
-              className: 'p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors'
-            }, [
-              React.createElement(Download, { key: 'icon', size: 20, className: 'text-indigo-600' })
-            ]),
-            React.createElement('div', { key: 'info', className: 'flex-1 min-w-0' }, [
-              React.createElement('div', { key: 'name', className: 'text-sm font-medium text-gray-900 truncate' }, filename),
-              React.createElement('div', { key: 'action', className: 'text-xs text-gray-500' }, 'Nhấn để tải xuống')
-            ])
-          ]);
-        })
-      )
-    ]) : null,
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <ImageIcon size={20} className="text-indigo-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Hình ảnh hoạt động</h3>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {activityImages.map((url, idx) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden rounded-xl border-2 border-gray-200 transition-all hover:border-indigo-500 hover:shadow-lg"
+            >
+              <img
+                src={url}
+                alt={`Hình ${idx + 1}`}
+                className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="text-sm font-medium text-white">Xem ảnh</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
 
-    React.createElement('div', { key: 'act' }, [
-      data?.is_registered
-        ? React.createElement('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200' }, data.registration_status === 'da_duyet' ? 'Đã đăng ký (Đã duyệt)' : 'Đã đăng ký (Chờ duyệt)')
-        : React.createElement('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200' }, canRegister ? 'Chưa đăng ký' : 'Không thể đăng ký')
-    ])
-  ]);
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {metadata.map((item) => (
+            <MetaItem key={item.label} label={item.label} value={item.value} />
+          ))}
+        </div>
+      </section>
+
+      {Array.isArray(data.tep_dinh_kem) && data.tep_dinh_kem.length > 0 && (
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <File size={20} className="text-indigo-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Tệp đính kèm</h3>
+          </div>
+          <div className="space-y-2">
+            {data.tep_dinh_kem.map((url) => {
+              const filename = url.split('/').pop();
+              const baseURL =
+                typeof window !== 'undefined' && window.location
+                  ? `${window.location.origin.replace(/\/$/, '')}/api`
+                  : process.env.REACT_APP_API_URL || 'http://dacn_backend_dev:3001/api';
+              const backendBase = baseURL.replace('/api', '');
+              const downloadUrl = url.startsWith('http') ? url : `${backendBase}${url}`;
+
+              return (
+                <a
+                  key={url}
+                  href={downloadUrl}
+                  download={filename}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 rounded-xl border-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 transition-all hover:border-indigo-300 hover:shadow-md"
+                >
+                  <div className="rounded-lg bg-indigo-100 p-2 transition-colors group-hover:bg-indigo-200">
+                    <Download size={20} className="text-indigo-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900">{filename}</div>
+                    <div className="text-xs text-gray-500">Nhấn để tải xuống</div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        {data?.is_registered ? (
+          <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+            {data.registration_status === 'da_duyet' ? 'Đã đăng ký (Đã duyệt)' : 'Đã đăng ký (Chờ duyệt)'}
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            {canRegister ? 'Chưa đăng ký' : 'Không thể đăng ký'}
+          </span>
+        )}
+      </section>
+    </div>
+  );
 }
 
-function meta(label, value) {
-  return React.createElement('div', { className: 'p-3 bg-gray-50 rounded-lg border' }, [
-    React.createElement('div', { key: 'l', className: 'text-xs text-gray-500' }, label),
-    React.createElement('div', { key: 'v', className: 'font-medium' }, value)
-  ]);
+function MetaItem({ label, value }) {
+  return (
+    <div className="rounded-lg border bg-gray-50 p-3">
+      <div className="text-xs text-gray-500">{label}</div>
+      <div className="font-medium">{value}</div>
+    </div>
+  );
 }

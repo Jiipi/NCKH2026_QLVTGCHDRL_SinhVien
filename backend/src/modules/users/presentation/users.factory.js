@@ -1,21 +1,23 @@
-const UserPrismaRepository = require('../infrastructure/repositories/UserPrismaRepository');
-const ListUsersUseCase = require('../application/use-cases/ListUsersUseCase');
-const GetUserByIdUseCase = require('../application/use-cases/GetUserByIdUseCase');
-const CreateUserUseCase = require('../application/use-cases/CreateUserUseCase');
-const UpdateUserUseCase = require('../application/use-cases/UpdateUserUseCase');
-const DeleteUserUseCase = require('../application/use-cases/DeleteUserUseCase');
-const SearchUsersUseCase = require('../application/use-cases/SearchUsersUseCase');
-const GetUserStatsUseCase = require('../application/use-cases/GetUserStatsUseCase');
-const GetUsersByClassUseCase = require('../application/use-cases/GetUsersByClassUseCase');
-const UsersController = require('./UsersController');
+const UserPrismaRepository = require('../data/repositories/UserPrismaRepository');
+const ListUsersUseCase = require('../business/services/ListUsersUseCase');
+const GetUserByIdUseCase = require('../business/services/GetUserByIdUseCase');
+const CreateUserUseCase = require('../business/services/CreateUserUseCase');
+const UpdateUserUseCase = require('../business/services/UpdateUserUseCase');
+const DeleteUserUseCase = require('../business/services/DeleteUserUseCase');
+const SearchUsersUseCase = require('../business/services/SearchUsersUseCase');
+const GetUserStatsUseCase = require('../business/services/GetUserStatsUseCase');
+const GetUsersByClassUseCase = require('../business/services/GetUsersByClassUseCase');
+const UsersController = require('./controllers/UsersController');
 
 /**
  * Factory function to create UsersController with all dependencies
  * Follows Dependency Injection Principle (DIP)
  */
 function createUsersController() {
+  // Data layer
   const userRepository = new UserPrismaRepository();
 
+  // Business layer (Use Cases)
   const useCases = {
     list: new ListUsersUseCase(userRepository),
     getById: new GetUserByIdUseCase(userRepository),
@@ -27,6 +29,7 @@ function createUsersController() {
     getByClass: new GetUsersByClassUseCase(userRepository)
   };
 
+  // Presentation layer
   return new UsersController(useCases);
 }
 

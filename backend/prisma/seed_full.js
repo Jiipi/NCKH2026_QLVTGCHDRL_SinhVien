@@ -68,7 +68,7 @@ async function main() {
   // STEP 1: CREATE ROLES
   // ============================================
   console.log('📋 Step 1/7: Creating Roles...');
-  
+
   const roles = await Promise.all([
     prisma.vaiTro.upsert({
       where: { ten_vt: 'ADMIN' },
@@ -85,7 +85,7 @@ async function main() {
       create: {
         ten_vt: 'GIANG_VIEN',
         mo_ta: 'Giảng viên chủ nhiệm',
-        quyen_han: ['activities.create', 'activities.approve', 'registrations.approve', 'reports.view', 'notifications.create']
+        quyen_han: ['activities.create', 'activities.approve', 'registrations.approve', 'reports.view', 'notifications.create', 'notifications.write', 'notifications.read']
       }
     }),
     prisma.vaiTro.upsert({
@@ -94,7 +94,7 @@ async function main() {
       create: {
         ten_vt: 'LOP_TRUONG',
         mo_ta: 'Lớp trưởng quản lý lớp',
-        quyen_han: ['activities.create', 'registrations.view', 'registrations.approve', 'attendance.manage', 'reports.view']
+        quyen_han: ['activities.create', 'registrations.view', 'registrations.approve', 'attendance.manage', 'reports.view', 'notifications.write', 'notifications.read']
       }
     }),
     prisma.vaiTro.upsert({
@@ -115,7 +115,7 @@ async function main() {
   // STEP 2: CREATE ADMIN USER
   // ============================================
   console.log('👤 Step 2/7: Creating Admin User...');
-  
+
   const hashedPassword = await bcrypt.hash('Admin@123', 10);
   const adminUser = await prisma.nguoiDung.upsert({
     where: { ten_dn: 'admin' },
@@ -135,7 +135,7 @@ async function main() {
   // STEP 3: CREATE ACTIVITY TYPES
   // ============================================
   console.log('📂 Step 3/7: Creating Activity Types...');
-  
+
   const activityTypes = await Promise.all([
     prisma.loaiHoatDong.upsert({
       where: { ten_loai_hd: 'Tham gia lớp' },
@@ -169,7 +169,7 @@ async function main() {
   // STEP 4: CREATE NOTIFICATION TYPES
   // ============================================
   console.log('🔔 Step 4/7: Creating Notification Types...');
-  
+
   await Promise.all([
     prisma.loaiThongBao.upsert({
       where: { ten_loai_tb: 'Thông báo hệ thống' },
@@ -193,17 +193,17 @@ async function main() {
   // STEP 5: CREATE CLASSES WITH TEACHERS
   // ============================================
   console.log('🏫 Step 5/7: Creating 10 Classes with Teachers...');
-  
+
   const classes = [];
   const teachers = [];
-  
+
   for (let i = 0; i < 10; i++) {
     const teacherCode = `GV${String(i + 1).padStart(3, '0')}`;
     const teacherPassword = await bcrypt.hash('Teacher@123', 10);
     const khoa = randomElement(KHOA_LIST);
     const prefix = randomElement(TEN_LOP_PREFIX);
     const tenLop = `${prefix}${String(i + 1).padStart(2, '0')}-2021`;
-    
+
     // Create teacher
     const teacher = await prisma.nguoiDung.create({
       data: {
@@ -216,7 +216,7 @@ async function main() {
       }
     });
     teachers.push(teacher);
-    
+
     // Create class
     const lop = await prisma.lop.create({
       data: {
@@ -229,7 +229,7 @@ async function main() {
       }
     });
     classes.push(lop);
-    
+
     console.log(`  ✓ Class ${i + 1}/10: ${tenLop} - Teacher: ${teacher.ho_ten} (${teacherCode.toLowerCase()})`);
   }
   console.log(`\n✓ Created ${classes.length} classes with ${teachers.length} teachers\n`);
@@ -238,25 +238,25 @@ async function main() {
   // STEP 6: CREATE STUDENTS (50-70 per class)
   // ============================================
   console.log('👥 Step 6/7: Creating Students...');
-  
+
   const allStudents = [];
   const studentPassword = await bcrypt.hash('Student@123', 10);
-  
+
   for (let classIndex = 0; classIndex < classes.length; classIndex++) {
     const lop = classes[classIndex];
     const numStudents = randomInt(50, 70);
     const classStudents = [];
-    
+
     for (let studentIndex = 0; studentIndex < numStudents; studentIndex++) {
       const mssv = generateMSSV(classIndex, studentIndex);
       const hoTen = generateVietnameseName();
       const ngaySinh = new Date(2003, randomInt(0, 11), randomInt(1, 28));
       const gioiTinh = randomInt(0, 1) === 0 ? 'nam' : 'nu';
-      
+
       // First student in each class will be LOP_TRUONG
       const isMonitor = studentIndex === 0;
       const vaiTroId = isMonitor ? roleMonitor.id : roleStudent.id;
-      
+
       const nguoiDung = await prisma.nguoiDung.create({
         data: {
           ten_dn: mssv,
@@ -267,7 +267,7 @@ async function main() {
           trang_thai: 'hoat_dong'
         }
       });
-      
+
       const sinhVien = await prisma.sinhVien.create({
         data: {
           nguoi_dung_id: nguoiDung.id,
@@ -279,11 +279,11 @@ async function main() {
           email: generateEmail(mssv)
         }
       });
-      
+
       classStudents.push({ nguoiDung, sinhVien, isMonitor });
       allStudents.push({ nguoiDung, sinhVien, isMonitor, lopId: lop.id });
     }
-    
+
     // Set lop_truong for this class (first student)
     const monitor = classStudents.find(s => s.isMonitor);
     if (monitor) {
@@ -292,17 +292,17 @@ async function main() {
         data: { lop_truong: monitor.sinhVien.id }
       });
     }
-    
+
     console.log(`  ✓ Class ${classIndex + 1}/10: Created ${numStudents} students (Monitor: ${monitor.nguoiDung.ho_ten})`);
   }
-  
+
   console.log(`\n✓ Total students created: ${allStudents.length}\n`);
 
   // ============================================
   // STEP 7: CREATE ACTIVITIES (~100 per class)
   // ============================================
   console.log('🎯 Step 7/7: Creating Activities (~100 per class)...');
-  
+
   const activityTemplates = [
     'Sinh hoạt chào cờ đầu tuần',
     'Thi Olympic Tin học',
@@ -325,27 +325,27 @@ async function main() {
     'Buổi chia sẻ kinh nghiệm',
     'Giao lưu văn hóa'
   ];
-  
+
   let totalActivities = 0;
-  
+
   for (let classIndex = 0; classIndex < classes.length; classIndex++) {
     const lop = classes[classIndex];
     const teacher = teachers[classIndex];
     const numActivities = randomInt(95, 105); // ~100 activities per class
-    
+
     for (let i = 0; i < numActivities; i++) {
       const loaiHd = randomElement(activityTypes);
       const tenHd = `${randomElement(activityTemplates)} ${String(i + 1).padStart(2, '0')}`;
       const hocKy = (i < numActivities / 2) ? HOC_KY_1 : HOC_KY_2;
-      
+
       // Activities distributed across the academic year
-      const startDate = hocKy === HOC_KY_1 
+      const startDate = hocKy === HOC_KY_1
         ? generateRandomDate(new Date('2024-09-01'), new Date('2024-12-31'))
         : generateRandomDate(new Date('2025-01-01'), new Date('2025-05-31'));
-      
+
       const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000); // 3 hours later
       const hanDk = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days before
-      
+
       await prisma.hoatDong.create({
         data: {
           ma_hd: `HD${NAM_HOC.replace('-', '')}_${lop.ten_lop}_${String(i + 1).padStart(3, '0')}`,
@@ -367,11 +367,11 @@ async function main() {
         }
       });
     }
-    
+
     totalActivities += numActivities;
     console.log(`  ✓ Class ${classIndex + 1}/10: Created ${numActivities} activities`);
   }
-  
+
   console.log(`\n✓ Total activities created: ${totalActivities}\n`);
 
   // ============================================
@@ -380,7 +380,7 @@ async function main() {
   console.log('\n================================================');
   console.log('✅ SEED COMPLETED SUCCESSFULLY');
   console.log('================================================\n');
-  
+
   const counts = {
     roles: await prisma.vaiTro.count(),
     users: await prisma.nguoiDung.count(),
@@ -389,7 +389,7 @@ async function main() {
     activities: await prisma.hoatDong.count(),
     activityTypes: await prisma.loaiHoatDong.count()
   };
-  
+
   console.log('📊 DATABASE SUMMARY:');
   console.log(`   - Roles: ${counts.roles}`);
   console.log(`   - Users: ${counts.users} (1 admin + 10 teachers + ${counts.students} students)`);
@@ -397,13 +397,13 @@ async function main() {
   console.log(`   - Classes: ${counts.classes}`);
   console.log(`   - Activities: ${counts.activities} (~100 per class)`);
   console.log(`   - Activity Types: ${counts.activityTypes}\n`);
-  
+
   console.log('🔑 DEFAULT CREDENTIALS:');
   console.log(`   - Admin: admin / Admin@123`);
   console.log(`   - Teachers: gv001-gv010 / Teacher@123`);
   console.log(`   - Students: <MSSV> / Student@123`);
   console.log(`   - Example: 202101001 / Student@123\n`);
-  
+
   console.log('📋 STRUCTURE:');
   console.log(`   - Academic Year: ${NAM_HOC}`);
   console.log(`   - Semesters: 2 (${HOC_KY_1}, ${HOC_KY_2})`);

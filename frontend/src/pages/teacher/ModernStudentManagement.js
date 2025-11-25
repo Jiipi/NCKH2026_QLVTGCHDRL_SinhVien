@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, 
   Search, 
@@ -22,12 +22,18 @@ import {
   ChevronRight,
   UserCheck,
   TrendingUp,
-  Award
+  Award,
+  Grid3X3,
+  List,
+  CheckCircle,
+  UserX,
+  RefreshCw
 } from 'lucide-react';
 import http from '../../shared/api/http';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { getStudentAvatar, getAvatarGradient } from '../../shared/lib/avatarUtils';
+import Pagination from '../../shared/components/common/Pagination';
 
 export default function ModernStudentManagement() {
   const navigate = useNavigate();
@@ -40,9 +46,14 @@ export default function ModernStudentManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
   
+  // View mode: 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('list');
+  
+  // Multi-select for bulk actions
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  
   // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   
   // Class management states
   const [classStatistics, setClassStatistics] = useState({
@@ -83,11 +94,12 @@ export default function ModernStudentManagement() {
   // Reload when filters change (debounced) and reset page
   useEffect(() => {
     const t = setTimeout(() => {
-      setCurrentPage(1);
+      setPagination(prev => ({ ...prev, page: 1 }));
       loadData();
     }, 300);
     return () => clearTimeout(t);
   }, [searchTerm, selectedClass]);
+  const { page, limit, total } = pagination;
 
   // Helper: collect and show backend validation errors (400) nicely
   const showValidationErrors = (err, fallback = 'Có lỗi xảy ra') => {
@@ -181,6 +193,11 @@ export default function ModernStudentManagement() {
       });
       
       setStudents(normalizedStudents);
+      setPagination(prev => {
+        const nextTotal = normalizedStudents.length;
+        const maxPage = Math.max(1, Math.ceil(Math.max(nextTotal, 1) / prev.limit));
+        return { ...prev, total: nextTotal, page: Math.min(prev.page, maxPage) };
+      });
       const normalizedClasses = (Array.isArray(classesData) ? classesData : []).map(c => ({
         ...c,
         so_sinh_vien: c.so_sinh_vien ?? c._count?.sinh_viens ?? 0
@@ -377,20 +394,14 @@ export default function ModernStudentManagement() {
   };
 
   // Pagination logic
-  const filteredStudents = students;
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(value);
-    setCurrentPage(1);
-  };
+  const filteredStudents = useMemo(() => students, [students]);
+  const startIndex = (page - 1) * limit;
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice(startIndex, startIndex + limit),
+    [filteredStudents, startIndex, limit]
+  );
+  const displayFrom = filteredStudents.length ? Math.min(startIndex + 1, filteredStudents.length) : 0;
+  const displayTo = Math.min(startIndex + paginatedStudents.length, filteredStudents.length);
 
   if (loading) {
     return (
@@ -420,41 +431,187 @@ export default function ModernStudentManagement() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý sinh viên & Lớp</h1>
-        <p className="text-gray-600">Xem và quản lý danh sách sinh viên, lớp phụ trách</p>
+    <div className="space-y-6">
+      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
+      <div className="relative min-h-[220px]">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
+        </div>
+
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-10 right-20 w-16 h-16 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
+        <div className="absolute bottom-10 left-16 w-12 h-12 bg-yellow-400/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/3 w-10 h-10 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
+
+        {/* Main Content Container with Glassmorphism */}
+        <div className="relative z-10 p-6 sm:p-8">
+          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            
+            {/* Top Bar with Badge */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-purple-400 blur-xl opacity-50 animate-pulse"></div>
+                  <div className="relative bg-black text-purple-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-purple-400">
+                    ✓ QUẢN LÝ
+                  </div>
+                </div>
+                <div className="h-8 w-1 bg-white/40"></div>
+                <div className="text-white/90 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                    {students.length} SINH VIÊN
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Title Section */}
+            <div className="mb-6">
+              <h1 className="text-4xl lg:text-5xl font-black text-white mb-3 leading-none tracking-tight">
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Q</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ả</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
+                <span className="inline-block mx-2">•</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">L</span>
+                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ý</span>
+                <br />
+                <span className="relative inline-block mt-2">
+                  <span className="relative z-10 text-purple-300 drop-shadow-[0_0_30px_rgba(216,180,254,0.5)]">
+                    SINH VIÊN & LỚP
+                  </span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-purple-300/30 blur-sm"></div>
+                </span>
+              </h1>
+              
+              <p className="text-white/80 text-lg font-medium max-w-2xl leading-relaxed">
+                Xem và quản lý danh sách sinh viên, lớp phụ trách
+              </p>
+            </div>
+
+            {/* Stats Bar with Brutalist Card */}
+            <div className="flex gap-4">
+              {/* Card - Total Classes */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-purple-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <GraduationCap className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{classes.length}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">LỚP PHỤ TRÁCH</p>
+                </div>
+              </div>
+
+              {/* Card - Total Students */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+                <div className="relative bg-indigo-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                  <Users className="h-6 w-6 text-black mb-2" />
+                  <p className="text-3xl font-black text-black">{students.length}</p>
+                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">SINH VIÊN</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes grid-move {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(-20px) rotate(45deg); }
+          }
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+          }
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+        `}</style>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedStudents.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-4 flex items-center justify-between shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3 text-white">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-semibold">Đã chọn {selectedStudents.length} sinh viên</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (window.confirm(`Bạn có chắc muốn xóa ${selectedStudents.length} sinh viên?`)) {
+                  // Handle bulk delete
+                  Promise.all(selectedStudents.map(id => http.delete(`/teacher/students/${id}`)))
+                    .then(() => {
+                      showSuccess(`Đã xóa ${selectedStudents.length} sinh viên`);
+                      setSelectedStudents([]);
+                      loadData();
+                    })
+                    .catch(err => showError('Không thể xóa một số sinh viên'));
+                }
+              }}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Xóa đã chọn
+            </button>
+            <button
+              onClick={() => setSelectedStudents([])}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium transition-colors"
+            >
+              Bỏ chọn
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-12 gap-6">
         {/* Class Sidebar */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h3 className="font-semibold text-gray-900">Danh sách lớp</h3>
-              <p className="text-sm text-gray-600">{classes.length} lớp phụ trách</p>
+          <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-lg">
+            <div className="p-4 border-b-2 border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-500">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                Danh sách lớp
+              </h3>
+              <p className="text-sm text-white/80">{classes.length} lớp phụ trách</p>
             </div>
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
               {classes.map((cls) => (
                 <button
                   key={cls.id}
                   onClick={() => setSelectedClass(cls.id)}
-                  className={`w-full p-4 text-left transition-colors ${
+                  className={`w-full p-4 text-left transition-all duration-200 ${
                     selectedClass === cls.id
                       ? 'bg-indigo-50 border-l-4 border-indigo-600'
-                      : 'hover:bg-gray-50'
+                      : 'hover:bg-gray-50 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold text-gray-900">{cls.ten_lop}</h4>
+                      <h4 className="font-bold text-gray-900">{cls.ten_lop}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Users className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">{cls.so_sinh_vien || 0} sinh viên</span>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className={`w-5 h-5 transition-transform ${selectedClass === cls.id ? 'text-indigo-600 rotate-90' : 'text-gray-400'}`} />
                   </div>
                 </button>
               ))}
@@ -465,44 +622,20 @@ export default function ModernStudentManagement() {
         {/* Main Content */}
         <div className="col-span-12 lg:col-span-8">
           {/* Class Statistics (only when a specific class is selected) */}
-          {selectedClass && (
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {classes.find(c => c.id === selectedClass)?.ten_lop || 'Lớp'}
-                  </h2>
-                  <p className="text-gray-600">Thống kê lớp học</p>
-                </div>
-                <div className="p-3 bg-indigo-100 rounded-lg">
-                  <GraduationCap className="w-6 h-6 text-indigo-600" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-sm text-gray-600">Tổng sinh viên</div>
-                  <div className="text-2xl font-bold">{classStatistics.totalStudents}</div>
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-sm text-gray-600">Hoạt động</div>
-                  <div className="text-2xl font-bold">{classStatistics.totalActivities}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Assign Monitor (only when a specific class is selected) */}
           {selectedClass && (
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <UserCheck className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Gán lớp trưởng</h3>
+                <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Gán lớp trưởng</h3>
               </div>
               <div className="flex gap-3">
                 <select
                   value={selectedMonitorId}
                   onChange={(e) => setSelectedMonitorId(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
                 >
                   <option value="">Chọn sinh viên làm lớp trưởng</option>
                   {students.map((student) => (
@@ -514,7 +647,7 @@ export default function ModernStudentManagement() {
                 <button
                   onClick={handleAssignMonitor}
                   disabled={assigningMonitor}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-lg hover:shadow-xl"
                 >
                   {assigningMonitor ? 'Đang xử lý...' : 'Gán lớp trưởng'}
                 </button>
@@ -523,25 +656,25 @@ export default function ModernStudentManagement() {
           )}
 
       {/* Actions */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-md">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Tìm kiếm sinh viên..."
+                placeholder="Tìm kiếm sinh viên theo tên, MSSV, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
               />
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <select
               value={selectedClass || ''}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
             >
               {classes.map(cls => (
                 <option key={cls.id} value={cls.id}>{cls.ten_lop}</option>
@@ -549,24 +682,24 @@ export default function ModernStudentManagement() {
             </select>
             <button 
               onClick={handleAddStudent}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               Thêm sinh viên
             </button>
             <button 
               onClick={() => navigate(`/teacher/students/import?classId=${selectedClass || ''}`)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-5 h-5" />
               Import
             </button>
             <button 
               onClick={() => handleExport('xlsx')}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-3 border border-green-500 text-green-600 rounded-xl hover:bg-green-50 transition-all font-medium"
               title="Xuất Excel"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-5 h-5" />
               Xuất Excel
             </button>
           </div>
@@ -574,155 +707,275 @@ export default function ModernStudentManagement() {
       </div>
 
       {/* Students List */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Danh sách sinh viên</h3>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" />
+              Danh sách sinh viên
+            </h3>
+            <div className="flex items-center gap-4">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    viewMode === 'grid'
+                      ? 'bg-white shadow-md text-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Xem dạng lưới"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    viewMode === 'list'
+                      ? 'bg-white shadow-md text-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Xem dạng danh sách"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+              
+              {/* Select All */}
+              {paginatedStudents.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.length === paginatedStudents.length && paginatedStudents.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStudents(paginatedStudents.map(s => s.id));
+                      } else {
+                        setSelectedStudents([]);
+                      }
+                    }}
+                    className="w-4 h-4 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-600 font-medium">Chọn tất cả</span>
+                </label>
+              )}
+            </div>
+          </div>
         </div>
         
         {paginatedStudents.length > 0 ? (
-          <div className="divide-y divide-gray-200">
-            {paginatedStudents.map(student => {
-              const avatar = getStudentAvatar(student);
-              
-              return (
-              <div key={student.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {avatar.hasValidAvatar ? (
-                      <img
-                        src={avatar.src}
-                        alt={avatar.alt}
-                        className="w-12 h-12 rounded-full object-cover shadow-md ring-2 ring-white"
+          viewMode === 'grid' ? (
+            /* Grid View */
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {paginatedStudents.map(student => {
+                const avatar = getStudentAvatar(student);
+                const isSelected = selectedStudents.includes(student.id);
+                
+                return (
+                  <div 
+                    key={student.id} 
+                    className={`relative bg-white border-2 rounded-xl p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer ${
+                      isSelected ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300'
+                    }`}
+                    onClick={() => handleViewStudent(student)}
+                  >
+                    {/* Checkbox */}
+                    <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          setSelectedStudents(prev => 
+                            prev.includes(student.id) 
+                              ? prev.filter(id => id !== student.id)
+                              : [...prev, student.id]
+                          );
+                        }}
+                        className="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
                       />
-                    ) : (
-                      <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient(student.ho_ten || student.sinh_vien?.mssv)} rounded-full flex items-center justify-center text-white font-semibold shadow-md`}>
-                        {avatar.fallback}
+                    </div>
+                    
+                    {/* Avatar & Info */}
+                    <div className="flex flex-col items-center text-center">
+                      {avatar.hasValidAvatar ? (
+                        <img
+                          src={avatar.src}
+                          alt={avatar.alt}
+                          className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-indigo-100 mb-3"
+                        />
+                      ) : (
+                        <div className={`w-20 h-20 bg-gradient-to-br ${getAvatarGradient(student.ho_ten || student.sinh_vien?.mssv)} rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-4 ring-indigo-100 mb-3`}>
+                          {avatar.fallback}
+                        </div>
+                      )}
+                      <h4 className="font-bold text-gray-900 text-lg">{student.ho_ten || 'Chưa có tên'}</h4>
+                      <p className="text-sm text-indigo-600 font-medium">MSSV: {student.sinh_vien?.mssv || 'N/A'}</p>
+                      <p className="text-sm text-gray-500 mt-1">{student.email || 'N/A'}</p>
+                      <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
+                        <MapPin className="w-4 h-4" />
+                        <span>{student.sinh_vien?.lop?.ten_lop || 'N/A'}</span>
                       </div>
-                    )}
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{student.ho_ten || 'Chưa có tên'}</h4>
-                      <p className="text-sm text-gray-600">MSSV: {student.sinh_vien?.mssv || 'N/A'}</p>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => handleViewStudent(student)}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Xem chi tiết"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => handleEditStudent(student)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStudent(student.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-6 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span>{student.email || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{student.sinh_vien?.sdt || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{student.sinh_vien?.lop?.ten_lop || 'N/A'}</span>
+                );
+              })}
+            </div>
+          ) : (
+            /* List View */
+            <div className="divide-y divide-gray-200">
+              {paginatedStudents.map(student => {
+                const avatar = getStudentAvatar(student);
+                const isSelected = selectedStudents.includes(student.id);
+                
+                return (
+                  <div 
+                    key={student.id} 
+                    className={`p-6 transition-all duration-200 cursor-pointer ${
+                      isSelected ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleViewStudent(student)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {/* Checkbox */}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedStudents(prev => 
+                                prev.includes(student.id) 
+                                  ? prev.filter(id => id !== student.id)
+                                  : [...prev, student.id]
+                              );
+                            }}
+                            className="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
+                          />
+                        </div>
+                        
+                        {/* Avatar */}
+                        {avatar.hasValidAvatar ? (
+                          <img
+                            src={avatar.src}
+                            alt={avatar.alt}
+                            className="w-14 h-14 rounded-xl object-cover shadow-md ring-2 ring-white"
+                          />
+                        ) : (
+                          <div className={`w-14 h-14 bg-gradient-to-br ${getAvatarGradient(student.ho_ten || student.sinh_vien?.mssv)} rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                            {avatar.fallback}
+                          </div>
+                        )}
+                        
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-lg">{student.ho_ten || 'Chưa có tên'}</h4>
+                          <p className="text-sm text-indigo-600 font-medium">MSSV: {student.sinh_vien?.mssv || 'N/A'}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="hidden lg:flex items-center gap-6 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-400" />
+                          <span>{student.email || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span>{student.sinh_vien?.sdt || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full">
+                          <MapPin className="w-4 h-4 text-indigo-500" />
+                          <span className="text-indigo-600 font-medium">{student.sinh_vien?.lop?.ten_lop || 'N/A'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          onClick={() => handleViewStudent(student)}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleEditStudent(student)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteStudent(student.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Xóa"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleViewStudent(student)}
-                      className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
-                      title="Xem chi tiết"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleEditStudent(student)}
-                      className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteStudent(student.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )
         ) : (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-500 mb-2">Không có sinh viên nào</h3>
-            <p className="text-gray-400">
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+              <UserX className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-500 mb-2">Không có sinh viên nào</h3>
+            <p className="text-gray-400 mb-6">
               {searchTerm 
                 ? 'Không tìm thấy sinh viên phù hợp với bộ lọc' 
                 : 'Chưa có sinh viên nào trong lớp này'
               }
             </p>
+            <button
+              onClick={handleAddStudent}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Thêm sinh viên mới
+            </button>
           </div>
         )}
         
-        {/* Pagination */}
         {filteredStudents.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <div className="text-sm text-gray-600">
-              Hiển thị {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} của {filteredStudents.length} sinh viên
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Trước
-              </button>
-              
-              {/* Page numbers */}
-              <div className="flex gap-1">
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1 rounded-lg transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-indigo-600 text-white'
-                          : 'border border-gray-300 hover:bg-gray-100'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+          <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-t-2 border-gray-200">
+            <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-gray-600 font-medium">
+                Hiển thị <span className="font-bold text-indigo-600">{displayFrom} - {displayTo}</span> của <span className="font-bold">{filteredStudents.length}</span> sinh viên
               </div>
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Sau
-              </button>
-              
-              <select
-                value={itemsPerPage}
-                onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
-                className="ml-2 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              >
-                <option value={5}>5 / trang</option>
-                <option value={10}>10 / trang</option>
-                <option value={20}>20 / trang</option>
-                <option value={50}>50 / trang</option>
-              </select>
+              <Pagination
+                pagination={{ ...pagination, total: filteredStudents.length }}
+                onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+                onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+                itemLabel="sinh viên"
+                showLimitSelector
+              />
             </div>
           </div>
         )}
@@ -730,53 +983,53 @@ export default function ModernStudentManagement() {
 
       {/* View Student Modal */}
       {viewModalOpen && selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">Thông tin sinh viên</h2>
-              <button onClick={() => setViewModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+              <h2 className="text-2xl font-bold text-white">Thông tin sinh viên</h2>
+              <button onClick={() => setViewModalOpen(false)} className="text-white/80 hover:text-white p-2 hover:bg-white/20 rounded-lg transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 px-6">
+            <div className="flex border-b border-gray-200 px-6 bg-gray-50">
               <button
                 onClick={() => setActiveTab('basic')}
-                className={`py-3 px-4 font-medium transition-colors ${
+                className={`py-4 px-6 font-bold transition-all ${
                   activeTab === 'basic'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    ? 'text-indigo-600 border-b-4 border-indigo-600 -mb-[2px] bg-white'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
+                  <User className="w-5 h-5" />
                   Cơ bản
                 </div>
               </button>
               <button
                 onClick={() => setActiveTab('academic')}
-                className={`py-3 px-4 font-medium transition-colors ${
+                className={`py-4 px-6 font-bold transition-all ${
                   activeTab === 'academic'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    ? 'text-indigo-600 border-b-4 border-indigo-600 -mb-[2px] bg-white'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
+                  <BookOpen className="w-5 h-5" />
                   Học tập
                 </div>
               </button>
               <button
                 onClick={() => setActiveTab('personal')}
-                className={`py-3 px-4 font-medium transition-colors ${
+                className={`py-4 px-6 font-bold transition-all ${
                   activeTab === 'personal'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    ? 'text-indigo-600 border-b-4 border-indigo-600 -mb-[2px] bg-white'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Home className="w-4 h-4" />
+                  <Home className="w-5 h-5" />
                   Cá nhân
                 </div>
               </button>
@@ -784,91 +1037,91 @@ export default function ModernStudentManagement() {
 
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
               {activeTab === 'basic' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Avatar Section */}
-                  <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-6 pb-6 border-b-2 border-gray-100">
                     {(() => {
                       const avatar = getStudentAvatar(selectedStudent);
                       return avatar.hasValidAvatar ? (
                         <img
                           src={avatar.src}
                           alt={avatar.alt}
-                          className="w-20 h-20 rounded-2xl object-cover shadow-lg ring-4 ring-indigo-100"
+                          className="w-24 h-24 rounded-2xl object-cover shadow-xl ring-4 ring-indigo-100"
                         />
                       ) : (
-                        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getAvatarGradient(selectedStudent.ho_ten || selectedStudent.sinh_vien?.mssv)} flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-4 ring-indigo-100`}>
+                        <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarGradient(selectedStudent.ho_ten || selectedStudent.sinh_vien?.mssv)} flex items-center justify-center text-white font-black text-3xl shadow-xl ring-4 ring-indigo-100`}>
                           {avatar.fallback}
                         </div>
                       );
                     })()}
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">{selectedStudent.ho_ten || 'N/A'}</h3>
-                      <p className="text-indigo-600 font-medium">MSSV: {selectedStudent.sinh_vien?.mssv || 'N/A'}</p>
+                      <h3 className="text-2xl font-black text-gray-900">{selectedStudent.ho_ten || 'N/A'}</h3>
+                      <p className="text-indigo-600 font-bold text-lg">MSSV: {selectedStudent.sinh_vien?.mssv || 'N/A'}</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Họ và tên</label>
-                      <p className="text-base font-semibold text-gray-900">{selectedStudent.ho_ten || 'N/A'}</p>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+                      <label className="block text-sm font-bold text-gray-500 mb-1">Họ và tên</label>
+                      <p className="text-lg font-bold text-gray-900">{selectedStudent.ho_ten || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">MSSV</label>
-                      <p className="text-base font-semibold text-gray-900">{selectedStudent.sinh_vien?.mssv || 'N/A'}</p>
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+                      <label className="block text-sm font-bold text-gray-500 mb-1">MSSV</label>
+                      <p className="text-lg font-bold text-gray-900">{selectedStudent.sinh_vien?.mssv || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                      <p className="text-base text-gray-900">{selectedStudent.email || 'N/A'}</p>
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+                      <label className="block text-sm font-bold text-gray-500 mb-1">Email</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.email || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Lớp</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+                      <label className="block text-sm font-bold text-gray-500 mb-1">Lớp</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'academic' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Lớp</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-100">
+                      <label className="block text-sm font-bold text-blue-600 mb-1">Lớp</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.lop?.ten_lop || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Khoa</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.khoa || 'N/A'}</p>
+                    <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-100">
+                      <label className="block text-sm font-bold text-purple-600 mb-1">Khoa</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.lop?.khoa || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Niên khóa</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.lop?.nien_khoa || 'N/A'}</p>
+                    <div className="bg-green-50 rounded-xl p-4 border-2 border-green-100">
+                      <label className="block text-sm font-bold text-green-600 mb-1">Niên khóa</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.lop?.nien_khoa || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Năm nhập học</label>
-                      <p className="text-base text-gray-900">{formatDate(selectedStudent.sinh_vien?.lop?.nam_nhap_hoc)}</p>
+                    <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-100">
+                      <label className="block text-sm font-bold text-orange-600 mb-1">Năm nhập học</label>
+                      <p className="text-lg text-gray-900">{formatDate(selectedStudent.sinh_vien?.lop?.nam_nhap_hoc)}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'personal' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Ngày sinh</label>
-                      <p className="text-base text-gray-900">{formatDate(selectedStudent.sinh_vien?.ngay_sinh)}</p>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-pink-50 rounded-xl p-4 border-2 border-pink-100">
+                      <label className="block text-sm font-bold text-pink-600 mb-1">Ngày sinh</label>
+                      <p className="text-lg text-gray-900">{formatDate(selectedStudent.sinh_vien?.ngay_sinh)}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Giới tính</label>
-                      <p className="text-base text-gray-900">{formatGender(selectedStudent.sinh_vien?.gt)}</p>
+                    <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-100">
+                      <label className="block text-sm font-bold text-indigo-600 mb-1">Giới tính</label>
+                      <p className="text-lg text-gray-900">{formatGender(selectedStudent.sinh_vien?.gt)}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Số điện thoại</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.sdt || 'N/A'}</p>
+                    <div className="bg-teal-50 rounded-xl p-4 border-2 border-teal-100">
+                      <label className="block text-sm font-bold text-teal-600 mb-1">Số điện thoại</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.sdt || 'N/A'}</p>
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Địa chỉ</label>
-                      <p className="text-base text-gray-900">{selectedStudent.sinh_vien?.dia_chi || 'N/A'}</p>
+                    <div className="col-span-2 bg-gray-50 rounded-xl p-4 border-2 border-gray-100">
+                      <label className="block text-sm font-bold text-gray-500 mb-1">Địa chỉ</label>
+                      <p className="text-lg text-gray-900">{selectedStudent.sinh_vien?.dia_chi || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -880,61 +1133,64 @@ export default function ModernStudentManagement() {
 
       {/* Edit Student Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">Chỉnh sửa sinh viên</h2>
-              <button onClick={() => setEditModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-500 to-emerald-500">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Edit className="w-6 h-6" />
+                Chỉnh sửa sinh viên
+              </h2>
+              <button onClick={() => setEditModalOpen(false)} className="text-white/80 hover:text-white p-2 hover:bg-white/20 rounded-lg transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Họ và tên *</label>
                     <input
                       type="text"
                       value={formData.ho_ten}
                       onChange={(e) => setFormData({...formData, ho_ten: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">MSSV *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">MSSV *</label>
                     <input
                       type="text"
                       value={formData.mssv}
                       onChange={(e) => setFormData({...formData, mssv: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed font-medium"
                       disabled
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Ngày sinh</label>
                     <input
                       type="date"
                       value={formData.ngay_sinh}
                       onChange={(e) => setFormData({...formData, ngay_sinh: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Giới tính</label>
                     <select
                       value={formData.gt}
                       onChange={(e) => setFormData({...formData, gt: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     >
                       <option value="nam">Nam</option>
                       <option value="nu">Nữ</option>
@@ -942,11 +1198,11 @@ export default function ModernStudentManagement() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lớp</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Lớp</label>
                     <select
                       value={formData.lop_id}
                       onChange={(e) => setFormData({...formData, lop_id: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     >
                       {classes.map(cls => (
                         <option key={cls.id} value={cls.id}>{cls.ten_lop}</option>
@@ -954,39 +1210,39 @@ export default function ModernStudentManagement() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Số điện thoại</label>
                     <input
                       type="tel"
                       value={formData.sdt}
                       onChange={(e) => setFormData({...formData, sdt: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Địa chỉ</label>
                     <textarea
                       value={formData.dia_chi}
                       onChange={(e) => setFormData({...formData, dia_chi: e.target.value})}
                       rows="2"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium transition-all"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-end gap-3 p-6 border-t-2 border-gray-200 bg-gray-50">
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all font-bold"
               >
                 Hủy
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold shadow-lg"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-5 h-5" />
                 Lưu thay đổi
               </button>
             </div>
@@ -996,78 +1252,86 @@ export default function ModernStudentManagement() {
 
       {/* Add Student Modal */}
       {addModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-gray-900">Thêm sinh viên mới</h2>
-              <button onClick={() => setAddModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Plus className="w-6 h-6" />
+                Thêm sinh viên mới
+              </h2>
+              <button onClick={() => setAddModalOpen(false)} className="text-white/80 hover:text-white p-2 hover:bg-white/20 rounded-lg transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Họ và tên *</label>
                     <input
                       type="text"
                       value={formData.ho_ten}
                       onChange={(e) => setFormData({...formData, ho_ten: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="Nguyễn Văn A"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">MSSV *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">MSSV *</label>
                     <input
                       type="text"
                       value={formData.mssv}
                       onChange={(e) => setFormData({...formData, mssv: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="SV001234"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="example@email.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Tên đăng nhập *</label>
                     <input
                       type="text"
                       value={formData.ten_dn}
                       onChange={(e) => setFormData({...formData, ten_dn: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="username"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Mật khẩu *</label>
                     <input
                       type="password"
                       value={formData.mat_khau}
                       onChange={(e) => setFormData({...formData, mat_khau: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="••••••••"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Ngày sinh</label>
                     <input
                       type="date"
                       value={formData.ngay_sinh}
                       onChange={(e) => setFormData({...formData, ngay_sinh: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Giới tính</label>
                     <select
                       value={formData.gt}
                       onChange={(e) => setFormData({...formData, gt: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
                     >
                       <option value="nam">Nam</option>
                       <option value="nu">Nữ</option>
@@ -1075,11 +1339,11 @@ export default function ModernStudentManagement() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lớp *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Lớp *</label>
                     <select
                       value={formData.lop_id}
                       onChange={(e) => setFormData({...formData, lop_id: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
                     >
                       <option value="">Chọn lớp</option>
                       {classes.map(cls => (
@@ -1088,39 +1352,41 @@ export default function ModernStudentManagement() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Số điện thoại</label>
                     <input
                       type="tel"
                       value={formData.sdt}
                       onChange={(e) => setFormData({...formData, sdt: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="0901234567"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Địa chỉ</label>
                     <textarea
                       value={formData.dia_chi}
                       onChange={(e) => setFormData({...formData, dia_chi: e.target.value})}
                       rows="2"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all"
+                      placeholder="Địa chỉ sinh viên..."
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-end gap-3 p-6 border-t-2 border-gray-200 bg-gray-50">
               <button
                 onClick={() => setAddModalOpen(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all font-bold"
               >
                 Hủy
               </button>
               <button
                 onClick={handleSaveAdd}
-                className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 Thêm sinh viên
               </button>
             </div>

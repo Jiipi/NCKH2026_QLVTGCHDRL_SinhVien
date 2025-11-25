@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -7,19 +7,17 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Bell,
   Activity,
-  Star,
   Target,
-  Zap,
-  ArrowRight,
-  MapPin
+  Zap
 } from 'lucide-react';
 import http from '../../../shared/api/http';
+import { useNotification } from '../../../contexts/NotificationContext';
 import SemesterClosureWidget from '../../../components/SemesterClosureWidget';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
 import useSemesterData from '../../../hooks/useSemesterData';
-import useTeacherDashboard from '../model/useTeacherDashboard';
+import useTeacherDashboard from '../model/hooks/useTeacherDashboard';
+import useTeacherRegistrationActions from '../model/hooks/useTeacherRegistrationActions';
 
 // Activity Card Component (kept for approval actions)
 function ActivityCard({ activity, onSelect, onApprove, onReject }) {
@@ -96,24 +94,22 @@ function ActivityCard({ activity, onSelect, onApprove, onReject }) {
 
 export default function TeacherDashboardPage() {
   const navigate = useNavigate();
-  
-  // Semester filter state (initialize from sessionStorage)
+  const { showSuccess, showError, showWarning } = useNotification();
+
   const [semester, setSemester] = useState(() => {
     try {
-      const cached = sessionStorage.getItem('current_semester');
-      return cached || null;
+      return sessionStorage.getItem('current_semester') || null;
     } catch {
       return null;
     }
   });
-
-  // Selected homeroom class (must be declared BEFORE using in hooks below)
   const [selectedClassId, setSelectedClassId] = useState(null);
+  const [teacherName, setTeacherName] = useState('Giảng viên');
+  const [teacherInitials, setTeacherInitials] = useState('GV');
+  const [activeTab, setActiveTab] = useState('activities');
 
-  // Unified semester options from backend
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
 
-  // Set initial semester only once
   useEffect(() => {
     if (!semester && !semesterLoading) {
       if (currentSemester) {
@@ -122,111 +118,127 @@ export default function TeacherDashboardPage() {
         setSemester(semesterOptions[0]?.value || null);
       }
     }
-  }, [currentSemester, semesterOptions, semesterLoading, semester]);
+  }, [semester, semesterLoading, currentSemester, semesterOptions]);
 
-  // Persist semester whenever it changes
-  const handleSetSemester = useCallback((newSemester) => {
-    setSemester(newSemester);
-    if (newSemester) {
-      try {
-        sessionStorage.setItem('current_semester', newSemester);
-      } catch (_) {}
-    }
+  const handleSetSemester = useCallback((value) => {
+    setSemester(value);
+    try {
+      if (value) {
+        sessionStorage.setItem('current_semester', value);
+      }
+    } catch (_) {}
   }, []);
 
-  useEffect(() => {
-    if (semester) {
-      try {
-        sessionStorage.setItem('current_semester', semester);
-      } catch (_) {}
-    }
-  }, [semester]);
-
-  // ✅ USE TEACHER DASHBOARD HOOK - Replaces ~40 lines of manual fetch logic
-  const { 
-    stats, 
-    recentActivities, 
-    pendingRegistrations, 
+  const {
+    stats,
+    recentActivities,
+    pendingRegistrations,
     classes,
-    students, 
-    loading, 
+    students,
+    loading,
     error,
-    refresh: loadDashboardData
+    refresh,
+    approve: approveActivity,
+    reject: rejectActivity
   } = useTeacherDashboard({ semester, classId: selectedClassId });
 
-  // Tab state for pending items (activities vs registrations)
-  const [activeTab, setActiveTab] = useState('activities');
+  const { approveRegistration, rejectRegistration } = useTeacherRegistrationActions();
 
-  // When classes load the first time, default to first class
   useEffect(() => {
-    if (!selectedClassId && classes && classes.length > 0) {
+    if (!selectedClassId && classes?.length) {
       setSelectedClassId(classes[0].id);
     }
   }, [classes, selectedClassId]);
 
-  // No extra effect needed: hook refetches when classId changes
-
-  // Teacher profile for greeting
-  const [teacherName, setTeacherName] = useState('Giảng viên');
-  const [teacherInitials, setTeacherInitials] = useState('GV');
-
   useEffect(() => {
-    let canceled = false;
+    let cancelled = false;
     (async () => {
       try {
         const res = await http.get('/core/profile');
         const profile = res.data?.data || {};
-        const name = profile.ho_ten || profile.name || profile.fullName || 'Giảng viên';
-        if (!canceled) {
-          setTeacherName(name);
-          const initials = String(name)
-            .split(' ')
-            .filter(Boolean)
-            .map((n) => n[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase() || 'GV';
-          setTeacherInitials(initials);
-        }
+        if (cancelled) return;
+        const name = profile.ho_ten || profile.name || 'Giảng viên';
+        setTeacherName(name);
+        const initials = String(name)
+          .split(' ')
+          .filter(Boolean)
+          .map((part) => part[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+        setTeacherInitials(initials || 'GV');
       } catch (_) {
         // ignore
       }
     })();
-    return () => { canceled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // No sidebar-specific handling here; layout manages it
-
-  const handleApprove = async (activityId) => {
+  const handleApproveActivity = useCallback(async (id) => {
     try {
-      await http.post(`/teacher/activities/${activityId}/approve`);
-      await loadDashboardData();
-      // Show success notification
+      await approveActivity(id);
+      showSuccess('Đã phê duyệt hoạt động');
     } catch (err) {
-      console.error('Error approving activity:', err);
-      // Show error notification
+      console.error(err);
+      showError('Không thể phê duyệt hoạt động');
     }
-  };
+  }, [approveActivity, showError, showSuccess]);
 
-  const handleReject = async (activityId) => {
+  const handleRejectActivity = useCallback(async (id) => {
     const reason = window.prompt('Nhập lý do từ chối:');
-    if (!reason) return;
-    
-    try {
-      await http.post(`/teacher/activities/${activityId}/reject`, { reason });
-      await loadDashboardData();
-      // Show success notification
-    } catch (err) {
-      console.error('Error rejecting activity:', err);
-      // Show error notification
+    if (!reason || !reason.trim()) {
+      showWarning('Vui lòng nhập lý do hợp lệ');
+      return;
     }
-  };
+    try {
+      await rejectActivity(id, reason.trim());
+      showSuccess('Đã từ chối hoạt động');
+    } catch (err) {
+      console.error(err);
+      showError('Không thể từ chối hoạt động');
+    }
+  }, [rejectActivity, showError, showSuccess, showWarning]);
+
+  const handleApproveRegistration = useCallback(async (registration) => {
+    try {
+      const result = await approveRegistration(registration.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Không thể phê duyệt');
+      }
+      showSuccess('Đã phê duyệt đăng ký');
+      refresh();
+    } catch (err) {
+      console.error(err);
+      showError('Không thể phê duyệt đăng ký');
+    }
+  }, [approveRegistration, refresh, showError, showSuccess]);
+
+  const handleRejectRegistration = useCallback(async (registration) => {
+    const reason = window.prompt('Nhập lý do từ chối:', 'Không đáp ứng yêu cầu');
+    if (!reason || !reason.trim()) {
+      showWarning('Vui lòng nhập lý do hợp lệ');
+      return;
+    }
+    try {
+      const result = await rejectRegistration(registration.id, reason.trim());
+      if (!result.success) {
+        throw new Error(result.error || 'Không thể từ chối');
+      }
+      showSuccess('Đã từ chối đăng ký');
+      refresh();
+    } catch (err) {
+      console.error(err);
+      showError('Không thể từ chối đăng ký');
+    }
+  }, [rejectRegistration, refresh, showError, showSuccess, showWarning]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mx-auto mb-4" />
           <p className="text-gray-600 font-medium">Đang tải dashboard...</p>
         </div>
       </div>
@@ -241,7 +253,7 @@ export default function TeacherDashboardPage() {
           <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={loadDashboardData}
+            onClick={refresh}
             className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
           >
             Thử lại
@@ -447,7 +459,7 @@ export default function TeacherDashboardPage() {
               {activeTab === 'activities' ? (
                 recentActivities?.length ? (
                   recentActivities.map((activity) => (
-                    <ActivityCard key={activity.id} activity={activity} onApprove={handleApprove} onReject={handleReject} />
+                    <ActivityCard key={activity.id} activity={activity} onApprove={handleApproveActivity} onReject={handleRejectActivity} />
                   ))
                 ) : (
                   <div className="text-center py-10 text-gray-500">
@@ -477,30 +489,14 @@ export default function TeacherDashboardPage() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={async () => {
-                            try {
-                              await http.post(`/teacher/registrations/${reg.id}/approve`);
-                              loadDashboardData();
-                            } catch (err) {
-                              console.error('Error approving registration:', err);
-                            }
-                          }}
+                          onClick={() => handleApproveRegistration(reg)}
                           className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Phê duyệt
                         </button>
                         <button
-                          onClick={async () => {
-                            const reason = window.prompt('Nhập lý do từ chối:');
-                            if (!reason) return;
-                            try {
-                              await http.post(`/teacher/registrations/${reg.id}/reject`, { reason });
-                              loadDashboardData();
-                            } catch (err) {
-                              console.error('Error rejecting registration:', err);
-                            }
-                          }}
+                          onClick={() => handleRejectRegistration(reg)}
                           className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                         >
                           <AlertCircle className="w-4 h-4" />
@@ -591,3 +587,4 @@ export default function TeacherDashboardPage() {
     </div>
   );
 }
+

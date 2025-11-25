@@ -3,7 +3,7 @@
  * Tracks user sessions and updates activity timestamps
  */
 
-const SessionTrackingService = require('../../../services/session-tracking.service');
+const SessionTrackingService = require('../../../business/services/session-tracking.service');
 const { logError } = require('../../logger');
 
 /**

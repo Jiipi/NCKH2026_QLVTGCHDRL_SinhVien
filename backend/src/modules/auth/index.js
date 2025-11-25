@@ -1,14 +1,14 @@
 /**
  * Auth Module
  * Exports all auth module components
+ * 3 Tiers Architecture:
+ * - presentation/ - controllers, routes
+ * - business/ - validators
+ * - data/ - repositories
  */
 
-const AuthService = require('./auth.service');
-const routes = require('./auth.routes');
-const validators = require('./auth.validators');
+const routes = require('./presentation/routes/auth.routes');
 
 module.exports = {
-  AuthService,
   routes,
-  validators,
 };

@@ -5,7 +5,7 @@
  */
 
 const { logError } = require('../../logger');
-const { prisma } = require('../../../infrastructure/prisma/client');
+const { prisma } = require('../../../data/infrastructure/prisma/client');
 
 /**
  * Attach request context

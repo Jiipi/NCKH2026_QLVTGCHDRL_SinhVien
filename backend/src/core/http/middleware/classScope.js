@@ -10,7 +10,7 @@
  * This middleware extracts user's classId and adds scope to req.context
  */
 
-const { prisma } = require('../../../infrastructure/prisma/client');
+const { prisma } = require('../../../data/infrastructure/prisma/client');
 const { logInfo, logError } = require('../../logger');
 
 /**

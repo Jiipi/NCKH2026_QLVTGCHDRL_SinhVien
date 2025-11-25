@@ -96,8 +96,10 @@ class ActivitiesAPI {
   // --- Registration Endpoints ---
   async registerForActivity(activityId) {
     try {
-      const response = await http.post(`/core/registrations`, { hd_id: activityId });
-      return { success: true, data: response.data?.data };
+      // Sử dụng endpoint /core/activities/:id/register
+      // Endpoint này tự động lấy student.id từ user.sub và xử lý đúng
+      const response = await http.post(`/core/activities/${activityId}/register`);
+      return { success: true, data: response.data?.data || response.data };
     } catch (error) {
       return handleError(error);
     }

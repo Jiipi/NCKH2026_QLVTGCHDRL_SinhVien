@@ -1,30 +1,30 @@
-const ClassPrismaRepository = require('../infrastructure/repositories/ClassPrismaRepository');
-const ListClassesUseCase = require('../application/use-cases/ListClassesUseCase');
-const GetClassByIdUseCase = require('../application/use-cases/GetClassByIdUseCase');
-const CreateClassUseCase = require('../application/use-cases/CreateClassUseCase');
-const UpdateClassUseCase = require('../application/use-cases/UpdateClassUseCase');
-const DeleteClassUseCase = require('../application/use-cases/DeleteClassUseCase');
-const AssignTeacherUseCase = require('../application/use-cases/AssignTeacherUseCase');
-const GetClassStudentsUseCase = require('../application/use-cases/GetClassStudentsUseCase');
-const GetClassActivitiesUseCase = require('../application/use-cases/GetClassActivitiesUseCase');
-const ClassesController = require('./ClassesController');
+const classesRepository = require('../data/repositories/classes.repository');
+const ListClassesUseCase = require('../business/services/ListClassesUseCase');
+const GetClassByIdUseCase = require('../business/services/GetClassByIdUseCase');
+const CreateClassUseCase = require('../business/services/CreateClassUseCase');
+const UpdateClassUseCase = require('../business/services/UpdateClassUseCase');
+const DeleteClassUseCase = require('../business/services/DeleteClassUseCase');
+const AssignTeacherUseCase = require('../business/services/AssignTeacherUseCase');
+const GetClassStudentsUseCase = require('../business/services/GetClassStudentsUseCase');
+const GetClassActivitiesUseCase = require('../business/services/GetClassActivitiesUseCase');
+const ClassesController = require('./controllers/ClassesController');
 
 /**
  * Factory function to create ClassesController with all dependencies
  * Follows Dependency Injection Principle (DIP)
  */
 function createClassesController() {
-  const classRepository = new ClassPrismaRepository();
+  const repo = classesRepository;
 
   const useCases = {
-    list: new ListClassesUseCase(classRepository),
-    getById: new GetClassByIdUseCase(classRepository),
-    create: new CreateClassUseCase(classRepository),
-    update: new UpdateClassUseCase(classRepository),
-    delete: new DeleteClassUseCase(classRepository),
-    assignTeacher: new AssignTeacherUseCase(classRepository),
-    getStudents: new GetClassStudentsUseCase(classRepository),
-    getActivities: new GetClassActivitiesUseCase(classRepository)
+    list: new ListClassesUseCase(repo),
+    getById: new GetClassByIdUseCase(repo),
+    create: new CreateClassUseCase(repo),
+    update: new UpdateClassUseCase(repo),
+    delete: new DeleteClassUseCase(repo),
+    assignTeacher: new AssignTeacherUseCase(repo),
+    getStudents: new GetClassStudentsUseCase(repo),
+    getActivities: new GetClassActivitiesUseCase(repo)
   };
 
   return new ClassesController(useCases);

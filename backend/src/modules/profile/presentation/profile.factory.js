@@ -1,24 +1,24 @@
-const ProfilePrismaRepository = require('../infrastructure/repositories/ProfilePrismaRepository');
-const GetProfileUseCase = require('../application/use-cases/GetProfileUseCase');
-const UpdateProfileUseCase = require('../application/use-cases/UpdateProfileUseCase');
-const ChangePasswordUseCase = require('../application/use-cases/ChangePasswordUseCase');
-const CheckClassMonitorUseCase = require('../application/use-cases/CheckClassMonitorUseCase');
-const ProfileController = require('./ProfileController');
+const profileRepository = require('../data/repositories/profile.repository');
+const GetProfileUseCase = require('../business/services/GetProfileUseCase');
+const UpdateProfileUseCase = require('../business/services/UpdateProfileUseCase');
+const ChangePasswordUseCase = require('../business/services/ChangePasswordUseCase');
+const CheckClassMonitorUseCase = require('../business/services/CheckClassMonitorUseCase');
+const ProfileController = require('./controllers/ProfileController');
 
 /**
  * Factory for creating ProfileController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createProfileController() {
-  // Infrastructure layer
-  const profileRepository = new ProfilePrismaRepository();
+  // Data layer
+  const repo = profileRepository;
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
-    getProfile: new GetProfileUseCase(profileRepository),
-    updateProfile: new UpdateProfileUseCase(profileRepository),
-    changePassword: new ChangePasswordUseCase(profileRepository),
-    checkMonitorStatus: new CheckClassMonitorUseCase(profileRepository)
+    getProfile: new GetProfileUseCase(repo),
+    updateProfile: new UpdateProfileUseCase(repo),
+    changePassword: new ChangePasswordUseCase(repo),
+    checkMonitorStatus: new CheckClassMonitorUseCase(repo)
   };
 
   // Presentation layer

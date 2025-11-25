@@ -3,6 +3,7 @@ import { Shield, Users, Plus, Edit, Trash2, Eye, Search, X, Save, Crown, Key, Lo
 import http from '../../../shared/api/http';
 import { extractRolesFromAxiosResponse, extractUsersFromAxiosResponse } from '../../../shared/lib/apiNormalization';
 import { getUserAvatar, getStudentAvatar } from '../../../shared/lib/avatar';
+import { userManagementApi } from '../../admin/services/userManagementApi';
 
 export default function AdminRoles() {
   const [roles, setRoles] = useState([]);
@@ -115,10 +116,22 @@ export default function AdminRoles() {
       const pairs = await Promise.all(
         arr.map(async (r) => {
           try {
-            const resp = await http.get('/admin/users', { params: { role: r.ten_vt, page: 1, limit: 1 } });
-            const total = resp?.data?.data?.pagination?.total ?? 0;
-            return [r.id, total];
-          } catch {
+            const result = await userManagementApi.fetchUsers({ role: r.ten_vt, page: 1, limit: 1 });
+            if (result.success) {
+              const total = result.data?.pagination?.total ?? result.data?.total ?? 0;
+              return [r.id, total];
+            } else {
+              // Chỉ log warning, không log full error để tránh spam console
+              if (result.code !== 500) {
+                console.warn(`Lỗi đếm người dùng cho role ${r.ten_vt}:`, result.error);
+              }
+              return [r.id, 0];
+            }
+          } catch (err) {
+            // Chỉ log nếu không phải 500 để tránh spam
+            if (err?.response?.status !== 500) {
+              console.warn(`Lỗi đếm người dùng cho role ${r.ten_vt}:`, err);
+            }
             return [r.id, 0];
           }
         })
@@ -264,11 +277,19 @@ export default function AdminRoles() {
   async function fetchUsers({ page = 1, limit = 10, role = '', search = '' } = {}) {
     try {
       setUsersLoading(true);
-      const resp = await http.get('/admin/users', { params: { page, limit, role, search } });
-      const list = extractUsersFromAxiosResponse(resp);
-      setUsers(list);
-      const total = resp?.data?.data?.pagination?.total;
-      setUserTotal(typeof total === 'number' ? total : list.length);
+      const result = await userManagementApi.fetchUsers({ page, limit, role, search });
+      
+      if (result.success) {
+        const data = result.data || {};
+        const list = Array.isArray(data.users) ? data.users : extractUsersFromAxiosResponse({ data });
+        setUsers(list);
+        const total = data.pagination?.total ?? (typeof list.length === 'number' ? list.length : 0);
+        setUserTotal(total);
+      } else {
+        console.error('Lỗi tải người dùng', result);
+        setUsers([]);
+        setUserTotal(0);
+      }
     } catch (e) {
       console.error('Lỗi tải người dùng', e.response?.data || e.message);
       setUsers([]);

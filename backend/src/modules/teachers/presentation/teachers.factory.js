@@ -1,47 +1,71 @@
-const TeacherPrismaRepository = require('../infrastructure/repositories/TeacherPrismaRepository');
-const GetTeacherDashboardUseCase = require('../application/use-cases/GetTeacherDashboardUseCase');
-const GetTeacherClassesUseCase = require('../application/use-cases/GetTeacherClassesUseCase');
-const GetTeacherStudentsUseCase = require('../application/use-cases/GetTeacherStudentsUseCase');
-const GetPendingActivitiesUseCase = require('../application/use-cases/GetPendingActivitiesUseCase');
-const GetActivityHistoryUseCase = require('../application/use-cases/GetActivityHistoryUseCase');
-const ApproveActivityUseCase = require('../application/use-cases/ApproveActivityUseCase');
-const RejectActivityUseCase = require('../application/use-cases/RejectActivityUseCase');
-const GetAllRegistrationsUseCase = require('../application/use-cases/GetAllRegistrationsUseCase');
-const GetPendingRegistrationsUseCase = require('../application/use-cases/GetPendingRegistrationsUseCase');
-const ApproveRegistrationUseCase = require('../application/use-cases/ApproveRegistrationUseCase');
-const RejectRegistrationUseCase = require('../application/use-cases/RejectRegistrationUseCase');
-const BulkApproveRegistrationsUseCase = require('../application/use-cases/BulkApproveRegistrationsUseCase');
-const GetClassStatisticsUseCase = require('../application/use-cases/GetClassStatisticsUseCase');
-const AssignClassMonitorUseCase = require('../application/use-cases/AssignClassMonitorUseCase');
-const CreateStudentUseCase = require('../application/use-cases/CreateStudentUseCase');
-const ExportStudentsUseCase = require('../application/use-cases/ExportStudentsUseCase');
-const GetReportStatisticsUseCase = require('../application/use-cases/GetReportStatisticsUseCase');
-const TeachersController = require('./TeachersController');
+const TeacherPrismaRepository = require('../data/repositories/TeacherPrismaRepository');
+const GetTeacherDashboardUseCase = require('../business/services/GetTeacherDashboardUseCase');
+const GetTeacherClassesUseCase = require('../business/services/GetTeacherClassesUseCase');
+const GetTeacherStudentsUseCase = require('../business/services/GetTeacherStudentsUseCase');
+const GetPendingActivitiesUseCase = require('../business/services/GetPendingActivitiesUseCase');
+const GetActivityHistoryUseCase = require('../business/services/GetActivityHistoryUseCase');
+const ApproveActivityUseCase = require('../business/services/ApproveActivityUseCase');
+const RejectActivityUseCase = require('../business/services/RejectActivityUseCase');
+const GetAllRegistrationsUseCase = require('../business/services/GetAllRegistrationsUseCase');
+const GetPendingRegistrationsUseCase = require('../business/services/GetPendingRegistrationsUseCase');
+const ApproveRegistrationUseCase = require('../business/services/ApproveRegistrationUseCase');
+const RejectRegistrationUseCase = require('../business/services/RejectRegistrationUseCase');
+const BulkApproveRegistrationsUseCase = require('../business/services/BulkApproveRegistrationsUseCase');
+const GetClassStatisticsUseCase = require('../business/services/GetClassStatisticsUseCase');
+const AssignClassMonitorUseCase = require('../business/services/AssignClassMonitorUseCase');
+const CreateStudentUseCase = require('../business/services/CreateStudentUseCase');
+const ExportStudentsUseCase = require('../business/services/ExportStudentsUseCase');
+const GetReportStatisticsUseCase = require('../business/services/GetReportStatisticsUseCase');
+const TeachersController = require('./controllers/TeachersController');
+
+// Import use cases from activities module
+const activitiesRepository = require('../../activities/data/repositories/activities.repository');
+const GetActivitiesUseCase = require('../../activities/business/services/GetActivitiesUseCase');
+const ApproveActivityUseCaseFromActivities = require('../../activities/business/services/ApproveActivityUseCase');
+const RejectActivityUseCaseFromActivities = require('../../activities/business/services/RejectActivityUseCase');
+
+// Import use cases from registrations module
+const registrationsRepository = require('../../registrations/data/repositories/registrations.repository');
+const ListRegistrationsUseCase = require('../../registrations/business/services/ListRegistrationsUseCase');
+const ApproveRegistrationUseCaseFromRegistrations = require('../../registrations/business/services/ApproveRegistrationUseCase');
+const RejectRegistrationUseCaseFromRegistrations = require('../../registrations/business/services/RejectRegistrationUseCase');
+const BulkApproveRegistrationsUseCaseFromRegistrations = require('../../registrations/business/services/BulkApproveRegistrationsUseCase');
 
 /**
  * Factory for creating TeachersController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createTeachersController() {
-  // Infrastructure layer
+  // Data layer
   const teacherRepository = new TeacherPrismaRepository();
 
-  // Application layer (Use Cases)
+  // Activities module use cases
+  const getActivitiesUseCase = new GetActivitiesUseCase(activitiesRepository);
+  const approveActivityUseCaseFromActivities = new ApproveActivityUseCaseFromActivities(activitiesRepository);
+  const rejectActivityUseCaseFromActivities = new RejectActivityUseCaseFromActivities(activitiesRepository);
+
+  // Registrations module use cases
+  const listRegistrationsUseCase = new ListRegistrationsUseCase(registrationsRepository);
+  const approveRegistrationUseCaseFromRegistrations = new ApproveRegistrationUseCaseFromRegistrations(registrationsRepository);
+  const rejectRegistrationUseCaseFromRegistrations = new RejectRegistrationUseCaseFromRegistrations(registrationsRepository);
+  const bulkApproveRegistrationsUseCaseFromRegistrations = new BulkApproveRegistrationsUseCaseFromRegistrations(registrationsRepository);
+
+  // Business layer (Use Cases)
   const getAllRegistrationsUseCase = new GetAllRegistrationsUseCase(teacherRepository);
   
   const useCases = {
-    getDashboard: new GetTeacherDashboardUseCase(teacherRepository),
+    getDashboard: new GetTeacherDashboardUseCase(teacherRepository, listRegistrationsUseCase),
     getClasses: new GetTeacherClassesUseCase(teacherRepository),
     getStudents: new GetTeacherStudentsUseCase(teacherRepository),
-    getPendingActivities: new GetPendingActivitiesUseCase(),
-    getActivityHistory: new GetActivityHistoryUseCase(),
-    approveActivity: new ApproveActivityUseCase(),
-    rejectActivity: new RejectActivityUseCase(),
+    getPendingActivities: new GetPendingActivitiesUseCase(getActivitiesUseCase),
+    getActivityHistory: new GetActivityHistoryUseCase(getActivitiesUseCase),
+    approveActivity: new ApproveActivityUseCase(approveActivityUseCaseFromActivities),
+    rejectActivity: new RejectActivityUseCase(rejectActivityUseCaseFromActivities),
     getAllRegistrations: getAllRegistrationsUseCase,
-    getPendingRegistrations: new GetPendingRegistrationsUseCase(getAllRegistrationsUseCase),
-    approveRegistration: new ApproveRegistrationUseCase(),
-    rejectRegistration: new RejectRegistrationUseCase(),
-    bulkApproveRegistrations: new BulkApproveRegistrationsUseCase(),
+    getPendingRegistrations: new GetPendingRegistrationsUseCase(getAllRegistrationsUseCase, listRegistrationsUseCase),
+    approveRegistration: new ApproveRegistrationUseCase(approveRegistrationUseCaseFromRegistrations),
+    rejectRegistration: new RejectRegistrationUseCase(rejectRegistrationUseCaseFromRegistrations),
+    bulkApproveRegistrations: new BulkApproveRegistrationsUseCase(bulkApproveRegistrationsUseCaseFromRegistrations),
     getClassStatistics: new GetClassStatisticsUseCase(teacherRepository),
     assignClassMonitor: new AssignClassMonitorUseCase(teacherRepository),
     createStudent: new CreateStudentUseCase(teacherRepository),
