@@ -39,21 +39,49 @@ function createTransporter() {
 }
 
 async function sendMail({ to, subject, html, text }) {
-  try {
-    const t = createTransporter();
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@localhost';
-    if (!t) {
-      logInfo('MAIL_LOG_ONLY', { to, subject });
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[DEV EMAIL Fallback]\nTO:', to, '\nSUBJECT:', subject, '\nTEXT:', text || '', '\nHTML:', html || '');
-      }
-      return { accepted: [to], rejected: [] };
+  const t = createTransporter();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@localhost';
+  
+  if (!t) {
+    const errorMsg = 'SMTP configuration is missing. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS in environment variables.';
+    logError('MAILER_CONFIG_MISSING', new Error(errorMsg), { 
+      hasHost: !!process.env.SMTP_HOST,
+      hasUser: !!process.env.SMTP_USER,
+      hasPass: !!process.env.SMTP_PASS,
+      to, 
+      subject 
+    });
+    
+    // In development, log to console for debugging
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('\n[EMAIL ERROR] SMTP not configured!');
+      console.error('Missing environment variables:');
+      console.error('  - SMTP_HOST:', process.env.SMTP_HOST || 'NOT SET');
+      console.error('  - SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
+      console.error('  - SMTP_PASS:', process.env.SMTP_PASS ? '***SET***' : 'NOT SET');
+      console.error('\n[DEV EMAIL Fallback - Email NOT sent]\nTO:', to, '\nSUBJECT:', subject, '\nTEXT:', text || '', '\nHTML:', html || '');
     }
+    
+    // Throw error to prevent silent failure
+    throw new Error(errorMsg);
+  }
+  
+  try {
+    console.log('[Mailer] Sending email:', { to, from, subject });
     const info = await t.sendMail({ from, to, subject, text, html });
-    logInfo('MAIL_SENT', { to, messageId: info?.messageId });
+    console.log('[Mailer] Email sent successfully:', {
+      messageId: info?.messageId,
+      accepted: info?.accepted,
+      rejected: info?.rejected,
+      response: info?.response
+    });
+    logInfo('MAIL_SENT', { to, messageId: info?.messageId, from });
     return info;
   } catch (error) {
-    logError('MAIL_SEND_FAILED', error, { to, subject });
+    console.error('[Mailer] Email send failed:', error.message);
+    console.error('[Mailer] Error code:', error.code);
+    console.error('[Mailer] Error response:', error.response);
+    logError('MAIL_SEND_FAILED', error, { to, subject, from });
     throw error;
   }
 }

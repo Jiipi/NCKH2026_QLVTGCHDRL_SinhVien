@@ -1,22 +1,21 @@
-const AuthPrismaRepository = require('../infrastructure/repositories/AuthPrismaRepository');
-const BcryptHashService = require('../../admin-users/infrastructure/services/BcryptHashService');
-const JwtTokenService = require('../infrastructure/services/JwtTokenService');
-const MemoryOtpService = require('../infrastructure/services/MemoryOtpService');
-const LoginUseCase = require('../application/use-cases/LoginUseCase');
-const RegisterUseCase = require('../application/use-cases/RegisterUseCase');
-const ChangePasswordUseCase = require('../application/use-cases/ChangePasswordUseCase');
-const ForgotPasswordUseCase = require('../application/use-cases/ForgotPasswordUseCase');
-const ResetPasswordUseCase = require('../application/use-cases/ResetPasswordUseCase');
-const GetMeUseCase = require('../application/use-cases/GetMeUseCase');
-const AuthController = require('./AuthController');
+const authRepository = require('../data/repositories/auth.repository');
+const BcryptHashService = require('../../admin-users/business/services/BcryptHashService');
+const JwtTokenService = require('../business/services/JwtTokenService');
+const MemoryOtpService = require('../business/services/MemoryOtpService');
+const LoginUseCase = require('../business/services/LoginUseCase');
+const RegisterUseCase = require('../business/services/RegisterUseCase');
+const ChangePasswordUseCase = require('../business/services/ChangePasswordUseCase');
+const ForgotPasswordUseCase = require('../business/services/ForgotPasswordUseCase');
+const ResetPasswordUseCase = require('../business/services/ResetPasswordUseCase');
+const GetMeUseCase = require('../business/services/GetMeUseCase');
+const AuthController = require('./controllers/auth.controller');
 
 /**
  * Factory for creating AuthController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createAuthController() {
-  // Infrastructure layer
-  const authRepository = new AuthPrismaRepository();
+  // Infrastructure layer - using centralized repository
   const hashService = new BcryptHashService();
   const tokenService = new JwtTokenService();
   const otpService = new MemoryOtpService();

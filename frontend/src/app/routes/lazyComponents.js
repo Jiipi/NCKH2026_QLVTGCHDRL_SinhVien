@@ -45,9 +45,9 @@ export const TeacherRegistrationApprovalPage = lazy(() => import('../../features
 export const ClassApprovalsPage = lazy(() => import('../../features/approvals/pages/ClassApprovalsPage'));
 
 // ============= NOTIFICATIONS PAGES =============
-export const AdminNotificationsPage = lazy(() => import('../../features/notifications/pages/AdminNotificationsPage'));
-export const TeacherNotificationsPage = lazy(() => import('../../features/notifications/pages/TeacherNotificationsPage'));
-export const MonitorNotificationsPage = lazy(() => import('../../features/notifications/pages/MonitorNotificationsPage'));
+export const AdminNotificationsPage = lazy(() => import('../../features/notifications/ui/AdminNotificationsPage'));
+export const TeacherNotificationsPage = lazy(() => import('../../features/notifications/ui/TeacherNotificationsPage'));
+export const MonitorNotificationsPage = lazy(() => import('../../features/notifications/ui/MonitorNotificationsPage'));
 
 // ============= REPORTS PAGES =============
 export const AdminReportsPage = lazy(() => import('../../features/reports/pages/AdminReportsPage'));

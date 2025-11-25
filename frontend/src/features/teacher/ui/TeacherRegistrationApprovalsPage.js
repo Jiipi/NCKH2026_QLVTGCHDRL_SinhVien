@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy, RefreshCw, Grid3X3, List, SlidersHorizontal, X, ArrowUp, ArrowDown } from 'lucide-react';
 import http from '../../../shared/api/http';
 import { useNotification } from '../../../contexts/NotificationContext';
@@ -6,6 +6,7 @@ import { getBestActivityImage } from '../../../shared/lib/activityImages';
 import { getUserAvatar } from '../../../shared/lib/avatar';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import useSemesterData from '../../../hooks/useSemesterData';
+import Pagination from '../../../shared/components/common/Pagination';
 
 export default function TeacherRegistrationApprovalsPage() {
   const [registrations, setRegistrations] = useState([]);
@@ -16,7 +17,6 @@ export default function TeacherRegistrationApprovalsPage() {
   const [displayViewMode, setDisplayViewMode] = useState('grid'); // 'grid', 'list'
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [selectedDetail, setSelectedDetail] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]); // Track selected registration IDs
   const [activityDetailId, setActivityDetailId] = useState(null); // For modal
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // For modal
@@ -24,6 +24,8 @@ export default function TeacherRegistrationApprovalsPage() {
   const [filters, setFilters] = useState({ type: '', from: '', to: '', minPoints: '', maxPoints: '', mssv: '' });
   const [activityTypes, setActivityTypes] = useState([]);
   const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'name-az', 'name-za'
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
   const { showSuccess, showError, showWarning, confirm } = useNotification();
 
   const getCurrentSemesterValue = () => {
@@ -37,6 +39,7 @@ export default function TeacherRegistrationApprovalsPage() {
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
   // Status mappings (matching Prisma enum TrangThaiDangKy)
   const statusLabels = {
@@ -64,6 +67,10 @@ export default function TeacherRegistrationApprovalsPage() {
     loadRegistrations();
     loadActivityTypes();
   }, [semester]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, viewMode, sortBy, displayViewMode, semester, filtersKey]);
 
   const loadActivityTypes = async () => {
     try {
@@ -203,6 +210,120 @@ export default function TeacherRegistrationApprovalsPage() {
     }
   };
 
+  const filteredRegistrations = useMemo(() => {
+    return registrations.filter(reg => {
+      const student = reg.sinh_vien?.nguoi_dung;
+      const activity = reg.hoat_dong;
+      const matchesSearch = 
+        student?.ho_ten?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        activity?.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.sinh_vien?.mssv?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      let matchesViewMode = false;
+      switch (viewMode) {
+        case 'pending':
+          matchesViewMode = reg.trang_thai_dk === 'cho_duyet';
+          break;
+        case 'approved':
+          matchesViewMode = reg.trang_thai_dk === 'da_duyet';
+          break;
+        case 'rejected':
+          matchesViewMode = reg.trang_thai_dk === 'tu_choi';
+          break;
+        default:
+          matchesViewMode = true;
+      }
+
+      let matchesAdvancedFilters = true;
+      
+      if (filters.mssv && !reg.sinh_vien?.mssv?.toLowerCase().includes(filters.mssv.toLowerCase())) {
+        matchesAdvancedFilters = false;
+      }
+
+      if (filters.type) {
+        const activityTypeId = activity?.loai_hd_id?.toString() || activity?.loai_hd?.id?.toString() || '';
+        const activityTypeName = activity?.loai_hd?.ten_loai_hd || '';
+        if (activityTypeId !== filters.type && activityTypeName !== filters.type) {
+          matchesAdvancedFilters = false;
+        }
+      }
+
+      if (filters.from && activity?.ngay_bd) {
+        const activityDate = new Date(activity.ngay_bd);
+        const fromDate = new Date(filters.from);
+        if (activityDate < fromDate) {
+          matchesAdvancedFilters = false;
+        }
+      }
+
+      if (filters.to && activity?.ngay_bd) {
+        const activityDate = new Date(activity.ngay_bd);
+        const toDate = new Date(filters.to);
+        if (activityDate > toDate) {
+          matchesAdvancedFilters = false;
+        }
+      }
+
+      if (filters.minPoints && (!activity?.diem_rl || activity.diem_rl < parseFloat(filters.minPoints))) {
+        matchesAdvancedFilters = false;
+      }
+
+      if (filters.maxPoints && (!activity?.diem_rl || activity.diem_rl > parseFloat(filters.maxPoints))) {
+        matchesAdvancedFilters = false;
+      }
+      
+      return matchesSearch && matchesViewMode && matchesAdvancedFilters;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0) -
+                 new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0);
+        case 'name-az':
+          return (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase()
+            .localeCompare((b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase(), 'vi');
+        case 'name-za':
+          return (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase()
+            .localeCompare((a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase(), 'vi');
+        case 'points-high':
+          return (b.hoat_dong?.diem_rl || 0) - (a.hoat_dong?.diem_rl || 0);
+        case 'points-low':
+          return (a.hoat_dong?.diem_rl || 0) - (b.hoat_dong?.diem_rl || 0);
+        case 'newest':
+        default:
+          return new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0) -
+                 new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0);
+      }
+    });
+  }, [registrations, searchTerm, viewMode, filters, sortBy]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil((filteredRegistrations.length || 0) / limit) || 1);
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [filteredRegistrations.length, limit, page]);
+
+  const stats = useMemo(() => ({
+    total: registrations.length,
+    pending: registrations.filter(r => r.trang_thai_dk === 'cho_duyet').length,
+    approved: registrations.filter(r => r.trang_thai_dk === 'da_duyet').length,
+    rejected: registrations.filter(r => r.trang_thai_dk === 'tu_choi').length
+  }), [registrations]);
+
+  const total = filteredRegistrations.length;
+  const paginatedRegistrations = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredRegistrations.slice(start, start + limit);
+  }, [filteredRegistrations, page, limit]);
+  const pagination = useMemo(() => ({
+    page,
+    limit,
+    total: total || 0
+  }), [page, limit, total]);
+  const startItem = total ? (page - 1) * limit + 1 : 0;
+  const endItem = Math.min(page * limit, total);
+
   // Handle bulk approve
   const handleBulkApprove = async () => {
     if (selectedIds.length === 0) {
@@ -256,108 +377,6 @@ export default function TeacherRegistrationApprovalsPage() {
     );
   };
 
-  const filteredRegistrations = registrations.filter(reg => {
-    const student = reg.sinh_vien?.nguoi_dung;
-    const activity = reg.hoat_dong;
-    const matchesSearch = 
-      student?.ho_ten?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity?.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reg.sinh_vien?.mssv?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by view mode
-    let matchesViewMode = false;
-    switch (viewMode) {
-      case 'pending':
-        matchesViewMode = reg.trang_thai_dk === 'cho_duyet';
-        break;
-      case 'approved':
-        matchesViewMode = reg.trang_thai_dk === 'da_duyet';
-        break;
-      case 'rejected':
-        matchesViewMode = reg.trang_thai_dk === 'tu_choi';
-        break;
-      default:
-        matchesViewMode = true;
-    }
-
-    // Advanced filters
-    let matchesAdvancedFilters = true;
-    
-    // MSSV filter
-    if (filters.mssv && !reg.sinh_vien?.mssv?.toLowerCase().includes(filters.mssv.toLowerCase())) {
-      matchesAdvancedFilters = false;
-    }
-
-    // Activity type filter
-    if (filters.type) {
-      const activityTypeId = activity?.loai_hd_id?.toString() || activity?.loai_hd?.id?.toString() || '';
-      const activityTypeName = activity?.loai_hd?.ten_loai_hd || '';
-      if (activityTypeId !== filters.type && activityTypeName !== filters.type) {
-        matchesAdvancedFilters = false;
-      }
-    }
-
-    // Date range filters
-    if (filters.from && activity?.ngay_bd) {
-      const activityDate = new Date(activity.ngay_bd);
-      const fromDate = new Date(filters.from);
-      if (activityDate < fromDate) {
-        matchesAdvancedFilters = false;
-      }
-    }
-
-    if (filters.to && activity?.ngay_bd) {
-      const activityDate = new Date(activity.ngay_bd);
-      const toDate = new Date(filters.to);
-      if (activityDate > toDate) {
-        matchesAdvancedFilters = false;
-      }
-    }
-
-    // Points filters
-    if (filters.minPoints && (!activity?.diem_rl || activity.diem_rl < parseFloat(filters.minPoints))) {
-      matchesAdvancedFilters = false;
-    }
-
-    if (filters.maxPoints && (!activity?.diem_rl || activity.diem_rl > parseFloat(filters.maxPoints))) {
-      matchesAdvancedFilters = false;
-    }
-    
-    return matchesSearch && matchesViewMode && matchesAdvancedFilters;
-  }).sort((a, b) => {
-    // Sorting logic
-    switch (sortBy) {
-      case 'oldest':
-        const ta = new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0).getTime();
-        const tb = new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0).getTime();
-        return ta - tb;
-      case 'name-az':
-        const nameA = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
-        const nameB = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
-        return nameA.localeCompare(nameB, 'vi');
-      case 'name-za':
-        const nameA2 = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
-        const nameB2 = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
-        return nameB2.localeCompare(nameA2, 'vi');
-      case 'points-high':
-        return (b.hoat_dong?.diem_rl || 0) - (a.hoat_dong?.diem_rl || 0);
-      case 'points-low':
-        return (a.hoat_dong?.diem_rl || 0) - (b.hoat_dong?.diem_rl || 0);
-      case 'newest':
-      default:
-        const ta2 = new Date(a.ngay_duyet || a.updated_at || a.updatedAt || a.ngay_dang_ky || a.createdAt || a.tg_diem_danh || 0).getTime();
-        const tb2 = new Date(b.ngay_duyet || b.updated_at || b.updatedAt || b.ngay_dang_ky || b.createdAt || b.tg_diem_danh || 0).getTime();
-        return tb2 - ta2;
-    }
-  });
-
-  const stats = {
-    total: registrations.length,
-    pending: registrations.filter(r => r.trang_thai_dk === 'cho_duyet').length,
-    approved: registrations.filter(r => r.trang_thai_dk === 'da_duyet').length,
-    rejected: registrations.filter(r => r.trang_thai_dk === 'tu_choi').length
-  };
 
   const RegistrationCard = ({ registration }) => {
     const student = registration.sinh_vien?.nguoi_dung;
@@ -369,7 +388,7 @@ export default function TeacherRegistrationApprovalsPage() {
     const rejectedBy = registration.trang_thai_dk === 'tu_choi' ? (registration.rejectedByRole === 'LOP_TRUONG' ? 'Lớp trưởng' : registration.rejectedByRole === 'GIANG_VIEN' ? 'Giảng viên' : null) : null;
 
     if (displayViewMode === 'list') {
-      return (
+    return (
         <div className={`group relative ${isSelected ? 'ring-4 ring-indigo-500 ring-offset-2' : ''}`}>
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200"></div>
           <div className={`relative bg-white border-2 rounded-xl hover:shadow-lg transition-all duration-200 ${isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'}`}>
@@ -508,10 +527,10 @@ export default function TeacherRegistrationApprovalsPage() {
                 )}
               </div>
             </div>
-          </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
     // Grid View
     return (
@@ -647,12 +666,12 @@ export default function TeacherRegistrationApprovalsPage() {
                 </button>
               </>
             ) : (
-              <button 
+        <button
                 onClick={() => { setActivityDetailId(activity?.id); setIsDetailModalOpen(true); }} 
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
-              >
+        >
                 <Eye className="h-3.5 w-3.5" />Chi tiết
-              </button>
+        </button>
             )}
           </div>
         </div>
@@ -807,7 +826,7 @@ export default function TeacherRegistrationApprovalsPage() {
           <div className="relative mb-6">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
-            </div>
+        </div>
             <input
               type="text"
               value={searchTerm}
@@ -815,7 +834,7 @@ export default function TeacherRegistrationApprovalsPage() {
               className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-indigo-300"
               placeholder="Tìm kiếm sinh viên, MSSV, email, hoạt động..."
             />
-          </div>
+        </div>
 
           {/* Bộ lọc và Actions */}
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -824,7 +843,7 @@ export default function TeacherRegistrationApprovalsPage() {
               <div className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
                 <Calendar className="h-4 w-4 text-indigo-600" />
                 <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
-                <select
+          <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
                   className="border-none bg-transparent text-sm font-semibold text-gray-900 focus:ring-0 focus:outline-none cursor-pointer"
@@ -833,8 +852,8 @@ export default function TeacherRegistrationApprovalsPage() {
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
-                  ))}
-                </select>
+            ))}
+          </select>
               </div>
 
               <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
@@ -870,7 +889,7 @@ export default function TeacherRegistrationApprovalsPage() {
             {/* Right side: Sort dropdown + View mode toggle */}
             <div className="flex items-center gap-3">
               {/* Sort Dropdown */}
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
                 <select
                   value={sortBy}
@@ -888,7 +907,7 @@ export default function TeacherRegistrationApprovalsPage() {
 
               <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                <button
+            <button
                   onClick={() => setDisplayViewMode('grid')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                     displayViewMode === 'grid' 
@@ -899,8 +918,8 @@ export default function TeacherRegistrationApprovalsPage() {
                 >
                   <Grid3X3 className="h-4 w-4" />
                   <span className="hidden sm:inline">Lưới</span>
-                </button>
-                <button
+            </button>
+            <button
                   onClick={() => setDisplayViewMode('list')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                     displayViewMode === 'list' 
@@ -911,10 +930,10 @@ export default function TeacherRegistrationApprovalsPage() {
                 >
                   <List className="h-4 w-4" />
                   <span className="hidden sm:inline">Danh sách</span>
-                </button>
-              </div>
-            </div>
+            </button>
           </div>
+        </div>
+      </div>
 
           {/* Advanced Filters */}
           {showFilters && (
@@ -1152,7 +1171,7 @@ export default function TeacherRegistrationApprovalsPage() {
       {/* Registrations Grid/List */}
       {filteredRegistrations.length > 0 ? (
         <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
-          {filteredRegistrations.map(reg => (
+          {paginatedRegistrations.map(reg => (
             <RegistrationCard key={reg.id} registration={reg} />
           ))}
         </div>
@@ -1167,6 +1186,24 @@ export default function TeacherRegistrationApprovalsPage() {
             <h3 className="text-2xl font-bold text-gray-900 mb-3">{searchTerm ? 'Không tìm thấy đăng ký' : viewMode === 'pending' ? 'Không có đăng ký chờ duyệt' : viewMode === 'approved' ? 'Không có đăng ký đã duyệt' : 'Không có đăng ký bị từ chối'}</h3>
             <p className="text-gray-600 text-lg">{searchTerm ? 'Thử tìm kiếm với từ khóa khác' : viewMode === 'pending' ? 'Tất cả đăng ký đã được xử lý' : viewMode === 'approved' ? 'Chưa có đăng ký nào được phê duyệt' : 'Chưa có đăng ký nào bị từ chối'}</p>
           </div>
+        </div>
+      )}
+
+      {total > limit && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600 mb-3">
+            Đang hiển thị {startItem}-{endItem} / {total} đăng ký
+          </div>
+          <Pagination
+            pagination={pagination}
+            onPageChange={setPage}
+            onLimitChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+            itemLabel="đăng ký"
+            showLimitSelector
+          />
         </div>
       )}
 

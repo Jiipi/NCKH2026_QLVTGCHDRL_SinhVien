@@ -1,25 +1,25 @@
-const NotificationPrismaRepository = require('../infrastructure/repositories/NotificationPrismaRepository');
-const GetUserNotificationsUseCase = require('../application/use-cases/GetUserNotificationsUseCase');
-const GetNotificationByIdUseCase = require('../application/use-cases/GetNotificationByIdUseCase');
-const MarkAsReadUseCase = require('../application/use-cases/MarkAsReadUseCase');
-const MarkAllAsReadUseCase = require('../application/use-cases/MarkAllAsReadUseCase');
-const DeleteNotificationUseCase = require('../application/use-cases/DeleteNotificationUseCase');
-const GetUnreadCountUseCase = require('../application/use-cases/GetUnreadCountUseCase');
-const GetSentNotificationsUseCase = require('../application/use-cases/GetSentNotificationsUseCase');
-const GetSentNotificationDetailUseCase = require('../application/use-cases/GetSentNotificationDetailUseCase');
-const CreateNotificationUseCase = require('../application/use-cases/CreateNotificationUseCase');
-const SendClassApprovalRequestUseCase = require('../application/use-cases/SendClassApprovalRequestUseCase');
-const NotificationsController = require('./NotificationsController');
+const NotificationPrismaRepository = require('../data/repositories/NotificationPrismaRepository');
+const GetUserNotificationsUseCase = require('../business/services/GetUserNotificationsUseCase');
+const GetNotificationByIdUseCase = require('../business/services/GetNotificationByIdUseCase');
+const MarkAsReadUseCase = require('../business/services/MarkAsReadUseCase');
+const MarkAllAsReadUseCase = require('../business/services/MarkAllAsReadUseCase');
+const DeleteNotificationUseCase = require('../business/services/DeleteNotificationUseCase');
+const GetUnreadCountUseCase = require('../business/services/GetUnreadCountUseCase');
+const GetSentNotificationsUseCase = require('../business/services/GetSentNotificationsUseCase');
+const GetSentNotificationDetailUseCase = require('../business/services/GetSentNotificationDetailUseCase');
+const CreateNotificationUseCase = require('../business/services/CreateNotificationUseCase');
+const SendClassApprovalRequestUseCase = require('../business/services/SendClassApprovalRequestUseCase');
+const NotificationsController = require('./controllers/NotificationsController');
 
 /**
  * Factory for creating NotificationsController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createNotificationsController() {
-  // Infrastructure layer
+  // Data layer
   const notificationRepository = new NotificationPrismaRepository();
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
     getUserNotifications: new GetUserNotificationsUseCase(notificationRepository),
     getNotificationById: new GetNotificationByIdUseCase(notificationRepository),

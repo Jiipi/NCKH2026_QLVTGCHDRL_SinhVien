@@ -1,38 +1,38 @@
-const RegistrationPrismaRepository = require('../infrastructure/repositories/RegistrationPrismaRepository');
-const ListRegistrationsUseCase = require('../application/use-cases/ListRegistrationsUseCase');
-const GetRegistrationUseCase = require('../application/use-cases/GetRegistrationUseCase');
-const CreateRegistrationUseCase = require('../application/use-cases/CreateRegistrationUseCase');
-const UpdateRegistrationUseCase = require('../application/use-cases/UpdateRegistrationUseCase');
-const DeleteRegistrationUseCase = require('../application/use-cases/DeleteRegistrationUseCase');
-const ApproveRegistrationUseCase = require('../application/use-cases/ApproveRegistrationUseCase');
-const RejectRegistrationUseCase = require('../application/use-cases/RejectRegistrationUseCase');
-const BulkApproveRegistrationsUseCase = require('../application/use-cases/BulkApproveRegistrationsUseCase');
-const GetMyRegistrationsUseCase = require('../application/use-cases/GetMyRegistrationsUseCase');
-const GetActivityRegistrationStatsUseCase = require('../application/use-cases/GetActivityRegistrationStatsUseCase');
-const CancelRegistrationUseCase = require('../application/use-cases/CancelRegistrationUseCase');
-const CheckInRegistrationUseCase = require('../application/use-cases/CheckInRegistrationUseCase');
-const RegistrationsController = require('./RegistrationsController');
+const registrationsRepository = require('../data/repositories/registrations.repository');
+const ListRegistrationsUseCase = require('../business/services/ListRegistrationsUseCase');
+const GetRegistrationUseCase = require('../business/services/GetRegistrationUseCase');
+const CreateRegistrationUseCase = require('../business/services/CreateRegistrationUseCase');
+const UpdateRegistrationUseCase = require('../business/services/UpdateRegistrationUseCase');
+const DeleteRegistrationUseCase = require('../business/services/DeleteRegistrationUseCase');
+const ApproveRegistrationUseCase = require('../business/services/ApproveRegistrationUseCase');
+const RejectRegistrationUseCase = require('../business/services/RejectRegistrationUseCase');
+const BulkApproveRegistrationsUseCase = require('../business/services/BulkApproveRegistrationsUseCase');
+const GetMyRegistrationsUseCase = require('../business/services/GetMyRegistrationsUseCase');
+const GetActivityRegistrationStatsUseCase = require('../business/services/GetActivityRegistrationStatsUseCase');
+const CancelRegistrationUseCase = require('../business/services/CancelRegistrationUseCase');
+const CheckInRegistrationUseCase = require('../business/services/CheckInRegistrationUseCase');
+const RegistrationsController = require('./controllers/RegistrationsController');
 
 /**
  * Factory function to create RegistrationsController with all dependencies
  * Follows Dependency Injection Principle (DIP)
  */
 function createRegistrationsController() {
-  const registrationRepository = new RegistrationPrismaRepository();
+  const repo = registrationsRepository;
 
   const useCases = {
-    list: new ListRegistrationsUseCase(registrationRepository),
-    get: new GetRegistrationUseCase(registrationRepository),
-    create: new CreateRegistrationUseCase(registrationRepository),
-    update: new UpdateRegistrationUseCase(registrationRepository),
-    delete: new DeleteRegistrationUseCase(registrationRepository),
-    approve: new ApproveRegistrationUseCase(registrationRepository),
-    reject: new RejectRegistrationUseCase(registrationRepository),
-    bulkApprove: new BulkApproveRegistrationsUseCase(registrationRepository),
-    my: new GetMyRegistrationsUseCase(registrationRepository),
-    stats: new GetActivityRegistrationStatsUseCase(registrationRepository),
-    cancel: new CancelRegistrationUseCase(registrationRepository),
-    checkIn: new CheckInRegistrationUseCase(registrationRepository)
+    list: new ListRegistrationsUseCase(repo),
+    get: new GetRegistrationUseCase(repo),
+    create: new CreateRegistrationUseCase(repo),
+    update: new UpdateRegistrationUseCase(repo),
+    delete: new DeleteRegistrationUseCase(repo),
+    approve: new ApproveRegistrationUseCase(repo),
+    reject: new RejectRegistrationUseCase(repo),
+    bulkApprove: new BulkApproveRegistrationsUseCase(repo),
+    my: new GetMyRegistrationsUseCase(repo),
+    stats: new GetActivityRegistrationStatsUseCase(repo),
+    cancel: new CancelRegistrationUseCase(repo),
+    checkIn: new CheckInRegistrationUseCase(repo)
   };
 
   return new RegistrationsController(useCases);

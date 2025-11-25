@@ -1,10 +1,14 @@
 /**
- * Dashboard Module
- * Provides student and admin dashboard data with activity statistics
+ * Dashboard Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases
+ * - data/ - repositories
  */
 
-const routes = require('./dashboard.routes');
+const routes = require('./presentation/routes/dashboard.routes');
 
 module.exports = {
-  routes
+  routes,
 };

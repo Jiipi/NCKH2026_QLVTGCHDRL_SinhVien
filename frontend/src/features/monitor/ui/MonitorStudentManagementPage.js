@@ -1,319 +1,35 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React from 'react';
 import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
-import http from '../../../shared/api/http';
-import { getStudentAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
-import useSemesterData from '../../../hooks/useSemesterData';
 import Pagination from '../../../shared/components/common/Pagination';
+import StudentCard from './components/Students/StudentCard';
+import StudentDetailModal from './components/Students/StudentDetailModal';
+import { useMonitorStudentManagement } from '../model/hooks/useMonitorStudentManagement';
 
 export default function MonitorStudentManagementPage() {
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('points_desc');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
-  
-  // Determine current semester for default value
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    
-    if (currentMonth >= 7 && currentMonth <= 11) {
-      return `hoc_ky_1-${currentYear}`;
-    } else if (currentMonth === 12) {
-      return `hoc_ky_2-${currentYear}`;
-    } else if (currentMonth >= 1 && currentMonth <= 4) {
-      return `hoc_ky_2-${currentYear - 1}`;
-    } else {
-      return `hoc_ky_1-${currentYear}`; // Default for break months
-    }
-  };
-  
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
-  const [error, setError] = useState('');
-  const [showDetails, setShowDetails] = useState(null);
-
-  // Unified semester options
-  const { options: semesterOptions } = useSemesterData();
-
-  useEffect(() => {
-    loadStudents();
-    // Reset to first page whenever semester changes
-    setPagination(prev => ({ ...prev, page: 1 }));
-  }, [semester]);
-
-  // Reset to first page when search or sort changes for better UX
-  useEffect(() => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-  }, [searchTerm, sortBy]);
-
-  const loadStudents = async () => {
-    try {
-      setLoading(true);
-      // Fetch full dataset for the semester and paginate client-side
-      const params = { semester };
-      const response = await http.get('/core/monitor/students', { params });
-      
-      const responseData = response?.data?.data || response?.data || {};
-      const raw = responseData.students || responseData.items || responseData || [];
-      const total = responseData.total || (Array.isArray(raw) ? raw.length : 0);
-
-      const normalized = (Array.isArray(raw) ? raw : []).map(sv => {
-        const nguoiDung = sv.nguoi_dung || {};
-        const lop = sv.lop || {};
-        
-        return {
-          id: sv.id,
-          mssv: sv.mssv || '',
-          ngay_sinh: sv.ngay_sinh,
-          gt: sv.gt,
-          dia_chi: sv.dia_chi,
-          sdt: sv.sdt,
-          nguoi_dung: {
-            ho_ten: nguoiDung.ho_ten || '',
-            email: nguoiDung.email || '',
-            anh_dai_dien: nguoiDung.anh_dai_dien || nguoiDung.avatar || nguoiDung.profile_image || nguoiDung.image || sv.anh_dai_dien || sv.avatar || sv.profile_image
-          },
-          lop: {
-            ten_lop: lop.ten_lop || '',
-            khoa: lop.khoa || ''
-          },
-          totalPoints: sv.totalPoints ?? sv.totalPointsRounded ?? sv._count?.diem_danh ?? 0,
-          activitiesJoined: sv.activitiesJoined ?? sv._count?.dang_ky_hd ?? 0,
-          rank: sv.rank || 0, // preserve global rank from backend if provided
-          status: sv.status || 'active',
-          lastActivityDate: sv.lastActivityDate || new Date().toISOString()
-        };
-      });
-
-      setStudents(normalized);
-      setPagination(prev => ({ ...prev, total }));
-      setError('');
-    } catch (err) {
-      console.error('Error loading students:', err);
-      setError('Không thể tải danh sách sinh viên');
-      setStudents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExportData = () => {
-    const headers = ['MSSV', 'Họ tên', 'Email', 'Điểm RL', 'Số hoạt động', 'Xếp hạng'];
-    // Export all filtered rows for the current semester (not just current page)
-    const csvData = filteredStudents.map(student => [
-      student.mssv,
-      student.nguoi_dung.ho_ten,
-      student.nguoi_dung.email,
-      student.totalPoints,
-      student.activitiesJoined,
-      student.rank
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `danh_sach_sinh_vien_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Crown className="h-6 w-6 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-6 w-6 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-6 w-6 text-amber-600" />;
-    return <Trophy className="h-5 w-5 text-gray-400" />;
-  };
-
-  const getRankBadgeClass = (rank) => {
-    if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white';
-    if (rank === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400 text-white';
-    if (rank === 3) return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white';
-    return 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700';
-  };
-
-  const getPointsColor = (points) => {
-    if (points >= 80) return 'text-emerald-600';
-    if (points >= 50) return 'text-blue-600';
-    if (points >= 30) return 'text-amber-600';
-    return 'text-rose-600';
-  };
-
-  const getProgressColor = (points) => {
-    if (points >= 80) return 'from-emerald-500 to-teal-500';
-    if (points >= 50) return 'from-blue-500 to-cyan-500';
-    if (points >= 30) return 'from-amber-500 to-orange-500';
-    return 'from-rose-500 to-pink-500';
-  };
-
-  const sortedStudents = [...students].sort((a, b) => {
-    switch (sortBy) {
-      case 'points_desc': return b.totalPoints - a.totalPoints;
-      case 'points_asc': return a.totalPoints - b.totalPoints;
-      case 'name_asc': return a.nguoi_dung.ho_ten.localeCompare(b.nguoi_dung.ho_ten);
-      case 'name_desc': return b.nguoi_dung.ho_ten.localeCompare(a.nguoi_dung.ho_ten);
-      case 'activities_desc': return b.activitiesJoined - a.activitiesJoined;
-      default: return 0;
-    }
-  });
-
-  const normalizeText = (text) => {
-    if (!text) return '';
-    return text
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' '); // Replace multiple spaces with single space
-  };
-
-  const filteredStudents = sortedStudents.filter(student => {
-    if (!searchTerm || searchTerm.trim() === '') return true; // Show all if no search term
-    
-    const searchNormalized = normalizeText(searchTerm);
-    const nameNormalized = normalizeText(student.nguoi_dung.ho_ten);
-    const mssvNormalized = normalizeText(student.mssv);
-    const emailNormalized = normalizeText(student.nguoi_dung.email);
-    
-    return nameNormalized.includes(searchNormalized) ||
-      mssvNormalized.includes(searchNormalized) ||
-      emailNormalized.includes(searchNormalized);
-  });
-
-  // Client-side pagination of filtered results
-  const startIndex = (pagination.page - 1) * pagination.limit;
-  const endIndex = startIndex + pagination.limit;
-  const pageItems = filteredStudents.slice(startIndex, endIndex);
-  const filteredTotal = filteredStudents.length;
-
-  const stats = {
-    total: students.length,
-    avgPoints: students.length > 0 ? Math.round((students.reduce((sum, s) => sum + s.totalPoints, 0) / students.length) * 10) / 10 : 0,
-    topPerformers: students.filter(s => s.totalPoints >= 90).length // ✅ Xuất sắc: >= 90 điểm (thống nhất với Dashboard)
-  };
-
-  const StudentCard = ({ student }) => {
-    const progressPercent = Math.min((student.totalPoints / 100) * 100, 100);
-    const isTopRanked = student.rank <= 3;
-    const avatar = getStudentAvatar(student);
-
-    return (
-      <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${
-        isTopRanked ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
-      }`}>
-        {/* Decorative gradient */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        
-        {/* Top performer badge */}
-        {isTopRanked && (
-          <div className="absolute top-0 right-0">
-            <div className={`${getRankBadgeClass(student.rank)} px-4 py-2 rounded-bl-2xl rounded-tr-2xl shadow-lg flex items-center gap-2`}>
-              {getRankIcon(student.rank)}
-              <span className="text-sm font-bold">#{student.rank}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="p-4 relative z-10">
-          {/* Student Header - Compact */}
-          <div className="flex items-start gap-3 mb-3">
-            <div className="flex-shrink-0">
-              {avatar.hasValidAvatar ? (
-                <img
-                  src={avatar.src}
-                  alt={avatar.alt}
-                  className="w-16 h-16 rounded-xl object-cover shadow-md ring-2 ring-white"
-                />
-              ) : (
-                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || student.mssv)} flex items-center justify-center text-white font-bold text-xl shadow-md ring-2 ring-white`}>
-                  {avatar.fallback}
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-gray-900 mb-1 truncate">
-                {student.nguoi_dung.ho_ten}
-              </h3>
-              <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-0.5">
-                <User className="h-3 w-3" />
-                <span className="font-medium">MSSV: {student.mssv}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                <Mail className="h-3 w-3" />
-                <span className="truncate">{student.nguoi_dung.email}</span>
-              </div>
-            </div>
-            {!isTopRanked && (
-              <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                #{student.rank}
-              </span>
-            )}
-          </div>
-
-          {/* Points Display - Compact */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 mb-3 border border-indigo-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-600">Điểm rèn luyện</span>
-              <span className={`text-2xl font-bold ${getPointsColor(student.totalPoints)}`}>
-                {student.totalPoints}
-              </span>
-            </div>
-            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`absolute top-0 left-0 h-full bg-gradient-to-r ${getProgressColor(student.totalPoints)} transition-all duration-500 rounded-full`}
-                style={{ width: `${progressPercent}%` }}
-              >
-                <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
-              </div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0</span>
-              <span>100</span>
-            </div>
-          </div>
-
-          {/* Stats Grid - Compact */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="p-1.5 bg-blue-50 rounded-md">
-                  <Activity className="h-3 w-3 text-blue-600" />
-                </div>
-                <span className="text-xs text-gray-500 font-medium">Hoạt động</span>
-              </div>
-              <p className="text-lg font-bold text-gray-900">{student.activitiesJoined}</p>
-            </div>
-
-            <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="p-1.5 bg-purple-50 rounded-md">
-                  <Target className="h-3 w-3 text-purple-600" />
-                </div>
-                <span className="text-xs text-gray-500 font-medium">Còn lại</span>
-              </div>
-              <p className="text-lg font-bold text-gray-900">{Math.max(0, 100 - student.totalPoints)}</p>
-            </div>
-          </div>
-
-          {/* Action Button - Compact */}
-          <button
-            onClick={() => setShowDetails(student)}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-xs"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Xem chi tiết
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-    );
-  };
+  const {
+    students,
+    filteredStudents,
+    stats,
+    loading,
+    error,
+    searchTerm,
+    setSearchTerm,
+    sortBy,
+    setSortBy,
+    semester,
+    setSemester,
+    semesterOptions,
+    pagination,
+    setPagination,
+    showDetails,
+    setShowDetails,
+    getRankIcon,
+    getRankBadgeClass,
+    getPointsColor,
+    getProgressColor,
+    handleExportData,
+    filteredTotal
+  } = useMonitorStudentManagement();
 
   if (loading) {
     return (
@@ -511,10 +227,18 @@ export default function MonitorStudentManagementPage() {
       </div>
 
       {/* Students Grid - Compact */}
-      {filteredStudents.length > 0 ? (
+      {students.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {pageItems.map(student => (
-            <StudentCard key={student.id} student={student} />
+          {students.map(student => (
+            <StudentCard 
+              key={student.id} 
+              student={student}
+              getRankIcon={getRankIcon}
+              getRankBadgeClass={getRankBadgeClass}
+              getPointsColor={getPointsColor}
+              getProgressColor={getProgressColor}
+              onViewDetails={setShowDetails}
+            />
           ))}
         </div>
       ) : (
@@ -554,112 +278,3 @@ export default function MonitorStudentManagementPage() {
     </div>
   );
 }
-
-// Student Detail Modal Component
-const StudentDetailModal = ({ student, onClose }) => {
-  const progressPercent = Math.min((student.totalPoints / 100) * 100, 100);
-  const avatar = getStudentAvatar(student);
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Thông tin sinh viên</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-            >
-              <span className="text-2xl">×</span>
-            </button>
-          </div>
-          <div className="flex items-center gap-4">
-            {avatar.hasValidAvatar ? (
-              <img
-                src={avatar.src}
-                alt={avatar.alt}
-                className="w-20 h-20 rounded-2xl object-cover shadow-lg ring-4 ring-white/50"
-              />
-            ) : (
-              <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || student.mssv)} flex items-center justify-center text-3xl font-bold shadow-lg ring-4 ring-white/50`}>
-                {avatar.fallback}
-              </div>
-            )}
-            <div>
-              <h3 className="text-xl font-bold">{student.nguoi_dung.ho_ten}</h3>
-              <p className="text-indigo-100">MSSV: {student.mssv}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6">
-          {/* Points Progress */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-lg font-semibold text-gray-700">Điểm rèn luyện</span>
-              <span className="text-4xl font-bold text-indigo-600">{student.totalPoints}</span>
-            </div>
-            <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500 mt-2">
-              <span>0</span>
-              <span>{progressPercent.toFixed(0)}%</span>
-              <span>100</span>
-            </div>
-          </div>
-
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <Mail className="h-5 w-5" />
-                <span className="text-sm font-medium">Email</span>
-              </div>
-              <p className="text-gray-900 font-semibold truncate">{student.nguoi_dung.email}</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <Activity className="h-5 w-5" />
-                <span className="text-sm font-medium">Hoạt động</span>
-              </div>
-              <p className="text-gray-900 font-semibold">{student.activitiesJoined} hoạt động</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <Trophy className="h-5 w-5" />
-                <span className="text-sm font-medium">Xếp hạng</span>
-              </div>
-              <p className="text-gray-900 font-semibold">#{student.rank}</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <Target className="h-5 w-5" />
-                <span className="text-sm font-medium">Còn lại</span>
-              </div>
-              <p className="text-gray-900 font-semibold">{Math.max(0, 100 - student.totalPoints)} điểm</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 bg-gray-50 border-t">
-          <button
-            onClick={onClose}
-            className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
-          >
-            Đóng
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};

@@ -12,23 +12,23 @@ const router = Router();
 // Will be deprecated in future versions
 
 // Health check
-const healthRoute = require('../routes/health.route');
+const healthRoute = require('../presentation/routes/health.route');
 router.use('/health', healthRoute);
 
-// Authentication (V2 - New Module Architecture)
+// Authentication (V2 - New Module Architecture - Refactored to 3 tiers)
 const authModule = require('../modules/auth');
 router.use('/auth', authModule.routes);
 
 // Users
-const usersRoute = require('../routes/users.route');
+const usersRoute = require('../presentation/routes/users.route');
 router.use('/users', usersRoute);
 
 // Admin
-const adminRoute = require('../routes/admin.route');
+const adminRoute = require('../presentation/routes/admin.route');
 router.use('/admin', adminRoute);
 
 // Upload
-const uploadRoute = require('../routes/upload.route');
+const uploadRoute = require('../presentation/routes/upload.route');
 router.use('/upload', uploadRoute);
 
 // Semesters (V2 - New Module Architecture)
@@ -75,7 +75,7 @@ const activityTypesV2 = require('../modules/activity-types');
 router.use('/core/activity-types', activityTypesV2.activityTypesRoutes);
 
 // Broadcast V2 - Broadcast notifications (Admin only)
-const broadcastV2 = require('../routes/broadcast.route');
+const broadcastV2 = require('../presentation/routes/broadcast.route');
 router.use('/core/broadcast', broadcastV2);
 
 // Admin Users V2 - Admin user management (Admin only)
@@ -87,7 +87,7 @@ const adminReportsV2 = require('../modules/admin-reports');
 router.use('/core/admin/reports', adminReportsV2.routes);
 
 // Admin Registrations V2 - Registration management with counts/export
-const adminRegistrationsV2 = require('../routes/admin-registrations.route');
+const adminRegistrationsV2 = require('../presentation/routes/admin-registrations.route');
 router.use('/core/admin/registrations', adminRegistrationsV2);
 
 // Profile V2 - User profile management
@@ -116,19 +116,12 @@ router.use('/core/exports', exportsV2.routes);
 
 // Sessions V2 - Session tracking and activity monitoring
 // Mounted under both /core/sessions and /sessions for backward compatibility
-const sessionsV2 = require('../routes/sessions.route');
+const sessionsV2 = require('../presentation/routes/sessions.route');
 router.use('/core/sessions', sessionsV2);
 router.use('/sessions', sessionsV2); // legacy/non-core prefix fallback
 
 // ==================== ADDITIONAL ROUTES ====================
-
-// Activities route (legacy, kept for compatibility)
-try {
-  const activitiesLegacy = require('../routes/activities.route');
-  router.use('/activities', activitiesLegacy);
-} catch (e) {
-  // Ignore if route doesn't exist
-}
+// Legacy routes removed - all routes now use modules
 
 
 module.exports = router;

@@ -1,15 +1,16 @@
 /**
- * Teachers Module - Export
+ * Teachers Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases
+ * - data/ - repositories
  */
 
-const teachersRoutes = require('./teachers.routes');
-const teachersService = require('./teachers.service');
-const teachersRepo = require('./teachers.repo');
+const routes = require('./presentation/routes/teachers.routes');
 
 module.exports = {
-  routes: teachersRoutes,
-  service: teachersService,
-  repo: teachersRepo
+  routes,
 };
 
 

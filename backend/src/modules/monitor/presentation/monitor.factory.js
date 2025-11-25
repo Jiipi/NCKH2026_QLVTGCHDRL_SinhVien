@@ -1,22 +1,22 @@
-const MonitorPrismaRepository = require('../infrastructure/repositories/MonitorPrismaRepository');
-const GetClassStudentsUseCase = require('../application/use-cases/GetClassStudentsUseCase');
-const GetPendingRegistrationsUseCase = require('../application/use-cases/GetPendingRegistrationsUseCase');
-const GetPendingRegistrationsCountUseCase = require('../application/use-cases/GetPendingRegistrationsCountUseCase');
-const ApproveRegistrationUseCase = require('../application/use-cases/ApproveRegistrationUseCase');
-const RejectRegistrationUseCase = require('../application/use-cases/RejectRegistrationUseCase');
-const GetMonitorDashboardUseCase = require('../application/use-cases/GetMonitorDashboardUseCase');
-const GetClassReportsUseCase = require('../application/use-cases/GetClassReportsUseCase');
-const MonitorController = require('./MonitorController');
+const MonitorPrismaRepository = require('../data/repositories/MonitorPrismaRepository');
+const GetClassStudentsUseCase = require('../business/services/GetClassStudentsUseCase');
+const GetPendingRegistrationsUseCase = require('../business/services/GetPendingRegistrationsUseCase');
+const GetPendingRegistrationsCountUseCase = require('../business/services/GetPendingRegistrationsCountUseCase');
+const ApproveRegistrationUseCase = require('../business/services/ApproveRegistrationUseCase');
+const RejectRegistrationUseCase = require('../business/services/RejectRegistrationUseCase');
+const GetMonitorDashboardUseCase = require('../business/services/GetMonitorDashboardUseCase');
+const GetClassReportsUseCase = require('../business/services/GetClassReportsUseCase');
+const MonitorController = require('./controllers/MonitorController');
 
 /**
  * Factory for creating MonitorController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createMonitorController() {
-  // Infrastructure layer
+  // Data layer
   const monitorRepository = new MonitorPrismaRepository();
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
     getClassStudents: new GetClassStudentsUseCase(monitorRepository),
     getPendingRegistrations: new GetPendingRegistrationsUseCase(monitorRepository),

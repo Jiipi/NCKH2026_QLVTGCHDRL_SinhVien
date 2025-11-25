@@ -1,23 +1,23 @@
-const DashboardPrismaRepository = require('../infrastructure/repositories/DashboardPrismaRepository');
-const GetStudentDashboardUseCase = require('../application/use-cases/GetStudentDashboardUseCase');
-const GetActivityStatsUseCase = require('../application/use-cases/GetActivityStatsUseCase');
-const GetAdminDashboardUseCase = require('../application/use-cases/GetAdminDashboardUseCase');
-const GetMyActivitiesUseCase = require('../application/use-cases/GetMyActivitiesUseCase');
-const GetDetailedScoresUseCase = require('../application/use-cases/GetDetailedScoresUseCase');
-const DashboardController = require('./DashboardController');
+const dashboardRepository = require('../data/repositories/dashboard.repository');
+const GetStudentDashboardUseCase = require('../business/services/GetStudentDashboardUseCase');
+const GetActivityStatsUseCase = require('../business/services/GetActivityStatsUseCase');
+const GetAdminDashboardUseCase = require('../business/services/GetAdminDashboardUseCase');
+const GetMyActivitiesUseCase = require('../business/services/GetMyActivitiesUseCase');
+const GetDetailedScoresUseCase = require('../business/services/GetDetailedScoresUseCase');
+const DashboardController = require('./controllers/DashboardController');
 
 /**
  * Factory for creating DashboardController with dependencies
  */
 function createDashboardController() {
-  const dashboardRepository = new DashboardPrismaRepository();
+  const repo = dashboardRepository;
 
   const useCases = {
-    getStudentDashboard: new GetStudentDashboardUseCase(dashboardRepository),
-    getActivityStats: new GetActivityStatsUseCase(dashboardRepository),
-    getAdminDashboard: new GetAdminDashboardUseCase(dashboardRepository),
-    getMyActivities: new GetMyActivitiesUseCase(dashboardRepository),
-    getDetailedScores: new GetDetailedScoresUseCase(dashboardRepository)
+    getStudentDashboard: new GetStudentDashboardUseCase(repo),
+    getActivityStats: new GetActivityStatsUseCase(repo),
+    getAdminDashboard: new GetAdminDashboardUseCase(repo),
+    getMyActivities: new GetMyActivitiesUseCase(repo),
+    getDetailedScores: new GetDetailedScoresUseCase(repo)
   };
 
   return new DashboardController(useCases);

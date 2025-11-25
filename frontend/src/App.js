@@ -21,7 +21,7 @@ import AdminRegistrations from './features/admin/ui/AdminRegistrationsPage';
 import QRManagementPage from './features/qr-attendance/ui/QRManagementPage';
 import AdminReports from './features/reports/pages/AdminReportsPage';
 import AdminRoles from './features/users/pages/AdminRolesPage';
-import AdminNotifications from './features/notifications/pages/AdminNotificationsPage';
+import AdminNotifications from './features/notifications/ui/AdminNotificationsPage';
 import AdminSettings from './features/settings/pages/AdminSettingsPage';
 import AdminProfile from './features/users/pages/AdminProfilePage';
 import SemesterManagement from './features/semesters/pages/SemesterManagementPage';
@@ -48,7 +48,9 @@ import TeacherActivityApprovalPage from './features/teacher/ui/TeacherActivityAp
 // Legacy registration approvals replaced by FSD page
 // import TeacherRegistrationApprovals from './pages/teacher/TeacherRegistrationApprovals';
 import TeacherRegistrationApprovalsPage from './features/teacher/ui/TeacherRegistrationApprovalsPage';
-import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
+// Legacy student management replaced by FSD 3-tier implementation
+// import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
+import TeacherStudentManagementPage from './features/teacher/ui/TeacherStudentManagementPage';
 import ImportStudents from './pages/teacher/ImportStudents';
 import ClassManagement from './pages/teacher/ClassManagement';
 import ModernReports from './pages/teacher/ModernReports';
@@ -256,7 +258,7 @@ function App() {
             React.createElement(Route, { key: 'teacher-registrations-approve', path: 'registrations/approve', element: React.createElement(TeacherRegistrationApprovalsPage) }),
             React.createElement(Route, { key: 'teacher-attendance', path: 'attendance', element: React.createElement(TeacherAttendancePage) }),
             React.createElement(Route, { key: 'teacher-student-scores', path: 'student-scores', element: React.createElement(TeacherStudentScoresPage) }),
-            React.createElement(Route, { key: 'teacher-students', path: 'students', element: React.createElement(ModernStudentManagement) }),
+            React.createElement(Route, { key: 'teacher-students', path: 'students', element: React.createElement(TeacherStudentManagementPage) }),
             React.createElement(Route, { key: 'teacher-students-import', path: 'students/import', element: React.createElement(ImportStudents) }),
             React.createElement(Route, { key: 'teacher-classes-redirect', path: 'classes', element: React.createElement(Navigate, { to: '/teacher/students', replace: true }) }),
             React.createElement(Route, { key: 'teacher-notifications', path: 'notifications', element: React.createElement(ModernNotifications) }),
@@ -297,7 +299,7 @@ function App() {
           // Common routes
           React.createElement(Route, { key: 'create-activity', path: '/activities/create', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivityPage) }) }),
           React.createElement(Route, { key: 'edit-activity', path: '/activities/edit/:id', element: React.createElement(RoleGuard, { allow: ['GIANG_VIEN','LOP_TRUONG','ADMIN'], element: React.createElement(ManageActivityPage) }) }),
-          React.createElement(Route, { key: 'activity-detail', path: '/activities/:id', element: React.createElement(RoleGuard, { allow: [], element: React.createElement(StudentActivityDetailPage) }) }),
+          React.createElement(Route, { key: 'activity-detail', path: '/activities/:id', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG','GIANG_VIEN','ADMIN'], element: React.createElement(StudentLayout, null, React.createElement(StudentActivityDetailPage)) }) }),
           // (Re-added) Root-level QR Scanner fallback route to bypass potential nested routing edge cases.
           // Accessible by students and monitors. If nested route fails, this ensures accessibility.
           React.createElement(Route, { key: 'qr-scanner-root', path: '/qr-scanner', element: React.createElement(RoleGuard, { allow: ['SINH_VIEN','STUDENT','LOP_TRUONG'], element: React.createElement(QRScannerPage) }) }),

@@ -1,9 +1,16 @@
-const exportsRoutes = require('./exports.routes');
-const ExportsService = require('./exports.service');
+/**
+ * Exports Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases
+ * - data/ - repositories
+ */
+
+const routes = require('./presentation/routes/exports.routes');
 
 module.exports = {
-  routes: exportsRoutes,
-  service: ExportsService
+  routes,
 };
 
 

@@ -1,9 +1,16 @@
-const routes = require('./search.routes');
-const SearchService = require('./search.service');
+/**
+ * Search Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases
+ * - data/ - repositories
+ */
+
+const routes = require('./presentation/routes/search.routes');
 
 module.exports = {
   routes,
-  SearchService
 };
 
 

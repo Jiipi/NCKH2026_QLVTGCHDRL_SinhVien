@@ -1,22 +1,22 @@
-const ExportPrismaRepository = require('../infrastructure/repositories/ExportPrismaRepository');
-const GetOverviewUseCase = require('../application/use-cases/GetOverviewUseCase');
-const ExportActivitiesUseCase = require('../application/use-cases/ExportActivitiesUseCase');
-const ExportRegistrationsUseCase = require('../application/use-cases/ExportRegistrationsUseCase');
-const ExportsController = require('./ExportsController');
+const exportsRepository = require('../data/repositories/exports.repository');
+const GetOverviewUseCase = require('../business/services/GetOverviewUseCase');
+const ExportActivitiesUseCase = require('../business/services/ExportActivitiesUseCase');
+const ExportRegistrationsUseCase = require('../business/services/ExportRegistrationsUseCase');
+const ExportsController = require('./controllers/ExportsController');
 
 /**
  * Factory for creating ExportsController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createExportsController() {
-  // Infrastructure layer
-  const exportRepository = new ExportPrismaRepository();
+  // Data layer
+  const repo = exportsRepository;
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
-    getOverview: new GetOverviewUseCase(exportRepository),
-    exportActivities: new ExportActivitiesUseCase(exportRepository),
-    exportRegistrations: new ExportRegistrationsUseCase(exportRepository)
+    getOverview: new GetOverviewUseCase(repo),
+    exportActivities: new ExportActivitiesUseCase(repo),
+    exportRegistrations: new ExportRegistrationsUseCase(repo)
   };
 
   // Presentation layer

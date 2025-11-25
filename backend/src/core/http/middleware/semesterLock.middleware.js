@@ -1,4 +1,4 @@
-const SemesterClosure = require('../../../services/semesterClosure.service');
+const SemesterClosure = require('../../../business/services/semesterClosure.service');
 
 // Extract hoc_ky/nam_hoc from request (supports both body and query)
 function extractSemester(req) {

@@ -1,17 +1,17 @@
 /**
- * Users Module - Export
- * Clean architecture pattern
+ * Users Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases, DTOs, validators
+ * - data/ - repositories
  */
 
-const usersRoutes = require('./users.routes');
-const usersService = require('./users.service');
-const usersRepo = require('./users.repo');
-const validators = require('./users.validators');
+const routes = require('./presentation/routes/users.routes');
+const validators = require('./business/validators/users.validators');
 
 module.exports = {
-  routes: usersRoutes,
-  service: usersService,
-  repo: usersRepo,
+  routes,
   validators,
 };
 

@@ -1,4 +1,4 @@
-const { prisma } = require('../../../infrastructure/prisma/client');
+const { prisma } = require('../../../data/infrastructure/prisma/client');
 const { ApiResponse, sendResponse } = require('../response/apiResponse');
 const { logError } = require('../../logger');
 

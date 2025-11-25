@@ -1,264 +1,79 @@
-﻿import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
-  Activity, Search, Eye, Calendar, MapPin, Users, Award, 
-  CheckCircle, XCircle, Filter, LayoutGrid, List, Tag, Grid3X3, 
-  Clock, Sparkles, Plus, SlidersHorizontal, RefreshCw, X
+  Activity, Search, Calendar, MapPin, Users, Award, 
+  CheckCircle, XCircle, Filter, List, Tag, Grid3X3, 
+  Clock, Sparkles, SlidersHorizontal, RefreshCw, X
 } from 'lucide-react';
-import http from '../../../shared/api/http';
-import useSemesterData from '../../../hooks/useSemesterData';
-import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
-import { getBestActivityImage } from '../../../shared/lib/activityImages';
-import ActivityTypesManagementPage from '../../activity-types/pages/ActivityTypesManagementPage';
 import { useNotification } from '../../../contexts/NotificationContext';
+import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
+import ActivityTypesManagementPage from '../../activity-types/pages/ActivityTypesManagementPage';
+import useTeacherActivitiesPage from '../model/hooks/useTeacherActivitiesPage';
+import { getBestActivityImage } from '../../../shared/lib/activityImages';
+import TeacherActivitiesHeroInline from './components/activities-management/TeacherActivitiesHeroInline';
+import TeacherActivityCardInline from './components/activities-management/TeacherActivityCardInline';
+import ActivityDetailModalInline from './components/activities-management/ActivityDetailModalInline';
+import Pagination from '../../../shared/components/common/Pagination';
 
-const TeacherActivities = () => {
-  const [activeTab, setActiveTab] = useState('activities'); // 'activities' | 'types'
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'list' | 'grid'
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const [total, setTotal] = useState(0);
-  const [activityTypes, setActivityTypes] = useState([]);
-  const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(false);
-  const [statusViewMode, setStatusViewMode] = useState('pills'); // 'pills' | 'dropdown' | 'compact'
-  const [filters, setFilters] = useState({
-    type: '',
-    location: '',
-    from: '',
-    to: '',
-    minPoints: '',
-    maxPoints: ''
-  });
-  const { showSuccess, showError, showWarning, confirm } = useNotification();
+export default function TeacherActivitiesPage() {
+  const { showSuccess, showError } = useNotification();
 
-  // Semester filter state (reuse logic consistent with monitor pages)
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-    else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-    else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-    else return `hoc_ky_1-${currentYear}`;
+  const {
+    activities,
+    filteredActivities,
+    allActivities,
+    loading,
+    error,
+    semester,
+    semesterOptions,
+    isWritable,
+    activityTypes,
+    selectedActivity,
+    showDetailModal,
+    activeTab,
+    viewMode,
+    searchTerm,
+    statusFilter,
+    statusViewMode,
+    sortBy,
+    showFilters,
+    filters,
+    page,
+    limit,
+    effectiveTotal,
+    heroStats,
+    setActiveTab,
+    setViewMode,
+    setSearchTerm,
+    setStatusFilter,
+    setStatusViewMode,
+    setSortBy,
+    setShowFilters,
+    setFilters,
+    setPage,
+    setLimit,
+    setSemester,
+    setSelectedActivity,
+    setShowDetailModal,
+    fetchActivityDetails,
+    handleApprove,
+    handleReject,
+    getActiveFilterCount,
+    clearAllFilters,
+    getTypeColor,
+    STATUS_LABELS,
+    STATUS_COLORS
+  } = useTeacherActivitiesPage();
+
+  const paginationState = {
+    page,
+    limit,
+    total: effectiveTotal
   };
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const startItem = effectiveTotal ? (page - 1) * limit + 1 : 0;
+  const endItem = Math.min(page * limit, effectiveTotal);
 
-  const { options: semesterOptions, isWritable, status: semesterStatus } = useSemesterData(semester);
-
-  useEffect(() => {
-    // Initial load / when semester or pagination changes
-    fetchActivities();
-    loadActivityTypes();
-  }, [semester, page, limit]);
-
-  const loadActivityTypes = async () => {
-    try {
-      const response = await http.get('/core/activity-types');
-      const payload = response.data?.data ?? response.data ?? [];
-      const items = Array.isArray(payload?.items)
-        ? payload.items
-        : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []));
-      setActivityTypes(items);
-    } catch (err) {
-      console.error('Error loading activity types:', err);
-      setActivityTypes([]);
-    }
-  };
-
-  const fetchActivities = async () => {
-    try {
-      setLoading(true);
-      // ✅ Gửi semester để backend lọc đúng học kỳ
-      const response = await http.get('/activities', {
-        params: { 
-          page,
-          limit,
-          semester: semester || undefined
-        }
-      });
-      
-      // Parse response data the same way as ClassActivities
-      const responseData = response.data?.data || response.data || {};
-      const items = responseData.items || responseData.data || responseData || [];
-      const itemsArray = Array.isArray(items) ? items : [];
-      setActivities(itemsArray);
-      const pagination = response.data?.data?.pagination || {};
-      const nextTotal = typeof pagination.total === 'number' ? pagination.total : itemsArray.length;
-      setTotal(nextTotal);
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách hoạt động:', error);
-      setActivities([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchActivityDetails = async (activityId) => {
-    try {
-      const response = await http.get(`/activities/${activityId}`);
-      const activityData = response.data?.data || response.data;
-      setSelectedActivity(activityData);
-      setShowDetailModal(true);
-    } catch (error) {
-      console.error('Lỗi khi tải chi tiết hoạt động:', error);
-      // Fallback: sử dụng dữ liệu từ danh sách
-      const activity = activities.find(a => a.id === activityId);
-      if (activity) {
-        setSelectedActivity(activity);
-        setShowDetailModal(true);
-      }
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'cho_duyet': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'da_duyet': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'tu_choi': return 'bg-rose-50 text-rose-700 border-rose-200';
-      case 'da_huy': return 'bg-gray-50 text-gray-700 border-gray-200';
-      case 'ket_thuc': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-      default: return 'bg-amber-50 text-amber-700 border-amber-200';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'cho_duyet': return 'Chờ duyệt';
-      case 'da_duyet': return 'Đã duyệt';
-      case 'tu_choi': return 'Từ chối';
-      case 'da_huy': return 'Đã hủy';
-      case 'ket_thuc': return 'Kết thúc';
-      default: return 'Chưa xác định';
-    }
-  };
-
-  const filteredActivities = activities.filter(activity => {
-    const needle = searchTerm.toLowerCase();
-    const matchesSearch = !needle ||
-      activity.ten_hd?.toLowerCase().includes(needle) ||
-      activity.mo_ta?.toLowerCase().includes(needle) ||
-      activity.dia_diem?.toLowerCase().includes(needle);
-    
-    // Status filter
-    const matchesStatus = statusFilter 
-      ? activity.trang_thai === statusFilter 
-      : (activity.trang_thai === 'da_duyet' || activity.trang_thai === 'ket_thuc');
-    
-    // Advanced filters
-    const matchesType = !filters.type || activity.loai_hd_id?.toString() === filters.type;
-    const matchesLocation = !filters.location || activity.dia_diem?.toLowerCase().includes(filters.location.toLowerCase());
-    const matchesFrom = !filters.from || new Date(activity.ngay_bd) >= new Date(filters.from);
-    const matchesTo = !filters.to || new Date(activity.ngay_bd) <= new Date(filters.to);
-    const matchesMinPoints = !filters.minPoints || (activity.diem_rl || 0) >= parseFloat(filters.minPoints);
-    const matchesMaxPoints = !filters.maxPoints || (activity.diem_rl || 0) <= parseFloat(filters.maxPoints);
-    
-    return matchesSearch && matchesStatus && matchesType && matchesLocation && 
-           matchesFrom && matchesTo && matchesMinPoints && matchesMaxPoints;
-  }).sort((a, b) => {
-    switch (sortBy) {
-      case 'oldest':
-        const ta_old = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
-        const tb_old = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
-        return ta_old - tb_old;
-      case 'name-az':
-        return (a.ten_hd || '').localeCompare(b.ten_hd || '', 'vi');
-      case 'name-za':
-        return (b.ten_hd || '').localeCompare(a.ten_hd || '', 'vi');
-      case 'points-high':
-        return (b.diem_rl || 0) - (a.diem_rl || 0);
-      case 'points-low':
-        return (a.diem_rl || 0) - (b.diem_rl || 0);
-      case 'newest':
-      default:
-        const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
-        const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
-        return tb - ta;
-    }
-  });
-
-  const getTypeColor = (activity) => {
-    return activity?.loai_hd?.mau_sac || '#6366f1'; // Indigo fallback
-  };
-
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filters.type) count++;
-    if (filters.location) count++;
-    if (filters.from) count++;
-    if (filters.to) count++;
-    if (filters.minPoints) count++;
-    if (filters.maxPoints) count++;
-    return count;
-  };
-
-  const clearAllFilters = () => {
-    setFilters({
-      type: '',
-      location: '',
-      from: '',
-      to: '',
-      minPoints: '',
-      maxPoints: ''
-    });
-  };
-
-  // Fallback client-side pagination to ensure render <= limit items
-  const effectiveTotal = total && total > 0 ? total : filteredActivities.length;
-  const startIdx = (page - 1) * limit;
-  const endIdx = startIdx + limit;
-  const pageItems = filteredActivities.slice(startIdx, endIdx);
-
-  const handleApproveActivity = async (activityId) => {
-    const confirmed = await confirm({
-      title: 'Xác nhận phê duyệt',
-      message: 'Bạn có chắc chắn muốn phê duyệt hoạt động này?',
-      confirmText: 'Phê duyệt',
-      cancelText: 'Hủy'
-    });
-
-    if (!confirmed) return;
-    
-    try {
-      await http.post(`/teacher/activities/${activityId}/approve`);
-      showSuccess('Phê duyệt hoạt động thành công!');
-      await fetchActivities();
-    } catch (error) {
-      console.error('Lỗi khi phê duyệt hoạt động:', error);
-      showError(error.response?.data?.message || error.message || 'Không thể phê duyệt');
-    }
-  };
-
-  const handleRejectActivity = async (activityId) => {
-    const reason = window.prompt('Nhập lý do từ chối:');
-    if (!reason || !reason.trim()) {
-      showWarning('Vui lòng nhập lý do từ chối');
-      return;
-    }
-
-    const confirmed = await confirm({
-      title: 'Xác nhận từ chối',
-      message: `Từ chối hoạt động?\n\nLý do: ${reason}`,
-      confirmText: 'Từ chối',
-      cancelText: 'Hủy'
-    });
-
-    if (!confirmed) return;
-    
-    try {
-      await http.post(`/teacher/activities/${activityId}/reject`, { reason: reason.trim() });
-      showSuccess('Từ chối hoạt động thành công!');
-      await fetchActivities();
-    } catch (error) {
-      console.error('Lỗi khi từ chối hoạt động:', error);
-      showError(error.response?.data?.message || error.message || 'Không thể từ chối');
-    }
-  };
+  const getStatusColor = (status) => STATUS_COLORS[status] || STATUS_COLORS.cho_duyet;
+  const getStatusLabel = (status) => STATUS_LABELS[status] || 'Chưa xác định';
 
   if (loading) {
     return (
@@ -271,152 +86,19 @@ const TeacherActivities = () => {
     );
   }
 
-  return (
+    return (
     <div className="space-y-6">
       {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
-      <div className="relative min-h-[280px]">
-        {/* Animated Background Grid */}
-        <div className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
-
-        {/* Floating Geometric Shapes */}
-        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce"></div>
-        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full"></div>
-
-        {/* Main Content Container with Glassmorphism */}
-        <div className="relative z-10 p-8">
-          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-            
-            {/* Top Bar with Badge */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-indigo-400 blur-xl opacity-50 animate-pulse"></div>
-                  <div className="relative bg-black text-indigo-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-indigo-400">
-                    ⚡ QUẢN LÝ
-                  </div>
-                </div>
-                <div className="h-8 w-1 bg-white/40"></div>
-                <div className="text-white/90 font-bold text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                    {activeTab === 'activities' ? `${activities.length} HOẠT ĐỘNG` : `${activityTypes.length} LOẠI`}
-                  </div>
-                </div>
-              </div>
-              {activeTab === 'types' && (
-                <button
-                  onClick={() => {
-                    // Trigger modal in ActivityTypesManagementPage
-                    const event = new CustomEvent('openActivityTypeModal');
-                    window.dispatchEvent(event);
-                  }}
-                  className="group flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 shadow-xl hover:shadow-white/50 hover:scale-105 font-bold"
-                >
-                  <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-                  Thêm mới
-                </button>
-              )}
-            </div>
-
-            {/* Main Title Section */}
-            <div className="mb-6">
-              <h1 className="text-5xl lg:text-6xl font-black text-white mb-4 leading-none tracking-tight">
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">D</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">A</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-                <span className="inline-block mx-2">•</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">M</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ụ</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">C</span>
-                <br />
-                <span className="relative inline-block mt-2">
-                  <span className="relative z-10 text-pink-300 drop-shadow-[0_0_30px_rgba(249,168,212,0.5)]">
-                    HOẠT ĐỘNG
-                  </span>
-                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-pink-300/30 blur-sm"></div>
-                </span>
-              </h1>
-              
-              <p className="text-white/80 text-lg font-medium max-w-2xl leading-relaxed">
-                Xem và quản lý tất cả các hoạt động rèn luyện
-              </p>
-            </div>
-
-            {/* Tab Switcher */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setActiveTab('activities')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform ${
-                  activeTab === 'activities'
-                    ? 'bg-pink-400 text-black scale-105 shadow-lg'
-                    : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
-                }`}
-              >
-                <Activity className="h-5 w-5" />
-                Danh sách hoạt động
-              </button>
-              <button
-                onClick={() => setActiveTab('types')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform ${
-                  activeTab === 'types'
-                    ? 'bg-purple-400 text-black scale-105 shadow-lg'
-                    : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
-                }`}
-              >
-                <Tag className="h-5 w-5" />
-                Loại hoạt động
-              </button>
-            </div>
-
-            {/* Stats Bar with Brutalist Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Card 1 - Activities Stats */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative border-4 border-black bg-white p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 hover:bg-pink-100">
-                  <Activity className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{activities.length}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG HOẠT ĐỘNG</p>
-                </div>
-              </div>
-
-              {/* Card 2 - Types Stats */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative border-4 border-black bg-white p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 hover:bg-purple-100">
-                  <Tag className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{activityTypes.length}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">LOẠI HOẠT ĐỘNG</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CSS Animations */}
-        <style>{`
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0) rotate(45deg); }
-            50% { transform: translateY(-20px) rotate(45deg); }
-          }
-          .animate-bounce {
-            animation: bounce-slow 3s ease-in-out infinite;
-          }
-        `}</style>
-      </div>
+      <TeacherActivitiesHeroInline
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        stats={heroStats}
+        activityTypesCount={activityTypes.length}
+      />
 
       {/* Content based on active tab */}
       {activeTab === 'types' ? (
-        <ActivityTypesManagementPage />
+          <ActivityTypesManagementPage />
       ) : (
         <>
           {/* Filters */}
@@ -676,7 +358,7 @@ const TeacherActivities = () => {
                     }`}
                   >
                     Tất cả
-                    {!statusFilter && <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">{activities.length}</span>}
+                    {!statusFilter && <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">{filteredActivities.length}</span>}
                   </button>
                   <button
                     onClick={() => setStatusFilter('cho_duyet')}
@@ -735,11 +417,11 @@ const TeacherActivities = () => {
                     onChange={e => setStatusFilter(e.target.value)}
                     className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
                   >
-                    <option value="">Tất cả ({activities.length})</option>
-                    <option value="cho_duyet">Chờ duyệt ({activities.filter(a => a.trang_thai === 'cho_duyet').length})</option>
-                    <option value="da_duyet">Đã duyệt ({activities.filter(a => a.trang_thai === 'da_duyet').length})</option>
-                    <option value="ket_thuc">Kết thúc ({activities.filter(a => a.trang_thai === 'ket_thuc').length})</option>
-                    <option value="tu_choi">Từ chối ({activities.filter(a => a.trang_thai === 'tu_choi').length})</option>
+                    <option value="">Tất cả ({filteredActivities.length})</option>
+                    <option value="cho_duyet">Chờ duyệt ({allActivities.filter(a => a.trang_thai === 'cho_duyet').length})</option>
+                    <option value="da_duyet">Đã duyệt ({allActivities.filter(a => a.trang_thai === 'da_duyet').length})</option>
+                    <option value="ket_thuc">Kết thúc ({allActivities.filter(a => a.trang_thai === 'ket_thuc').length})</option>
+                    <option value="tu_choi">Từ chối ({allActivities.filter(a => a.trang_thai === 'tu_choi').length})</option>
                   </select>
                   <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${
                     !statusFilter ? 'bg-gradient-to-r from-indigo-500 to-purple-600' :
@@ -768,7 +450,7 @@ const TeacherActivities = () => {
                     title="Tất cả"
                   >
                     <Filter className={`h-5 w-5 ${!statusFilter ? 'text-purple-600' : 'text-gray-500'}`} />
-                    <span className={`text-xs font-bold ${!statusFilter ? 'text-purple-600' : 'text-gray-600'}`}>{activities.length}</span>
+                    <span className={`text-xs font-bold ${!statusFilter ? 'text-purple-600' : 'text-gray-600'}`}>{filteredActivities.length}</span>
                   </button>
                   <button
                     onClick={() => setStatusFilter('cho_duyet')}
@@ -778,7 +460,7 @@ const TeacherActivities = () => {
                     title="Chờ duyệt"
                   >
                     <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
-                    <span className={`text-xs font-bold ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>{activities.filter(a => a.trang_thai === 'cho_duyet').length}</span>
+                    <span className={`text-xs font-bold ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>{allActivities.filter(a => a.trang_thai === 'cho_duyet').length}</span>
                   </button>
                   <button
                     onClick={() => setStatusFilter('da_duyet')}
@@ -788,7 +470,7 @@ const TeacherActivities = () => {
                     title="Đã duyệt"
                   >
                     <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
-                    <span className={`text-xs font-bold ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>{activities.filter(a => a.trang_thai === 'da_duyet').length}</span>
+                    <span className={`text-xs font-bold ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>{allActivities.filter(a => a.trang_thai === 'da_duyet').length}</span>
                   </button>
                   <button
                     onClick={() => setStatusFilter('ket_thuc')}
@@ -798,7 +480,7 @@ const TeacherActivities = () => {
                     title="Kết thúc"
                   >
                     <CheckCircle className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
-                    <span className={`text-xs font-bold ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-600'}`}>{activities.filter(a => a.trang_thai === 'ket_thuc').length}</span>
+                    <span className={`text-xs font-bold ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-600'}`}>{allActivities.filter(a => a.trang_thai === 'ket_thuc').length}</span>
                   </button>
                   <button
                     onClick={() => setStatusFilter('tu_choi')}
@@ -808,400 +490,96 @@ const TeacherActivities = () => {
                     title="Từ chối"
                   >
                     <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
-                    <span className={`text-xs font-bold ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-600'}`}>{activities.filter(a => a.trang_thai === 'tu_choi').length}</span>
+                    <span className={`text-xs font-bold ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-600'}`}>{allActivities.filter(a => a.trang_thai === 'tu_choi').length}</span>
                   </button>
                 </div>
               )}
             </div>
           </div>
 
-      {/* Activities List */}
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg">
-        <div className="p-6">
+          {/* Activities List */}
+          <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg">
+            <div className="p-6">
           {filteredActivities.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gray-100 rounded-full">
-                  <Activity className="h-16 w-16 text-gray-400" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Không tìm thấy hoạt động</h3>
-              <p className="text-gray-600 text-lg mb-8">
-                {searchTerm ? `Không có hoạt động nào khớp với "${searchTerm}"` : 'Chưa có hoạt động nào trong học kỳ này'}
-              </p>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pageItems.map((activity) => {
-                const statusColor = getStatusColor(activity.trang_thai);
-                const statusLabel = getStatusLabel(activity.trang_thai);
-                const registeredCount = activity.registrationCount ?? activity.so_dang_ky ?? activity._count?.dang_ky_hd ?? 0;
-                const capacity = activity.sl_toi_da ?? activity.so_luong_toi_da ?? 0;
-                const isPending = activity.trang_thai === 'cho_duyet';
-                return (
-                  <div key={activity.id} className="group relative h-full">
-                    <div className={`relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col ${isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : ''}`}>
-                      {/* Activity Visual */}
-                      <div className="relative w-full h-36 overflow-hidden">
-                        {(() => {
-                          const best = getBestActivityImage(activity);
-                          const hasImage = best && !String(best).endsWith('default-activity.svg');
-                          if (hasImage) {
-                            return (
-                              <img
-                                src={best}
-                                alt={activity.ten_hd}
-                                className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                              />
-                            );
-                          }
-                          return (
-                            <div
-                              className="w-full h-full"
-                              style={{
-                                background: `linear-gradient(135deg, ${getTypeColor(activity)} 0%, ${getTypeColor(activity)}CC 60%, ${getTypeColor(activity)}99 100%)`
-                              }}
-                            />
-                          );
-                        })()}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
-                        
-                        {/* Status Badge */}
-                        <div className="absolute top-2 left-2">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColor}`}>
-                            {statusLabel}
-                          </span>
-                        </div>
-                        
-                        {/* Points Badge */}
-                        {activity.diem_rl && (
-                          <div className="absolute bottom-2 right-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/95 backdrop-blur-sm text-white rounded-lg text-xs font-bold shadow-md">
-                              <Award className="h-3 w-3" />+{activity.diem_rl}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 p-4 space-y-3 relative z-10">
-                        <div>
-                          <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
-                            {activity.ten_hd || 'Chưa có tên'}
-                          </h3>
-                          {activity.loai_hd?.ten_loai_hd && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border"
-                                  style={{
-                                    color: getTypeColor(activity),
-                                    borderColor: getTypeColor(activity),
-                                    backgroundColor: '#ffffff'
-                                  }}>
-                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getTypeColor(activity) }}></span>
-                              {activity.loai_hd.ten_loai_hd}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Activity Info */}
-                        <div className="space-y-1.5">
-                          {activity.ngay_bd && (
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <Calendar className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="text-gray-900 font-medium">{new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}</span>
-                            </div>
-                          )}
-                          {activity.dia_diem && (
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="text-gray-600 truncate">{activity.dia_diem}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <Users className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-900 font-medium">{registeredCount} / {capacity} người</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="p-3 pt-0 mt-auto flex gap-2">
-                        {isPending && isWritable ? (
-                          <>
-                            <button
-                              onClick={() => handleApproveActivity(activity.id)}
-                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
-                            >
-                              <CheckCircle className="h-3.5 w-3.5" />Duyệt
-                            </button>
-                            <button
-                              onClick={() => handleRejectActivity(activity.id)}
-                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
-                            >
-                              <XCircle className="h-3.5 w-3.5" />Từ chối
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => fetchActivityDetails(activity.id)}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
-                          >
-                            <Eye className="h-3.5 w-3.5" />Chi tiết
-                          </button>
-                        )}
-                      </div>
+                <div className="text-center py-16">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-4 bg-gray-100 rounded-full">
+                      <Activity className="h-16 w-16 text-gray-400" />
                     </div>
                   </div>
-                );
-              })}
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Không tìm thấy hoạt động</h3>
+                  <p className="text-gray-600 text-lg mb-8">
+                    {searchTerm ? `Không có hoạt động nào khớp với "${searchTerm}"` : 'Chưa có hoạt động nào trong học kỳ này'}
+                  </p>
+                </div>
+          ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activities.map((activity) => (
+                    <TeacherActivityCardInline
+                  key={activity.id}
+                  activity={activity}
+                      viewMode="grid"
+                      getStatusColor={getStatusColor}
+                      getStatusLabel={getStatusLabel}
+                      getTypeColor={getTypeColor}
+                  isWritable={isWritable}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                      onViewDetail={fetchActivityDetails}
+                />
+              ))}
             </div>
           ) : (
             <div className="space-y-4">
-              {pageItems.map((activity) => {
-                const statusColor = getStatusColor(activity.trang_thai);
-                const statusLabel = getStatusLabel(activity.trang_thai);
-                const registeredCount = activity.registrationCount ?? activity.so_dang_ky ?? activity._count?.dang_ky_hd ?? 0;
-                const capacity = activity.sl_toi_da ?? activity.so_luong_toi_da ?? 0;
-                const isPending = activity.trang_thai === 'cho_duyet';
-                return (
-                  <div key={activity.id} className="group relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200"></div>
-                    <div className={`relative bg-white border-2 rounded-xl hover:shadow-lg transition-all duration-200 ${isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'}`}>
-                      <div className="flex items-stretch gap-4 p-4">
-                        {/* Activity Visual */}
-                        <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-                          {(() => {
-                            const best = getBestActivityImage(activity);
-                            const hasImage = best && !String(best).endsWith('default-activity.svg');
-                            if (hasImage) {
-                              return (
-                                <img
-                                  src={best}
-                                  alt={activity.ten_hd}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                              );
-                            }
-                            return (
-                              <div
-                                className="w-full h-full"
-                                style={{
-                                  background: `linear-gradient(135deg, ${getTypeColor(activity)} 0%, ${getTypeColor(activity)}CC 60%, ${getTypeColor(activity)}99 100%)`
-                                }}
-                              />
-                            );
-                          })()}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                          
-                          {/* Status Badge */}
-                          <div className="absolute top-2 left-2">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColor}`}>
-                              {statusLabel}
-                            </span>
-                          </div>
-                          
-                          {/* Points Badge */}
-                          {activity.diem_rl && (
-                            <div className="absolute bottom-2 left-2">
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/90 backdrop-blur-sm text-white shadow-sm text-xs font-bold">
-                                <Award className="h-3 w-3" />+{activity.diem_rl}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                  {activities.map((activity) => (
+                    <TeacherActivityCardInline
+                  key={activity.id}
+                  activity={activity}
+                      viewMode="list"
+                      getStatusColor={getStatusColor}
+                      getStatusLabel={getStatusLabel}
+                      getTypeColor={getTypeColor}
+                  isWritable={isWritable}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                      onViewDetail={fetchActivityDetails}
+                />
+              ))}
+            </div>
+          )}
+            </div>
+          </div>
 
-                        {/* Main Content */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div>
-                            <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-2">
-                              {activity.ten_hd || 'Chưa có tên'}
-                            </h3>
-                            
-                            {/* Activity Details */}
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              {activity.loai_hd?.ten_loai_hd && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getTypeColor(activity) }}></span>
-                                  <span className="text-gray-700 truncate" style={{ color: getTypeColor(activity) }}>{activity.loai_hd.ten_loai_hd}</span>
-                                </div>
-                              )}
-                              {activity.ngay_bd && (
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                                  <span className="text-gray-900 font-medium">{new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}</span>
-                                </div>
-                              )}
-                              {activity.dia_diem && (
-                                <div className="flex items-center gap-1.5 col-span-2">
-                                  <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                                  <span className="text-gray-600 truncate">{activity.dia_diem}</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-1.5">
-                                <Users className="h-3.5 w-3.5 text-gray-400" />
-                                <span className="text-gray-900 font-medium">{registeredCount} / {capacity}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-col justify-center gap-2 flex-shrink-0">
-                          {isPending && isWritable ? (
-                            <>
-                              <button
-                                onClick={() => handleApproveActivity(activity.id)}
-                                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
-                              >
-                                <CheckCircle className="h-4 w-4" />Duyệt
-                              </button>
-                              <button
-                                onClick={() => handleRejectActivity(activity.id)}
-                                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
-                              >
-                                <XCircle className="h-4 w-4" />Từ chối
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => fetchActivityDetails(activity.id)}
-                              className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
-                            >
-                              <Eye className="h-4 w-4" />Chi tiết
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          {effectiveTotal > limit && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mt-4">
+              <div className="text-sm text-gray-600 mb-3">
+                Đang hiển thị {startItem}-{endItem} / {effectiveTotal} hoạt động
+              </div>
+              <Pagination
+                pagination={paginationState}
+                onPageChange={setPage}
+                onLimitChange={(nextLimit) => {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }}
+                itemLabel="hoạt động"
+                showLimitSelector
+              />
             </div>
           )}
 
-          {/* No pagination: load all */}
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-gray-600">
-          Đang hiển thị {filteredActivities.length ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, effectiveTotal)} / {effectiveTotal}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
-          >
-            Trước
-          </button>
-          <div className="text-sm text-gray-600">Trang {page} / {Math.max(1, Math.ceil(effectiveTotal / limit))}</div>
-          <button
-            disabled={page >= Math.ceil(effectiveTotal / limit)}
-            onClick={() => setPage(p => Math.min(Math.ceil(effectiveTotal / limit) || 1, p + 1))}
-            className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(effectiveTotal / limit) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-gray-300'}`}
-          >
-            Tiếp
-          </button>
-        </div>
-      </div>
-
-      {/* Detail Modal */}
-      {showDetailModal && selectedActivity && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Chi tiết hoạt động</h2>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên hoạt động</label>
-                <p className="text-gray-900">{selectedActivity.ten_hd || 'Chưa có tên'}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                <p className="text-gray-900">{selectedActivity.mo_ta || 'Không có mô tả'}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Địa điểm</label>
-                  <p className="text-gray-900">{selectedActivity.dia_diem || 'Chưa có địa điểm'}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng tối đa</label>
-                  <p className="text-gray-900">{selectedActivity.sl_toi_da || 0} người</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian bắt đầu</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.ngay_bd ? new Date(selectedActivity.ngay_bd).toLocaleString('vi-VN') : 'Chưa có thời gian'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian kết thúc</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.ngay_kt ? new Date(selectedActivity.ngay_kt).toLocaleString('vi-VN') : 'Chưa có thời gian'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Điểm rèn luyện</label>
-                  <p className="text-gray-900">{selectedActivity.diem_rl || 0} điểm</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                  <p className="text-gray-900">{getStatusLabel(selectedActivity.trang_thai)}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Người tạo</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.nguoi_tao?.ho_ten || selectedActivity.nguoi_tao?.email || 'Không xác định'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại hoạt động</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.loai_hd?.ten_loai_hd || 'Không xác định'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày tạo</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.ngay_tao ? new Date(selectedActivity.ngay_tao).toLocaleString('vi-VN') : 'Không xác định'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hạn đăng ký</label>
-                  <p className="text-gray-900">
-                    {selectedActivity.han_dk ? new Date(selectedActivity.han_dk).toLocaleString('vi-VN') : 'Không giới hạn'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Detail Modal */}
+          <ActivityDetailModalInline
+            activity={selectedActivity}
+            isOpen={showDetailModal}
+            onClose={() => {
+              setShowDetailModal(false);
+              setSelectedActivity(null);
+            }}
+            getStatusLabel={getStatusLabel}
+          />
         </>
       )}
     </div>
   );
-};
-
-export default TeacherActivities;
+}

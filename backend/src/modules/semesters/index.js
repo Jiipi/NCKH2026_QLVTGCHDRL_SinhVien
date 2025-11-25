@@ -1,14 +1,16 @@
 /**
- * Semesters Module
- * Exports all semesters module components
+ * Semesters Module Index
+ * Export all components following 3 tiers architecture
+ * Structure:
+ * - presentation/ - controllers, routes
+ * - business/ - use cases, validators
+ * - data/ - repositories
  */
 
-const SemestersService = require('./semesters.service');
-const routes = require('./semesters.routes');
-const validators = require('./semesters.validators');
+const routes = require('./presentation/routes/semesters.routes');
+const validators = require('./business/validators/semesters.validators');
 
 module.exports = {
-  SemestersService,
   routes,
   validators,
 };

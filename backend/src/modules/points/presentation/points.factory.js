@@ -1,26 +1,26 @@
-const PointsPrismaRepository = require('../infrastructure/repositories/PointsPrismaRepository');
-const GetPointsSummaryUseCase = require('../application/use-cases/GetPointsSummaryUseCase');
-const GetPointsDetailUseCase = require('../application/use-cases/GetPointsDetailUseCase');
-const GetAttendanceHistoryUseCase = require('../application/use-cases/GetAttendanceHistoryUseCase');
-const GetFilterOptionsUseCase = require('../application/use-cases/GetFilterOptionsUseCase');
-const GetPointsReportUseCase = require('../application/use-cases/GetPointsReportUseCase');
-const PointsController = require('./PointsController');
+const pointsRepository = require('../data/repositories/points.repository');
+const GetPointsSummaryUseCase = require('../business/services/GetPointsSummaryUseCase');
+const GetPointsDetailUseCase = require('../business/services/GetPointsDetailUseCase');
+const GetAttendanceHistoryUseCase = require('../business/services/GetAttendanceHistoryUseCase');
+const GetFilterOptionsUseCase = require('../business/services/GetFilterOptionsUseCase');
+const GetPointsReportUseCase = require('../business/services/GetPointsReportUseCase');
+const PointsController = require('./controllers/PointsController');
 
 /**
  * Factory for creating PointsController with all dependencies
  * Implements Dependency Injection pattern
  */
 function createPointsController() {
-  // Infrastructure layer
-  const pointsRepository = new PointsPrismaRepository();
+  // Data layer
+  const repo = pointsRepository;
 
-  // Application layer (Use Cases)
+  // Business layer (Use Cases)
   const useCases = {
-    getPointsSummary: new GetPointsSummaryUseCase(pointsRepository),
-    getPointsDetail: new GetPointsDetailUseCase(pointsRepository),
-    getAttendanceHistory: new GetAttendanceHistoryUseCase(pointsRepository),
-    getFilterOptions: new GetFilterOptionsUseCase(pointsRepository),
-    getPointsReport: new GetPointsReportUseCase(pointsRepository)
+    getPointsSummary: new GetPointsSummaryUseCase(repo),
+    getPointsDetail: new GetPointsDetailUseCase(repo),
+    getAttendanceHistory: new GetAttendanceHistoryUseCase(repo),
+    getFilterOptions: new GetFilterOptionsUseCase(repo),
+    getPointsReport: new GetPointsReportUseCase(repo)
   };
 
   // Presentation layer
