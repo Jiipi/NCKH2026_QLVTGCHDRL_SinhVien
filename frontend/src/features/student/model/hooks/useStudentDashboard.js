@@ -9,7 +9,7 @@ import { studentDashboardApi } from '../../services/studentDashboardApi';
 import { studentActivitiesApi } from '../../services/studentActivitiesApi';
 import { studentProfileApi } from '../../services/studentProfileApi';
 import { mapDashboardToUI, groupActivitiesByStatus } from '../mappers/student.mappers';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý dashboard của sinh viên
@@ -17,15 +17,25 @@ import useSemesterData from '../../../../shared/hooks/useSemesterData';
 export default function useStudentDashboard() {
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
   
-  // Semester state
-  const [semester, setSemester] = useState(() => {
+  // Semester state - sync với global storage
+  const [semester, setSemesterState] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('current_semester');
-      return saved || null;
+      return getGlobalSemester() || null;
     } catch {
       return null;
     }
   });
+
+  // Sync với global semester changes từ các form khác
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  // Re-sync on mount (in case sessionStorage was updated while unmounted)
+  useEffect(() => {
+    const stored = getGlobalSemester();
+    if (stored && stored !== semester) {
+      setSemesterState(stored);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter state
   const [recentFilter, setRecentFilter] = useState('all');
@@ -41,30 +51,21 @@ export default function useStudentDashboard() {
   useEffect(() => {
     if (!semester && !semesterLoading) {
       if (currentSemester) {
-        setSemester(currentSemester);
+        setSemesterState(currentSemester);
+        setGlobalSemester(currentSemester);
       } else if (semesterOptions.length > 0) {
-        setSemester(semesterOptions[0]?.value || null);
+        const firstSemester = semesterOptions[0]?.value || null;
+        setSemesterState(firstSemester);
+        setGlobalSemester(firstSemester);
       }
     }
   }, [currentSemester, semesterOptions, semesterLoading, semester]);
 
-  // Persist semester to sessionStorage
+  // Wrapper để broadcast global khi thay đổi semester
   const handleSetSemester = useCallback((newSemester) => {
-    setSemester(newSemester);
-    if (newSemester) {
-      try {
-        sessionStorage.setItem('current_semester', newSemester);
-      } catch (_) {}
-    }
+    setSemesterState(newSemester);
+    setGlobalSemester(newSemester);
   }, []);
-
-  useEffect(() => {
-    if (semester) {
-      try {
-        sessionStorage.setItem('current_semester', semester);
-      } catch (_) {}
-    }
-  }, [semester]);
 
   // Business logic: Load dashboard data
   const loadDashboardData = useCallback(async () => {

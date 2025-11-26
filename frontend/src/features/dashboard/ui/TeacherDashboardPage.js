@@ -222,12 +222,17 @@ export default function ModernTeacherDashboard() {
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {
-    if (currentSemester) {
-      if (!semester || currentSemester !== semester) {
-        setSemester(currentSemester);
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
       }
     }
-  }, [currentSemester, semester]);
+  }, [semesterOptions, currentSemester, semester]);
 
   // Persist selection for other pages/tabs in the session
   useEffect(() => {
@@ -341,6 +346,7 @@ export default function ModernTeacherDashboard() {
                     classId={classes && classes.length > 0 ? classes[0]?.id : null}
                     enableSoftLock={true}
                     enableHardLock={true}
+                    allowProposeWithoutClass={true}
                     onChanged={loadDashboardData}
                   />
                 </div>

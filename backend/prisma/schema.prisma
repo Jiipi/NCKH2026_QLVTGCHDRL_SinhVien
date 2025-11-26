@@ -19,6 +19,7 @@ model Lop {
   chu_nhiem_rel  NguoiDung  @relation("ChuNhiemLop", fields: [chu_nhiem], references: [id])
   lop_truong_rel SinhVien?  @relation("LopTruongLop", fields: [lop_truong], references: [id])
   sinh_viens     SinhVien[] @relation("SinhVienLop")
+  hoat_dongs     HoatDong[] @relation("LopHoatDong")
 
   @@map("lop")
 }
@@ -117,6 +118,7 @@ model HoatDong {
   ten_hd                 String                  @db.VarChar(200)
   mo_ta                  String?
   loai_hd_id             String                  @db.Uuid
+  lop_id                 String?                 @db.Uuid
   diem_rl                Decimal                 @default(0.00) @db.Decimal(4, 2)
   dia_diem               String?                 @db.VarChar(200)
   ngay_bd                DateTime                @db.Timestamp(6)
@@ -140,6 +142,7 @@ model HoatDong {
   diem_danh              DiemDanh[]
   loai_hd                LoaiHoatDong            @relation(fields: [loai_hd_id], references: [id])
   nguoi_tao              NguoiDung               @relation("NguoiTaoHoatDong", fields: [nguoi_tao_id], references: [id])
+  lop                    Lop?                    @relation("LopHoatDong", fields: [lop_id], references: [id])
 
   @@map("hoat_dong")
 }

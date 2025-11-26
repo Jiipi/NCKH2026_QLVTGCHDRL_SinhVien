@@ -15,7 +15,8 @@ export default function AdminActivitiesResults({
   pagination,
   onPageChange,
   onLimitChange,
-  scopeTab
+  scopeTab,
+  isWritable = true
 }) {
   return (
     <div
@@ -63,6 +64,7 @@ export default function AdminActivitiesResults({
             onDelete={onDelete}
             onApprove={onApprove}
             onReject={onReject}
+            isWritable={isWritable}
           />
         ))}
       </div>

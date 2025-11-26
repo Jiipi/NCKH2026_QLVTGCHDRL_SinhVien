@@ -3,6 +3,13 @@
  * DRY: Reusable utility functions for activity data processing
  */
 
+import { 
+  getCurrentSemesterValue as getSharedSemesterValue,
+  buildSemesterValue,
+  parseSemesterString,
+  normalizeSemesterFormat
+} from '../../../../shared/lib/semester';
+
 /**
  * Safely parses a date string
  * @param {string|Date} dateValue - Date to parse
@@ -27,58 +34,45 @@ export const getDefaultSemester = () => {
 };
 
 /**
- * Gets the default year range based on current date
- * @returns {string} Year range string (e.g., "2025-2026")
+ * Gets the default year based on current date (năm đơn)
+ * @returns {string} Year string (e.g., "2025")
  */
 export const getDefaultYearRange = () => {
   const today = new Date();
   const year = today.getFullYear();
-  const month = today.getMonth() + 1;
-  if (month >= 1 && month <= 6) return `${year - 1}-${year}`;
-  return `${year}-${year + 1}`;
+  // Trả về năm đơn theo chuẩn mới
+  return String(year);
 };
 
 /**
  * Computes the current semester value for dropdown
  * @param {string} hocKy - Semester (hoc_ky_1 or hoc_ky_2)
- * @param {string} namHoc - Academic year (e.g., "2025-2026")
- * @returns {string} Combined semester value (e.g., "hoc_ky_1-2025")
+ * @param {string} namHoc - Academic year (e.g., "2025" - năm đơn)
+ * @returns {string} Combined semester value (e.g., "hoc_ky_1_2025")
  */
 export const computeSemesterValue = (hocKy, namHoc) => {
   if (!hocKy || !namHoc) return '';
-  const [start, end] = String(namHoc).split('-');
-  const year = hocKy === 'hoc_ky_1' ? start : end;
-  return `${hocKy}-${year}`;
+  const hk = hocKy.replace('hoc_ky_', '');
+  return buildSemesterValue(hk, namHoc);
 };
 
 /**
- * Parses semester dropdown value to hoc_ky and nam_hoc
- * @param {string} selected - Selected value (e.g., "hoc_ky_1-2025")
+ * Parses semester dropdown value to hoc_ky and nam_hoc (năm đơn)
+ * @param {string} selected - Selected value (e.g., "hoc_ky_1_2025" or "hoc_ky_1-2025")
  * @returns {object|null} Object with hocKy and namHoc, or null if invalid
  */
 export const parseSemesterValue = (selected) => {
-  const match = selected && selected.match(/^(hoc_ky_\d+)-(\d{4})$/);
-  if (!match) return null;
-  
-  const hocKy = match[1];
-  const year = parseInt(match[2], 10);
-  const namHoc = hocKy === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-  
-  return { hocKy, namHoc };
+  const parsed = parseSemesterString(selected);
+  if (!parsed) return null;
+  return { hocKy: parsed.hocKy, namHoc: parsed.year };
 };
 
 /**
  * Gets the current semester value based on current date
- * @returns {string} Current semester value (e.g., "hoc_ky_1-2025")
+ * @returns {string} Current semester value (e.g., "hoc_ky_1_2025")
  */
 export const getCurrentSemesterValue = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  
-  if (month >= 7 && month <= 11) return `hoc_ky_1-${year}`;
-  if (month === 12) return `hoc_ky_2-${year}`;
-  return `hoc_ky_1-${year - 1}`;
+  return getSharedSemesterValue();
 };
 
 /**

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 
 export default function RegistrationApprovalsHeroInline({ stats }) {
   return (
@@ -69,8 +69,8 @@ export default function RegistrationApprovalsHeroInline({ stats }) {
             </p>
           </div>
 
-          {/* Stats Bar with Brutalist Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Stats Bar with Brutalist Cards - 4 cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Card 1 - Pending */}
             <div className="group relative">
               <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
@@ -91,7 +91,17 @@ export default function RegistrationApprovalsHeroInline({ stats }) {
               </div>
             </div>
 
-            {/* Card 3 - Rejected */}
+            {/* Card 3 - Joined (ĐÃ THAM GIA) */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
+              <div className="relative bg-cyan-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
+                <UserCheck className="h-6 w-6 text-black mb-2" />
+                <p className="text-3xl font-black text-black">{stats.joined || 0}</p>
+                <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ THAM GIA</p>
+              </div>
+            </div>
+
+            {/* Card 4 - Rejected */}
             <div className="group relative">
               <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
               <div className="relative bg-rose-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">

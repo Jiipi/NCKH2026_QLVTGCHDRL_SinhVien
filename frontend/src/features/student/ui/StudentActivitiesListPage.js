@@ -45,7 +45,9 @@ export default function StudentActivitiesListPage() {
     handleCloseModal,
     handlePageChange,
     reload,
-    ACTIVITY_STATUS_OPTIONS
+    ACTIVITY_STATUS_OPTIONS,
+    sortBy,
+    setSortBy
   } = useStudentActivitiesList();
 
   const activeFilterCount = getActiveFilterCount();
@@ -88,6 +90,8 @@ export default function StudentActivitiesListPage() {
         activeFilterCount={activeFilterCount}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
       />
 
       <ActivitiesListFiltersPanel

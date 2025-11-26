@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi';
 import { mapRegistrationToUI } from '../mappers/teacher.mappers';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
 import { activityTypesApi } from '../../../activity-types/services/activityTypesApi';
 import { 
   dedupeById, 
@@ -33,7 +33,7 @@ export default function useTeacherRegistrations() {
   const [viewMode, setViewMode] = useState('pending'); // 'pending', 'approved', 'rejected'
   const [statusViewMode, setStatusViewMode] = useState('pills'); // 'pills', 'dropdown', 'compact'
   const [displayViewMode, setDisplayViewMode] = useState('grid'); // 'grid', 'list'
-  const [semester, setSemester] = useState(() => loadInitialSemester());
+  const [semester, setSemesterState] = useState(() => loadInitialSemester());
   const [selectedIds, setSelectedIds] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -44,10 +44,17 @@ export default function useTeacherRegistrations() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
-  const updateSemester = useCallback((value) => {
-    setSemester(value);
+  // Sync with global semester changes from other forms
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  const setSemester = useCallback((value) => {
+    setSemesterState(value);
     saveSemesterToSession(value);
   }, []);
+
+  const updateSemester = useCallback((value) => {
+    setSemester(value);
+  }, [setSemester]);
 
   // Load activity types
   useEffect(() => {

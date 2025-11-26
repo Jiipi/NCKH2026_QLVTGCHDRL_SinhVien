@@ -7,15 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import http from '../../../../shared/api/http';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
-
-const getCurrentSemesterValue = () => {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-  else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-  else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-  else return `hoc_ky_1-${currentYear}`;
-};
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 export default function useTeacherReports() {
   const [stats, setStats] = useState({});
@@ -25,7 +17,7 @@ export default function useTeacherReports() {
   const [semester, setSemester] = useState(getCurrentSemesterValue());
   const [filterMode, setFilterMode] = useState('semester'); // 'semester' | 'dateRange'
 
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
   const getDateRangeParams = useCallback(() => {
     const now = new Date();
@@ -78,6 +70,14 @@ export default function useTeacherReports() {
   }, [loadStatistics]);
 
   const handleExport = useCallback(async (format = 'excel') => {
+    // Chỉ cho phép xuất file khi là học kỳ đang kích hoạt (nếu filter theo semester)
+    if (filterMode === 'semester' && !isWritable) {
+      return { 
+        success: false, 
+        message: 'Chỉ có thể xuất báo cáo cho học kỳ đang kích hoạt'
+      };
+    }
+    
     try {
       let params = { format };
       if (filterMode === 'semester') {
@@ -107,7 +107,7 @@ export default function useTeacherReports() {
         message: 'Không thể xuất báo cáo: ' + (err.response?.data?.message || 'Lỗi không xác định')
       };
     }
-  }, [filterMode, semester, getDateRangeParams]);
+  }, [filterMode, semester, getDateRangeParams, isWritable]);
 
   return {
     stats,

@@ -53,7 +53,10 @@ export default function AdminActivitiesPage() {
     handleLimitChange,
     reload,
     ACTIVITY_STATUS_OPTIONS,
-    SCOPE_OPTIONS
+    SCOPE_OPTIONS,
+    sortBy,
+    setSortBy,
+    isWritable
   } = useAdminActivitiesList();
 
   const activeFilterCount = getActiveFilterCount();
@@ -125,6 +128,9 @@ export default function AdminActivitiesPage() {
           onClassChange={setSelectedClass}
           onCreateActivity={handleCreateActivity}
           scopeOptions={SCOPE_OPTIONS}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          isWritable={isWritable}
         />
 
         <AdminActivitiesFiltersPanel
@@ -162,6 +168,7 @@ export default function AdminActivitiesPage() {
             onPageChange={handlePageChange}
             onLimitChange={handleLimitChange}
             scopeTab={scopeTab}
+            isWritable={isWritable}
           />
         )}
 

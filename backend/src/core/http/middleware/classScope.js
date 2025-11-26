@@ -100,6 +100,7 @@ function applyClassScope(options = {}) {
   return async (req, res, next) => {
     try {
       const role = req.user?.role;
+      const userId = req.user?.sub;
       const context = req.context || {};
 
       // ADMIN: No scope restrictions
@@ -111,38 +112,16 @@ function applyClassScope(options = {}) {
       // Initialize scope object
       req.scope = {};
 
-      // SINH_VIEN or LOP_TRUONG: Filter by their class
-      if ((role === 'SINH_VIEN' || role === 'LOP_TRUONG') && context.classId) {
+      // SINH_VIEN: Chỉ thấy hoạt động đã duyệt/kết thúc của lớp
+      if (role === 'SINH_VIEN' && context.classId) {
         req.scope.classId = context.classId;
         req.scope.className = context.className;
         
-        // For activities: filter by nguoi_tao_id (must be class creators)
-        // Get class creators (all students in class + homeroom teacher)
-        const classStudents = await prisma.sinhVien.findMany({
-          where: { lop_id: context.classId },
-          select: { nguoi_dung_id: true }
-        });
-        const classCreatorUserIds = classStudents.map(s => s.nguoi_dung_id).filter(Boolean);
-        
-        // Get homeroom teacher
-        const lop = await prisma.lop.findUnique({
-          where: { id: context.classId },
-          select: { chu_nhiem: true }
-        });
-        if (lop?.chu_nhiem) {
-          classCreatorUserIds.push(lop.chu_nhiem);
-        }
-        
-        if (classCreatorUserIds.length > 0) {
-          req.scope.activityFilter = {
-            nguoi_tao_id: { in: classCreatorUserIds }
-          };
-        } else {
-          // No class creators -> see nothing
-          req.scope.activityFilter = { id: { equals: 'NEVER_MATCH' } };
-        }
+        req.scope.activityFilter = {
+          lop_id: context.classId,
+          trang_thai: { in: ['da_duyet', 'ket_thuc'] }
+        };
 
-        // For registrations: filter by student's class
         if (options.filterRegistrations !== false) {
           req.scope.registrationFilter = {
             sinh_vien: {
@@ -152,30 +131,37 @@ function applyClassScope(options = {}) {
         }
       }
 
-      // GIANG_VIEN: Filter by classes they teach
+      // LOP_TRUONG: Thấy tất cả hoạt động của lớp (bao gồm cho_duyet để theo dõi)
+      if (role === 'LOP_TRUONG' && context.classId) {
+        req.scope.classId = context.classId;
+        req.scope.className = context.className;
+        req.scope.lopTruongOf = context.lopTruongOf;
+        
+        // LT cần thấy cả cho_duyet để theo dõi hoạt động đã tạo
+        req.scope.activityFilter = {
+          lop_id: context.classId
+          // Không filter trang_thai - LT thấy tất cả hoạt động của lớp
+        };
+
+        if (options.filterRegistrations !== false) {
+          req.scope.registrationFilter = {
+            sinh_vien: {
+              lop_id: context.classId,
+            },
+          };
+        }
+      }
+
+      // GIANG_VIEN: Thấy TẤT CẢ hoạt động của lớp phụ trách (bao gồm cho_duyet để duyệt)
       if (role === 'GIANG_VIEN' && context.teacherOf && context.teacherOf.length > 0) {
         req.scope.teacherOf = context.teacherOf;
         
-        // For activities: filter by nguoi_tao_id (must be class creators of their classes)
-        // Get all students in teacher's classes
-        const students = await prisma.sinhVien.findMany({
-          where: { lop_id: { in: context.teacherOf } },
-          select: { nguoi_dung_id: true }
-        });
-        const studentUserIds = students.map(s => s.nguoi_dung_id).filter(Boolean);
-        
-        // Add teacher's own user ID
-        const classCreators = [...studentUserIds, req.user.sub].filter(Boolean);
-        
-        if (classCreators.length > 0) {
-          req.scope.activityFilter = {
-            nguoi_tao_id: { in: classCreators }
-          };
-        } else {
-          req.scope.activityFilter = { id: { equals: 'NEVER_MATCH' } };
-        }
+        // GV cần thấy cả hoạt động cho_duyet để duyệt
+        req.scope.activityFilter = {
+          lop_id: { in: context.teacherOf }
+          // Không filter trang_thai - GV thấy tất cả
+        };
 
-        // For classes: only classes they teach
         req.scope.classFilter = {
           id: { in: context.teacherOf },
         };
@@ -184,7 +170,6 @@ function applyClassScope(options = {}) {
       next();
     } catch (error) {
       logError('Apply class scope error', error);
-      // On error, deny access to be safe
       req.scope = { activityFilter: { id: { equals: 'NEVER_MATCH' } } };
       next();
     }

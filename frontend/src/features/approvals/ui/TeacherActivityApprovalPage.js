@@ -18,6 +18,7 @@ import { getActivityImage } from '../../../shared/lib/activityImages';
 import { ConfirmModal, Toast, SemesterFilter } from '../../../shared/components/common';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import { useSemesterData } from '../../../shared/hooks';
+import { getCurrentSemesterValue } from '../../../shared/lib/semester';
 
 export default function ModernActivityApproval() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -35,11 +36,22 @@ export default function ModernActivityApproval() {
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
   const [detailModal, setDetailModal] = useState({ isOpen: false, activity: null });
 
-  // Auto-detect current semester on mount
+  // Unified semester options
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+
+  // Initialize semester when options are loaded
   useEffect(() => {
-    const currentSemester = getCurrentSemesterValue();
-    setSemester(currentSemester);
-  }, []);
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
+    }
+  }, [semesterOptions, currentSemester, semester]);
 
   useEffect(() => {
     // Clear old data immediately when semester/activeTab/filter changes
@@ -51,27 +63,6 @@ export default function ModernActivityApproval() {
     
     loadActivities();
   }, [semester, activeTab, filter]);
-
-  // Helper function to get current semester
-  const getCurrentSemesterValue = () => {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-    
-    // Học kỳ 1: tháng 9 - tháng 1 (năm sau)
-    // Học kỳ 2: tháng 2 - tháng 8
-    if (month >= 2 && month <= 8) {
-      return `hoc_ky_2-${year}`;
-    } else {
-      // Tháng 9-12: HK1 năm hiện tại
-      // Tháng 1: HK1 năm trước
-      const academicYear = month === 1 ? year - 1 : year;
-      return `hoc_ky_1-${academicYear}`;
-    }
-  };
-
-  // Unified semester options
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
   const loadActivities = async () => {
     try {

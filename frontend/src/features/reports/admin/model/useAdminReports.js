@@ -6,12 +6,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import http from '../../../../shared/api/http';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 export default function useAdminReports() {
   const [semester, setSemester] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [overview, setOverview] = useState({ byStatus: [], topActivities: [], dailyRegs: [] });
+  
+  // Lấy thông tin học kỳ đang kích hoạt
+  const { isWritable } = useSemesterData(semester || undefined);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -37,6 +41,14 @@ export default function useAdminReports() {
   }, [loadOverview]);
 
   const exportCsv = useCallback(async (kind = 'activities') => {
+    // Chỉ cho phép xuất file khi là học kỳ đang kích hoạt (nếu có chọn semester)
+    if (semester && !isWritable) {
+      return { 
+        success: false, 
+        message: 'Chỉ có thể xuất báo cáo cho học kỳ đang kích hoạt'
+      };
+    }
+    
     try {
       const res = await http.get(`/admin/reports/export/${kind}`, {
         params: { semester: semester || undefined },
@@ -59,7 +71,7 @@ export default function useAdminReports() {
       const msg = e?.response?.data?.message || e?.message || 'Không thể xuất file.';
       return { success: false, message: msg };
     }
-  }, [semester]);
+  }, [semester, isWritable]);
 
   const totalByStatus = useCallback((status) => {
     const item = overview.byStatus.find(s => s.trang_thai === status);

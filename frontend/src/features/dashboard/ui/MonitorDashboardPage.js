@@ -40,10 +40,17 @@ export default function MonitorDashboard() {
 
   // Keep selected semester in sync with backend-reported current active
   useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
     }
-  }, [currentSemester]);
+  }, [semesterOptions, currentSemester, semester]);
 
   // Persist selection for other pages/tabs in the session
   useEffect(() => {
@@ -250,6 +257,7 @@ export default function MonitorDashboard() {
                       compact 
                       enableSoftLock={false} 
                       enableHardLock={false}
+                      allowProposeWithoutClass={true}
                       className="!p-0 !bg-transparent !border-0"
                     />
                   </div>

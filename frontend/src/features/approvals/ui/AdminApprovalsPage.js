@@ -90,7 +90,9 @@ export default function AdminApprovalsPage() {
     clearAllFilters,
     getActiveFilterCount,
     refresh,
-    SCOPE_OPTIONS
+    SCOPE_OPTIONS,
+    sortBy,
+    setSortBy
   } = useAdminApprovals(initialSemester);
 
   const [activityDetailId, setActivityDetailId] = useState(null);
@@ -402,8 +404,26 @@ export default function AdminApprovalsPage() {
               )}
             </div>
             
-            {/* Right side: View mode toggle */}
+            {/* Right side: Sort dropdown + View mode toggle */}
             <div className="flex items-center gap-3">
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+                <select
+                  value={sortBy || 'newest'}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="name-az">Tên A → Z</option>
+                  <option value="name-za">Tên Z → A</option>
+                </select>
+              </div>
+
+              <div className="w-px h-8 bg-gray-200"></div>
+
               <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
                 <button

@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import http from '../../../../shared/api/http';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 const STATUS_MAP = {
   pending: 'cho_duyet',
@@ -19,15 +20,6 @@ const SCOPE_OPTIONS = [
   { value: 'all', label: 'Toàn hệ thống' },
   { value: 'class', label: 'Theo lớp' }
 ];
-
-function getCurrentSemesterValue() {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-  if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-  if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-  return `hoc_ky_1-${currentYear}`;
-}
 
 export function useAdminApprovals(initialSemester) {
   const { showSuccess, showError, showWarning, confirm } = useNotification();
@@ -67,6 +59,7 @@ export function useAdminApprovals(initialSemester) {
     activityId: ''
   });
   const [selectedIds, setSelectedIds] = useState([]);
+  const [sortBy, setSortBy] = useState('newest');
   
   // Scope: 'all' = toàn hệ thống, 'class' = theo lớp
   const [scopeTab, setScopeTab] = useState('all');
@@ -276,8 +269,33 @@ export function useAdminApprovals(initialSemester) {
       });
     }
 
-    return filtered;
-  }, [registrations, searchTerm, filters]);
+    // Sort filtered results
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest': {
+          const ta = new Date(a.ngay_dang_ky || a.updated_at || a.updatedAt || a.createdAt || a.tg_diem_danh || 0).getTime();
+          const tb = new Date(b.ngay_dang_ky || b.updated_at || b.updatedAt || b.createdAt || b.tg_diem_danh || 0).getTime();
+          return ta - tb;
+        }
+        case 'name-az': {
+          const nameA = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          const nameB = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          return nameA.localeCompare(nameB, 'vi');
+        }
+        case 'name-za': {
+          const nameA = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          const nameB = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          return nameB.localeCompare(nameA, 'vi');
+        }
+        case 'newest':
+        default: {
+          const ta = new Date(a.ngay_dang_ky || a.updated_at || a.updatedAt || a.createdAt || a.tg_diem_danh || 0).getTime();
+          const tb = new Date(b.ngay_dang_ky || b.updated_at || b.updatedAt || b.createdAt || b.tg_diem_danh || 0).getTime();
+          return tb - ta;
+        }
+      }
+    });
+  }, [registrations, searchTerm, filters, sortBy]);
 
   // --- Selection Logic ---
   const handleToggleSelect = useCallback((id) => {
@@ -353,6 +371,8 @@ export function useAdminApprovals(initialSemester) {
     setFilters,
     selectedIds,
     setSelectedIds,
+    sortBy,
+    setSortBy,
     scopeTab,
     setScopeTab,
     selectedClass,

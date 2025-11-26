@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import activitiesApi from '../../services/activitiesApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
+import { buildSemesterValue, parseSemesterString, isSameSemester } from '../../../../shared/lib/semester';
 
 const getDefaultSemester = () => {
   const m = new Date().getMonth() + 1;
@@ -10,19 +11,43 @@ const getDefaultSemester = () => {
   return 'hoc_ky_2';
 };
 
-const getDefaultYearRange = () => {
+/**
+ * Lấy năm học mặc định - chỉ trả về năm đơn (2025, không phải 2025-2026)
+ * HK1: năm hiện tại (tháng 7-12)
+ * HK2: năm hiện tại (tháng 1-6)
+ */
+const getDefaultYear = () => {
   const today = new Date();
   const year = today.getFullYear();
-  const m = today.getMonth() + 1;
-  if (m >= 1 && m <= 6) return `${year - 1}-${year}`;
-  return `${year}-${year + 1}`;
+  // Trả về năm hiện tại
+  return String(year);
+};
+
+/**
+ * Lấy học kỳ ban đầu từ global storage (đồng bộ với dashboard)
+ * Nếu không có thì dùng default
+ */
+const getInitialSemester = () => {
+  const globalSemester = getGlobalSemester();
+  if (globalSemester) {
+    // Parse global semester (format: hoc_ky_1_2026 or hoc_ky_1-2026)
+    const parsed = parseSemesterString(globalSemester);
+    if (parsed) {
+      return { hoc_ky: parsed.hocKy, nam_hoc: parsed.year };
+    }
+  }
+  // Fallback to default
+  return { hoc_ky: getDefaultSemester(), nam_hoc: getDefaultYear() };
 };
 
 export function useManageActivity() {
   const { id: activityId } = useParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess, showError, showWarning } = useNotification();
   const isEditMode = !!activityId;
+
+  // Lấy học kỳ từ global storage (đồng bộ với dashboard)
+  const initialSemester = getInitialSemester();
 
   const [form, setForm] = useState({
     ten_hd: '',
@@ -34,14 +59,31 @@ export function useManageActivity() {
     diem_rl: '',
     dia_diem: '',
     sl_toi_da: '',
-    nam_hoc: getDefaultYearRange(),
-    hoc_ky: getDefaultSemester(),
+    nam_hoc: initialSemester.nam_hoc,
+    hoc_ky: initialSemester.hoc_ky,
   });
   const [activityTypes, setActivityTypes] = useState([]);
   const [status, setStatus] = useState({ loading: isEditMode, submitting: false });
   const [fieldErrors, setFieldErrors] = useState({});
   // Semester options from backend (for filter consistency)
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Compute dropdown value format: hoc_ky_1_2025 or hoc_ky_2_2025
+  const getCurrentSemesterValue = useCallback(() => {
+    const hocKy = form.hoc_ky; // hoc_ky_1 or hoc_ky_2
+    const namHoc = form.nam_hoc; // e.g., "2025" (năm đơn)
+    if (!hocKy || !namHoc) return '';
+    const hk = hocKy.replace('hoc_ky_', '');
+    return buildSemesterValue(hk, namHoc);
+  }, [form.hoc_ky, form.nam_hoc]);
+
+  // isWritable: Chỉ cho phép tạo/sửa nếu học kỳ đang chọn trùng với học kỳ đang kích hoạt
+  const isWritable = useMemo(() => {
+    const selectedSemester = getCurrentSemesterValue();
+    if (!selectedSemester) return true; // Cho phép nếu chưa chọn học kỳ
+    if (!currentSemester) return false; // Không cho phép nếu không có học kỳ kích hoạt
+    return isSameSemester(selectedSemester, currentSemester);
+  }, [getCurrentSemesterValue, currentSemester]);
 
   useEffect(() => {
     const fetchActivityTypes = async () => {
@@ -78,7 +120,7 @@ export function useManageActivity() {
           diem_rl: d.diem_rl?.toString() || '',
           dia_diem: d.dia_diem || '',
           sl_toi_da: d.sl_toi_da?.toString() || '',
-          nam_hoc: d.nam_hoc || getDefaultYearRange(),
+          nam_hoc: d.nam_hoc || getDefaultYear(),
           hoc_ky: d.hoc_ky || getDefaultSemester(),
         });
       } else {
@@ -98,25 +140,12 @@ export function useManageActivity() {
     }
   }, [fieldErrors]);
 
-  // Compute dropdown value format: hoc_ky_1-2025 or hoc_ky_2-2025
-  const getCurrentSemesterValue = useCallback(() => {
-    const hocKy = form.hoc_ky; // hoc_ky_1 or hoc_ky_2
-    const namHoc = form.nam_hoc; // e.g., 2025-2026
-    if (!hocKy || !namHoc) return '';
-    const [start, end] = String(namHoc).split('-');
-    const year = hocKy === 'hoc_ky_1' ? start : end;
-    return `${hocKy}-${year}`;
-  }, [form.hoc_ky, form.nam_hoc]);
-
-  // When semester dropdown changes, derive hoc_ky + nam_hoc
+  // When semester dropdown changes, derive hoc_ky + nam_hoc (năm đơn)
   const handleSemesterChange = useCallback((e) => {
-    const selected = e.target.value; // format hoc_ky_1-YYYY
-    const match = selected && selected.match(/^(hoc_ky_\d+)-(\d{4})$/);
-    if (!match) return;
-    const hocKy = match[1];
-    const year = parseInt(match[2], 10);
-    const namHoc = hocKy === 'hoc_ky_1' ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-    setForm(prev => ({ ...prev, hoc_ky: hocKy, nam_hoc: namHoc }));
+    const selected = e.target.value; // format hoc_ky_1_YYYY or hoc_ky_1-YYYY
+    const parsed = parseSemesterString(selected);
+    if (!parsed) return;
+    setForm(prev => ({ ...prev, hoc_ky: parsed.hocKy, nam_hoc: parsed.year }));
     setFieldErrors(prev => { const next = { ...prev }; delete next.hoc_ky; delete next.nam_hoc; return next; });
   }, []);
 
@@ -134,6 +163,9 @@ export function useManageActivity() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Đã bỏ kiểm tra quyền ghi - cho phép tạo/sửa hoạt động cho mọi học kỳ
+    
     const errs = validate();
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -171,5 +203,7 @@ export function useManageActivity() {
     semesterOptions,
     currentSemesterValue: getCurrentSemesterValue(),
     handleSemesterChange,
+    isWritable,
+    currentSemester,
   };
 }

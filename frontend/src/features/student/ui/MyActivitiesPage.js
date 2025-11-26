@@ -49,7 +49,9 @@ export default function MyActivitiesPage() {
     handleCloseQRModal,
     getActiveFilterCount,
     clearAllFilters,
-    handlePageChange
+    handlePageChange,
+    sortBy,
+    setSortBy
   } = useMyActivities();
 
   const activeFilterCount = getActiveFilterCount();
@@ -92,6 +94,8 @@ export default function MyActivitiesPage() {
         onClearFilters={clearAllFilters}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
       />
 
       <MyActivitiesFiltersPanel

@@ -15,7 +15,8 @@ import {
   AdminTabContent,
   AdminSidebar,
   ClassDetailModal,
-  TeacherDetailModal
+  TeacherDetailModal,
+  SemesterClosureRequestsWidget
 } from './components/dashboard';
 
 export default function AdminDashboardPage() {
@@ -94,6 +95,8 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <AdminDashboardHero />
+          {/* Widget yêu cầu đóng học kỳ */}
+          <SemesterClosureRequestsWidget />
         </div>
         <AdminStatsGrid stats={stats} />
       </div>

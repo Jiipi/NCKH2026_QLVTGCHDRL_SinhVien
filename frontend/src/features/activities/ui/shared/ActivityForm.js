@@ -29,21 +29,8 @@ export const ActivityForm = ({
         />
       </LabeledInput>
       
-      {/* Năm học & Học kỳ */}
-      <LabeledInput id="nam_hoc" label="Năm học" error={fieldErrors.nam_hoc} className="col-span-2 md:col-span-1">
-        <input
-          id="nam_hoc"
-          name="nam_hoc"
-          value={form.nam_hoc}
-          onChange={onFormChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="VD: 2024-2025"
-          readOnly
-          title="Năm học sẽ tự cập nhật theo học kỳ"
-        />
-      </LabeledInput>
-
-      <LabeledInput id="hoc_ky" label="Học kỳ" error={fieldErrors.hoc_ky} className="col-span-2 md:col-span-1">
+      {/* Học kỳ - Năm (gộp) */}
+      <LabeledInput id="hoc_ky" label="Học kỳ - Năm" error={fieldErrors.hoc_ky || fieldErrors.nam_hoc} className="col-span-2 md:col-span-1">
         <select
           id="hoc_ky"
           name="hoc_ky"

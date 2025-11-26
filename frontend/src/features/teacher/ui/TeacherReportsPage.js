@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Users, Calendar, Award, Download, RefreshCw, Filter, BarChart3, FileText, AlertCircle, Sparkles, Target, Activity, Trophy, Star, CheckCircle2, XCircle, Eye } from 'lucide-react';
 import http from '../../../shared/api/http';
 import { useSemesterData } from '../../../shared/hooks';
+import { getCurrentSemesterValue } from '../../../shared/lib/semester';
 
 export default function TeacherReportsPage() {
   const [reportData, setReportData] = useState(null);
@@ -11,22 +12,6 @@ export default function TeacherReportsPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'detailed'
 
-  // Determine current semester for default value
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    
-    if (currentMonth >= 7 && currentMonth <= 11) {
-      return `hoc_ky_1-${currentYear}`;
-    } else if (currentMonth === 12) {
-      return `hoc_ky_2-${currentYear}`;
-    } else if (currentMonth >= 1 && currentMonth <= 4) {
-      return `hoc_ky_2-${currentYear - 1}`;
-    } else {
-      return `hoc_ky_1-${currentYear}`; // Default for break months
-    }
-  };
-  
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
   const { options: semesterOptions } = useSemesterData();

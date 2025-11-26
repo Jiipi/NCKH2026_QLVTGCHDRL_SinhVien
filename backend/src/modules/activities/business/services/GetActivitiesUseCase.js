@@ -12,7 +12,7 @@ class GetActivitiesUseCase {
   }
 
   async execute(dto, user) {
-    const where = this.buildWhereClause(dto);
+    const where = await this.buildWhereClause(dto, user);
     const options = this.buildQueryOptions(dto);
 
     const result = await this.activityRepository.findMany(where, options);
@@ -25,7 +25,7 @@ class GetActivitiesUseCase {
     return result;
   }
 
-  buildWhereClause(dto) {
+  async buildWhereClause(dto, user) {
     const where = {};
 
     // Apply scope filter from middleware
@@ -43,12 +43,12 @@ class GetActivitiesUseCase {
       where.loai_hd_id = String(dto.type);
     }
 
-    // Filter by status
+    // Filter by status - cho phép filter thêm (và override scope nếu cần)
     if (dto.status) {
       where.trang_thai = String(dto.status);
     }
 
-    // Filter by time-based status
+    // Filter by time-based status (chỉ dùng cho các status đặc biệt open/soon/closed)
     const now = new Date();
     if (dto.status === 'open') {
       where.trang_thai = 'da_duyet';
@@ -85,13 +85,29 @@ class GetActivitiesUseCase {
       const parsed = parseSemesterString(dto.semester);
       if (parsed && parsed.year) {
         where.hoc_ky = parsed.semester;
+        // Data đã được chuẩn hóa sang năm đơn, dùng exact match
         where.nam_hoc = parsed.year;
       }
     }
 
-    // classId param is ignored for activities listing
-    // "Hoạt động theo lớp" = hoạt động đã duyệt trong học kỳ (giống list sinh viên thấy)
-    // Không filter theo lớp cụ thể vì hoạt động là chung cho tất cả
+    /**
+     * Admin - filter theo lớp (tab "Theo lớp" trên màn admin activities)
+     * ---------------------------------------------------------------
+     * - Frontend gửi lop_id / classId khi scopeTab === 'class'.
+     * - Định nghĩa mới: hoạt động thuộc lớp = hoat_dong.lop_id = classId,
+     *   không quan tâm người tạo hay đăng ký.
+     * - Luôn filter theo lop_id, cộng thêm hoc_ky/nam_hoc nếu có.
+     * - Nếu admin không chọn status cụ thể, auto lọc da_duyet + ket_thuc.
+     */
+    if (dto.classId && user && user.role === 'ADMIN') {
+      // Lọc theo lớp trực tiếp trên bảng HoatDong
+      where.lop_id = String(dto.classId);
+
+      // Nếu admin không chọn status cụ thể, tự động giới hạn về da_duyet + ket_thuc
+      if (!dto.status && !where.trang_thai) {
+        where.trang_thai = { in: ['da_duyet', 'ket_thuc'] };
+      }
+    }
 
     return where;
   }

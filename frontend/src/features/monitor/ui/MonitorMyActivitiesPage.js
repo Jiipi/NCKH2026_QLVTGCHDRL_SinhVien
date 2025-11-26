@@ -8,6 +8,7 @@ import ActivityQRModal from '../../qr-attendance/ui/components/ActivityQRModal';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
 import Pagination from '../../../shared/components/common/Pagination';
 import useMyActivities from '../../student/model/hooks/useMyActivities';
+import ActivitySortBar from '../../activities/ui/shared/ActivitySortBar';
 import MyActivitiesHeader from './components/Activities/MyActivitiesHeader';
 import MyActivityCard from './components/Activities/MyActivityCard';
 
@@ -46,7 +47,9 @@ export default function MonitorMyActivitiesPage() {
     handleViewDetail,
     handleCloseModal,
     handleShowQR,
-    handleCloseQRModal
+    handleCloseQRModal,
+    sortBy,
+    setSortBy
   } = useMyActivities();
 
   // Map tab names to viewMode
@@ -163,17 +166,20 @@ export default function MonitorMyActivitiesPage() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                <button onClick={() => setDisplayViewMode('grid')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng lưới">
-                  <Grid3X3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Lưới</span>
-                </button>
-                <button onClick={() => setDisplayViewMode('list')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng danh sách">
-                  <List className="h-4 w-4" />
-                  <span className="hidden sm:inline">Danh sách</span>
-                </button>
+            <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
+              <ActivitySortBar sortBy={sortBy} onSortChange={setSortBy} />
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+                  <button onClick={() => setDisplayViewMode('grid')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng lưới">
+                    <Grid3X3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Lưới</span>
+                  </button>
+                  <button onClick={() => setDisplayViewMode('list')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng danh sách">
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">Danh sách</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

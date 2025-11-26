@@ -10,4 +10,4 @@ export { default as AdminTabContent } from './AdminTabContent';
 export { default as AdminSidebar } from './AdminSidebar';
 export { default as ClassDetailModal } from './ClassDetailModal';
 export { default as TeacherDetailModal } from './TeacherDetailModal';
-
+export { default as SemesterClosureRequestsWidget } from './SemesterClosureRequestsWidget';

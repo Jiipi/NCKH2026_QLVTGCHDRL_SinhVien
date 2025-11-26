@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import adminRegistrationsApi from '../../admin/services/adminRegistrationsApi';
 import { extractActivitiesFromAxiosResponse } from '../../../shared/lib/apiNormalization';
 import useSemesterData from '../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../shared/lib/semester';
 
 export default function useAdminRegistrations() {
   const [registrations, setRegistrations] = useState([]);
@@ -22,14 +23,6 @@ export default function useAdminRegistrations() {
   const [counts, setCounts] = useState({ cho_duyet: 0, da_duyet: 0, tu_choi: 0, da_tham_gia: 0 });
 
   const { options: semesterOptions } = useSemesterData();
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-    if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-    if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-    return `hoc_ky_1-${currentYear}`;
-  };
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
   const getStatusFromViewMode = () => {

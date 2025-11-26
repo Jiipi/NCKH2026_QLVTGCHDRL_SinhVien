@@ -28,12 +28,8 @@ export function NotificationProvider({ children }) {
 
     setNotifications(prev => [...prev, newNotification]);
 
-    // Auto remove after duration
-    if (newNotification.duration > 0) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, newNotification.duration);
-    }
+    // NOTE: Auto-remove timer is handled in ToastNotification component
+    // to properly coordinate with exit animation
 
     return id;
   }, []);

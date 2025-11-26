@@ -314,7 +314,9 @@ class MonitorPrismaRepository extends IMonitorRepository {
     const where = {
       AND: [
         semesterWhere || {},
-        { nguoi_tao_id: { in: classCreatorUserIds } }
+        { nguoi_tao_id: { in: classCreatorUserIds } },
+        // Chỉ đếm hoạt động đã được duyệt/kết thúc
+        { trang_thai: { in: ['da_duyet', 'ket_thuc'] } }
       ]
     };
 
