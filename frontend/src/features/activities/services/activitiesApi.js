@@ -1,10 +1,11 @@
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  extractApiData, 
+  extractPaginatedData,
+  extractArrayData 
+} from './apiErrorHandler';
 
 // Map frontend form fields to backend validator schema
 const mapToBackendActivityPayload = async (data) => {
@@ -55,30 +56,28 @@ class ActivitiesAPI {
   async listActivities(params = {}) {
     try {
       const response = await http.get('/core/activities', { params });
-      const data = response.data?.data || response.data || {};
-      return { success: true, data: data.items || [], total: data.total || 0 };
+      const { items, total } = extractPaginatedData(response);
+      return createSuccessResponse(items, total);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async getActivityDetails(activityId) {
     try {
       const response = await http.get(`/core/activities/${activityId}`);
-      return { success: true, data: response.data?.data || response.data };
+      return createSuccessResponse(extractApiData(response));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async getActivityTypes() {
     try {
       const response = await http.get('/core/activity-types');
-      const raw = response.data?.data || response.data || [];
-      const list = Array.isArray(raw) ? raw : (raw.items || []);
-      return { success: true, data: list };
+      return createSuccessResponse(extractArrayData(response));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
@@ -86,43 +85,40 @@ class ActivitiesAPI {
   async getMyActivities(params = {}) {
     try {
       const response = await http.get('/core/dashboard/activities/me', { params });
-      const data = response.data?.data || response.data || {};
-      return { success: true, data: data.items || [], total: data.total || 0 };
+      const { items, total } = extractPaginatedData(response);
+      return createSuccessResponse(items, total);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   // --- Registration Endpoints ---
   async registerForActivity(activityId) {
     try {
-      // Sử dụng endpoint /core/activities/:id/register
-      // Endpoint này tự động lấy student.id từ user.sub và xử lý đúng
       const response = await http.post(`/core/activities/${activityId}/register`);
-      return { success: true, data: response.data?.data || response.data };
+      return createSuccessResponse(extractApiData(response));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async cancelRegistration(registrationId) {
     try {
       const response = await http.post(`/core/registrations/${registrationId}/cancel`);
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   // --- Class/Monitor Activity Management (CRUD) ---
   async getClassActivities(params = {}) {
     try {
-      // Assuming this endpoint fetches activities managed by the monitor's class
       const response = await http.get('/core/monitor/activities', { params });
-      const data = response.data?.data || response.data || {};
-      return { success: true, data: data.items || [], total: data.total || 0 };
+      const { items, total } = extractPaginatedData(response);
+      return createSuccessResponse(items, total);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
@@ -130,9 +126,9 @@ class ActivitiesAPI {
     try {
       const body = await mapToBackendActivityPayload(activityData);
       const response = await http.post('/core/activities', body);
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
@@ -140,68 +136,67 @@ class ActivitiesAPI {
     try {
       const body = await mapToBackendActivityPayload(activityData);
       const response = await http.put(`/core/activities/${activityId}`, body);
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async deleteActivity(activityId) {
     try {
       await http.delete(`/core/activities/${activityId}`);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
   
   // --- Dashboard/Stats --- 
   async getClassDashboardStats(semester) {
-      try {
-          const params = semester ? { semester } : {};
-          const response = await http.get('/core/monitor/dashboard', { params });
-          return { success: true, data: response.data?.data || {} };
-      } catch (error) {
-          return handleError(error);
-      }
+    try {
+      const params = semester ? { semester } : {};
+      const response = await http.get('/core/monitor/dashboard', { params });
+      return createSuccessResponse(extractApiData(response));
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
-
 
   // --- Admin-specific Activity Endpoints ---
   async listAdminActivities(params = {}) {
     try {
       const response = await http.get('/core/admin/activities', { params });
-      const data = response.data?.data || response.data || {};
-      return { success: true, data: data.items || [], total: data.total || 0 };
+      const { items, total } = extractPaginatedData(response);
+      return createSuccessResponse(items, total);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async deleteAdminActivity(activityId) {
     try {
       await http.delete(`/core/admin/activities/${activityId}`);
-      return { success: true };
+      return createSuccessResponse(null);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async approveAdminActivity(activityId) {
     try {
       const response = await http.post(`/core/admin/activities/${activityId}/approve`);
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async rejectAdminActivity(activityId, reason) {
     try {
       const response = await http.post(`/core/admin/activities/${activityId}/reject`, { reason });
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
@@ -209,18 +204,18 @@ class ActivitiesAPI {
   async approveActivity(activityId) {
     try {
       const response = await http.post(`/core/teachers/activities/${activityId}/approve`);
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 
   async rejectActivity(activityId, reason) {
     try {
       const response = await http.post(`/core/teachers/activities/${activityId}/reject`, { reason });
-      return { success: true, data: response.data?.data };
+      return createSuccessResponse(response.data?.data);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error);
     }
   }
 }

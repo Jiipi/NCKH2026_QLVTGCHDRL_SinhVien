@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
-import SemesterClosureWidget from '../../../../../components/SemesterClosureWidget';
+import SemesterClosureWidget from '../../../../../shared/components/semester/SemesterClosureWidget';
 
 export default function DashboardSemesterCard({ semester, onSemesterChange }) {
   return (

@@ -14,9 +14,16 @@ const adminUsersController = createAdminUsersController();
  * @route   GET /api/core/admin/users
  * @desc    Get paginated users list with filters
  * @access  Admin only
- * @query   page, limit, search, role
+ * @query   page, limit, search, role, status (hoat_dong, khong_hoat_dong, khoa)
  */
 router.get('/', (req, res) => adminUsersController.getUsers(req, res));
+
+/**
+ * @route   GET /api/core/admin/users/online
+ * @desc    Get list of users currently online (with active sessions)
+ * @access  Admin only
+ */
+router.get('/online', (req, res) => adminUsersController.getOnlineUsers(req, res));
 
 /**
  * @route   GET /api/core/admin/users/export
@@ -73,6 +80,27 @@ router.put('/:id', (req, res) => adminUsersController.updateUser(req, res));
  * @access  Admin only
  */
 router.delete('/:id', (req, res) => adminUsersController.deleteUser(req, res));
+
+/**
+ * @route   PATCH /api/core/admin/users/:id/lock
+ * @desc    Lock user account (prevent login)
+ * @access  Admin only
+ */
+router.patch('/:id/lock', (req, res) => adminUsersController.lockUser(req, res));
+
+/**
+ * @route   PATCH /api/core/admin/users/:id/unlock
+ * @desc    Unlock user account (allow login)
+ * @access  Admin only
+ */
+router.patch('/:id/unlock', (req, res) => adminUsersController.unlockUser(req, res));
+
+/**
+ * @route   GET /api/core/admin/users/:id/points
+ * @desc    Get user points (điểm rèn luyện) - only for students
+ * @access  Admin only
+ */
+router.get('/:id/points', (req, res) => adminUsersController.getUserPoints(req, res));
 
 module.exports = router;
 

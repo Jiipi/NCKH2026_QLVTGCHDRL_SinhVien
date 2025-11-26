@@ -44,6 +44,10 @@ class IAdminUserRepository {
     throw new Error('Must implement upsertRole()');
   }
 
+  async findStudentByMssv(mssv) {
+    throw new Error('Must implement findStudentByMssv()');
+  }
+
   async createStudent(studentData, tx) {
     throw new Error('Must implement createStudent()');
   }

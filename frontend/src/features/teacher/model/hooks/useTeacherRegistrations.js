@@ -1,32 +1,29 @@
 /**
- * Teacher Registrations Hook (Tầng 2: Business Logic)
- * Xử lý logic nghiệp vụ cho phê duyệt đăng ký giáo viên
+ * Teacher Registrations Hook (Tier 2: Business Logic Layer)
+ * =========================================================
+ * Single Responsibility: Registration approval state and logic
+ * 
+ * @module features/teacher/model/hooks/useTeacherRegistrations
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi';
-import { mapRegistrationToUI, groupRegistrationsByStatus } from '../mappers/teacher.mappers';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import { mapRegistrationToUI } from '../mappers/teacher.mappers';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import { activityTypesApi } from '../../../activity-types/services/activityTypesApi';
-
-const SEMESTER_SESSION_KEY = 'current_semester';
-
-const getCurrentSemesterValue = () => {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-  else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-  else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-  else return `hoc_ky_1-${currentYear}`;
-};
-
-const loadInitialSemester = () => {
-  try {
-    return sessionStorage.getItem(SEMESTER_SESSION_KEY) || getCurrentSemesterValue();
-  } catch {
-    return getCurrentSemesterValue();
-  }
-};
+import { 
+  dedupeById, 
+  loadInitialSemester, 
+  saveSemesterToSession,
+  devLog,
+  devWarn
+} from '../utils/teacherUtils';
+import { 
+  filterBySearch, 
+  filterRegistrationsByViewMode,
+  createRegistrationSearchGetters 
+} from '../utils/filterUtils';
+import { sortItems } from '../utils/sortingUtils';
 
 export default function useTeacherRegistrations() {
   const [registrations, setRegistrations] = useState([]);
@@ -49,13 +46,7 @@ export default function useTeacherRegistrations() {
 
   const updateSemester = useCallback((value) => {
     setSemester(value);
-    try {
-      if (value) {
-        sessionStorage.setItem(SEMESTER_SESSION_KEY, value);
-      } else {
-        sessionStorage.removeItem(SEMESTER_SESSION_KEY);
-      }
-    } catch (_) {}
+    saveSemesterToSession(value);
   }, []);
 
   // Load activity types
@@ -83,43 +74,20 @@ export default function useTeacherRegistrations() {
       });
       
       if (result.success) {
-        // API service trả về { success: true, data: { items, total, counts, pagination } }
         const items = Array.isArray(result.data?.items) ? result.data.items : [];
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTeacherRegistrations] Raw API response:', {
-            success: result.success,
-            itemsCount: items.length,
-            firstItem: items[0],
-            dataStructure: result.data
-          });
-        }
-        
-        // Deduplicate by registration ID
-        const seen = new Set();
-        const uniqueItems = items.filter(reg => {
-          if (!reg.id) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('[useTeacherRegistrations] Registration without ID:', reg);
-            }
-            return true;
-          }
-          if (seen.has(reg.id)) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('[useTeacherRegistrations] Duplicate registration found:', reg.id);
-            }
-            return false;
-          }
-          seen.add(reg.id);
-          return true;
+        devLog('useTeacherRegistrations', 'Raw API response:', {
+          success: result.success,
+          itemsCount: items.length,
+          firstItem: items[0],
+          dataStructure: result.data
         });
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTeacherRegistrations] Loaded registrations:', uniqueItems.length, 'items');
-          if (uniqueItems.length > 0) {
-            console.log('[useTeacherRegistrations] Sample registration:', uniqueItems[0]);
-          }
-        }
+        // Deduplicate by registration ID
+        const uniqueItems = dedupeById(items);
+        
+        devLog('useTeacherRegistrations', 'Loaded registrations:', uniqueItems.length, 'items');
+        
         setRegistrations(uniqueItems);
         setError('');
       } else {
@@ -178,6 +146,9 @@ export default function useTeacherRegistrations() {
           break;
         case 'approved':
           matchesViewMode = reg.trang_thai_dk === 'da_duyet';
+          break;
+        case 'joined':
+          matchesViewMode = reg.trang_thai_dk === 'da_tham_gia';
           break;
         case 'rejected':
           matchesViewMode = reg.trang_thai_dk === 'tu_choi';
@@ -283,6 +254,7 @@ export default function useTeacherRegistrations() {
       total: registrations.length,
       pending: registrations.filter(r => r.trang_thai_dk === 'cho_duyet').length,
       approved: registrations.filter(r => r.trang_thai_dk === 'da_duyet').length,
+      joined: registrations.filter(r => r.trang_thai_dk === 'da_tham_gia').length,
       rejected: registrations.filter(r => r.trang_thai_dk === 'tu_choi').length
     };
     if (process.env.NODE_ENV === 'development') {
@@ -338,17 +310,25 @@ export default function useTeacherRegistrations() {
 
   // Business logic: Handle approve single
   const handleApprove = async (registration) => {
+    if (!registration?.id) {
+      return { success: false, error: 'Thiếu thông tin đăng ký' };
+    }
     setProcessing(true);
     try {
       const result = await teacherRegistrationsApi.approveRegistration(registration.id);
       if (result.success) {
         await loadRegistrations();
+        return { success: true, data: result.data };
       } else {
-        setError(result.error || 'Không thể phê duyệt đăng ký');
+        const message = result.error || 'Không thể phê duyệt đăng ký';
+        setError(message);
+        return { success: false, error: message };
       }
     } catch (err) {
       console.error('[useTeacherRegistrations] Approve error:', err);
-      setError(err?.message || 'Không thể phê duyệt đăng ký');
+      const message = err?.message || 'Không thể phê duyệt đăng ký';
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setProcessing(false);
     }
@@ -356,17 +336,28 @@ export default function useTeacherRegistrations() {
 
   // Business logic: Handle reject single
   const handleReject = async (registration, reason) => {
+    if (!registration?.id) {
+      return { success: false, error: 'Thiếu thông tin đăng ký' };
+    }
+    if (!reason) {
+      return { success: false, error: 'Vui lòng nhập lý do từ chối' };
+    }
     setProcessing(true);
     try {
       const result = await teacherRegistrationsApi.rejectRegistration(registration.id, reason);
       if (result.success) {
         await loadRegistrations();
+        return { success: true, data: result.data };
       } else {
-        setError(result.error || 'Không thể từ chối đăng ký');
+        const message = result.error || 'Không thể từ chối đăng ký';
+        setError(message);
+        return { success: false, error: message };
       }
     } catch (err) {
       console.error('[useTeacherRegistrations] Reject error:', err);
-      setError(err?.message || 'Không thể từ chối đăng ký');
+      const message = err?.message || 'Không thể từ chối đăng ký';
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setProcessing(false);
     }
@@ -374,19 +365,26 @@ export default function useTeacherRegistrations() {
 
   // Business logic: Handle bulk approve
   const handleBulkApprove = async () => {
-    if (!selectedIds.length) return;
+    if (!selectedIds.length) {
+      return { success: false, error: 'Chưa chọn đăng ký nào' };
+    }
     setProcessing(true);
     try {
       const result = await teacherRegistrationsApi.bulkApprove({ registrationIds: selectedIds });
       if (result.success) {
         await loadRegistrations();
         setSelectedIds([]);
+        return { success: true, data: result.data };
       } else {
-        setError(result.error || 'Không thể phê duyệt hàng loạt');
+        const message = result.error || 'Không thể phê duyệt hàng loạt';
+        setError(message);
+        return { success: false, error: message };
       }
     } catch (err) {
       console.error('[useTeacherRegistrations] Bulk approve error:', err);
-      setError(err?.message || 'Không thể phê duyệt hàng loạt');
+      const message = err?.message || 'Không thể phê duyệt hàng loạt';
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setProcessing(false);
     }

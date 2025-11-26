@@ -34,14 +34,16 @@ export default function RegistrationBulkActions({
           <CheckCircle className="h-4 w-4" />
           Duyệt đã chọn
         </button>
-        <button
-          onClick={onBulkReject}
-          disabled={disabled}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500 text-white text-sm font-semibold shadow hover:bg-rose-600 disabled:opacity-50"
-        >
-          <XCircle className="h-4 w-4" />
-          Từ chối đã chọn
-        </button>
+        {onBulkReject && (
+          <button
+            onClick={onBulkReject}
+            disabled={disabled}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500 text-white text-sm font-semibold shadow hover:bg-rose-600 disabled:opacity-50"
+          >
+            <XCircle className="h-4 w-4" />
+            Từ chối đã chọn
+          </button>
+        )}
       </div>
     </div>
   );

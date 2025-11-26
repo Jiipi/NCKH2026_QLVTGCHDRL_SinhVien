@@ -7,8 +7,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
 import { mapLoginResponse } from '../mappers/auth.mappers';
-import { useAppStore } from '../../../../store/useAppStore';
-import { useTabSession } from '../../../../contexts/TabSessionContext';
+import { useAppStore } from '../../../../shared/store';
+import { useTabSession } from '../../../../shared/contexts/TabSessionContext';
 import { normalizeRole } from '../../../../shared/lib/role';
 
 /**

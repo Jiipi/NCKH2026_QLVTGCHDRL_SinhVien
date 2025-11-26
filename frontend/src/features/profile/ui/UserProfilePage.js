@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key } from 'lucide-react';
 import http from '../../../shared/api/http';
-import Header from '../../../components/Header';
-import StudentSidebar from '../../../components/StudentSidebar';
-import { useAppStore } from '../../../store/useAppStore';
-import { useNotification } from '../../../contexts/NotificationContext';
+import Header from '../../../shared/components/layout/Header';
+import StudentSidebar from '../../../shared/components/layout/StudentSidebar';
+import { useAppStore } from '../../../shared/store';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../shared/lib/date';
 
 export default function UserProfilePage() {

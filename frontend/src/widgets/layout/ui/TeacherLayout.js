@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import TeacherSidebar from '../../../components/TeacherSidebar';
+import TeacherSidebar from '../../../shared/components/layout/TeacherSidebar';
 import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
-import MobileSidebarWrapper from '../../../components/MobileSidebarWrapper';
-import MobileMenuButton from '../../../components/MobileMenuButton';
-import '../../../styles/teacher-sidebar.css';
+import MobileSidebarWrapper from '../../../shared/components/layout/MobileSidebarWrapper';
+import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton';
+import '../../../shared/styles/teacher-sidebar.css';
 
 export default function ModernTeacherLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {

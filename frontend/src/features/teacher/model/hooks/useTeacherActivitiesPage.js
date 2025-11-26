@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNotification } from '../../../../contexts/NotificationContext';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import useTeacherActivities from './useTeacherActivities';
 import { activityTypesApi } from '../../../activity-types/services/activityTypesApi';
 
@@ -58,7 +58,7 @@ export default function useTeacherActivitiesPage() {
     approve,
     reject,
     fetchDetail
-  } = useTeacherActivities({ initialLimit: 200 });
+  } = useTeacherActivities({ initialLimit: 'all' });
 
   const {
     options: semesterOptions,

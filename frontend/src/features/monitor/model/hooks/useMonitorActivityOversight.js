@@ -7,8 +7,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitorActivityOversightApi } from '../../services/monitorActivityOversightApi';
 import { mapActivityToUI } from '../mappers/monitor.mappers';
-import useSemesterData from '../../../../hooks/useSemesterData';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 
 /**
  * Hook quản lý hoạt động lớp
@@ -33,8 +33,9 @@ export function useMonitorActivityOversight() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
   const [activityTypes, setActivityTypes] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 100, total: 0 });
-  const [availablePagination, setAvailablePagination] = useState({ page: 1, limit: 100, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [availablePagination, setAvailablePagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [allActivities, setAllActivities] = useState([]); // Store all activities for client-side filtering
   const [dashboardStats, setDashboardStats] = useState({
     totalActivities: 0,
     approvedCount: 0,
@@ -69,14 +70,13 @@ export function useMonitorActivityOversight() {
     'ket_thuc': 'bg-purple-50 text-purple-700 border-purple-200'
   };
 
-  // Business logic: Load activities
+  // Business logic: Load ALL activities (không phân trang từ API)
   const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
         semester: semester || undefined,
-        page: pagination.page,
-        limit: pagination.limit
+        limit: 'all' // Lấy tất cả, không phân trang từ API
       };
       
       const result = await monitorActivityOversightApi.getAvailableActivities(params);
@@ -85,31 +85,33 @@ export function useMonitorActivityOversight() {
         const activitiesArray = responseData.items || [];
         const total = responseData.total || activitiesArray.length;
         
+        setAllActivities(activitiesArray);
         setActivities(activitiesArray);
-        setPagination(prev => ({ ...prev, total }));
+        setPagination(prev => ({ ...prev, page: 1, total }));
         setError('');
       } else {
         setError(result.error || 'Không thể tải danh sách hoạt động');
+        setAllActivities([]);
         setActivities([]);
         setPagination(prev => ({ ...prev, total: 0 }));
       }
     } catch (err) {
       console.error('Error loading class activities:', err);
       setError(err?.message || 'Không thể tải danh sách hoạt động');
+      setAllActivities([]);
       setActivities([]);
       setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
       setLoading(false);
     }
-  }, [semester, pagination.page, pagination.limit]);
+  }, [semester]);
 
-  // Business logic: Load available activities
+  // Business logic: Load available activities (cũng dùng limit: 'all')
   const loadAvailableActivities = useCallback(async () => {
     try {
       const params = {
         semester: semester || undefined,
-        page: availablePagination.page,
-        limit: availablePagination.limit
+        limit: 'all' // Lấy tất cả
       };
       
       const result = await monitorActivityOversightApi.getAvailableActivities(params);
@@ -119,7 +121,7 @@ export function useMonitorActivityOversight() {
         const total = responseData.total || activitiesArray.length;
         
         setAvailableActivities(activitiesArray);
-        setAvailablePagination(prev => ({ ...prev, total }));
+        setAvailablePagination(prev => ({ ...prev, page: 1, total }));
       } else {
         setAvailableActivities([]);
         setAvailablePagination(prev => ({ ...prev, total: 0 }));
@@ -129,7 +131,7 @@ export function useMonitorActivityOversight() {
       setAvailableActivities([]);
       setAvailablePagination(prev => ({ ...prev, total: 0 }));
     }
-  }, [semester, availablePagination.page, availablePagination.limit]);
+  }, [semester]);
 
   // Business logic: Load activity types
   const loadActivityTypes = useCallback(async () => {
@@ -491,7 +493,7 @@ export function useMonitorActivityOversight() {
     loadAvailableActivities();
     loadDashboardStats();
     loadActivityTypes();
-  }, [semester, pagination.page, pagination.limit, availablePagination.page, availablePagination.limit, loadActivities, loadAvailableActivities, loadDashboardStats, loadActivityTypes]);
+  }, [semester, loadActivities, loadAvailableActivities, loadDashboardStats, loadActivityTypes]);
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }));

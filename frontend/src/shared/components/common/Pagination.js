@@ -44,6 +44,11 @@ export default function Pagination({
   return (
     <div className={`mt-10 ${className}`}>
       <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+        {/* Info về tổng số items */}
+        <div className="text-sm text-gray-600">
+          Hiển thị <span className="font-semibold text-gray-900">{startItem}-{endItem}</span> trong tổng số <span className="font-semibold text-gray-900">{total}</span> {itemLabel}
+        </div>
+
         {showLimitSelector && total > 10 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 whitespace-nowrap">Hiển thị mỗi trang:</span>

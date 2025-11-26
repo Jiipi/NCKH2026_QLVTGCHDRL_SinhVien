@@ -40,7 +40,7 @@ function createActivitiesController() {
     approve: new ApproveActivityUseCase(repo),
     reject: new RejectActivityUseCase(repo),
     getDetails: new GetActivityDetailsUseCase(repo),
-    register: new RegisterActivityUseCase(createRegistrationUseCase),
+    register: new RegisterActivityUseCase(createRegistrationUseCase, repo),
     cancelRegistration: new CancelActivityRegistrationUseCase(cancelRegistrationUseCase),
     getQRData: new GetActivityQRDataUseCase(repo),
     scanAttendance: new ScanAttendanceUseCase(repo)

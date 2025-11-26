@@ -15,6 +15,7 @@ class UpdateUserDto {
     this.maso = data.maso;
     this.trang_thai = data.trang_thai;
     this.student = data.student;
+    this.set_lop_truong = data.set_lop_truong;
   }
 
   static fromRequest(body) {

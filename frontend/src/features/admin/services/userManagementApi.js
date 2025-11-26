@@ -167,6 +167,36 @@ export const userManagementApi = {
     } catch (error) {
       return handleError(error);
     }
+  },
+
+  /**
+   * Khóa tài khoản người dùng
+   */
+  async lockUser(userId) {
+    try {
+      const response = await http.patch(`/admin/users/${userId}/lock`);
+      return {
+        success: true,
+        data: response?.data?.data || response?.data || {}
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Mở khóa tài khoản người dùng
+   */
+  async unlockUser(userId) {
+    try {
+      const response = await http.patch(`/admin/users/${userId}/unlock`);
+      return {
+        success: true,
+        data: response?.data?.data || response?.data || {}
+      };
+    } catch (error) {
+      return handleError(error);
+    }
   }
 };
 

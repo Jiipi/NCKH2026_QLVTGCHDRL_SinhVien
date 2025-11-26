@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { studentScoresApi } from '../../services/studentScoresApi';
 import { mapScoresToUI } from '../mappers/student.mappers';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý điểm rèn luyện của sinh viên

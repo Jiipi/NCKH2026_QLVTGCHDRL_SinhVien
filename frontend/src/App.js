@@ -2,12 +2,12 @@ import React from 'react';
 import http from './shared/api/http';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { normalizeRole, roleMatches } from './shared/lib/role';
-import './styles/sidebar-fix.css';
-import './styles/layout-fix.css';
-import './styles/modern-admin.css';
-import MultiSessionGuard from './components/MultiSessionGuard';
+import './shared/styles/sidebar-fix.css';
+import './shared/styles/layout-fix.css';
+import './shared/styles/modern-admin.css';
+import MultiSessionGuard from './shared/components/MultiSessionGuard';
 import sessionStorageManager from './shared/api/sessionStorageManager';
-import { TabSessionProvider } from './contexts/TabSessionContext';
+import { TabSessionProvider } from './shared/contexts/TabSessionContext';
 // import AdminLayout from './components/AdminLayout';
 // import SimpleAdminLayout from './components/SimpleAdminLayout';
 import AdminStudentLayout from './widgets/layout/ui/AdminStudentLayout';
@@ -17,31 +17,32 @@ import StudentLayout from './widgets/layout/ui/StudentLayout';
 import AdminDashboard from './features/admin/ui/AdminDashboardPage';
 import AdminUsers from './features/admin/ui/AdminUsersPage';
 import AdminActivities from './features/admin/ui/AdminActivitiesPage';
-import AdminRegistrations from './features/admin/ui/AdminRegistrationsPage';
+import AdminApprovalsPage from './features/approvals/ui/AdminApprovalsPage';
 import QRManagementPage from './features/qr-attendance/ui/QRManagementPage';
-import AdminReports from './features/reports/pages/AdminReportsPage';
-import AdminRoles from './features/users/pages/AdminRolesPage';
+import { AdminReportsPage as AdminReports } from './features/reports';
+import AdminRoles from './features/users/ui/AdminRolesPage';
 import AdminNotifications from './features/notifications/ui/AdminNotificationsPage';
-import AdminSettings from './features/settings/pages/AdminSettingsPage';
-import AdminProfile from './features/users/pages/AdminProfilePage';
-import SemesterManagement from './features/semesters/pages/SemesterManagementPage';
+import AdminSettings from './features/settings/ui/AdminSettingsPage';
+import AdminProfile from './features/users/ui/AdminProfilePage';
+import SemesterManagement from './features/semesters/ui/SemesterManagementPage';
 import ModernTeacherLayout from './widgets/layout/ui/TeacherLayout';
 // Legacy pages removed in favor of modern auth pages
 // Domain grouped imports (refactored) - use explicit index.js to avoid case conflicts on Linux
 import ProfilePage from './features/profile/ui/ProfilePage';
 import UserProfilePage from './features/profile/ui/UserProfilePage';
 // Cleaned: remove StudentPointsModern import if not used elsewhere
-import ManageActivityPage from './features/activities/pages/ManageActivityPage';
+import ManageActivityPage from './features/activities/ui/pages/manage-activity/ManageActivityPage';
 import StudentActivityDetailPage from './features/student/ui/StudentActivityDetailPage';
 import { StudentDashboardPage } from './features/student/ui/StudentDashboardPage';
 import StudentActivitiesListPage from './features/student/ui/StudentActivitiesListPage';
 import MyActivitiesPage from './features/student/ui/MyActivitiesPage';
 import StudentProfilePage from './features/student/ui/StudentProfilePage';
 import StudentScoresPage from './features/student/ui/StudentScoresPage';
-import QRScannerPage from './features/qr-attendance/ui/QRScannerPage';
+import QRScannerPage from './features/qr-attendance/ui/QRScannerModernPage';
 import TeacherDashboardPage from './features/teacher/ui/TeacherDashboardPage';
-import TeacherProfile from './pages/teacher/TeacherProfile';
-import TeacherPreferences from './pages/teacher/TeacherPreferences';
+// TeacherProfile moved to features - was ./pages/teacher/TeacherProfile
+import TeacherProfilePage from './features/teacher/ui/TeacherProfilePage';
+import TeacherPreferencesPage from './features/teacher/ui/TeacherPreferencesPage';
 // Legacy approval page replaced by FSD implementation
 // import ModernActivityApproval from './pages/teacher/ModernActivityApproval';
 import TeacherActivityApprovalPage from './features/teacher/ui/TeacherActivityApprovalPage';
@@ -51,11 +52,12 @@ import TeacherRegistrationApprovalsPage from './features/teacher/ui/TeacherRegis
 // Legacy student management replaced by FSD 3-tier implementation
 // import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
 import TeacherStudentManagementPage from './features/teacher/ui/TeacherStudentManagementPage';
-import ImportStudents from './pages/teacher/ImportStudents';
-import ClassManagement from './pages/teacher/ClassManagement';
-import ModernReports from './pages/teacher/ModernReports';
-import ModernNotifications from './pages/teacher/ModernNotifications';
-import ActivityTypesManagementPage from './features/activity-types/pages/ActivityTypesManagementPage';
+// ImportStudents, ModernReports, ModernNotifications moved to features
+import ImportStudentsPage from './features/teacher/ui/ImportStudentsPage';
+import ClassManagementPage from './features/teacher/ui/ClassManagementPage';
+import TeacherReportsPage from './features/teacher/ui/TeacherReportsPage';
+import TeacherNotificationsPage from './features/teacher/ui/TeacherNotificationsPage';
+import ActivityTypesManagementPage from './features/activity-types/ui/ActivityTypesManagementPage';
 import TeacherActivitiesPage from './features/teacher/ui/TeacherActivitiesPage';
 import TeacherAttendancePage from './features/teacher/ui/TeacherAttendancePage';
 import TeacherStudentScoresPage from './features/teacher/ui/TeacherStudentScoresPage';
@@ -68,8 +70,8 @@ import MonitorStudentManagementPage from './features/monitor/ui/MonitorStudentMa
 import MonitorReportsPage from './features/monitor/ui/MonitorReportsPage';
 import MonitorApprovalsPage from './features/monitor/ui/MonitorApprovalsPage';
 import ClassNotificationsPage from './features/monitor/ui/ClassNotificationsPage';
-import { useAppStore } from './store/useAppStore';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { useAppStore } from './shared/store';
+import { NotificationProvider } from './shared/contexts/NotificationContext';
 import { useSessionTracking } from './shared/hooks/useSessionTracking';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
 // Modern auth pages (legacy path kept due to different shared structure)
@@ -239,7 +241,7 @@ function App() {
             React.createElement(Route, { key: 'admin-roles', path: 'roles', element: React.createElement(AdminRoles) }),
             React.createElement(Route, { key: 'admin-activity-create', path: 'activities/create', element: React.createElement(ManageActivityPage) }),
             React.createElement(Route, { key: 'admin-activity-edit', path: 'activities/:id/edit', element: React.createElement(ManageActivityPage) }),
-            React.createElement(Route, { key: 'admin-approvals', path: 'approvals', element: React.createElement(AdminRegistrations) }),
+            React.createElement(Route, { key: 'admin-approvals', path: 'approvals', element: React.createElement(AdminApprovalsPage) }),
             React.createElement(Route, { key: 'admin-reports', path: 'reports', element: React.createElement(AdminReports) }),
             React.createElement(Route, { key: 'admin-notifications', path: 'notifications', element: React.createElement(AdminNotifications) }),
             React.createElement(Route, { key: 'admin-qr-attendance', path: 'qr-attendance', element: React.createElement(QRManagementPage) }),
@@ -259,14 +261,14 @@ function App() {
             React.createElement(Route, { key: 'teacher-attendance', path: 'attendance', element: React.createElement(TeacherAttendancePage) }),
             React.createElement(Route, { key: 'teacher-student-scores', path: 'student-scores', element: React.createElement(TeacherStudentScoresPage) }),
             React.createElement(Route, { key: 'teacher-students', path: 'students', element: React.createElement(TeacherStudentManagementPage) }),
-            React.createElement(Route, { key: 'teacher-students-import', path: 'students/import', element: React.createElement(ImportStudents) }),
+            React.createElement(Route, { key: 'teacher-students-import', path: 'students/import', element: React.createElement(ImportStudentsPage) }),
             React.createElement(Route, { key: 'teacher-classes-redirect', path: 'classes', element: React.createElement(Navigate, { to: '/teacher/students', replace: true }) }),
-            React.createElement(Route, { key: 'teacher-notifications', path: 'notifications', element: React.createElement(ModernNotifications) }),
-            React.createElement(Route, { key: 'teacher-reports', path: 'reports', element: React.createElement(ModernReports) }),
-          React.createElement(Route, { key: 'teacher-reports-export', path: 'reports/export', element: React.createElement(ModernReports) }),
-            React.createElement(Route, { key: 'teacher-profile', path: 'profile', element: React.createElement(TeacherProfile) }),
-          React.createElement(Route, { key: 'teacher-notifications-create', path: 'notifications/create', element: React.createElement(ModernNotifications) }),
-            React.createElement(Route, { key: 'teacher-preferences', path: 'preferences', element: React.createElement(TeacherPreferences) })
+            React.createElement(Route, { key: 'teacher-notifications', path: 'notifications', element: React.createElement(TeacherNotificationsPage) }),
+            React.createElement(Route, { key: 'teacher-reports', path: 'reports', element: React.createElement(TeacherReportsPage) }),
+          React.createElement(Route, { key: 'teacher-reports-export', path: 'reports/export', element: React.createElement(TeacherReportsPage) }),
+            React.createElement(Route, { key: 'teacher-profile', path: 'profile', element: React.createElement(TeacherProfilePage) }),
+          React.createElement(Route, { key: 'teacher-notifications-create', path: 'notifications/create', element: React.createElement(TeacherNotificationsPage) }),
+            React.createElement(Route, { key: 'teacher-preferences', path: 'preferences', element: React.createElement(TeacherPreferencesPage) })
           ]),
 
           // Monitor nested layout

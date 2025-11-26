@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 
 /**
  * Hook quản lý đặt lại mật khẩu

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { monitorReportsApi } from '../../services/monitorReportsApi';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý reports

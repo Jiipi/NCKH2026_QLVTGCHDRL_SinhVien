@@ -263,7 +263,7 @@ class RegistrationsRepository {
     });
   }
 
-  async bulkApprove(ids /* approverId */) {
+  async bulkApprove(ids, approverId) {
     // id là UUID (String), không parse
     return prisma.dangKyHoatDong.updateMany({
       where: {
@@ -271,12 +271,13 @@ class RegistrationsRepository {
       },
       data: {
         trang_thai_dk: 'da_duyet',
-        ngay_duyet: new Date()
+        ngay_duyet: new Date(),
+        nguoi_duyet_id: approverId || null
       }
     });
   }
 
-  async bulkReject(ids, reason) {
+  async bulkReject(ids, reason, approverId) {
     // id là UUID (String), không parse
     return prisma.dangKyHoatDong.updateMany({
       where: {
@@ -284,7 +285,9 @@ class RegistrationsRepository {
       },
       data: {
         trang_thai_dk: 'tu_choi',
-        ...(reason && { ly_do: reason })
+        ngay_duyet: new Date(),
+        nguoi_duyet_id: approverId || null,
+        ...(reason && { ly_do_tu_choi: reason })
       }
     });
   }

@@ -1,16 +1,19 @@
 /**
- * Teacher Student Scores API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher student scores features
- * Không chứa business logic
+ * Teacher Student Scores API Service (Tier 3: Data/API Layer)
+ * ===========================================================
+ * Single Responsibility: HTTP calls for teacher student scores only
+ * 
+ * @module features/teacher/services/teacherStudentScoresApi
  */
 
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Student Scores API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData,
+  extractArrayItems
+} from './apiErrorHandler';
 
 /**
  * Teacher Student Scores API
@@ -18,43 +21,41 @@ const handleError = (error) => {
 export const teacherStudentScoresApi = {
   /**
    * Lấy danh sách điểm rèn luyện của sinh viên
+   * @param {Object} [params] - Query params
    */
   async list(params = {}) {
     try {
       const response = await http.get('/api/teacher/student-scores', { params });
-      const payload = response?.data?.data || response?.data || {};
-      const items = payload.items || payload.data || payload || [];
-      const arr = Array.isArray(items) ? items : [];
+      const payload = extractApiData(response, {});
+      const items = extractArrayItems(payload);
       const pagination = payload.pagination || {};
-      return {
-        success: true,
-        data: {
-          items: arr,
-          total: typeof pagination.total === 'number' ? pagination.total : arr.length,
-          pagination
-        }
-      };
+      
+      return createSuccessResponse({
+        items,
+        total: typeof pagination.total === 'number' ? pagination.total : items.length,
+        pagination
+      });
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'StudentScores.list');
     }
   },
 
   /**
    * Lấy chi tiết điểm rèn luyện của sinh viên
+   * @param {string|number} studentId - ID sinh viên
+   * @param {string} [semester] - Học kỳ
    */
   async getStudentScore(studentId, semester) {
+    if (!studentId) {
+      return createValidationError('studentId là bắt buộc');
+    }
+    
     try {
-      if (!studentId) {
-        return { success: false, error: 'studentId là bắt buộc' };
-      }
       const params = semester ? { semester } : {};
       const response = await http.get(`/api/teacher/student-scores/${studentId}`, { params });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'StudentScores.getDetail');
     }
   }
 };

@@ -1,16 +1,19 @@
 /**
- * Teacher Activities API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher activities features
- * Không chứa business logic
+ * Teacher Activities API Service (Tier 3: Data/API Layer)
+ * =======================================================
+ * Single Responsibility: HTTP calls for teacher activities only
+ * 
+ * @module features/teacher/services/teacherActivitiesApi
  */
 
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Activities API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData,
+  extractArrayItems
+} from './apiErrorHandler';
 
 /**
  * Teacher Activities API
@@ -18,83 +21,83 @@ const handleError = (error) => {
 export const teacherActivitiesApi = {
   /**
    * Lấy danh sách hoạt động
+   * @param {Object} params - Query params
+   * @param {number} [params.page=1] - Trang
+   * @param {number|string} [params.limit='all'] - Số lượng mỗi trang (hoặc 'all' để lấy tất cả)
+   * @param {string} [params.semester] - Học kỳ
    */
-  async listActivities({ page = 1, limit = 100, semester }) {
+  async listActivities({ page = 1, limit = 'all', semester }) {
     try {
       const params = { page, limit };
       if (semester) params.semester = semester;
+      
       const response = await http.get('/activities', { params });
-      const root = response?.data?.data || response?.data || {};
-      const items = root.items || root.data || root || [];
-      const arr = Array.isArray(items) ? items : [];
+      const root = extractApiData(response, {});
+      const items = extractArrayItems(root);
       const pagination = root.pagination || {};
-      return {
-        success: true,
-        data: {
-          items: arr,
-          total: typeof pagination.total === 'number' ? pagination.total : arr.length,
-          pagination
-        }
-      };
+      
+      return createSuccessResponse({
+        items,
+        total: typeof pagination.total === 'number' ? pagination.total : items.length,
+        pagination
+      });
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Activities.list');
     }
   },
 
   /**
    * Lấy chi tiết hoạt động
+   * @param {string|number} id - ID hoạt động
    */
   async getActivity(id) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
       const response = await http.get(`/activities/${id}`);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || null
-      };
+      return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Activities.getActivity');
     }
   },
 
   /**
    * Phê duyệt hoạt động
+   * @param {string|number} id - ID hoạt động
    */
   async approveActivity(id) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${id}/approve`);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Activities.approve');
     }
   },
 
   /**
    * Từ chối hoạt động
+   * @param {string|number} id - ID hoạt động
+   * @param {string} reason - Lý do từ chối
    */
   async rejectActivity(id, reason) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    if (!reason) {
+      return createValidationError('Lý do từ chối là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
-      if (!reason) {
-        return { success: false, error: 'Lý do từ chối là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Activities.reject');
     }
   }
 };

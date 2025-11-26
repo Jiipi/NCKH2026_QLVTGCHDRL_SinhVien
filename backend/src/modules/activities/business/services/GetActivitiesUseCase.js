@@ -89,11 +89,23 @@ class GetActivitiesUseCase {
       }
     }
 
+    // classId param is ignored for activities listing
+    // "Hoạt động theo lớp" = hoạt động đã duyệt trong học kỳ (giống list sinh viên thấy)
+    // Không filter theo lớp cụ thể vì hoạt động là chung cho tất cả
+
     return where;
   }
 
   buildQueryOptions(dto) {
-    const effectiveLimit = dto.limit === 'all' ? undefined : parseInt(dto.limit) || 10;
+    // Handle 'all' limit - return undefined to fetch all records
+    let effectiveLimit;
+    if (dto.limit === 'all' || dto.limit === undefined) {
+      effectiveLimit = undefined; // No limit - fetch all
+    } else {
+      const parsed = parseInt(dto.limit);
+      effectiveLimit = isNaN(parsed) ? 10 : parsed;
+    }
+    
     const effectivePage = effectiveLimit === undefined ? 1 : parseInt(dto.page) || 1;
 
     return {
@@ -105,13 +117,8 @@ class GetActivitiesUseCase {
   }
 
   async enrichActivitiesWithRegistrations(activities, userId, userRole) {
-    const { prisma } = require('../../../../data/infrastructure/prisma/client');
-
     try {
-      const student = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: userId },
-        select: { id: true, lop_id: true }
-      });
+      const student = await this.activityRepository.findStudentByUserId(userId);
 
       if (!student) {
         return activities;
@@ -120,17 +127,7 @@ class GetActivitiesUseCase {
       const activityIds = activities.map(a => a.id).filter(Boolean);
       if (activityIds.length === 0) return activities;
 
-      const registrations = await prisma.dangKyHoatDong.findMany({
-        where: {
-          sv_id: student.id,
-          hd_id: { in: activityIds }
-        },
-        select: {
-          hd_id: true,
-          trang_thai_dk: true,
-          ngay_dang_ky: true
-        }
-      });
+      const registrations = await this.activityRepository.findRegistrationsByStudent(student.id, activityIds);
 
       const registrationMap = new Map();
       registrations.forEach(reg => {
@@ -149,48 +146,15 @@ class GetActivitiesUseCase {
       if (userRole === 'LOP_TRUONG' && student.lop_id) {
         const lopId = student.lop_id;
 
-        const allClassStudents = await prisma.sinhVien.findMany({
-          where: { lop_id: lopId },
-          select: { nguoi_dung_id: true }
-        });
+        const allClassStudents = await this.activityRepository.findStudentsByClass(lopId);
         classCreators = allClassStudents.map(s => s.nguoi_dung_id).filter(Boolean);
 
-        const lop = await prisma.lop.findUnique({
-          where: { id: lopId },
-          select: { chu_nhiem: true }
-        });
+        const lop = await this.activityRepository.findClassById(lopId);
         if (lop?.chu_nhiem) {
           classCreators.push(lop.chu_nhiem);
         }
 
-        const grouped = await prisma.dangKyHoatDong.groupBy({
-          by: ['hd_id'],
-          where: {
-            hd_id: { in: activityIds },
-            sinh_vien: { lop_id: lopId },
-            trang_thai_dk: { in: ['cho_duyet', 'da_duyet'] }
-          },
-          _count: { _all: true }
-        }).catch(async () => {
-          const rows = await prisma.dangKyHoatDong.findMany({
-            where: {
-              hd_id: { in: activityIds },
-              sinh_vien: { lop_id: lopId },
-              trang_thai_dk: { in: ['cho_duyet', 'da_duyet'] }
-            },
-            select: { hd_id: true }
-          });
-          return rows.reduce((acc, r) => {
-            acc[r.hd_id] = (acc[r.hd_id] || 0) + 1;
-            return acc;
-          }, {});
-        });
-
-        if (Array.isArray(grouped)) {
-          classRegistrationCounts = Object.fromEntries(grouped.map(g => [g.hd_id, g._count?._all || 0]));
-        } else {
-          classRegistrationCounts = grouped || {};
-        }
+        classRegistrationCounts = await this.activityRepository.countRegistrationsByClass(activityIds, lopId);
       }
 
       return activities.map(activity => {

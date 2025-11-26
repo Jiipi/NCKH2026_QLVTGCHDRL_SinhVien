@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { studentProfileApi } from '../../services/studentProfileApi';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../../shared/lib/date';
 
 /**

@@ -6,8 +6,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { studentActivitiesApi } from '../../services/studentActivitiesApi';
 import { groupActivitiesByStatus } from '../mappers/student.mappers';
-import { useNotification } from '../../../../contexts/NotificationContext';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import sessionStorageManager from '../../../../shared/api/sessionStorageManager';
 import { normalizeRole } from '../../../../shared/lib/role';
 import activitiesApi from '../../../activities/services/activitiesApi';

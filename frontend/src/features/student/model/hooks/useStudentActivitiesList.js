@@ -5,8 +5,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import activitiesApi from '../../../activities/services/activitiesApi';
-import { useNotification } from '../../../../contexts/NotificationContext';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 const ACTIVITY_STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -41,8 +41,8 @@ export default function useStudentActivitiesList() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const activitiesGridRef = useRef(null);
 
-  // Data State
-  const [items, setItems] = useState([]);
+  // Data State - allItems chứa tất cả hoạt động từ API (không phân trang)
+  const [allItems, setAllItems] = useState([]);
   const [activityTypes, setActivityTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,16 +53,13 @@ export default function useStudentActivitiesList() {
   const [semester, setSemester] = useState(getCurrentSemesterValue());
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
-  // Business logic: Load activities
+  // Business logic: Load ALL activities (không phân trang từ API)
   const loadActivities = useCallback(async () => {
     setLoading(true);
     setError('');
 
     const params = {
-      q: query || undefined,
-      ...filters,
-      page: pagination.page,
-      limit: pagination.limit,
+      limit: 'all', // Lấy tất cả, không phân trang từ API
       sort: 'ngay_bd',
       order: 'asc',
       semester: semester || undefined,
@@ -78,16 +75,16 @@ export default function useStudentActivitiesList() {
     const result = await activitiesApi.listActivities(params);
 
     if (result.success) {
-      setItems(result.data);
-      setPagination(prev => ({ ...prev, total: result.total }));
+      setAllItems(result.data || []);
+      setPagination(prev => ({ ...prev, page: 1, total: result.data?.length || 0 }));
     } else {
-      setItems([]);
+      setAllItems([]);
       setError(result.error || 'Lỗi tải dữ liệu hoạt động.');
       setPagination(prev => ({ ...prev, total: 0 }));
     }
 
     setLoading(false);
-  }, [query, filters, pagination.page, pagination.limit, semester]);
+  }, [semester]);
 
   // Business logic: Load activity types
   const loadActivityTypes = useCallback(async () => {
@@ -134,9 +131,9 @@ export default function useStudentActivitiesList() {
     }
   }, [confirm, showSuccess, showError, loadActivities]);
 
-  // Business logic: Filter items
-  const filteredItems = useMemo(() => {
-    let filtered = items;
+  // Business logic: Filter and sort items (client-side)
+  const sortedItems = useMemo(() => {
+    let filtered = [...allItems];
 
     // Filter by scope (in-class)
     if (scopeTab === 'in-class') {
@@ -202,8 +199,31 @@ export default function useStudentActivitiesList() {
       });
     }
 
+    // Sort by start date
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.ngay_bd || 0);
+      const dateB = new Date(b.ngay_bd || 0);
+      return dateA - dateB;
+    });
+
     return filtered;
-  }, [items, scopeTab, query, filters]);
+  }, [allItems, scopeTab, query, filters]);
+
+  // Phân trang client-side: lấy items cho trang hiện tại
+  const filteredItems = useMemo(() => {
+    const startIndex = (pagination.page - 1) * pagination.limit;
+    const endIndex = startIndex + pagination.limit;
+    return sortedItems.slice(startIndex, endIndex);
+  }, [sortedItems, pagination.page, pagination.limit]);
+
+  // Cập nhật total khi sortedItems thay đổi
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      total: sortedItems.length,
+      page: Math.min(prev.page, Math.max(1, Math.ceil(sortedItems.length / prev.limit)))
+    }));
+  }, [sortedItems.length]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -224,9 +244,9 @@ export default function useStudentActivitiesList() {
 
   const onSearch = useCallback((e) => {
     if (e && e.preventDefault) e.preventDefault();
+    // Client-side filtering - just reset page, no need to reload
     setPagination(prev => ({ ...prev, page: 1 }));
-    loadActivities();
-  }, [loadActivities]);
+  }, []);
 
   const onFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);

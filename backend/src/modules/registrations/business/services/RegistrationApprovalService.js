@@ -40,7 +40,8 @@ class RegistrationApprovalService {
     // Approve
     const updated = await this.registrationRepository.update(id, {
       trang_thai_dk: 'da_duyet',
-      ngay_duyet: new Date()
+      ngay_duyet: new Date(),
+      nguoi_duyet_id: user?.sub || user?.id
     });
 
     return updated;
@@ -68,7 +69,9 @@ class RegistrationApprovalService {
     // Reject
     const updated = await this.registrationRepository.update(id, {
       trang_thai_dk: 'tu_choi',
-      ly_do: reason || 'Không đáp ứng yêu cầu'
+      ly_do_tu_choi: reason || 'Không đáp ứng yêu cầu',
+      ngay_duyet: new Date(),
+      nguoi_duyet_id: user?.sub || user?.id
     });
 
     return updated;
@@ -158,7 +161,7 @@ class RegistrationApprovalService {
     if (action === 'approve') {
       await this.registrationRepository.bulkApprove(ids, userSub);
     } else {
-      await this.registrationRepository.bulkReject(ids, reason);
+      await this.registrationRepository.bulkReject(ids, reason, userSub);
     }
 
     return { updated: ids.length, message: `Cập nhật ${ids.length} registrations thành công` };

@@ -44,8 +44,26 @@ class GetUsersUseCase {
   }
 
   async buildFilterConditions(params = {}) {
-    const { search, role, status } = params;
+    const { search, role, status, userIds, excludeUserIds, excludeStatus } = params;
     const whereCondition = {};
+
+    // Filter by specific user IDs (for online users filter)
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      whereCondition.id = { in: userIds };
+    }
+
+    // Exclude specific user IDs (for offline users filter)
+    if (excludeUserIds && Array.isArray(excludeUserIds) && excludeUserIds.length > 0) {
+      whereCondition.id = { 
+        ...(whereCondition.id || {}),
+        notIn: excludeUserIds 
+      };
+    }
+
+    // Exclude specific status (for offline users - exclude locked)
+    if (excludeStatus) {
+      whereCondition.trang_thai = { not: excludeStatus };
+    }
 
     if (search) {
       whereCondition.OR = [
@@ -63,7 +81,9 @@ class GetUsersUseCase {
       }
     }
 
-    if (status) {
+    // Status filter for locked accounts (status = 'khoa')
+    // Note: 'hoat_dong' and 'khong_hoat_dong' are handled via userIds from sessions
+    if (status && status === 'khoa') {
       whereCondition.trang_thai = status;
     }
 

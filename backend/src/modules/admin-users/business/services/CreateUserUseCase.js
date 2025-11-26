@@ -19,14 +19,25 @@ class CreateUserUseCase {
   async execute(dto, adminId) {
     const normalizedRole = this.normalizeRole(dto.role);
 
-    // Check if user already exists
+    // Check if user already exists (ten_dn hoặc email)
     const existingUser = await this.adminUserRepository.findExistingUserByCredentials(
       dto.maso,
       dto.email
     );
 
+    // Kiểm tra tên đăng nhập hoặc email đã tồn tại
     if (existingUser) {
-      throw new ConflictError('Mã số hoặc email đã tồn tại');
+      const conflictField = existingUser.ten_dn === dto.maso ? 'Tên đăng nhập' : 'Email';
+      throw new ConflictError(`${conflictField} "${dto.maso === existingUser.ten_dn ? dto.maso : dto.email}" đã được sử dụng. Vui lòng chọn tên đăng nhập hoặc email khác.`);
+    }
+
+    // Kiểm tra mssv trùng nếu là sinh viên hoặc lớp trưởng
+    const isStudentRole = normalizedRole === 'SINH_VIÊN' || normalizedRole === 'LỚP_TRƯỞNG';
+    if (isStudentRole && dto.mssv) {
+      const existingStudent = await this.adminUserRepository.findStudentByMssv(dto.mssv);
+      if (existingStudent) {
+        throw new ConflictError(`Mã số sinh viên "${dto.mssv}" đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.`);
+      }
     }
 
     // Hash password
@@ -83,8 +94,11 @@ class CreateUserUseCase {
       return null;
     }
 
-    if (!data.mssv || !data.lop_id) {
-      throw new Error('Thiếu mssv hoặc lop_id cho vai trò sinh viên');
+    if (!data.mssv) {
+      throw new Error('Vui lòng nhập mã số sinh viên (MSSV)');
+    }
+    if (!data.lop_id) {
+      throw new Error('Vui lòng chọn lớp cho sinh viên');
     }
 
     const ngaySinh = data.ngay_sinh ? new Date(data.ngay_sinh) : new Date();

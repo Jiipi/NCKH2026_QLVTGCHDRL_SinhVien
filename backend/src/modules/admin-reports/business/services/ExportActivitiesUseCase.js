@@ -41,7 +41,7 @@ class ExportActivitiesUseCase {
       };
       const safe = (v) => (v === null || v === undefined ? '' : v);
       const data = rows.map((r) => [
-        safe(r.ma_hd),
+        safe(r.ma_hd || `HD${r.id}`),
         safe(r.ten_hd),
         safe(r.loai_hd?.ten_loai_hd),
         safe(r.diem_rl),

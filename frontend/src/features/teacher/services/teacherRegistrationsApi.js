@@ -1,16 +1,33 @@
 /**
- * Teacher Registrations API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher registrations features
- * Không chứa business logic
+ * Teacher Registrations API Service (Tier 3: Data/API Layer)
+ * ==========================================================
+ * Single Responsibility: HTTP calls for teacher registrations only
+ * 
+ * @module features/teacher/services/teacherRegistrationsApi
  */
 
 import http from '../../../shared/api/http';
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData,
+  extractArrayItems
+} from './apiErrorHandler';
 
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Registrations API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+/**
+ * Calculate registration counts by status
+ * @param {Array} items - Registration items
+ * @returns {Object} Status counts
+ */
+function calculateRegistrationCounts(items) {
+  return {
+    cho_duyet: items.filter(r => r.trang_thai_dk === 'cho_duyet').length,
+    da_duyet: items.filter(r => r.trang_thai_dk === 'da_duyet').length,
+    tu_choi: items.filter(r => r.trang_thai_dk === 'tu_choi').length,
+    da_tham_gia: items.filter(r => r.trang_thai_dk === 'da_tham_gia').length
+  };
+}
 
 /**
  * Teacher Registrations API
@@ -18,85 +35,77 @@ const handleError = (error) => {
 export const teacherRegistrationsApi = {
   /**
    * Lấy danh sách đăng ký
+   * @param {Object} [params] - Query params
    */
   async listRegistrations(params = {}) {
     try {
       const response = await http.get('/teacher/registrations', { params });
-      // API trả về { success: true, data: [array] } hoặc { data: [array] }
-      const payload = response?.data?.data || response?.data || [];
-      const items = Array.isArray(payload) ? payload : (Array.isArray(payload?.items) ? payload.items : []);
+      const payload = extractApiData(response, []);
+      const items = extractArrayItems(payload);
       
-      // Tính stats từ items
-      const counts = {
-        cho_duyet: items.filter(r => r.trang_thai_dk === 'cho_duyet').length,
-        da_duyet: items.filter(r => r.trang_thai_dk === 'da_duyet').length,
-        tu_choi: items.filter(r => r.trang_thai_dk === 'tu_choi').length,
-        da_tham_gia: items.filter(r => r.trang_thai_dk === 'da_tham_gia').length
-      };
-      
-      return {
-        success: true,
-        data: { items, total: items.length, counts }
-      };
+      return createSuccessResponse({ 
+        items, 
+        total: items.length, 
+        counts: calculateRegistrationCounts(items)
+      });
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Registrations.list');
     }
   },
 
   /**
    * Phê duyệt đăng ký
+   * @param {string|number} id - ID đăng ký
    */
   async approveRegistration(id) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
       const response = await http.post(`/teacher/registrations/${id}/approve`);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Registrations.approve');
     }
   },
 
   /**
    * Từ chối đăng ký
+   * @param {string|number} id - ID đăng ký
+   * @param {string} reason - Lý do từ chối
    */
   async rejectRegistration(id, reason) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    if (!reason) {
+      return createValidationError('Lý do từ chối là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
-      if (!reason) {
-        return { success: false, error: 'Lý do từ chối là bắt buộc' };
-      }
       const response = await http.post(`/teacher/registrations/${id}/reject`, { reason });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Registrations.reject');
     }
   },
 
   /**
    * Phê duyệt hàng loạt
+   * @param {Object} params - Params
+   * @param {Array<string|number>} params.registrationIds - Danh sách ID đăng ký
    */
   async bulkApprove({ registrationIds }) {
+    if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
+      return createValidationError('Danh sách đăng ký là bắt buộc');
+    }
+    
     try {
-      if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
-        return { success: false, error: 'Danh sách đăng ký là bắt buộc' };
-      }
       const response = await http.post('/teacher/registrations/bulk-approve', { registrationIds });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Registrations.bulkApprove');
     }
   },
 
@@ -106,14 +115,14 @@ export const teacherRegistrationsApi = {
   async fetchTeacherClasses() {
     try {
       const response = await http.get('/teacher/classes');
-      const payload = response?.data?.data || response?.data || {};
-      const list = Array.isArray(payload?.classes) ? payload.classes : (Array.isArray(payload) ? payload : []);
-      return {
-        success: true,
-        data: list
-      };
+      const payload = extractApiData(response, {});
+      const list = Array.isArray(payload?.classes) 
+        ? payload.classes 
+        : extractArrayItems(payload);
+      
+      return createSuccessResponse(list);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Registrations.fetchClasses');
     }
   }
 };

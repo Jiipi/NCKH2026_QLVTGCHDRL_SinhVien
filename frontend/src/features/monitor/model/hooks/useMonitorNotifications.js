@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { monitorNotificationsApi } from '../../services/monitorNotificationsApi';
 import { monitorActivityOversightApi } from '../../services/monitorActivityOversightApi';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý notifications

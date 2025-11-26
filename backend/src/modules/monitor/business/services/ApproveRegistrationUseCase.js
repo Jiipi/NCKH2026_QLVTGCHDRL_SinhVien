@@ -30,7 +30,8 @@ class ApproveRegistrationUseCase {
       });
 
       await this.monitorRepository.updateRegistrationStatus(registrationId, 'da_duyet', {
-        ghi_chu: `APPROVED_BY:${userRole}|USER:${userId}`
+        ghi_chu: `APPROVED_BY:${userRole}|USER:${userId}`,
+        nguoi_duyet_id: userId
       });
 
       try {

@@ -1,1 +1,1 @@
-export { default } from '../../../components/AdminStudentLayout';
+export { default } from '../../../shared/components/layout/AdminStudentLayout';

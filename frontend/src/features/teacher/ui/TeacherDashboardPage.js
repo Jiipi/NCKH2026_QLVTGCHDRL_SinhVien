@@ -12,10 +12,10 @@ import {
   Zap
 } from 'lucide-react';
 import http from '../../../shared/api/http';
-import { useNotification } from '../../../contexts/NotificationContext';
-import SemesterClosureWidget from '../../../components/SemesterClosureWidget';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
+import { SemesterClosureWidget } from '../../../shared/components/semester';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
-import useSemesterData from '../../../hooks/useSemesterData';
+import { useSemesterData } from '../../../shared/hooks';
 import useTeacherDashboard from '../model/hooks/useTeacherDashboard';
 import useTeacherRegistrationActions from '../model/hooks/useTeacherRegistrationActions';
 

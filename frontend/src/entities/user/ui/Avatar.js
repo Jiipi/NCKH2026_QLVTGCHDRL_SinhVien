@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Camera, Loader } from 'lucide-react';
 import http from '../../../shared/api/http';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 
 export default function Avatar({ value, onChange, size = 200, disabled = false }) {
   const [uploading, setUploading] = useState(false);

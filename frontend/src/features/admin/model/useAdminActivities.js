@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import adminActivitiesApi from '../../admin/services/adminActivitiesApi';
 import { extractActivitiesFromAxiosResponse } from '../../../shared/lib/apiNormalization';
-import useSemesterData from '../../../hooks/useSemesterData';
+import useSemesterData from '../../../shared/hooks/useSemesterData';
 
 export default function useAdminActivities() {
   const [activities, setActivities] = useState([]);

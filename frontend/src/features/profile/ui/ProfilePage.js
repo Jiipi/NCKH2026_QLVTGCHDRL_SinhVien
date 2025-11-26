@@ -1,8 +1,8 @@
 import React from 'react';
 import http from '../../../shared/api/http';
-import Header from '../../../components/Header';
-import StudentSidebar from '../../../components/StudentSidebar';
-import useSemesterData from '../../../hooks/useSemesterData';
+import Header from '../../../shared/components/layout/Header';
+import StudentSidebar from '../../../shared/components/layout/StudentSidebar';
+import useSemesterData from '../../../shared/hooks/useSemesterData';
 
 export default function ProfilePage(){
   const [profile, setProfile] = React.useState(null);

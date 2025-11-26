@@ -36,7 +36,11 @@ class SemesterPrismaRepository extends ISemesterRepository {
       .filter(Boolean)
       .sort((a, b) => b.value.localeCompare(a.value));
 
-    return opts;
+    // Add "All semesters" option at the beginning
+    return [
+      { value: '', label: 'Tất cả học kỳ', semester: null, year: null },
+      ...opts
+    ];
   }
 
   async getAllClasses() {

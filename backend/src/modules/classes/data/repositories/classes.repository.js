@@ -8,26 +8,42 @@ const classesRepository = {
   /**
    * Lấy danh sách classes
    */
-  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { name: 'asc' } }) {
+  async findMany({ where = {}, skip = 0, limit = 20, orderBy = { ten_lop: 'asc' } }) {
+    const { search, ...rest } = where;
+
+    const prismaWhere = { ...rest };
+    if (search) {
+      prismaWhere.OR = [
+        { ten_lop: { contains: search, mode: 'insensitive' } },
+        { khoa: { contains: search, mode: 'insensitive' } },
+        { nien_khoa: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
     const [items, total] = await Promise.all([
-      prisma.class.findMany({
-        where,
+      prisma.lop.findMany({
+        where: prismaWhere,
         skip,
         take: limit,
         orderBy,
         include: {
           _count: {
             select: {
-              students: true,
-              activities: true
+              sinh_viens: true
             }
           }
         }
       }),
-      prisma.class.count({ where })
+      prisma.lop.count({ where: prismaWhere })
     ]);
 
-    return { items, total };
+    return {
+      items: items.map(item => ({
+        ...item,
+        total_sinh_vien: item._count?.sinh_viens ?? 0
+      })),
+      total
+    };
   },
 
   /**

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import MonitorSidebar from '../../../components/MonitorSidebar';
+import MonitorSidebar from '../../../shared/components/layout/MonitorSidebar';
 import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
-import MobileSidebarWrapper from '../../../components/MobileSidebarWrapper';
-import MobileMenuButton from '../../../components/MobileMenuButton';
+import MobileSidebarWrapper from '../../../shared/components/layout/MobileSidebarWrapper';
+import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton';
 import { Outlet } from 'react-router-dom';
 
 export default function MonitorLayout({ children }) {
