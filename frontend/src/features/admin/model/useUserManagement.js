@@ -218,6 +218,22 @@ export const useUserManagement = () => {
     await fetchUsers();
   };
 
+  const lockUser = async (userId) => {
+    const result = await userManagementApi.lockUser(userId);
+    if (!result.success) {
+      throw new Error(result.error || 'Không thể khóa tài khoản');
+    }
+    await fetchUsers();
+  };
+
+  const unlockUser = async (userId) => {
+    const result = await userManagementApi.unlockUser(userId);
+    if (!result.success) {
+      throw new Error(result.error || 'Không thể mở khóa tài khoản');
+    }
+    await fetchUsers();
+  };
+
   // Get active account identifiers from multi-session sources
   const getActiveAccountIdentifiers = () => {
     const ids = new Set();
@@ -307,6 +323,8 @@ export const useUserManagement = () => {
     createUser,
     updateUser,
     deleteUser,
+    lockUser,
+    unlockUser,
     fetchUsers
   };
 };

@@ -90,6 +90,7 @@ http.interceptors.request.use(
 
         // Attendance report
   rewrite('/admin/attendance', '/core/admin/reports/attendance');
+        rewriteStarts('/admin/reports/attendance', '/core/admin/reports/attendance');
 
         // Activities CRUD and actions
         config.url = config.url.replace(/^\/admin\/activities\/(\d+|[^\/]+)\/(approve|reject)(\?|$)/, (_m, id, action, tail) => `/core/activities/${id}/${action}${tail || ''}`);
@@ -113,9 +114,10 @@ http.interceptors.request.use(
   // Bulk (exact path)
   if (config.url === '/admin/registrations/bulk') config.url = '/core/admin/registrations/bulk';
 
-  // Reports overview & exports
+  // Reports overview, classes list & exports
         rewriteStarts('/admin/reports/export/', '/core/admin/reports/export/');
         rewrite('/admin/reports/overview', '/core/admin/reports/overview');
+        rewrite('/admin/reports/classes', '/core/admin/reports/classes');
         rewrite('/admin/reports/export/activities', '/core/admin/reports/export/activities');
         rewrite('/admin/reports/export/registrations', '/core/admin/reports/export/registrations');
 

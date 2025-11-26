@@ -4,6 +4,7 @@ const UpdateUserDto = require('../../business/dto/UpdateUserDto');
 const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
 const { logError } = require('../../../../core/logger');
 const { AppError } = require('../../../../core/errors/AppError');
+const SessionTrackingService = require('../../../../business/services/session-tracking.service');
 
 /**
  * AdminUsersController
@@ -30,11 +31,62 @@ class AdminUsersController {
   async getUsers(req, res) {
     try {
       const dto = GetUsersDto.fromQuery(req.query);
+      
+      // Xử lý filter theo trạng thái session
+      if (dto.status === 'hoat_dong') {
+        // Filter user đang online (có session active trong 5 phút)
+        const activeData = await SessionTrackingService.getActiveUsers(5);
+        dto.userIds = activeData.userIds || [];
+        // Nếu không có ai online thì trả về rỗng
+        if (dto.userIds.length === 0) {
+          return sendResponse(res, 200, ApiResponse.success({
+            users: [],
+            pagination: { page: 1, limit: dto.limit || 20, total: 0, totalPages: 0 }
+          }, 'Không có người dùng đang online'));
+        }
+      } else if (dto.status === 'khong_hoat_dong') {
+        // Filter user offline (không có session active và không bị khóa)
+        const activeData = await SessionTrackingService.getActiveUsers(5);
+        dto.excludeUserIds = activeData.userIds || [];
+        dto.excludeStatus = 'khoa'; // Loại bỏ user bị khóa
+      }
+      // status === 'khoa' được xử lý trong UseCase bình thường
+      
       const result = await this.getUsersUseCase.execute(dto);
       return sendResponse(res, 200, ApiResponse.success(result, 'Lấy danh sách người dùng thành công'));
     } catch (error) {
       logError('Error fetching users', { error: error.message, userId: req.user?.id });
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy danh sách người dùng'));
+    }
+  }
+
+  /**
+   * Get online users (with active sessions)
+   */
+  async getOnlineUsers(req, res) {
+    try {
+      const minutesThreshold = parseInt(req.query.minutes) || 5;
+      const activeData = await SessionTrackingService.getActiveUsers(minutesThreshold);
+      
+      if (!activeData.userIds || activeData.userIds.length === 0) {
+        return sendResponse(res, 200, ApiResponse.success({
+          users: [],
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+        }, 'Không có người dùng đang online'));
+      }
+      
+      // Fetch users với filter theo IDs
+      const dto = GetUsersDto.fromQuery({ 
+        page: req.query.page || 1, 
+        limit: req.query.limit || 100 
+      });
+      dto.userIds = activeData.userIds;
+      
+      const result = await this.getUsersUseCase.execute(dto);
+      return sendResponse(res, 200, ApiResponse.success(result, 'Lấy danh sách người dùng online thành công'));
+    } catch (error) {
+      logError('Error fetching online users', { error: error.message, userId: req.user?.id });
+      return sendResponse(res, 500, ApiResponse.error('Lỗi lấy danh sách người dùng online'));
     }
   }
 
@@ -54,11 +106,27 @@ class AdminUsersController {
       const dto = CreateUserDto.fromRequest(req.body);
       const adminId = req.user?.sub || req.user?.id;
       const result = await this.createUserUseCase.execute(dto, adminId);
-      return sendResponse(res, 201, ApiResponse.success(result, 'Tạo người dùng thành công'));
+      
+      // Tạo thông báo thành công chi tiết
+      const roleName = dto.role === 'Admin' ? 'Quản trị viên' :
+                      dto.role === 'Giảng viên' ? 'Giảng viên' :
+                      dto.role === 'Lớp trưởng' ? 'Lớp trưởng' : 'Sinh viên';
+      const successMessage = `Đã tạo tài khoản ${roleName} "${dto.hoten}" (${dto.maso}) thành công`;
+      
+      return sendResponse(res, 201, ApiResponse.success(result, successMessage));
     } catch (error) {
-      logError('Error creating user', { error: error.message, userId: req.user?.id });
+      logError('Error creating user', { error: error.message, userId: req.user?.id, body: req.body });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi tạo người dùng', error.details));
+      
+      // Cải thiện thông báo lỗi
+      let errorMessage = error.message || 'Lỗi tạo người dùng';
+      if (error instanceof AppError && error.statusCode === 409) {
+        errorMessage = error.message || 'Tài khoản đã tồn tại trong hệ thống';
+      } else if (error instanceof AppError && error.statusCode === 400) {
+        errorMessage = error.message || 'Dữ liệu không hợp lệ';
+      }
+      
+      return sendResponse(res, status, ApiResponse.error(errorMessage, error.details));
     }
   }
 
@@ -102,6 +170,86 @@ class AdminUsersController {
     } catch (error) {
       logError('Error export users', { error: error.message });
       return sendResponse(res, 500, ApiResponse.error('Lỗi xuất người dùng'));
+    }
+  }
+
+  /**
+   * Lock user account
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async lockUser(req, res) {
+    try {
+      const userId = req.params.id;
+      const adminId = req.user?.sub || req.user?.id;
+      
+      // Prevent admin from locking themselves
+      if (userId === adminId) {
+        return sendResponse(res, 400, ApiResponse.error('Không thể khóa tài khoản của chính mình'));
+      }
+      
+      const dto = UpdateUserDto.fromRequest({ trang_thai: 'khoa' });
+      const result = await this.updateUserUseCase.execute(userId, dto, adminId);
+      return sendResponse(res, 200, ApiResponse.success(result, 'Đã khóa tài khoản thành công'));
+    } catch (error) {
+      logError('Error locking user', { error: error.message, userId: req.user?.id });
+      const status = error instanceof AppError ? error.statusCode : 500;
+      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi khóa tài khoản'));
+    }
+  }
+
+  /**
+   * Unlock user account
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async unlockUser(req, res) {
+    try {
+      const userId = req.params.id;
+      const adminId = req.user?.sub || req.user?.id;
+      
+      const dto = UpdateUserDto.fromRequest({ trang_thai: 'hoat_dong' });
+      const result = await this.updateUserUseCase.execute(userId, dto, adminId);
+      return sendResponse(res, 200, ApiResponse.success(result, 'Đã mở khóa tài khoản thành công'));
+    } catch (error) {
+      logError('Error unlocking user', { error: error.message, userId: req.user?.id });
+      const status = error instanceof AppError ? error.statusCode : 500;
+      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi mở khóa tài khoản'));
+    }
+  }
+
+  /**
+   * Get user points (điểm rèn luyện)
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async getUserPoints(req, res) {
+    try {
+      const userId = req.params.id;
+      const user = await this.getUserByIdUseCase.execute(userId);
+      
+      // Chỉ sinh viên mới có điểm rèn luyện
+      if (!user.sinh_vien) {
+        return sendResponse(res, 200, ApiResponse.success({
+          points: [],
+          totalPoints: 0,
+          message: 'Người dùng này không phải sinh viên, không có điểm rèn luyện'
+        }, 'Không có điểm rèn luyện'));
+      }
+
+      // Lấy điểm rèn luyện từ dashboard service
+      const GetDetailedScoresUseCase = require('../../../dashboard/business/services/GetDetailedScoresUseCase');
+      const DashboardRepository = require('../../../dashboard/data/repositories/dashboard.repository');
+      const dashboardRepository = new DashboardRepository();
+      const getDetailedScoresUseCase = new GetDetailedScoresUseCase(dashboardRepository);
+      
+      const pointsData = await getDetailedScoresUseCase.execute(userId, req.query);
+      
+      return sendResponse(res, 200, ApiResponse.success(pointsData, 'Lấy điểm rèn luyện thành công'));
+    } catch (error) {
+      logError('Error getting user points', { error: error.message, userId: req.user?.id });
+      const status = error instanceof AppError ? error.statusCode : 500;
+      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi lấy điểm rèn luyện'));
     }
   }
 }

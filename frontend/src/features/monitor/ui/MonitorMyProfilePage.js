@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Shield, Key } from 'lucide-react';
-import { useAppStore } from '../../../store/useAppStore';
+import { useAppStore } from '../../../shared/store';
 import useStudentProfile from '../../student/model/hooks/useStudentProfile';
 import { studentActivitiesApi } from '../../student/services/studentActivitiesApi';
 import ProfileHeader from './components/Profile/ProfileHeader';

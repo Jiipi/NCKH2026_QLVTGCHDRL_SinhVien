@@ -166,6 +166,7 @@ class MonitorPrismaRepository extends IMonitorRepository {
       data: {
         trang_thai_dk: status,
         ngay_duyet: new Date(),
+        nguoi_duyet_id: additionalData.nguoi_duyet_id || null,
         ...additionalData
       }
     });

@@ -1,16 +1,19 @@
 /**
- * Teacher Attendance API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher attendance features
- * Không chứa business logic
+ * Teacher Attendance API Service (Tier 3: Data/API Layer)
+ * =======================================================
+ * Single Responsibility: HTTP calls for teacher attendance only
+ * 
+ * @module features/teacher/services/teacherAttendanceApi
  */
 
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Attendance API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData,
+  extractArrayItems
+} from './apiErrorHandler';
 
 /**
  * Teacher Attendance API
@@ -18,51 +21,48 @@ const handleError = (error) => {
 export const teacherAttendanceApi = {
   /**
    * Lấy danh sách điểm danh
+   * @param {Object} [params] - Query params
    */
   async list(params = {}) {
     try {
       const response = await http.get('/api/teacher/attendance', { params });
-      const payload = response?.data?.data || response?.data || [];
-      const items = Array.isArray(payload) ? payload : (payload.items || payload.data || []);
-      return {
-        success: true,
-        data: items
-      };
+      const payload = extractApiData(response, []);
+      const items = extractArrayItems(payload);
+      
+      return createSuccessResponse(items);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Attendance.list');
     }
   },
 
   /**
    * Cập nhật điểm danh
+   * @param {string|number} attendanceId - ID điểm danh
+   * @param {Object} data - Dữ liệu cập nhật
    */
   async updateAttendance(attendanceId, data) {
+    if (!attendanceId) {
+      return createValidationError('attendanceId là bắt buộc');
+    }
+    
     try {
-      if (!attendanceId) {
-        return { success: false, error: 'attendanceId là bắt buộc' };
-      }
       const response = await http.put(`/api/teacher/attendance/${attendanceId}`, data);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Attendance.update');
     }
   },
 
   /**
    * Tạo điểm danh mới
+   * @param {Object} data - Dữ liệu điểm danh
    */
   async createAttendance(data) {
     try {
       const response = await http.post('/api/teacher/attendance', data);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Attendance.create');
     }
   }
 };

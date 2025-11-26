@@ -15,6 +15,7 @@ class GetActivitiesDto {
     this.from = data.from;
     this.to = data.to;
     this.scope = data.scope;
+    this.classId = data.classId;
   }
 
   static fromQuery(query, scope) {
@@ -29,7 +30,8 @@ class GetActivitiesDto {
       order: query.order,
       from: query.from,
       to: query.to,
-      scope
+      scope,
+      classId: query.classId || query.lop_id
     });
   }
 }

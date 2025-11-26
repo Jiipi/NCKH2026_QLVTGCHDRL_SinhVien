@@ -59,6 +59,7 @@ model NguoiDung {
   thong_bao_gui       ThongBao[]        @relation("NguoiGuiThongBao")
   thong_bao_nhan      ThongBao[]        @relation("NguoiNhanThongBao")
   phien_dang_nhap     PhienDangNhap[]
+  dang_ky_duyet       DangKyHoatDong[]  @relation("NguoiDuyetDangKy")
 
   @@map("nguoi_dung")
 }
@@ -144,17 +145,19 @@ model HoatDong {
 }
 
 model DangKyHoatDong {
-  id            String          @id @default(uuid()) @db.Uuid
-  sv_id         String          @db.Uuid
-  hd_id         String          @db.Uuid
-  ngay_dang_ky  DateTime        @default(now()) @db.Timestamp(6)
-  trang_thai_dk TrangThaiDangKy @default(cho_duyet)
-  ly_do_dk      String?
-  ly_do_tu_choi String?
-  ngay_duyet    DateTime?       @db.Timestamp(6)
-  ghi_chu       String?
-  hoat_dong     HoatDong        @relation(fields: [hd_id], references: [id])
-  sinh_vien     SinhVien        @relation(fields: [sv_id], references: [id])
+  id             String          @id @default(uuid()) @db.Uuid
+  sv_id          String          @db.Uuid
+  hd_id          String          @db.Uuid
+  ngay_dang_ky   DateTime        @default(now()) @db.Timestamp(6)
+  trang_thai_dk  TrangThaiDangKy @default(cho_duyet)
+  ly_do_dk       String?
+  ly_do_tu_choi  String?
+  ngay_duyet     DateTime?       @db.Timestamp(6)
+  nguoi_duyet_id String?         @db.Uuid
+  ghi_chu        String?
+  hoat_dong      HoatDong        @relation(fields: [hd_id], references: [id])
+  sinh_vien      SinhVien        @relation(fields: [sv_id], references: [id])
+  nguoi_duyet    NguoiDung?      @relation("NguoiDuyetDangKy", fields: [nguoi_duyet_id], references: [id])
 
   @@unique([sv_id, hd_id])
   @@map("dang_ky_hoat_dong")

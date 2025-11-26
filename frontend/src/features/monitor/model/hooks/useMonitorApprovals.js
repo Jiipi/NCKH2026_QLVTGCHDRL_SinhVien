@@ -6,8 +6,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { monitorApprovalsApi } from '../../services/monitorApprovalsApi';
 import { mapRegistrationToUI } from '../mappers/monitor.mappers';
-import useSemesterData from '../../../../hooks/useSemesterData';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 
 /**
  * Hook quản lý approvals

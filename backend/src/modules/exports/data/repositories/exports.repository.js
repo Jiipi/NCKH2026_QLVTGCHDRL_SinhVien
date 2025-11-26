@@ -42,6 +42,7 @@ class ExportsRepository {
     const query = {
       where: activityWhere,
       select: {
+        id: true,
         ma_hd: true,
         ten_hd: true,
         diem_rl: true,

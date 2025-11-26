@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { Plus, Search, Filter, AlertCircle, SlidersHorizontal, RefreshCw, Grid3X3, List, Calendar, Clock, Award, Activity as ActivityIcon, CheckCircle, XCircle, UserPlus, Sparkles, X } from 'lucide-react';
-import ActivityQRModal from '../../../components/ActivityQRModal';
+import ActivityQRModal from '../../qr-attendance/ui/components/ActivityQRModal';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import Pagination from '../../../shared/components/common/Pagination';
 import ActivityCard from './components/Activities/ActivityCard';

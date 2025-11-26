@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, Award, AlertCircle, CheckCircle, Trophy, XCircle } from 'lucide-react';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import ActivityQRModal from '../../../components/ActivityQRModal';
+import ActivityQRModal from '../../qr-attendance/ui/components/ActivityQRModal';
 import useMyActivities from '../model/hooks/useMyActivities';
 import MyActivitiesHero from './components/Activities/MyActivitiesHero';
 import MyActivitiesToolbar from './components/Activities/MyActivitiesToolbar';

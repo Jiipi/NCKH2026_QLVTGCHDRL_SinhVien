@@ -31,7 +31,8 @@ class RejectRegistrationUseCase {
 
       await this.monitorRepository.updateRegistrationStatus(registrationId, 'tu_choi', {
         ly_do_tu_choi: reason || 'Bị từ chối',
-        ghi_chu: `REJECTED_BY:${userRole}|USER:${userId}`
+        ghi_chu: `REJECTED_BY:${userRole}|USER:${userId}`,
+        nguoi_duyet_id: userId
       });
 
       try {

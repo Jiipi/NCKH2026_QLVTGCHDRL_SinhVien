@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import adminRegistrationsApi from '../../admin/services/adminRegistrationsApi';
 import { extractActivitiesFromAxiosResponse } from '../../../shared/lib/apiNormalization';
-import useSemesterData from '../../../hooks/useSemesterData';
+import useSemesterData from '../../../shared/hooks/useSemesterData';
 
 export default function useAdminRegistrations() {
   const [registrations, setRegistrations] = useState([]);

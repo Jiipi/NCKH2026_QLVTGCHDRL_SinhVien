@@ -27,6 +27,7 @@ class AdminReportsRepository {
       return await prisma.hoatDong.findMany({
         where,
         select: {
+          id: true,
           ma_hd: true,
           ten_hd: true,
           diem_rl: true,
@@ -42,6 +43,7 @@ class AdminReportsRepository {
       return prisma.hoatDong.findMany({
         where,
         select: {
+          id: true,
           ma_hd: true,
           ten_hd: true,
           diem_rl: true,
@@ -149,6 +151,17 @@ class AdminReportsRepository {
         { ten_lop: 'asc' }
       ]
     });
+  }
+
+  async getAttendanceStats() {
+    const [total, coMat, vangMat, muon, veSom] = await Promise.all([
+      prisma.diemDanh.count(),
+      prisma.diemDanh.count({ where: { trang_thai_tham_gia: 'co_mat' } }),
+      prisma.diemDanh.count({ where: { trang_thai_tham_gia: 'vang_mat' } }),
+      prisma.diemDanh.count({ where: { trang_thai_tham_gia: 'muon' } }),
+      prisma.diemDanh.count({ where: { trang_thai_tham_gia: 've_som' } })
+    ]);
+    return { total, coMat, vangMat, muon, veSom };
   }
 }
 

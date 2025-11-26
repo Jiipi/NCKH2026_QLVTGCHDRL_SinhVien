@@ -79,8 +79,12 @@ class GetAttendanceReportUseCase {
 
     logInfo('Attendance report generated', { total, page, limit: actualLimit });
 
+    // Get overall stats
+    const stats = await this.repository.getAttendanceStats();
+
     return {
       attendance: transformedData,
+      stats,
       pagination: {
         page: parseInt(page),
         limit: actualLimit,

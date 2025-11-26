@@ -181,7 +181,10 @@ const usersRepository = {
    * Lấy thống kê users
    */
   async getStats() {
-    const [total, byRole, byStatus] = await Promise.all([
+    // Ngưỡng thời gian: 5 phút
+    const thresholdTime = new Date(Date.now() - 5 * 60 * 1000);
+    
+    const [total, byRole, byStatus, activeSessionUsers] = await Promise.all([
       prisma.nguoiDung.count(),
       prisma.nguoiDung.groupBy({
         by: ['vai_tro_id'],
@@ -190,13 +193,26 @@ const usersRepository = {
       prisma.nguoiDung.groupBy({
         by: ['trang_thai'],
         _count: true
+      }),
+      // Đếm số user có session active trong 5 phút gần đây
+      prisma.phienDangNhap.groupBy({
+        by: ['nguoi_dung_id'],
+        where: {
+          lan_hoat_dong: {
+            gte: thresholdTime
+          }
+        }
       })
     ]);
+
+    // Số user online (có session active)
+    const onlineCount = activeSessionUsers.length;
 
     return {
       total,
       byRole,
-      byStatus
+      byStatus,
+      online: onlineCount
     };
   }
 };

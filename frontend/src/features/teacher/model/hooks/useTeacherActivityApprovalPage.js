@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNotification } from '../../../../contexts/NotificationContext';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import teacherApprovalApi from '../../services/teacherApprovalApi';
 
 const getCurrentSemesterValue = () => {

@@ -6,7 +6,7 @@ import {
 import { getUserAvatar } from '../../../shared/lib/avatar';
 import { getBestActivityImage } from '../../../shared/lib/activityImages';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import ConfirmModal from '../../../components/ConfirmModal';
+import ConfirmModal from '../../../shared/components/common/ConfirmModal';
 import useAdminRegistrations from '../../admin/model/useAdminRegistrations';
 
 export default function AdminRegistrationsPage() {

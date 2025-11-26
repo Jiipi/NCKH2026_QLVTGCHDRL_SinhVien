@@ -21,13 +21,13 @@ import {
   Loader2
 } from 'lucide-react';
 import http from '../../../shared/api/http';
-import { useAppStore } from '../../../store/useAppStore';
+import { useAppStore } from '../../../shared/store';
 import { normalizeRole } from '../../../shared/lib/role';
-import { useMultiSession } from '../../../hooks/useMultiSession';
-import SessionMonitor from '../../../components/SessionMonitor';
+import { useMultiSession } from '../../../shared/hooks/useMultiSession';
+import SessionMonitor from '../../../shared/components/session/SessionMonitor';
 import sessionStorageManager from '../../../shared/api/sessionStorageManager';
 import { getUserAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
-import { useDebounce } from '../../../hooks/useDebounce';
+import { useDebounce } from '../../../shared/hooks/useDebounce';
 
 export default function ModernHeader({ isMobile, onMenuClick }) {
   const navigate = useNavigate();
@@ -340,7 +340,13 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Gọi API để xóa session trên server trước
+      await sessionStorageManager.sendSessionPing('logout');
+    } catch (err) {
+      console.warn('[Logout] Failed to notify server:', err);
+    }
     try {
       clearSession();
       sessionStorageManager.clearSession();

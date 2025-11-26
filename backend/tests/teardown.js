@@ -3,7 +3,7 @@
  * Runs once after all tests
  */
 
-const { prisma } = require('../src/config/database');
+const { prisma } = require('../src/data/infrastructure/prisma/client');
 
 module.exports = async () => {
   // Close database connections

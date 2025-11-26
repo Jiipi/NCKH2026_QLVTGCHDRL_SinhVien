@@ -4,7 +4,7 @@ import {
   Users, Calendar, Clock, Activity, AlertCircle, Trophy, MapPin, Filter, Zap, Target, Star
 } from 'lucide-react';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import SemesterClosureWidget from '../../../components/SemesterClosureWidget';
+import SemesterClosureWidget from '../../../shared/components/semester/SemesterClosureWidget';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
 import useMonitorDashboard from '../model/hooks/useMonitorDashboard';
 import DashboardProfileHeader from './components/Dashboard/DashboardProfileHeader';

@@ -10,7 +10,7 @@ import { mapActivityToUI, groupActivitiesByStatus } from '../mappers/teacher.map
 /**
  * Hook quản lý hoạt động của giáo viên
  */
-export default function useTeacherActivities({ initialSemester, initialLimit = 100 } = {}) {
+export default function useTeacherActivities({ initialSemester, initialLimit = 'all' } = {}) {
   const [semester, setSemester] = useState(initialSemester || '');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(initialLimit);

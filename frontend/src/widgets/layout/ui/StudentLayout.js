@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import StudentSidebar from '../../../components/StudentSidebar';
+import StudentSidebar from '../../../shared/components/layout/StudentSidebar';
 import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
-import MobileSidebarWrapper from '../../../components/MobileSidebarWrapper';
-import MobileMenuButton from '../../../components/MobileMenuButton';
+import MobileSidebarWrapper from '../../../shared/components/layout/MobileSidebarWrapper';
+import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton';
 
 export default function StudentLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {

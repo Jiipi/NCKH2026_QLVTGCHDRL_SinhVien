@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { monitorStudentManagementApi } from '../../services/monitorStudentManagementApi';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý sinh viên lớp

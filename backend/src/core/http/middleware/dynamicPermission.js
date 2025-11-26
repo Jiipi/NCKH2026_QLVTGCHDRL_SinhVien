@@ -189,6 +189,11 @@ function requireDynamicPermission(requiredPermission) {
         hasPermission = userPermissions.includes('notifications.write');
       }
 
+      // 5. Cho phép activities.create thay cho activities.write (áp dụng với lớp trưởng)
+      if (!hasPermission && requiredPermission === 'activities.write') {
+        hasPermission = userPermissions.includes('activities.create');
+      }
+
       if (!hasPermission) {
         // Clear cache để force refresh permissions từ database
         clearPermissionsCache(userId);

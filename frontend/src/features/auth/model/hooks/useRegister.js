@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
 import { mapClassesToUI, mapFacultiesToUI } from '../mappers/auth.mappers';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 
 /**
  * Hook quản lý đăng ký

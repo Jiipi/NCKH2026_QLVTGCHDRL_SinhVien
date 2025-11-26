@@ -33,7 +33,8 @@ class ApproveRegistrationUseCase {
 
     const updated = await this.registrationRepository.update(id, {
       trang_thai_dk: 'da_duyet',
-      ngay_duyet: new Date()
+      ngay_duyet: new Date(),
+      nguoi_duyet_id: user?.sub || user?.id
     });
 
     return updated;

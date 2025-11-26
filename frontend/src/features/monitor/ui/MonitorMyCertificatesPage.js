@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, X, Trophy } from 'lucide-react';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { useMonitorCertificates } from '../model/hooks/useMonitorCertificates';
 import CertificatesHeader from './components/Certificates/CertificatesHeader';
 import CertificateCard from './components/Certificates/CertificateCard';

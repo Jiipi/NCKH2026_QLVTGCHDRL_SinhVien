@@ -26,11 +26,34 @@ class UpdateUserUseCase {
       ? await this.adminUserRepository.updateUser(userId, updateData)
       : existingUser;
 
+    // Xử lý thông tin sinh viên: tạo mới nếu chưa có, cập nhật nếu đã có
     if (dto.student) {
-      if (!existingUser.sinh_vien) {
-        throw new Error('Người dùng này không có hồ sơ sinh viên để cập nhật');
+      const hasStudentData = dto.student.mssv || dto.student.ngay_sinh || dto.student.gt || 
+                             dto.student.dia_chi || dto.student.sdt || dto.student.lop_id;
+      
+      if (hasStudentData) {
+        if (existingUser.sinh_vien) {
+          // Cập nhật thông tin sinh viên đã có
+          await this.updateStudentProfile(existingUser.sinh_vien.id, dto.student);
+        } else {
+          // Tạo mới thông tin sinh viên nếu user chưa có
+          await this.createStudentProfile(userId, dto.student);
+        }
       }
-      await this.updateStudentProfile(existingUser.sinh_vien.id, dto.student);
+    }
+    
+    // Xử lý đặt làm lớp trưởng nếu có
+    if (dto.set_lop_truong && dto.student?.lop_id) {
+      const refreshedUser = await this.adminUserRepository.findUserById(userId, {
+        sinh_vien: true
+      });
+      if (refreshedUser.sinh_vien) {
+        await this.adminUserRepository.updateClassMonitor(
+          dto.student.lop_id, 
+          refreshedUser.sinh_vien.id, 
+          null
+        );
+      }
     }
 
     const refreshedUser = await this.adminUserRepository.findUserById(userId);
@@ -102,6 +125,37 @@ class UpdateUserUseCase {
   normalizeRole(role) {
     if (!role) return role;
     return ROLE_ALIASES[role] || role;
+  }
+
+  async createStudentProfile(userId, studentData) {
+    // Validation: cần có mssv và lop_id để tạo mới
+    if (!studentData.mssv || !studentData.lop_id) {
+      throw new Error('Cần có MSSV và Lớp để tạo thông tin sinh viên');
+    }
+
+    // Kiểm tra MSSV đã tồn tại chưa
+    const existingStudent = await this.adminUserRepository.findStudentByMssv(studentData.mssv);
+    if (existingStudent) {
+      throw new Error(`Mã số sinh viên "${studentData.mssv}" đã tồn tại trong hệ thống`);
+    }
+
+    const ngaySinh = studentData.ngay_sinh ? new Date(studentData.ngay_sinh) : new Date();
+    
+    const newStudent = await this.adminUserRepository.createStudent(
+      {
+        nguoi_dung_id: userId,
+        mssv: String(studentData.mssv),
+        ngay_sinh: ngaySinh,
+        gt: studentData.gt || 'nam',
+        lop_id: String(studentData.lop_id),
+        dia_chi: studentData.dia_chi || null,
+        sdt: studentData.sdt || null,
+        email: null // Email sẽ lấy từ nguoi_dung
+      },
+      null // Không cần transaction vì đã update user rồi
+    );
+
+    return newStudent;
   }
 
   async updateStudentProfile(studentId, studentData) {

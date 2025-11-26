@@ -9,7 +9,7 @@ import { studentDashboardApi } from '../../services/studentDashboardApi';
 import { studentActivitiesApi } from '../../services/studentActivitiesApi';
 import { studentProfileApi } from '../../services/studentProfileApi';
 import { mapDashboardToUI, groupActivitiesByStatus } from '../mappers/student.mappers';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 
 /**
  * Hook quản lý dashboard của sinh viên

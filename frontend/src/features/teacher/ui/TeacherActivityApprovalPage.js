@@ -1,8 +1,6 @@
 import React, { useCallback } from 'react';
-import ConfirmModal from '../../../components/ConfirmModal';
-import Toast from '../../../components/Toast';
+import { ConfirmModal, Toast, Pagination } from '../../../shared/components/common';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import Pagination from '../../../shared/components/common/Pagination';
 import useTeacherActivityApprovalPage from '../model/hooks/useTeacherActivityApprovalPage';
 import ActivityApprovalHero from './components/activity-approval/ActivityApprovalHero';
 import ActivityApprovalControls from './components/activity-approval/ActivityApprovalControls';
@@ -147,12 +145,15 @@ export default function TeacherActivityApprovalPage() {
         )}
       </div>
 
-      {filteredActivities.length > pagination.limit && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      {filteredActivities.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6">
+          <div className="text-sm text-gray-500 mb-3">
+            Hiển thị {Math.min((pagination.page - 1) * pagination.limit + 1, filteredActivities.length)}-{Math.min(pagination.page * pagination.limit, filteredActivities.length)} trên {filteredActivities.length} hoạt động
+          </div>
           <Pagination
             pagination={{ ...pagination, total: filteredActivities.length }}
             onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
-            onLimitChange={(limit) => setPagination({ page: 1, limit })}
+            onLimitChange={(limit) => setPagination({ page: 1, limit: Number(limit) })}
             itemLabel="hoạt động"
             showLimitSelector
           />

@@ -52,6 +52,10 @@ class AdminUserPrismaRepository extends IAdminUserRepository {
     return this.repository.upsertRole(roleName);
   }
 
+  async findStudentByMssv(mssv) {
+    return this.repository.findStudentByMssv(mssv);
+  }
+
   async createStudent(studentData, tx) {
     return this.repository.createStudent(studentData, tx);
   }

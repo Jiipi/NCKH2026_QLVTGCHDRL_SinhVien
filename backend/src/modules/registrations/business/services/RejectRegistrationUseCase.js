@@ -27,7 +27,9 @@ class RejectRegistrationUseCase {
 
     const updated = await this.registrationRepository.update(id, {
       trang_thai_dk: 'tu_choi',
-      ly_do: reason || 'Không đáp ứng yêu cầu'
+      ly_do: reason || 'Không đáp ứng yêu cầu',
+      ngay_duyet: new Date(),
+      nguoi_duyet_id: user?.sub || user?.id
     });
 
     return updated;

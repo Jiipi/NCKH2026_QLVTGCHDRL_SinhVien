@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../../../contexts/NotificationContext';
+import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { teacherStudentsApi, teacherClassesApi } from '../../services/teacherStudentsApi';
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { useMonitorNotifications } from '../model/hooks/useMonitorNotifications';
 import NotificationsHeader from './components/Notifications/NotificationsHeader';
 import NotificationTemplates from './components/Notifications/NotificationTemplates';

@@ -1,6 +1,6 @@
 import React from 'react';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import SemesterClosureBanner from '../../../components/SemesterClosureBanner';
+import SemesterClosureBanner from '../../../shared/components/semester/SemesterClosureBanner';
 import useStudentActivitiesList from '../model/hooks/useStudentActivitiesList';
 import ActivitiesListHero from './components/ActivitiesList/ActivitiesListHero';
 import ActivitiesListToolbar from './components/ActivitiesList/ActivitiesListToolbar';

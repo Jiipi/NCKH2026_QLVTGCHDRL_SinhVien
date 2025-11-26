@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, Clock, Users, Award, UserPlus, Eye, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import http from '../../../shared/api/http';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { getActivityImage, getDefaultActivityImage } from '../../../shared/lib/activityImages';
 
 export default function ActivityDetailModal({ activityId, isOpen, onClose }) {

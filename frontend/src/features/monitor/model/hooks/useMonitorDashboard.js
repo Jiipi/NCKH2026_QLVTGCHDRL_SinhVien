@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import useSemesterData from '../../../../hooks/useSemesterData';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import { monitorDashboardApi } from '../../services/monitorDashboardApi';
 import { studentDashboardApi } from '../../../student/services/studentDashboardApi';
 import { studentActivitiesApi } from '../../../student/services/studentActivitiesApi';

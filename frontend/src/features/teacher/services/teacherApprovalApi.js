@@ -1,16 +1,19 @@
 /**
- * Teacher Approval API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher approval features
- * Không chứa business logic
+ * Teacher Approval API Service (Tier 3: Data/API Layer)
+ * =====================================================
+ * Single Responsibility: HTTP calls for teacher approval only
+ * 
+ * @module features/teacher/services/teacherApprovalApi
  */
 
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Approval API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData,
+  extractArrayItems
+} from './apiErrorHandler';
 
 /**
  * Teacher Approval API
@@ -18,29 +21,35 @@ const handleError = (error) => {
 export const teacherApprovalApi = {
   /**
    * Lấy danh sách hoạt động chờ phê duyệt
+   * @param {Object} params - Query params
+   * @param {string} [params.semester] - Học kỳ
+   * @param {string} [params.search] - Từ khóa tìm kiếm
    */
   async getPending({ semester, search }) {
     try {
       const params = { page: 1, limit: 100 };
       if (semester) params.semester = semester;
       if (search) params.search = search;
+      
       const response = await http.get('/teacher/activities/pending', { params });
-      const data = response?.data?.data || response?.data || {};
-      const items = data.items || data.data || data || [];
-      return {
-        success: true,
-        data: {
-          items: Array.isArray(items) ? items : [],
-          stats: data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 }
-        }
-      };
+      const data = extractApiData(response, {});
+      const items = extractArrayItems(data);
+      
+      return createSuccessResponse({
+        items,
+        stats: data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 }
+      });
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Approval.getPending');
     }
   },
 
   /**
    * Lấy lịch sử phê duyệt
+   * @param {Object} params - Query params
+   * @param {string} [params.semester] - Học kỳ
+   * @param {string} [params.search] - Từ khóa tìm kiếm
+   * @param {string} [params.status] - Trạng thái
    */
   async getHistory({ semester, search, status }) {
     try {
@@ -48,54 +57,52 @@ export const teacherApprovalApi = {
       if (semester) params.semester = semester;
       if (search) params.search = search;
       if (status && status !== 'all') params.status = status;
+      
       const response = await http.get('/teacher/activities/history', { params });
-      const data = response?.data?.data || response?.data || {};
-      const items = data.items || data.data || data || [];
-      return {
-        success: true,
-        data: Array.isArray(items) ? items : []
-      };
+      const data = extractApiData(response, {});
+      const items = extractArrayItems(data);
+      
+      return createSuccessResponse(items);
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Approval.getHistory');
     }
   },
 
   /**
    * Phê duyệt hoạt động
+   * @param {string|number} id - ID hoạt động
    */
   async approve(id) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${id}/approve`);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Approval.approve');
     }
   },
 
   /**
    * Từ chối hoạt động
+   * @param {string|number} id - ID hoạt động
+   * @param {string} reason - Lý do từ chối
    */
   async reject(id, reason) {
+    if (!id) {
+      return createValidationError('id là bắt buộc');
+    }
+    if (!reason) {
+      return createValidationError('Lý do từ chối là bắt buộc');
+    }
+    
     try {
-      if (!id) {
-        return { success: false, error: 'id là bắt buộc' };
-      }
-      if (!reason) {
-        return { success: false, error: 'Lý do từ chối là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Approval.reject');
     }
   }
 };

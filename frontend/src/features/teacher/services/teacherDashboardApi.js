@@ -1,16 +1,18 @@
 /**
- * Teacher Dashboard API Service (Tầng 3: Data/API)
- * DUY NHẤT nơi gọi API cho teacher dashboard features
- * Không chứa business logic
+ * Teacher Dashboard API Service (Tier 3: Data/API Layer)
+ * ======================================================
+ * Single Responsibility: HTTP calls for teacher dashboard only
+ * 
+ * @module features/teacher/services/teacherDashboardApi
  */
 
 import http from '../../../shared/api/http';
-
-const handleError = (error) => {
-  const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
-  console.error('[Teacher Dashboard API Error]', { message, error });
-  return { success: false, error: message, code: error.response?.status || null };
-};
+import { 
+  handleApiError, 
+  createSuccessResponse, 
+  createValidationError,
+  extractApiData 
+} from './apiErrorHandler';
 
 /**
  * Teacher Dashboard API
@@ -18,63 +20,66 @@ const handleError = (error) => {
 export const teacherDashboardApi = {
   /**
    * Lấy dữ liệu dashboard của giáo viên
+   * @param {string} [semester] - Học kỳ
+   * @param {string} [classId] - ID lớp
    */
   async getDashboard(semester, classId) {
     try {
       const params = {};
       if (semester) params.semester = semester;
       if (classId) params.classId = classId;
-      const response = await http.get('/teacher/dashboard', Object.keys(params).length ? { params } : undefined);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      
+      const response = await http.get('/teacher/dashboard', 
+        Object.keys(params).length ? { params } : undefined
+      );
+      
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Dashboard');
     }
   },
 
   /**
    * Phê duyệt hoạt động
+   * @param {string|number} activityId - ID hoạt động
    */
   async approveActivity(activityId) {
+    if (!activityId) {
+      return createValidationError('activityId là bắt buộc');
+    }
+    
     try {
-      if (!activityId) {
-        return { success: false, error: 'activityId là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${activityId}/approve`);
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Dashboard.approveActivity');
     }
   },
 
   /**
    * Từ chối hoạt động
+   * @param {string|number} activityId - ID hoạt động
+   * @param {string} reason - Lý do từ chối
    */
   async rejectActivity(activityId, reason) {
+    if (!activityId) {
+      return createValidationError('activityId là bắt buộc');
+    }
+    if (!reason) {
+      return createValidationError('Lý do từ chối là bắt buộc');
+    }
+    
     try {
-      if (!activityId) {
-        return { success: false, error: 'activityId là bắt buộc' };
-      }
-      if (!reason) {
-        return { success: false, error: 'Lý do từ chối là bắt buộc' };
-      }
       const response = await http.post(`/teacher/activities/${activityId}/reject`, { reason });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Dashboard.rejectActivity');
     }
   },
 
   /**
    * Lấy thống kê báo cáo (overview) theo học kỳ
+   * @param {Object} [params] - Query params
    */
   async getReportStatistics(params = {}) {
     try {
@@ -82,13 +87,11 @@ export const teacherDashboardApi = {
       if (query.semester === 'all' || !query.semester) {
         delete query.semester;
       }
+      
       const response = await http.get('/teacher/reports/statistics', { params: query });
-      return {
-        success: true,
-        data: response?.data?.data || response?.data || {}
-      };
+      return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
-      return handleError(error);
+      return handleApiError(error, 'Dashboard.getReportStatistics');
     }
   }
 };

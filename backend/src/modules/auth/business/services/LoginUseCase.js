@@ -40,8 +40,11 @@ class LoginUseCase {
     }
 
     // Check account status
+    if (user.trang_thai === 'khoa') {
+      throw new UnauthorizedError('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+    }
     if (user.trang_thai !== 'hoat_dong') {
-      throw new UnauthorizedError('Tài khoản đã bị khóa');
+      throw new UnauthorizedError('Tài khoản không hoạt động');
     }
 
     // Update login info

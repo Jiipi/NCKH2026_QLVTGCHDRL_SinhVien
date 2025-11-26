@@ -4,9 +4,9 @@ import {
   CheckCircle, XCircle, Filter, List, Tag, Grid3X3, 
   Clock, Sparkles, SlidersHorizontal, RefreshCw, X
 } from 'lucide-react';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification } from '../../../shared/contexts/NotificationContext';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import ActivityTypesManagementPage from '../../activity-types/pages/ActivityTypesManagementPage';
+import ActivityTypesManagementPage from '../../activity-types/ui/ActivityTypesManagementPage';
 import useTeacherActivitiesPage from '../model/hooks/useTeacherActivitiesPage';
 import { getBestActivityImage } from '../../../shared/lib/activityImages';
 import TeacherActivitiesHeroInline from './components/activities-management/TeacherActivitiesHeroInline';
@@ -98,7 +98,7 @@ export default function TeacherActivitiesPage() {
 
       {/* Content based on active tab */}
       {activeTab === 'types' ? (
-          <ActivityTypesManagementPage />
+          <ActivityTypesManagementPage showHeader={false} />
       ) : (
         <>
           {/* Filters */}

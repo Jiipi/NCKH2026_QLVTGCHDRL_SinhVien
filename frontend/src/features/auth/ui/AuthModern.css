@@ -772,3 +772,7 @@ label {
     background-color: Canvas;
   }
 }
+
+body {
+  font-family: "Be Vietnam Pro", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}

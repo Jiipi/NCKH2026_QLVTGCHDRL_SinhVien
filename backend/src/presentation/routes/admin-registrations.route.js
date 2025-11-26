@@ -69,7 +69,8 @@ router.get('/', async (req, res) => {
         where,
         include: {
           sinh_vien: { include: { nguoi_dung: true, lop: true } },
-          hoat_dong: true
+          hoat_dong: true,
+          nguoi_duyet: { include: { vai_tro: true } }
         },
         orderBy: { ngay_dang_ky: 'desc' },
         skip,
@@ -124,11 +125,20 @@ router.get('/export', async (req, res) => {
 router.post('/:id/approve', async (req, res) => {
   try {
     const { id } = req.params;
+    const nguoiDuyetId = req.user?.sub;
     const updated = await prisma.dangKyHoatDong.update({
       where: { id },
-      data: { trang_thai_dk: 'da_duyet', ly_do_tu_choi: null, ngay_duyet: new Date() }
+      data: { 
+        trang_thai_dk: 'da_duyet', 
+        ly_do_tu_choi: null, 
+        ngay_duyet: new Date(),
+        nguoi_duyet_id: nguoiDuyetId 
+      },
+      include: {
+        nguoi_duyet: { include: { vai_tro: true } }
+      }
     });
-    logInfo('Admin approved registration', { id, by: req.user?.sub });
+    logInfo('Admin approved registration', { id, by: nguoiDuyetId });
     return sendResponse(res, 200, ApiResponse.success(updated, 'Phê duyệt đăng ký thành công'));
   } catch (error) {
     logError('Admin approve registration error', error);
@@ -144,11 +154,20 @@ router.post('/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body || {};
+    const nguoiDuyetId = req.user?.sub;
     const updated = await prisma.dangKyHoatDong.update({
       where: { id },
-      data: { trang_thai_dk: 'tu_choi', ly_do_tu_choi: reason || null, ngay_duyet: new Date() }
+      data: { 
+        trang_thai_dk: 'tu_choi', 
+        ly_do_tu_choi: reason || null, 
+        ngay_duyet: new Date(),
+        nguoi_duyet_id: nguoiDuyetId 
+      },
+      include: {
+        nguoi_duyet: { include: { vai_tro: true } }
+      }
     });
-    logInfo('Admin rejected registration', { id, by: req.user?.sub });
+    logInfo('Admin rejected registration', { id, by: nguoiDuyetId });
     return sendResponse(res, 200, ApiResponse.success(updated, 'Từ chối đăng ký thành công'));
   } catch (error) {
     logError('Admin reject registration error', error);

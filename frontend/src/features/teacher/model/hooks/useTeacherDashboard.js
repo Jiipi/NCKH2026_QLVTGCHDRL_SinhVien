@@ -1,6 +1,9 @@
 /**
- * Teacher Dashboard Hook (Tầng 2: Business Logic)
- * Xử lý logic nghiệp vụ cho dashboard giáo viên
+ * Teacher Dashboard Hook (Tier 2: Business Logic Layer)
+ * =====================================================
+ * Single Responsibility: Dashboard state and business logic only
+ * 
+ * @module features/teacher/model/hooks/useTeacherDashboard
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -8,17 +11,12 @@ import { teacherDashboardApi } from '../../services/teacherDashboardApi';
 import { teacherActivitiesApi } from '../../services/teacherActivitiesApi';
 import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi';
 import { mapDashboardToUI } from '../mappers/teacher.mappers';
-
-const dedupeById = (items = []) => {
-  const seen = new Set();
-  return items.filter((item) => {
-    const key = item.id || item.dk_id || item.registrationId;
-    if (!key) return true;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
+import { 
+  dedupeById, 
+  isWithinDays, 
+  toFiniteNumber, 
+  devLog 
+} from '../utils/teacherUtils';
 
 /**
  * Hook quản lý dashboard của giáo viên
@@ -81,7 +79,7 @@ export default function useTeacherDashboard({ semester, classId }) {
       }
       try {
         const [activitiesRes, reportsRes, pendingRegistrationsListRes, approvedRegistrationsListRes] = await Promise.all([
-          teacherActivitiesApi.listActivities({ page: 1, limit: 200, semester }),
+          teacherActivitiesApi.listActivities({ page: 1, limit: 'all', semester }),
           teacherDashboardApi.getReportStatistics({ semester }),
           teacherRegistrationsApi.listRegistrations({ status: 'cho_duyet', semester, limit: 500 }),
           teacherRegistrationsApi.listRegistrations({ status: 'da_duyet', semester, limit: 500 })
@@ -106,9 +104,7 @@ export default function useTeacherDashboard({ semester, classId }) {
           .filter(activity => activity.trang_thai === 'da_duyet')
           .filter(activity => {
             const date = activity.ngay_cap_nhat || activity.ngay_duyet || activity.ngay_bd;
-            if (!date) return false;
-            const diff = Date.now() - new Date(date).getTime();
-            return diff <= 7 * 24 * 60 * 60 * 1000;
+            return isWithinDays(date, 7);
           })
           .length;
 
@@ -117,9 +113,7 @@ export default function useTeacherDashboard({ semester, classId }) {
           : [];
         const approvedRegistrationsThisWeek = approvedRegistrationsList.filter((registration) => {
           const date = registration.ngay_duyet || registration.updated_at || registration.updatedAt;
-          if (!date) return false;
-          const diff = Date.now() - new Date(date).getTime();
-          return diff <= 7 * 24 * 60 * 60 * 1000;
+          return isWithinDays(date, 7);
         }).length;
 
         const derivedApprovedThisWeek = approvedActivitiesThisWeek + approvedRegistrationsThisWeek;

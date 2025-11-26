@@ -1,5 +1,4 @@
 const { NotFoundError, ValidationError, ForbiddenError } = require('../../../../core/errors/AppError');
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
 const CreateRegistrationDto = require('../../../registrations/business/dto/CreateRegistrationDto');
 
 /**
@@ -8,16 +7,24 @@ const CreateRegistrationDto = require('../../../registrations/business/dto/Creat
  * Follows Single Responsibility Principle (SRP)
  */
 class RegisterActivityUseCase {
-  constructor(createRegistrationUseCase) {
+  constructor(createRegistrationUseCase, activityRepository = null) {
     this.createRegistrationUseCase = createRegistrationUseCase;
+    this.activityRepository = activityRepository;
   }
 
   async execute(activityId, user) {
-    // Get student ID from user ID
-    const student = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: user.sub },
-      select: { id: true }
-    });
+    // Get student ID from user ID using repository if available
+    let student;
+    if (this.activityRepository && this.activityRepository.findStudentByUserId) {
+      student = await this.activityRepository.findStudentByUserId(user.sub);
+    } else {
+      // Fallback to direct prisma (for backward compatibility)
+      const { prisma } = require('../../../../data/infrastructure/prisma/client');
+      student = await prisma.sinhVien.findUnique({
+        where: { nguoi_dung_id: user.sub },
+        select: { id: true }
+      });
+    }
     
     if (!student) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');

@@ -4,7 +4,7 @@ import {
   CheckCircle, XCircle, Sparkles, Trophy
 } from 'lucide-react';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import ActivityQRModal from '../../../components/ActivityQRModal';
+import ActivityQRModal from '../../qr-attendance/ui/components/ActivityQRModal';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
 import Pagination from '../../../shared/components/common/Pagination';
 import useMyActivities from '../../student/model/hooks/useMyActivities';

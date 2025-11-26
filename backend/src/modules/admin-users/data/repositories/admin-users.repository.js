@@ -64,10 +64,12 @@ const adminUsersRepository = {
   },
 
   async findExistingUserByCredentials(maso, email) {
+    // Tìm trong bảng nguoiDung theo ten_dn (maso được dùng làm ten_dn) hoặc email
+    // Lưu ý: mssv chỉ có trong bảng sinh_vien, không có trong nguoiDung
     return prisma.nguoiDung.findFirst({
       where: {
         OR: [
-          { mssv: maso },
+          { ten_dn: maso },
           { email }
         ]
       }
@@ -100,6 +102,12 @@ const adminUsersRepository = {
       where: { ten_vt: roleName },
       update: {},
       create: { ten_vt: roleName }
+    });
+  },
+
+  async findStudentByMssv(mssv) {
+    return prisma.sinhVien.findFirst({
+      where: { mssv }
     });
   },
 

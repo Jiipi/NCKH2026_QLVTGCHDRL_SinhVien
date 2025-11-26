@@ -33,7 +33,8 @@ const updateAdminUserSchema = z.object({
   role: z.string().optional(),
   maso: z.string().min(3).optional(),
   trang_thai: z.enum(['hoat_dong', 'khong_hoat_dong', 'khoa']).optional(),
-  student: studentUpdateSchema.optional()
+  student: studentUpdateSchema.optional(),
+  set_lop_truong: z.boolean().optional()
 });
 
 module.exports = {
