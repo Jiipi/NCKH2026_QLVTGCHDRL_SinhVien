@@ -6,20 +6,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { monitorReportsApi } from '../../services/monitorReportsApi';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 /**
  * Hook quản lý reports
  */
 export function useMonitorReports() {
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-    else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-    else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-    else return `hoc_ky_1-${currentYear}`;
-  };
-
   const [semester, setSemester] = useState(getCurrentSemesterValue());
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);

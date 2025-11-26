@@ -20,7 +20,8 @@ export default function RegistrationCard({
   onToggleSelect,
   onApprove,
   onReject,
-  onViewDetails
+  onViewDetails,
+  isWritable = true
 }) {
   const student = registration.sinh_vien?.nguoi_dung;
   const activity = registration.hoat_dong;
@@ -130,7 +131,7 @@ export default function RegistrationCard({
               </div>
             </div>
             <div className="flex flex-col justify-center gap-2 flex-shrink-0">
-              {isPending && registration.canProcess !== false ? (
+              {isPending && registration.canProcess !== false && isWritable ? (
                 <>
                   <button 
                     onClick={() => onApprove(registration)} 
@@ -266,7 +267,7 @@ export default function RegistrationCard({
           </div>
         </div>
         <div className="p-3 pt-0 mt-auto flex gap-2">
-          {isPending && registration.canProcess !== false ? (
+          {isPending && registration.canProcess !== false && isWritable ? (
             <>
               <button 
                 onClick={() => onApprove(registration)} 

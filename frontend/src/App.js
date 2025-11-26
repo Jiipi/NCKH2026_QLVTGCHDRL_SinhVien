@@ -72,6 +72,7 @@ import MonitorApprovalsPage from './features/monitor/ui/MonitorApprovalsPage';
 import ClassNotificationsPage from './features/monitor/ui/ClassNotificationsPage';
 import { useAppStore } from './shared/store';
 import { NotificationProvider } from './shared/contexts/NotificationContext';
+import { SemesterProvider } from './shared/contexts/SemesterContext';
 import { useSessionTracking } from './shared/hooks/useSessionTracking';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
 // Modern auth pages (legacy path kept due to different shared structure)
@@ -215,8 +216,11 @@ function App() {
       NotificationProvider,
       null,
       React.createElement(
-        BrowserRouter,
+        SemesterProvider,
         null,
+        React.createElement(
+          BrowserRouter,
+          null,
       React.createElement(
         'div',
         { style: { minHeight: '100vh' } },
@@ -310,6 +314,7 @@ function App() {
           React.createElement(Route, { key: 'router-catchall', path: '*', element: React.createElement(RoleGuard, { allow: ['ADMIN','GIANG_VIEN','LOP_TRUONG','SINH_VIEN','STUDENT'], element: React.createElement(HomeRouter) }) })
         )
       )
+    )
     )
     )
   );

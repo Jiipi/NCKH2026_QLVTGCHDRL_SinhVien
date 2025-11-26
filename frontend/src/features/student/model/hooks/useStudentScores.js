@@ -36,12 +36,19 @@ export default function useStudentScores() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Initialize semester
+  // Initialize semester when options are loaded
   useEffect(() => {
-    if (currentSemester && !userSelectedSemester && !semester) {
-      setSemester(currentSemester);
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
     }
-  }, [currentSemester, userSelectedSemester, semester]);
+  }, [semesterOptions, currentSemester, semester]);
 
   // Business logic: Handle semester change
   const handleSemesterChange = useCallback((newSemester) => {

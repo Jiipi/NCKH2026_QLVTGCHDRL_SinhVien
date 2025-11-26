@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { getSemesterDataDir, getMetadataPath } = require('../../core/utils/paths');
 const { prisma } = require('../../data/infrastructure/prisma/client');
-const { determineSemesterFromDate, parseSemesterString } = require('../../core/utils/semester');
+const { determineSemesterFromDate, parseSemesterString, normalizeSemesterFormat } = require('../../core/utils/semester');
 
 // Use configurable dir (env) or OS temp as safe writable default
 const DATA_DIR = getSemesterDataDir();
@@ -12,19 +12,26 @@ function ensureDir(p) { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true
 
 function semesterKeyFromInfo({ semester, year }) {
   const hk = semester === 'hoc_ky_1' ? 'HK1' : 'HK2';
-  return `${hk}-${year}`;
+  return `${hk}_${year}`; // Changed to underscore for consistency
 }
 
 function getCurrentSemesterInfo() {
   // Ưu tiên đọc từ metadata (học kỳ đã được admin kích hoạt)
   const active = readActiveSemesterFromMetadata();
-  if (active && /^hoc_ky_[12]-\d{4}$/.test(active)) {
-    const [hk, y] = active.split('-');
-    return { semester: hk, year: y };
+  // Support both formats: hoc_ky_1_2025 (new) and hoc_ky_1-2025 (legacy)
+  if (active && /^hoc_ky_[12][_-]\d{4}$/.test(active)) {
+    // Normalize to underscore format
+    const normalized = normalizeSemesterFormat(active);
+    if (normalized) {
+      const match = normalized.match(/^hoc_ky_([12])_(\d{4})$/);
+      if (match) {
+        return { semester: `hoc_ky_${match[1]}`, year: match[2], value: normalized };
+      }
+    }
   }
   // Fallback: tính từ ngày hiện tại nếu không có metadata
   const info = determineSemesterFromDate(new Date());
-  return { semester: info.semester, year: info.year };
+  return { semester: info.semester, year: info.year, value: info.value };
 }
 
 function stateFilePath(classId, semInfo) {
@@ -68,7 +75,18 @@ function readState(classId, semInfo) {
     }
     // If there's no state file, infer default by global active semester
     const active = readActiveSemesterFromMetadata();
-    const isActive = active && active === `${semInfo.semester}-${semInfo.year}`;
+    const currentSemesterValue = `${semInfo.semester}-${semInfo.year}`;
+    
+    // Nếu không có metadata, tính học kỳ từ ngày hiện tại
+    const currentFromDate = determineSemesterFromDate(new Date());
+    const calculatedValue = `${currentFromDate.semester}-${currentFromDate.year}`;
+    
+    // Học kỳ được coi là ACTIVE nếu:
+    // 1. Khớp với active_semester trong metadata, hoặc
+    // 2. Không có metadata và khớp với học kỳ tính từ ngày hiện tại
+    const isActive = (active && active === currentSemesterValue) || 
+                     (!active && currentSemesterValue === calculatedValue);
+    
     return {
       classId,
       semester: semInfo.semester,
@@ -104,9 +122,10 @@ async function computeSnapshot(classId, semInfo) {
   const studentIds = students.map(s => s.id);
   // 2) list activities in semester
   const hoc_ky = semInfo.semester;
-  const nam_hoc_contains = semInfo.year;
+  // Data đã chuẩn hóa sang năm đơn, dùng exact match
+  const nam_hoc = semInfo.year;
   const activities = await prisma.hoatDong.findMany({
-    where: { hoc_ky, nam_hoc: { contains: nam_hoc_contains } },
+    where: { hoc_ky, nam_hoc },
     select: { id: true, ten_hd: true, ngay_bd: true, ngay_kt: true, hoc_ky: true, nam_hoc: true, loai_hd_id: true, diem_rl: true }
   });
   const activityIds = activities.map(a => a.id);
@@ -248,7 +267,8 @@ const SemesterClosureService = {
     if (['LOCKED_HARD', 'ARCHIVED'].includes(state.state)) throw new Error('ALREADY_LOCKED');
     // checklist: ensure no pending registrations for class students within semester
     const students = await prisma.sinhVien.findMany({ where: { lop_id: classId }, select: { id: true } });
-    const activityIds = (await prisma.hoatDong.findMany({ where: { hoc_ky: semInfo.semester, nam_hoc: { contains: semInfo.year } }, select: { id: true } })).map(a => a.id);
+    // Data đã chuẩn hóa sang năm đơn
+    const activityIds = (await prisma.hoatDong.findMany({ where: { hoc_ky: semInfo.semester, nam_hoc: semInfo.year }, select: { id: true } })).map(a => a.id);
     const pending = await prisma.dangKyHoatDong.count({ where: { sv_id: { in: students.map(s => s.id) }, hd_id: { in: activityIds }, trang_thai_dk: { in: ['cho_duyet', 'tu_choi'] } } });
     if (pending > 0) throw new Error('CHECKLIST_PENDING_REGISTRATIONS');
     // snapshot

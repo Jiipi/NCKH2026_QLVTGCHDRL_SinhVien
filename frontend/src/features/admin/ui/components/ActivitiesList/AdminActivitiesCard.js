@@ -10,7 +10,8 @@ import {
   CheckCircle,
   XCircle,
   Trophy,
-  Sparkles
+  Sparkles,
+  Lock
 } from 'lucide-react';
 import { getActivityImage } from '../../../../../shared/lib/activityImages';
 
@@ -37,7 +38,8 @@ export default function AdminActivitiesCard({
   onEdit,
   onDelete,
   onApprove,
-  onReject
+  onReject,
+  isWritable = true
 }) {
   const {
     startDate,
@@ -123,12 +125,16 @@ export default function AdminActivitiesCard({
                     icon={CheckCircle}
                     label="Duyệt"
                     gradient="from-emerald-600 to-teal-600"
+                    disabled={!isWritable}
+                    disabledTitle="Không thể duyệt hoạt động cho học kỳ đã đóng"
                   />
                   <ActionButton
                     onClick={() => onReject(activity.id, activity.ten_hd)}
                     icon={XCircle}
                     label="Từ chối"
                     gradient="from-rose-600 to-red-600"
+                    disabled={!isWritable}
+                    disabledTitle="Không thể từ chối hoạt động cho học kỳ đã đóng"
                   />
                 </>
               ) : (
@@ -138,12 +144,16 @@ export default function AdminActivitiesCard({
                     icon={Edit}
                     label="Sửa"
                     variant="outline"
+                    disabled={!isWritable}
+                    disabledTitle="Không thể sửa hoạt động cho học kỳ đã đóng"
                   />
                   <ActionButton
                     onClick={() => onDelete(activity.id, activity.ten_hd)}
                     icon={Trash2}
                     label="Xóa"
                     variant="danger"
+                    disabled={!isWritable}
+                    disabledTitle="Không thể xóa hoạt động cho học kỳ đã đóng"
                   />
                 </>
               )}
@@ -234,6 +244,8 @@ export default function AdminActivitiesCard({
                 label="Duyệt"
                 gradient="from-emerald-600 to-teal-600"
                 fullWidth
+                disabled={!isWritable}
+                disabledTitle="Không thể duyệt hoạt động cho học kỳ đã đóng"
               />
               <ActionButton
                 onClick={() => onReject(activity.id, activity.ten_hd)}
@@ -241,6 +253,8 @@ export default function AdminActivitiesCard({
                 label="Từ chối"
                 gradient="from-rose-600 to-red-600"
                 fullWidth
+                disabled={!isWritable}
+                disabledTitle="Không thể từ chối hoạt động cho học kỳ đã đóng"
               />
             </div>
           ) : (
@@ -251,6 +265,8 @@ export default function AdminActivitiesCard({
                 label="Sửa"
                 variant="outline"
                 fullWidth
+                disabled={!isWritable}
+                disabledTitle="Không thể sửa hoạt động cho học kỳ đã đóng"
               />
               <ActionButton
                 onClick={() => onDelete(activity.id, activity.ten_hd)}
@@ -258,6 +274,8 @@ export default function AdminActivitiesCard({
                 label="Xóa"
                 variant="danger"
                 fullWidth
+                disabled={!isWritable}
+                disabledTitle="Không thể xóa hoạt động cho học kỳ đã đóng"
               />
             </div>
           )}
@@ -318,14 +336,27 @@ function InfoRow({ icon: Icon, label, subLabel }) {
   );
 }
 
-function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth }) {
-  const baseClasses = "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm shadow-sm hover:shadow-md transition-all duration-200 whitespace-nowrap";
+function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth, disabled = false, disabledTitle }) {
+  const baseClasses = "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm shadow-sm transition-all duration-200 whitespace-nowrap";
+  
+  if (disabled) {
+    return (
+      <button
+        disabled
+        title={disabledTitle || 'Không thể thực hiện cho học kỳ đã đóng'}
+        className={`${baseClasses} bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed ${fullWidth ? 'flex-1' : ''}`}
+      >
+        <Lock className="h-4 w-4" />
+        <span>{label}</span>
+      </button>
+    );
+  }
   
   if (variant === 'outline') {
     return (
       <button
         onClick={onClick}
-        className={`${baseClasses} bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 ${fullWidth ? 'flex-1' : ''}`}
+        className={`${baseClasses} bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:shadow-md ${fullWidth ? 'flex-1' : ''}`}
       >
         <Icon className="h-4 w-4" />
         <span>{label}</span>
@@ -337,7 +368,7 @@ function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth
     return (
       <button
         onClick={onClick}
-        className={`${baseClasses} bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 ${fullWidth ? 'flex-1' : ''}`}
+        className={`${baseClasses} bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 hover:shadow-md ${fullWidth ? 'flex-1' : ''}`}
       >
         <Icon className="h-4 w-4" />
         <span>{label}</span>
@@ -348,7 +379,7 @@ function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth
   return (
     <button
       onClick={onClick}
-      className={`${baseClasses} bg-gradient-to-r ${gradient} text-white ${fullWidth ? 'flex-1' : ''}`}
+      className={`${baseClasses} bg-gradient-to-r ${gradient} text-white hover:shadow-md ${fullWidth ? 'flex-1' : ''}`}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>

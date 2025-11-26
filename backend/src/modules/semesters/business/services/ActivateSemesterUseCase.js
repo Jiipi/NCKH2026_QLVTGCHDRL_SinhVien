@@ -6,27 +6,25 @@
 
 const fs = require('fs');
 const path = require('path');
+const { normalizeSemesterFormat } = require('../../../../core/utils/semester');
 
 class ActivateSemesterUseCase {
   /**
    * Execute use case
-   * @param {string} semester - Semester string (e.g., 'hoc_ky_1-2024' or 'hoc_ky_1_2025')
+   * @param {string} semester - Semester string (e.g., 'hoc_ky_1_2024' or 'hoc_ky_1-2025' legacy)
    * @param {Object} user - User object with sub/id
    * @returns {Promise<Object>} Result with success flag and data
    */
   async execute(semester, user) {
-    // Accept both formats:
-    // - hoc_ky_1-2024 (legacy dash format)
-    // - hoc_ky_1_2025 (new underscore format from dropdown)
-    if (!semester || !/^hoc_ky_[12][-_]\d{4}$/.test(semester)) {
+    // Normalize to standard format: hoc_ky_X_YYYY (underscore)
+    const normalizedSemester = normalizeSemesterFormat(semester);
+    
+    if (!normalizedSemester) {
       return {
         success: false,
-        message: 'Format học kỳ không hợp lệ. Ví dụ: hoc_ky_1-2024 hoặc hoc_ky_1_2025',
+        message: 'Format học kỳ không hợp lệ. Ví dụ: hoc_ky_1_2024 hoặc hoc_ky_2_2025',
       };
     }
-
-    // Normalize to dash format for consistency
-    const normalizedSemester = semester.replace(/_(\d{4})$/, '-$1');
 
     const dataDir = path.join(process.cwd(), 'data', 'semesters');
     

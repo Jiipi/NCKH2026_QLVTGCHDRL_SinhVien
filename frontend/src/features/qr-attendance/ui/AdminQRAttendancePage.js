@@ -96,10 +96,10 @@ export default function AdminQRAttendancePage() {
   const filteredActivitiesForQR = useMemo(() => {
     if (!qrSemester) return [];
     
-    // Parse semester string: "hoc_ky_1-2025" -> { hoc_ky: "hoc_ky_1", nam_hoc: "2025" }
-    const parts = qrSemester.split('-');
-    if (parts.length !== 2) return [];
-    const [hocKy, namHoc] = parts;
+    // Parse semester string: "hoc_ky_1_2025" or "hoc_ky_1-2025" -> { hoc_ky: "hoc_ky_1", nam_hoc: "2025" }
+    const match = qrSemester.match(/^(hoc_ky_[12])[_-](\d{4})$/);
+    if (!match) return [];
+    const [, hocKy, namHoc] = match;
     
     return activities.filter(a => {
       if (a.trang_thai !== 'da_duyet') return false;

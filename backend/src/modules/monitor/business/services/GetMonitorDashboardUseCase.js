@@ -1,5 +1,6 @@
 const { parseSemesterString } = require('../../../../core/utils/semester');
 const { logInfo, logError } = require('../../../../core/logger');
+const { countClassActivities } = require('../../../../core/utils/classActivityCounter');
 
 /**
  * GetMonitorDashboardUseCase
@@ -56,8 +57,12 @@ class GetMonitorDashboardUseCase {
         this.monitorRepository.findClassRegistrationsForPoints(classId, baseActivityFilter)
       ]);
 
-      const uniqueActivities = [...new Set(classRegistrationsForCount.map(r => r.hd_id))];
-      const totalActivities = uniqueActivities.length;
+      // Đếm tổng hoạt động của lớp theo chuẩn:
+      // Tất cả hoạt động da_duyet/ket_thuc do SV/GVCN của lớp tạo
+      const semesterFilter = semInfo && semInfo.year 
+        ? { hoc_ky: semInfo.semester, nam_hoc: semInfo.year }
+        : {};
+      const totalActivities = await countClassActivities(classId, semesterFilter);
 
       const pointsByStudent = new Map();
       const countByStudent = new Map();

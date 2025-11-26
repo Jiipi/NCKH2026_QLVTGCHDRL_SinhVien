@@ -2,6 +2,9 @@
  * Utility functions for semester calculations
  * Xác định học kỳ dựa trên ngày tháng thực tế
  * 
+ * CHUẨN HÓA FORMAT: hoc_ky_X_YYYY (underscore, không dùng dash)
+ * Ví dụ: hoc_ky_1_2025, hoc_ky_2_2025
+ * 
  * Logic:
  * - HK1: Tháng 7-11 (July - November)
  * - HK2: Tháng 12-4 (December - April)
@@ -9,9 +12,44 @@
  */
 
 /**
+ * Normalize semester string to standard format: hoc_ky_X_YYYY
+ * Accepts: hoc_ky_1-2025, hoc_ky_1_2025, hoc_ky_12025
+ * @param {string} semesterStr - Input semester string
+ * @returns {string|null} - Normalized format or null if invalid
+ */
+function normalizeSemesterFormat(semesterStr) {
+  if (!semesterStr) return null;
+  
+  // Already correct format
+  const correctMatch = semesterStr.match(/^hoc_ky_([12])_(\d{4})$/);
+  if (correctMatch) return semesterStr;
+  
+  // Legacy dash format: hoc_ky_1-2025 -> hoc_ky_1_2025
+  const dashMatch = semesterStr.match(/^hoc_ky_([12])-(\d{4})$/);
+  if (dashMatch) return `hoc_ky_${dashMatch[1]}_${dashMatch[2]}`;
+  
+  // Compact format without separator: hoc_ky_12025 -> hoc_ky_1_2025
+  const compactMatch = semesterStr.match(/^hoc_ky_([12])(\d{4})$/);
+  if (compactMatch) return `hoc_ky_${compactMatch[1]}_${compactMatch[2]}`;
+  
+  return null;
+}
+
+/**
+ * Build semester value from components
+ * @param {string} hocKy - 'hoc_ky_1' or 'hoc_ky_2'
+ * @param {string|number} year - Year as YYYY
+ * @returns {string} - Format: hoc_ky_X_YYYY
+ */
+function buildSemesterValue(hocKy, year) {
+  const hkNum = hocKy.replace('hoc_ky_', '');
+  return `hoc_ky_${hkNum}_${year}`;
+}
+
+/**
  * Xác định học kỳ và năm học từ một ngày cụ thể
  * @param {Date} date - Ngày cần xác định học kỳ
- * @returns {Object} - { semester: 'hoc_ky_1' | 'hoc_ky_2', yearLabel: 'YYYY-YYYY', year: 'YYYY' }
+ * @returns {Object} - { semester: 'hoc_ky_1' | 'hoc_ky_2', yearLabel: 'YYYY-YYYY', year: 'YYYY', value: 'hoc_ky_X_YYYY' }
  */
 function determineSemesterFromDate(date) {
   const month = date.getMonth() + 1; // 1-12
@@ -41,7 +79,12 @@ function determineSemesterFromDate(date) {
     targetYear = year.toString();
   }
   
-  return { semester, yearLabel, year: targetYear };
+  return { 
+    semester, 
+    yearLabel, 
+    year: targetYear,
+    value: buildSemesterValue(semester, targetYear)
+  };
 }
 
 /**
@@ -54,14 +97,18 @@ function getCurrentSemester() {
 
 /**
  * Parse semester string từ query parameter
- * @param {string} semesterStr - Format: 'hoc_ky_1-2025' hoặc 'hoc_ky_2-2024'
- * @returns {Object|null} - { semester: 'hoc_ky_1', year: '2025' } hoặc null nếu invalid
+ * Hỗ trợ nhiều format: hoc_ky_1_2025, hoc_ky_1-2025, hoc_ky_12025
+ * @param {string} semesterStr - Format: 'hoc_ky_1_2025' (chuẩn) hoặc 'hoc_ky_1-2025' (legacy)
+ * @returns {Object|null} - { semester: 'hoc_ky_1', year: '2025', value: 'hoc_ky_1_2025' } hoặc null nếu invalid
  */
 function parseSemesterString(semesterStr) {
   if (!semesterStr || semesterStr === 'current') {
     return getCurrentSemester();
   }
 
+  // Normalize first
+  const normalized = normalizeSemesterFormat(semesterStr);
+  
   // Support new simplified format: 'hoc_ky_1' or 'hoc_ky_2' (semester-only)
   const semesterOnlyMatch = semesterStr.match(/^hoc_ky_(\d+)$/);
   if (semesterOnlyMatch) {
@@ -69,20 +116,24 @@ function parseSemesterString(semesterStr) {
     return {
       semester: `hoc_ky_${semesterNum}`,
       year: null,
-      yearLabel: null
+      yearLabel: null,
+      value: null
     };
   }
 
-  // Legacy / explicit format: 'hoc_ky_1-2025'
-  const match = semesterStr.match(/^hoc_ky_(\d+)-(\d{4})$/);
-  if (match) {
-    const semesterNum = match[1];
-    const year = match[2];
-    return {
-      semester: `hoc_ky_${semesterNum}`,
-      year: year,
-      yearLabel: year
-    };
+  // Parse normalized format: hoc_ky_1_2025
+  if (normalized) {
+    const match = normalized.match(/^hoc_ky_(\d+)_(\d{4})$/);
+    if (match) {
+      const semesterNum = match[1];
+      const year = match[2];
+      return {
+        semester: `hoc_ky_${semesterNum}`,
+        year: year,
+        yearLabel: year,
+        value: normalized
+      };
+    }
   }
 
   return null;
@@ -168,13 +219,34 @@ function buildRobustActivitySemesterWhere(semesterStr) {
   };
 }
 
+/**
+ * Check if two semester strings represent the same semester
+ * (format-agnostic comparison - handles both dash and underscore separators)
+ * @param {string} sem1 - First semester string
+ * @param {string} sem2 - Second semester string
+ * @returns {boolean} - True if they represent the same semester
+ */
+function isSameSemester(sem1, sem2) {
+  if (!sem1 || !sem2) return false;
+  
+  const normalized1 = normalizeSemesterFormat(sem1);
+  const normalized2 = normalizeSemesterFormat(sem2);
+  
+  if (!normalized1 || !normalized2) return false;
+  
+  return normalized1 === normalized2;
+}
+
 module.exports = {
+  normalizeSemesterFormat,
+  buildSemesterValue,
   determineSemesterFromDate,
   getCurrentSemester,
   parseSemesterString,
   buildSemesterFilter,
   isActivityInSemester,
-  buildRobustActivitySemesterWhere
+  buildRobustActivitySemesterWhere,
+  isSameSemester
 };
 
 

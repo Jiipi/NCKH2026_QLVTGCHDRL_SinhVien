@@ -49,17 +49,25 @@ async function cleanupTestData() {
       }
     });
 
-    // Delete sinh vien records
+    // Delete sinh vien records FIRST (before classes update)
     await prisma.sinhVien.deleteMany({
       where: {
-        nguoi_dung: { ten_dn: { startsWith: 'test_' } }
+        OR: [
+          { nguoi_dung: { ten_dn: { startsWith: 'test_' } } },
+          { mssv: { startsWith: 'SV' } }
+        ]
       }
     });
 
-    // Reset lop_truong to null before deleting users
+    // Reset lop_truong to null before deleting users - now includes TestLop_ classes
     await prisma.lop.updateMany({
-      where: { ten_lop: { startsWith: 'Test ' } },
-      data: { lop_truong: null }
+      where: { 
+        OR: [
+          { ten_lop: { startsWith: 'Test ' } },
+          { ten_lop: { startsWith: 'TestLop_' } }
+        ]
+      },
+      data: { lop_truong: null, chu_nhiem: null }
     });
 
     // Delete test users
@@ -68,14 +76,20 @@ async function cleanupTestData() {
         OR: [
           { ten_dn: { startsWith: 'test_' } },
           { ten_dn: { startsWith: 'admin_' } },
-          { ten_dn: { startsWith: 'gv_' } }
+          { ten_dn: { startsWith: 'gv_' } },
+          { email: { contains: '@dlu.edu.vn' } }
         ]
       }
     });
 
-    // Delete test classes
+    // Delete test classes - now includes TestLop_ classes
     await prisma.lop.deleteMany({
-      where: { ten_lop: { startsWith: 'Test ' } }
+      where: { 
+        OR: [
+          { ten_lop: { startsWith: 'Test ' } },
+          { ten_lop: { startsWith: 'TestLop_' } }
+        ]
+      }
     });
 
     // Delete test activity types

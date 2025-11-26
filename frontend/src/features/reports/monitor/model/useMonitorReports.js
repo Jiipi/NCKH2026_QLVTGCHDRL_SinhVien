@@ -7,21 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import http from '../../../../shared/api/http';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
-
-const getCurrentSemesterValue = () => {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  
-  if (currentMonth >= 7 && currentMonth <= 11) {
-    return `hoc_ky_1-${currentYear}`;
-  } else if (currentMonth === 12) {
-    return `hoc_ky_2-${currentYear}`;
-  } else if (currentMonth >= 1 && currentMonth <= 4) {
-    return `hoc_ky_2-${currentYear - 1}`;
-  } else {
-    return `hoc_ky_1-${currentYear}`;
-  }
-};
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 export default function useMonitorReports() {
   const [reportData, setReportData] = useState(null);
@@ -30,7 +16,7 @@ export default function useMonitorReports() {
   const [error, setError] = useState('');
   const [semester, setSemester] = useState(getCurrentSemesterValue());
 
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, isWritable } = useSemesterData(semester);
 
   const loadReportData = useCallback(async () => {
     try {
@@ -139,13 +125,23 @@ export default function useMonitorReports() {
 
   const handleExportExcel = useCallback(() => {
     if (!reportData) return;
+    // Chỉ cho phép xuất file khi là học kỳ đang kích hoạt
+    if (!isWritable) {
+      alert('Chỉ có thể xuất báo cáo cho học kỳ đang kích hoạt');
+      return;
+    }
     const csv = generateCSV();
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     downloadBlob(blob, `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.csv`);
-  }, [reportData, generateCSV, semester]);
+  }, [reportData, generateCSV, semester, isWritable]);
 
   const handleExportPDF = useCallback(() => {
     if (!reportData) return;
+    // Chỉ cho phép xuất file khi là học kỳ đang kích hoạt
+    if (!isWritable) {
+      alert('Chỉ có thể xuất báo cáo cho học kỳ đang kích hoạt');
+      return;
+    }
     const html = generateReportHTML();
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -153,7 +149,7 @@ export default function useMonitorReports() {
       printWindow.document.close();
       setTimeout(() => printWindow.print(), 250);
     }
-  }, [reportData, generateReportHTML]);
+  }, [reportData, generateReportHTML, isWritable]);
 
   const overview = reportData?.overview || {};
   const avgScore = Number(overview.avgPoints || 0);

@@ -134,7 +134,7 @@ function TeachersList({ teachers, loading, onTeacherClick }) {
 
   if (teachers.length === 0) {
     return (
-        <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500">
         <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
         <p className="text-sm">Chưa có dữ liệu</p>
       </div>

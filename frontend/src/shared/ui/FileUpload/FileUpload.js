@@ -80,8 +80,17 @@ export default function FileUpload({
       });
 
       if (response.data.success) {
-        const newFiles = multiple ? response.data.data : [response.data.data];
-        const newUrls = newFiles.map(f => f.url);
+        // Backend trả về: 
+        // - Single: { data: { url, filename } }
+        // - Multiple: { data: { files: [...] } }
+        let newUrls = [];
+        if (multiple) {
+          const filesArray = response.data.data?.files || [];
+          newUrls = filesArray.map(f => f.url);
+        } else {
+          const singleUrl = response.data.data?.url;
+          newUrls = singleUrl ? [singleUrl] : [];
+        }
         
         if (multiple) {
           onChange([...value, ...newUrls]);

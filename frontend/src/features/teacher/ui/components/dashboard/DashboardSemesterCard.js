@@ -16,7 +16,7 @@ export default function DashboardSemesterCard({ semester, onSemesterChange }) {
           <SemesterFilter value={semester} onChange={onSemesterChange} />
         </div>
         <div className="bg-white/90 rounded-xl p-3 border-2 border-black">
-          <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} className="!p-0 !bg-transparent !border-0" />
+          <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} allowProposeWithoutClass={true} className="!p-0 !bg-transparent !border-0" />
         </div>
       </div>
     </div>

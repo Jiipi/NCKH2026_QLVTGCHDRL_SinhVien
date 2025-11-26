@@ -21,6 +21,7 @@ export default function ClassApprovalsPage() {
         searchTerm, setSearchTerm, filters, setFilters, selectedIds, setSelectedIds,
         allRegistrations, filteredRegistrations,
         handleApprove, handleReject, handleBulkApprove, handleToggleSelect, handleToggleSelectAll,
+        sortBy, setSortBy,
     } = useClassApprovals(initialSemester);
 
     const [viewMode, setViewMode] = useState('grid');
@@ -49,6 +50,8 @@ export default function ClassApprovalsPage() {
                 filters={filters}
                 onFiltersChange={setFilters}
                 activityTypes={[] /* Pass activity types if needed */}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
             />
 
             {/* You would create a generic Tab component here */}

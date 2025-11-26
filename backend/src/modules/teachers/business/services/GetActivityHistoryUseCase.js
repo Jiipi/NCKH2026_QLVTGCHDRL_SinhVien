@@ -17,7 +17,7 @@ class GetActivityHistoryUseCase {
       throw new ForbiddenError('Chỉ giảng viên mới được truy cập');
     }
 
-    const { page = 1, limit = 100 } = pagination;
+    const { page = 1, limit } = pagination;
     const scope = await buildScope('activities', user);
     
     const dtoData = {

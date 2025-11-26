@@ -27,6 +27,7 @@ export default function useMyActivities() {
   const [qrActivityName, setQrActivityName] = useState('');
   const [query, setQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
   const [statusViewMode, setStatusViewMode] = useState('pills');
@@ -62,12 +63,21 @@ export default function useMyActivities() {
            normalizedRole === 'ADMIN';
   }, [normalizedRole]);
 
-  // Initialize semester
+  // Initialize semester when options are loaded
   useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
+    // If semester is empty or not in options, set to currentSemester or first option
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        // Prefer currentSemester if available and in options
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
     }
-  }, [currentSemester, semester]);
+  }, [semesterOptions, currentSemester, semester]);
 
   useEffect(() => {
     if (semester) {
@@ -211,7 +221,7 @@ export default function useMyActivities() {
     setQuery('');
   }, []);
 
-  // Business logic: Filter and search activities
+  // Business logic: Filter, search & sort activities
   const currentItems = useMemo(() => {
     let items = (data[tab] || []).filter(activity => activity.is_class_activity);
     
@@ -254,10 +264,36 @@ export default function useMyActivities() {
         return startDate && startDate <= toDate;
       });
     }
-    
+
+    // Sort theo sortBy
+    items.sort((a, b) => {
+      const aData = a.hoat_dong || a;
+      const bData = b.hoat_dong || b;
+      const createdA = new Date(aData.ngay_tao || aData.ngay_cap_nhat || aData.ngay_bd || 0);
+      const createdB = new Date(bData.ngay_tao || bData.ngay_cap_nhat || bData.ngay_bd || 0);
+
+      switch (sortBy) {
+        case 'oldest':
+          return createdA - createdB;
+        case 'name-az': {
+          const nameA = (aData.ten_hd || '').toLowerCase();
+          const nameB = (bData.ten_hd || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        }
+        case 'name-za': {
+          const nameA = (aData.ten_hd || '').toLowerCase();
+          const nameB = (bData.ten_hd || '').toLowerCase();
+          return nameB.localeCompare(nameA);
+        }
+        case 'newest':
+        default:
+          return createdB - createdA;
+      }
+    });
+
     setPagination(prev => ({ ...prev, total: items.length }));
     return items;
-  }, [data, tab, query, filters]);
+  }, [data, tab, query, filters, sortBy]);
 
   // Business logic: Pagination
   const paginatedItems = useMemo(() => {
@@ -265,6 +301,22 @@ export default function useMyActivities() {
     const end = start + pagination.limit;
     return currentItems.slice(start, end);
   }, [currentItems, pagination.page, pagination.limit]);
+
+  // Bỏ giới hạn hiển thị: luôn hiển thị tất cả hoạt động trên một trang
+  useEffect(() => {
+    setPagination(prev => {
+      if (!currentItems.length) {
+        return { ...prev, limit: 0, total: 0, page: 1 };
+      }
+      if (prev.limit === currentItems.length) return prev;
+      return {
+        ...prev,
+        limit: currentItems.length,
+        total: currentItems.length,
+        page: 1
+      };
+    });
+  }, [currentItems.length]);
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -292,6 +344,8 @@ export default function useMyActivities() {
     setQuery,
     viewMode,
     setViewMode,
+    sortBy,
+    setSortBy,
     showFilters,
     setShowFilters,
     filters,

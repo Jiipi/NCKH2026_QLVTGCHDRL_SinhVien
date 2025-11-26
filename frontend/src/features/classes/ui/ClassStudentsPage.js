@@ -3,6 +3,7 @@ import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, U
 import http from '../../../shared/services/api/client';
 import { getStudentAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
 import useSemesterData from '../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../shared/lib/semester';
 
 export default function ClassStudents() {
   const [students, setStudents] = useState([]);
@@ -10,22 +11,6 @@ export default function ClassStudents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('points_desc');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
-  
-  // Determine current semester for default value
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    
-    if (currentMonth >= 7 && currentMonth <= 11) {
-      return `hoc_ky_1-${currentYear}`;
-    } else if (currentMonth === 12) {
-      return `hoc_ky_2-${currentYear}`;
-    } else if (currentMonth >= 1 && currentMonth <= 4) {
-      return `hoc_ky_2-${currentYear - 1}`;
-    } else {
-      return `hoc_ky_1-${currentYear}`; // Default for break months
-    }
-  };
   
   const [semester, setSemester] = useState(getCurrentSemesterValue());
   const [error, setError] = useState('');

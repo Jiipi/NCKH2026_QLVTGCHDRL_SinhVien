@@ -6,8 +6,18 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { monitorApprovalsApi } from '../../services/monitorApprovalsApi';
 import { mapRegistrationToUI } from '../mappers/monitor.mappers';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+
+/**
+ * Get initial semester from global storage or calculate current
+ */
+function loadInitialSemester() {
+  const globalSemester = getGlobalSemester();
+  if (globalSemester) return globalSemester;
+  return getCurrentSemesterValue();
+}
 
 /**
  * Hook quản lý approvals
@@ -36,16 +46,17 @@ export function useMonitorApprovals() {
   const [limit, setLimit] = useState(12);
   const [scrollDown, setScrollDown] = useState(false);
 
-  const getCurrentSemesterValue = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-    else if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-    else if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-    else return `hoc_ky_1-${currentYear}`;
-  };
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemesterState] = useState(loadInitialSemester);
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
+
+  // Sync with global semester changes from other forms
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  // Wrapper to also broadcast globally when changing semester
+  const setSemester = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
 
   const statusLabels = {
     'cho_duyet': 'Chờ duyệt',

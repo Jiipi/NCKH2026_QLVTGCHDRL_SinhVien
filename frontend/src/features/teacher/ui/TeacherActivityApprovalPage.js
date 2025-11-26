@@ -31,6 +31,8 @@ export default function TeacherActivityApprovalPage() {
     setSearchTerm,
     setSemester,
     setPagination,
+    sortBy,
+    setSortBy,
     setConfirmModal,
     setRejectReason,
     setToast,
@@ -94,6 +96,8 @@ export default function TeacherActivityApprovalPage() {
         onSemesterChange={setSemester}
         displayViewMode={displayViewMode}
         onDisplayViewModeChange={setDisplayViewMode}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
       />
 
       <ActivityApprovalStatusTabs

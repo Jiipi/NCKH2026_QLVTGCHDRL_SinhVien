@@ -31,7 +31,19 @@ export default function TeacherNotificationsPage() {
   ];
 
   useEffect(() => { loadSentHistory(); }, []);
-  useEffect(() => { if (currentSemester && currentSemester !== semester) setSemester(currentSemester); }, [currentSemester]);
+  // Initialize semester when options are loaded
+  useEffect(() => {
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
+    }
+  }, [semesterOptions, currentSemester, semester]);
   useEffect(() => { if (semester) { try { sessionStorage.setItem('current_semester', semester); } catch (_) {} } }, [semester]);
   useEffect(() => { if (scope === 'activity' && semester) { loadActivitiesForSemester(semester); } }, [scope, semester]);
 

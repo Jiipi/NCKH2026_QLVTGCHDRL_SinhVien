@@ -7,3 +7,4 @@ export * from './avatar';
 export * from './role';
 export * from './activityImages';
 export * from './apiNormalization';
+export * from './semester';

@@ -47,6 +47,7 @@ export default function AdminUsersPage() {
   const [activeUsersCount, setActiveUsersCount] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [displayViewMode, setDisplayViewMode] = useState('grid'); // 'grid' or 'list'
+  const [sortBy, setSortBy] = useState('newest');
 
   const normalizeUserRecord = useCallback((user = {}) => {
     if (!user) return null;
@@ -656,6 +657,30 @@ export default function AdminUsersPage() {
     
     // Nếu không có statusFilter, không cần filter thêm
     return matchesSearch && matchesRole;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'oldest': {
+        const ta = new Date(a.ngay_tao || a.created_at || a.createdAt || 0).getTime();
+        const tb = new Date(b.ngay_tao || b.created_at || b.createdAt || 0).getTime();
+        return ta - tb;
+      }
+      case 'name-az': {
+        const nameA = (a.ho_ten || a.ten_dn || '').toLowerCase();
+        const nameB = (b.ho_ten || b.ten_dn || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      }
+      case 'name-za': {
+        const nameA = (a.ho_ten || a.ten_dn || '').toLowerCase();
+        const nameB = (b.ho_ten || b.ten_dn || '').toLowerCase();
+        return nameB.localeCompare(nameA, 'vi');
+      }
+      case 'newest':
+      default: {
+        const ta = new Date(a.ngay_tao || a.created_at || a.createdAt || 0).getTime();
+        const tb = new Date(b.ngay_tao || b.created_at || b.createdAt || 0).getTime();
+        return tb - ta;
+      }
+    }
   }) : [];
 
   // Hàm để lấy derived status cho mỗi user (dùng cho hiển thị)
@@ -1020,6 +1045,24 @@ export default function AdminUsersPage() {
                 })()}
               </div>
               
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+                <select
+                  value={sortBy || 'newest'}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="name-az">Tên A → Z</option>
+                  <option value="name-za">Tên Z → A</option>
+                </select>
+              </div>
+
+              <div className="w-px h-8 bg-gray-200"></div>
+              
               {/* View Mode Toggle */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200 ml-auto">
                 <button
@@ -1047,13 +1090,6 @@ export default function AdminUsersPage() {
                   <span className="hidden sm:inline">Danh sách</span>
                 </button>
               </div>
-              
-              <button
-                onClick={() => { setSearchTerm(''); setRoleFilter(''); setStatusFilter(''); }}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                Đặt lại bộ lọc
-              </button>
             </div>
           </div>
         </div>

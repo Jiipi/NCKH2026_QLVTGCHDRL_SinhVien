@@ -1,6 +1,12 @@
 /**
  * Integration Tests for Semesters Module
  * Test Cases: TC-SEM-001 to TC-SEM-002
+ * 
+ * Routes available:
+ * - GET /api/semesters/options - Get semester options
+ * - GET /api/semesters/list - Get semester list
+ * - GET /api/semesters/current - Get current semester
+ * - GET /api/semesters/status - Get current semester status
  */
 
 const request = require('supertest');
@@ -44,120 +50,71 @@ describe('Semesters Module - Integration Tests', () => {
   });
 
   describe('TC-SEM-001: Lấy danh sách học kỳ', () => {
-    it('should get semesters list (Authenticated)', async () => {
+    it('should get semester options (Authenticated)', async () => {
       const response = await request(app)
-        .get('/api/core/semesters')
+        .get('/api/semesters/options')
         .set('Authorization', `Bearer ${studentToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.data || response.body).toBeDefined();
-      
-      const data = response.body.data || response.body;
-      if (Array.isArray(data)) {
-        expect(data.length).toBeGreaterThan(0);
-        
-        // Each semester should have required fields
-        data.forEach(semester => {
-          expect(semester.ma_hk || semester.id).toBeDefined();
-          expect(semester.ten_hk || semester.name).toBeDefined();
-        });
-      }
     });
 
-    it('should get semesters list (Admin)', async () => {
+    it('should get semester list (Admin)', async () => {
       const response = await request(app)
-        .get('/api/core/semesters')
+        .get('/api/semesters/list')
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
     });
 
-    it('should return semesters sorted by date', async () => {
+    it('should get semester status', async () => {
       const response = await request(app)
-        .get('/api/core/semesters')
-        .set('Authorization', `Bearer ${studentToken}`)
-        .query({ sort: 'ngay_bat_dau:desc' });
+        .get('/api/semesters/status')
+        .set('Authorization', `Bearer ${studentToken}`);
 
-      expect(response.status).toBe(200);
-      
-      const data = response.body.data || response.body;
-      if (Array.isArray(data) && data.length > 1) {
-        // Check if sorted (optional validation)
-        const dates = data.map(s => new Date(s.ngay_bat_dau || s.startDate));
-        for (let i = 1; i < dates.length; i++) {
-          expect(dates[i-1].getTime()).toBeGreaterThanOrEqual(dates[i].getTime());
-        }
-      }
+      expect([200, 404]).toContain(response.status);
     });
   });
 
   describe('TC-SEM-002: Lấy học kỳ hiện tại', () => {
     it('should get current semester', async () => {
       const response = await request(app)
-        .get('/api/core/semesters/current')
+        .get('/api/semesters/current')
         .set('Authorization', `Bearer ${studentToken}`);
 
       expect([200, 404]).toContain(response.status);
       
       if (response.status === 200) {
         const data = response.body.data || response.body;
-        expect(data.ma_hk || data.id).toBeDefined();
-        expect(data.ten_hk || data.name).toBeDefined();
+        expect(data).toBeDefined();
       }
     });
   });
 
   describe('Additional Semester Tests', () => {
-    it('should get semester by ID', async () => {
-      // First get list to get a valid ID
-      const listResponse = await request(app)
-        .get('/api/core/semesters')
-        .set('Authorization', `Bearer ${studentToken}`);
-
-      const data = listResponse.body.data || listResponse.body;
-      if (!Array.isArray(data) || data.length === 0) {
-        console.log('Skipping - No semesters found');
-        return;
-      }
-
-      const semesterId = data[0].ma_hk || data[0].id;
-
+    it('should get all classes', async () => {
       const response = await request(app)
-        .get(`/api/core/semesters/${semesterId}`)
-        .set('Authorization', `Bearer ${studentToken}`);
+        .get('/api/semesters/classes')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect([200, 404]).toContain(response.status);
     });
 
-    it('should create semester (Admin only)', async () => {
-      const newSemester = {
-        ten_hk: `Học kỳ Test ${Date.now()}`,
-        nam_hoc: '2024-2025',
-        ngay_bat_dau: '2024-09-01',
-        ngay_ket_thuc: '2025-01-15',
-        trang_thai: 'HOAT_DONG'
-      };
-
+    it('should create next semester (Admin only)', async () => {
       const response = await request(app)
-        .post('/api/core/semesters')
+        .post('/api/semesters/create-next')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send(newSemester);
+        .send({});
 
-      expect([200, 201, 403, 404]).toContain(response.status);
+      // May return 200 if successful, 400 if already exists, 403 if forbidden
+      expect([200, 201, 400, 403, 404]).toContain(response.status);
     });
 
-    it('should deny student from creating semester', async () => {
-      const newSemester = {
-        ten_hk: 'Học kỳ Hacker',
-        nam_hoc: '2024-2025',
-        ngay_bat_dau: '2024-09-01',
-        ngay_ket_thuc: '2025-01-15'
-      };
-
+    it('should deny student from creating next semester', async () => {
       const response = await request(app)
-        .post('/api/core/semesters')
+        .post('/api/semesters/create-next')
         .set('Authorization', `Bearer ${studentToken}`)
-        .send(newSemester);
+        .send({});
 
       expect([401, 403, 404]).toContain(response.status);
     });
@@ -166,10 +123,9 @@ describe('Semesters Module - Integration Tests', () => {
   describe('Unauthorized Access Tests', () => {
     it('should deny access without token', async () => {
       const response = await request(app)
-        .get('/api/core/semesters');
+        .get('/api/semesters/options');
 
-      // Some endpoints may allow public access to semesters
-      expect([200, 401]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 });

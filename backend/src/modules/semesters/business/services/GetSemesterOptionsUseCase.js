@@ -1,4 +1,5 @@
 const SemesterClosure = require('../../../../business/services/semesterClosure.service');
+const { normalizeSemesterFormat, isSameSemester } = require('../../../../core/utils/semester');
 
 /**
  * GetSemesterOptionsUseCase
@@ -29,12 +30,16 @@ class GetSemesterOptionsUseCase {
 
     const options = await this.semesterRepository.getSemesterOptions();
 
-    // Mark active semester
-    return options.map(opt => ({
-      ...opt,
-      is_active: activeSemester === opt.value,
-      status: activeSemester === opt.value ? 'ACTIVE' : null,
-    }));
+    // Mark active semester - use isSameSemester for format-agnostic comparison
+    return options.map(opt => {
+      // Use isSameSemester to compare regardless of dash/underscore format
+      const isActive = activeSemester && opt.value && isSameSemester(activeSemester, opt.value);
+      return {
+        ...opt,
+        is_active: isActive,
+        status: isActive ? 'ACTIVE' : null,
+      };
+    });
   }
 }
 

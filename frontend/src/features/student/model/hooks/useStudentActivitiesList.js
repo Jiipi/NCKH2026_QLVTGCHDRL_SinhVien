@@ -6,7 +6,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import activitiesApi from '../../../activities/services/activitiesApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 const ACTIVITY_STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -15,13 +16,13 @@ const ACTIVITY_STATUS_OPTIONS = [
   { value: 'closed', label: '⚫ Đã kết thúc' }
 ];
 
-function getCurrentSemesterValue() {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-  if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-  if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-  return `hoc_ky_1-${currentYear}`;
+/**
+ * Get initial semester from global storage or calculate current
+ */
+function loadInitialSemester() {
+  const globalSemester = getGlobalSemester();
+  if (globalSemester) return globalSemester;
+  return getCurrentSemesterValue();
 }
 
 /**
@@ -34,6 +35,7 @@ export default function useStudentActivitiesList() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState({ type: '', status: '', from: '', to: '' });
   const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,9 +51,18 @@ export default function useStudentActivitiesList() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
   const [role, setRole] = useState('');
 
-  // Semester
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  // Semester with global sync
+  const [semester, setSemesterState] = useState(loadInitialSemester);
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
+
+  // Sync with global semester changes from other forms
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  // Wrapper to broadcast globally when changing semester
+  const setSemester = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
 
   // Business logic: Load ALL activities (không phân trang từ API)
   const loadActivities = useCallback(async () => {
@@ -60,8 +71,9 @@ export default function useStudentActivitiesList() {
 
     const params = {
       limit: 'all', // Lấy tất cả, không phân trang từ API
-      sort: 'ngay_bd',
-      order: 'asc',
+      // Mặc định lấy theo thời gian tạo mới nhất (để trạng thái "Mới nhất" đúng nghĩa)
+      sort: 'ngay_tao',
+      order: 'desc',
       semester: semester || undefined,
     };
 
@@ -199,15 +211,32 @@ export default function useStudentActivitiesList() {
       });
     }
 
-    // Sort by start date
+    // Sort: ưu tiên thời gian tạo để "Mới nhất/Cũ nhất" đúng nghĩa
     filtered.sort((a, b) => {
-      const dateA = new Date(a.ngay_bd || 0);
-      const dateB = new Date(b.ngay_bd || 0);
-      return dateA - dateB;
+      const createdA = new Date(a.ngay_tao || a.ngay_cap_nhat || a.ngay_bd || 0);
+      const createdB = new Date(b.ngay_tao || b.ngay_cap_nhat || b.ngay_bd || 0);
+
+      switch (sortBy) {
+        case 'oldest':
+          return createdA - createdB;
+        case 'name-az': {
+          const nameA = (a.ten_hd || '').toLowerCase();
+          const nameB = (b.ten_hd || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        }
+        case 'name-za': {
+          const nameA = (a.ten_hd || '').toLowerCase();
+          const nameB = (b.ten_hd || '').toLowerCase();
+          return nameB.localeCompare(nameA);
+        }
+        case 'newest':
+        default:
+          return createdB - createdA;
+      }
     });
 
     return filtered;
-  }, [allItems, scopeTab, query, filters]);
+  }, [allItems, scopeTab, query, filters, sortBy]);
 
   // Phân trang client-side: lấy items cho trang hiện tại
   const filteredItems = useMemo(() => {
@@ -225,10 +254,24 @@ export default function useStudentActivitiesList() {
     }));
   }, [sortedItems.length]);
 
+  // Bỏ giới hạn hiển thị: luôn hiển thị tất cả hoạt động trong một trang
+  useEffect(() => {
+    setPagination(prev => {
+      if (!sortedItems.length) return { ...prev, limit: 0, page: 1, total: 0 };
+      if (prev.limit === sortedItems.length) return prev;
+      return {
+        ...prev,
+        limit: sortedItems.length,
+        page: 1,
+        total: sortedItems.length
+      };
+    });
+  }, [sortedItems.length]);
+
   // Reset page when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, [query, filters, semester]);
+  }, [query, filters, semester, sortBy]);
 
   // UI Handlers
   const handleViewDetail = useCallback((activityId) => {
@@ -283,6 +326,8 @@ export default function useStudentActivitiesList() {
     error,
     viewMode,
     setViewMode,
+    sortBy,
+    setSortBy,
     showFilters,
     setShowFilters,
     pagination,

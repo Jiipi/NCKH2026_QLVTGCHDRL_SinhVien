@@ -7,6 +7,7 @@ import {
   Grid3X3,
   List
 } from 'lucide-react';
+import ActivitySortBar from '../../../../activities/ui/shared/ActivitySortBar';
 
 export default function MyActivitiesToolbar({
   query,
@@ -19,7 +20,9 @@ export default function MyActivitiesToolbar({
   activeFilterCount = 0,
   onClearFilters,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  sortBy,
+  onSortChange
 }) {
   return (
     <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
@@ -83,21 +86,24 @@ export default function MyActivitiesToolbar({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-              <ToggleButton
-                active={viewMode === 'grid'}
-                icon={Grid3X3}
-                label="Lưới"
-                onClick={() => onViewModeChange('grid')}
-              />
-              <ToggleButton
-                active={viewMode === 'list'}
-                icon={List}
-                label="Danh sách"
-                onClick={() => onViewModeChange('list')}
-              />
+          <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
+            <ActivitySortBar sortBy={sortBy} onSortChange={onSortChange} />
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+                <ToggleButton
+                  active={viewMode === 'grid'}
+                  icon={Grid3X3}
+                  label="Lưới"
+                  onClick={() => onViewModeChange('grid')}
+                />
+                <ToggleButton
+                  active={viewMode === 'list'}
+                  icon={List}
+                  label="Danh sách"
+                  onClick={() => onViewModeChange('list')}
+                />
+              </div>
             </div>
           </div>
         </div>

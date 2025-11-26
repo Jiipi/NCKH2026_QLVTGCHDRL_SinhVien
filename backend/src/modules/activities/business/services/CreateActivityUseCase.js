@@ -3,6 +3,7 @@ const { ValidationError } = require('../../../../core/errors/AppError');
 const { determineSemesterFromDate } = require('../../../../core/utils/semester');
 const crypto = require('crypto');
 const { logInfo } = require('../../../../core/logger');
+const { prisma } = require('../../../../data/infrastructure/prisma/client');
 
 /**
  * CreateActivityUseCase
@@ -36,16 +37,53 @@ class CreateActivityUseCase {
     normalized.nguoi_tao_id = user.sub;
     normalized.trang_thai = 'cho_duyet';
 
+    // Auto-assign lop_id dựa trên người tạo
+    // Nếu LOP_TRUONG hoặc SINH_VIEN tạo -> gán lop_id = lớp của họ
+    // Nếu GIANG_VIEN tạo -> gán lop_id = lớp đầu tiên họ chủ nhiệm (nếu có)
+    if (!normalized.lop_id) {
+      normalized.lop_id = await this.inferClassId(user);
+    }
+
     // Create activity
     const activity = await this.activityRepository.create(normalized);
 
     logInfo('Activity created', {
       activityId: activity.id,
       creatorId: user.sub,
-      name: activity.ten_hd
+      name: activity.ten_hd,
+      lop_id: activity.lop_id
     });
 
     return activity;
+  }
+
+  /**
+   * Tự động xác định lop_id dựa trên người tạo
+   */
+  async inferClassId(user) {
+    const userId = user.sub;
+    const role = user.role;
+
+    // LOP_TRUONG hoặc SINH_VIEN: lấy lop_id từ bảng SinhVien
+    if (role === 'LOP_TRUONG' || role === 'SINH_VIEN') {
+      const sv = await prisma.sinhVien.findUnique({
+        where: { nguoi_dung_id: userId },
+        select: { lop_id: true }
+      });
+      return sv?.lop_id || null;
+    }
+
+    // GIANG_VIEN: lấy lớp đầu tiên họ chủ nhiệm
+    if (role === 'GIANG_VIEN') {
+      const lop = await prisma.lop.findFirst({
+        where: { chu_nhiem: userId },
+        select: { id: true }
+      });
+      return lop?.id || null;
+    }
+
+    // ADMIN: không tự động gán
+    return null;
   }
 
   normalizeActivityData(data) {

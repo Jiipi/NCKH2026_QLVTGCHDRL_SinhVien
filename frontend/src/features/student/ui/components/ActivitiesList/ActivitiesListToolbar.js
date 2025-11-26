@@ -8,6 +8,7 @@ import {
   List
 } from 'lucide-react';
 import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
+import ActivitySortBar from '../../../../activities/ui/shared/ActivitySortBar';
 
 export default function ActivitiesListToolbar({
   query,
@@ -21,7 +22,9 @@ export default function ActivitiesListToolbar({
   onClearFilters,
   activeFilterCount = 0,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  sortBy,
+  onSortChange
 }) {
   return (
     <div className="relative group">
@@ -86,21 +89,24 @@ export default function ActivitiesListToolbar({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-              <ViewToggleButton
-                label="Lưới"
-                icon={Grid3X3}
-                active={viewMode === 'grid'}
-                onClick={() => onViewModeChange('grid')}
-              />
-              <ViewToggleButton
-                label="Danh sách"
-                icon={List}
-                active={viewMode === 'list'}
-                onClick={() => onViewModeChange('list')}
-              />
+          <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
+            <ActivitySortBar sortBy={sortBy} onSortChange={onSortChange} />
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+                <ViewToggleButton
+                  label="Lưới"
+                  icon={Grid3X3}
+                  active={viewMode === 'grid'}
+                  onClick={() => onViewModeChange('grid')}
+                />
+                <ViewToggleButton
+                  label="Danh sách"
+                  icon={List}
+                  active={viewMode === 'list'}
+                  onClick={() => onViewModeChange('list')}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -7,8 +7,22 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitorActivityOversightApi } from '../../services/monitorActivityOversightApi';
 import { mapActivityToUI } from '../mappers/monitor.mappers';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+
+/**
+ * Get initial semester from global storage or calculate current
+ */
+function loadInitialSemester() {
+  const globalSemester = getGlobalSemester();
+  if (globalSemester) return globalSemester;
+  try {
+    return sessionStorage.getItem('current_semester') || '';
+  } catch (_) {
+    return getCurrentSemesterValue();
+  }
+}
 
 /**
  * Hook quản lý hoạt động lớp
@@ -29,6 +43,7 @@ export function useMonitorActivityOversight() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [displayViewMode, setDisplayViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('newest');
   const [statusViewMode, setStatusViewMode] = useState('pills');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', from: '', to: '' });
@@ -42,15 +57,24 @@ export function useMonitorActivityOversight() {
     endedCount: 0
   });
 
-  const [semester, setSemester] = useState(() => {
-    try {
-      return sessionStorage.getItem('current_semester') || '';
-    } catch (_) {
-      return '';
-    }
-  });
+  // Semester with global sync
+  const [semester, setSemesterState] = useState(loadInitialSemester);
 
   const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+
+  // Sync with global semester changes from other forms
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  // Wrapper to broadcast globally when changing semester
+  const setSemester = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+    try {
+      if (value) {
+        sessionStorage.setItem('current_semester', value);
+      }
+    } catch (_) {}
+  }, []);
 
   const statusLabels = {
     'co_san': 'Hoạt động có sẵn',
@@ -76,7 +100,9 @@ export function useMonitorActivityOversight() {
       setLoading(true);
       const params = {
         semester: semester || undefined,
-        limit: 'all' // Lấy tất cả, không phân trang từ API
+        limit: 'all', // Lấy tất cả, không phân trang từ API
+        sort: 'ngay_tao',
+        order: 'desc'
       };
       
       const result = await monitorActivityOversightApi.getAvailableActivities(params);
@@ -385,16 +411,23 @@ export function useMonitorActivityOversight() {
 
   // Filter and sort activities with advanced filters
   const filteredActivities = useMemo(() => {
-    return (statusFilter === 'co_san' ? activities : activities)
+    const base = activities
       .filter(activity => {
         const matchesSearch = activity.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                              activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        // Tab "Có sẵn": chỉ hiển thị hoạt động đã duyệt (ẩn cho_duyet giống role sinh viên)
+        // Tab "Có sẵn": chỉ hiển thị hoạt động da_duyet + ket_thuc (giống SV)
         // Tab khác: lọc theo trạng thái hiện tại
         const displayStatus = getDisplayStatus(activity);
-        const matchesStatus = statusFilter === 'all' 
-          || (statusFilter === 'co_san' ? true : displayStatus === statusFilter);
+        let matchesStatus = false;
+        if (statusFilter === 'all') {
+          matchesStatus = true;
+        } else if (statusFilter === 'co_san') {
+          // "Có sẵn" = da_duyet hoặc ket_thuc
+          matchesStatus = displayStatus === 'da_duyet' || displayStatus === 'ket_thuc';
+        } else {
+          matchesStatus = displayStatus === statusFilter;
+        }
         
         // Advanced filters
         let matchesType = true;
@@ -441,13 +474,40 @@ export function useMonitorActivityOversight() {
         }
 
         return matchesSearch && matchesStatus && matchesType && matchesDateFrom && matchesDateTo;
-      })
-      .sort((a, b) => {
-        const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
-        const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
-        return tb - ta; // ưu tiên thao tác mới nhất lên đầu
       });
-  }, [activities, statusFilter, searchTerm, filters, getDisplayStatus]);
+
+    const sorted = [...base].sort((a, b) => {
+      const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+      const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+
+      switch (sortBy) {
+        case 'oldest':
+          return ta - tb;
+        case 'name-az': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return na.localeCompare(nb);
+        }
+        case 'name-za': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return nb.localeCompare(na);
+        }
+        case 'newest':
+        default:
+          return tb - ta; // mới nhất trước
+      }
+    });
+
+    return sorted;
+  }, [activities, statusFilter, searchTerm, filters, getDisplayStatus, sortBy]);
+
+  // ✅ Client-side pagination: slice filteredActivities based on current page & limit
+  const paginatedActivities = useMemo(() => {
+    const startIdx = (pagination.page - 1) * pagination.limit;
+    const endIdx = startIdx + pagination.limit;
+    return filteredActivities.slice(startIdx, endIdx);
+  }, [filteredActivities, pagination.page, pagination.limit]);
 
   // Derived counts
   const countByDisplayStatus = useCallback((st) => {
@@ -462,23 +522,36 @@ export function useMonitorActivityOversight() {
   }), [countByDisplayStatus]);
 
   const localApprovedCount = tabCounts.da_duyet;
-  const localAvailableCount = pagination.total || activities.length;
   const localPendingCount = tabCounts.cho_duyet;
   const localEndedCount = tabCounts.ket_thuc;
+  
+  // ✅ TỔNG HOẠT ĐỘNG = da_duyet + ket_thuc (thống nhất với admin/GV/SV)
+  const totalActivitiesCount = localApprovedCount + localEndedCount;
+  
+  // ✅ "Có sẵn" = da_duyet + ket_thuc (same as totalActivitiesCount)
+  const localAvailableCount = totalActivitiesCount;
   
   // ✅ Use dashboard stats for display (accurate count from backend)
   const approvedCount = dashboardStats.approvedCount || localApprovedCount;
   const availableCount = localAvailableCount;
   const pendingCount = localPendingCount;
   const endedCount = dashboardStats.endedCount || localEndedCount;
-  const totalActivitiesCount = pagination.total || activities.length;
 
-  // Effects
+  // Effects - Initialize semester when options are loaded
   useEffect(() => {
-    if (currentSemester && currentSemester !== semester) {
-      setSemester(currentSemester);
+    // If semester is empty or not in options, set to currentSemester or first option
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        // Prefer currentSemester if available and in options
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
     }
-  }, [currentSemester, semester]);
+  }, [semesterOptions, currentSemester, semester]);
 
   useEffect(() => {
     if (semester) {
@@ -495,10 +568,11 @@ export function useMonitorActivityOversight() {
     loadActivityTypes();
   }, [semester, loadActivities, loadAvailableActivities, loadDashboardStats, loadActivityTypes]);
 
+  // ✅ Update pagination.total based on filteredActivities (client-side filtering)
   useEffect(() => {
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination(prev => ({ ...prev, page: 1, total: filteredActivities.length }));
     setAvailablePagination(prev => ({ ...prev, page: 1 }));
-  }, [semester, statusFilter, searchTerm, filters]);
+  }, [semester, statusFilter, searchTerm, filters, filteredActivities.length]);
 
   return {
     // Data
@@ -552,6 +626,7 @@ export function useMonitorActivityOversight() {
     isAvailable,
     formatDate,
     filteredActivities,
+    paginatedActivities, // ✅ Client-side paginated activities for rendering
     approvedCount,
     availableCount,
     pendingCount,

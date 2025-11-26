@@ -1,6 +1,7 @@
 const { NotFoundError } = require('../../../../core/errors/AppError');
 const { parseSemesterString } = require('../../../../core/utils/semester');
 const { prisma } = require('../../../../data/infrastructure/prisma/client');
+const { countClassActivities } = require('../../../../core/utils/classActivityCounter');
 
 /**
  * GetStudentDashboardUseCase
@@ -148,6 +149,10 @@ class GetStudentDashboardUseCase {
     const classStudents = await this.repository.getClassStudents(studentInfo.lop_id);
     const totalStudentsInClass = classStudents.length;
     
+    // Đếm tổng hoạt động của lớp theo chuẩn:
+    // Tất cả hoạt động da_duyet/ket_thuc do SV/GVCN của lớp tạo
+    const totalClassActivities = await countClassActivities(studentInfo.lop_id, semesterFilter);
+    
     // Map recent activities với điểm đã được tính đúng
     const hoatDongGanDay = registrations.slice(0, 5).map(reg => ({
       id: reg.id,
@@ -176,7 +181,8 @@ class GetStudentDashboardUseCase {
       thong_bao_chua_doc: unreadCount,
       tong_quan: {
         tong_diem: totalPoints,
-        tong_hoat_dong: attendedRegistrations.length,
+        tong_hoat_dong: totalClassActivities, // Đếm theo chuẩn: hoạt động đã duyệt của lớp
+        so_hoat_dong_da_tham_gia: attendedRegistrations.length, // Số HĐ cá nhân đã tham gia
         muc_tieu: 100
       },
       so_sanh_lop: {

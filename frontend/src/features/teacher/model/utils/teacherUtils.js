@@ -6,6 +6,9 @@
  * @module features/teacher/model/utils/teacherUtils
  */
 
+import { getCurrentSemesterValue as getSharedSemesterValue } from '../../../../shared/lib/semester';
+import { setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
+
 /**
  * Deduplicate items by ID
  * @param {Array} items - Array of items with id property
@@ -24,50 +27,54 @@ export function dedupeById(items = []) {
 
 /**
  * Get current semester value based on current date
- * @returns {string} Semester string (e.g., 'hoc_ky_1-2025')
+ * @returns {string} Semester string (e.g., 'hoc_ky_1_2025')
  */
 export function getCurrentSemesterValue() {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  
-  if (currentMonth >= 7 && currentMonth <= 11) {
-    return `hoc_ky_1-${currentYear}`;
-  } else if (currentMonth === 12) {
-    return `hoc_ky_2-${currentYear}`;
-  } else if (currentMonth >= 1 && currentMonth <= 4) {
-    return `hoc_ky_2-${currentYear - 1}`;
-  }
-  return `hoc_ky_1-${currentYear}`;
+  return getSharedSemesterValue();
 }
 
 /**
- * Session storage key for semester
+ * Session storage key for semester (legacy - kept for backward compatibility)
  */
 export const SEMESTER_SESSION_KEY = 'current_semester';
+export const GLOBAL_SEMESTER_KEY = 'selected_semester';
 
 /**
  * Load initial semester from session storage or calculate current
+ * Prioritizes global selection, then legacy key, then current semester
  * @returns {string} Semester value
  */
 export function loadInitialSemester() {
   try {
-    return sessionStorage.getItem(SEMESTER_SESSION_KEY) || getCurrentSemesterValue();
+    // First check global selection
+    const globalSemester = getGlobalSemester();
+    if (globalSemester) return globalSemester;
+    
+    // Legacy fallback
+    const legacySemester = sessionStorage.getItem(SEMESTER_SESSION_KEY);
+    if (legacySemester) return legacySemester;
+    
+    return getCurrentSemesterValue();
   } catch {
     return getCurrentSemesterValue();
   }
 }
 
 /**
- * Save semester to session storage
+ * Save semester to session storage AND broadcast globally
  * @param {string} semester - Semester value
  */
 export function saveSemesterToSession(semester) {
   try {
+    // Save to both keys for compatibility
     if (semester) {
       sessionStorage.setItem(SEMESTER_SESSION_KEY, semester);
     } else {
       sessionStorage.removeItem(SEMESTER_SESSION_KEY);
     }
+    
+    // Broadcast globally so other forms sync
+    setGlobalSemester(semester);
   } catch {
     // Ignore storage errors
   }

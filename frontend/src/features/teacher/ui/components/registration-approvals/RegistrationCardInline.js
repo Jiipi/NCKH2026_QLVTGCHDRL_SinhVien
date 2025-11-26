@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, Award, MapPin, Eye } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, Award, MapPin, Eye, Lock } from 'lucide-react';
 import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
 import { getUserAvatar } from '../../../../../shared/lib/avatar';
 
@@ -30,7 +30,8 @@ export default function RegistrationCardInline({
   onApprove, 
   onReject, 
   onViewDetail,
-  displayViewMode 
+  displayViewMode,
+  isWritable = true
 }) {
   const student = registration.sinh_vien?.nguoi_dung || registration.sinh_vien;
   const activity = registration.hoat_dong;
@@ -156,17 +157,19 @@ export default function RegistrationCardInline({
                 <>
                   <button 
                     onClick={() => onApprove(registration)} 
-                    disabled={processing} 
-                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={processing || !isWritable} 
+                    title={!isWritable ? 'Không thể duyệt cho học kỳ đã đóng' : ''}
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed ${isWritable ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400'}`}
                   >
-                    <CheckCircle className="h-4 w-4" />Duyệt
+                    {isWritable ? <CheckCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}Duyệt
                   </button>
                   <button 
                     onClick={() => onReject(registration)} 
-                    disabled={processing} 
-                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={processing || !isWritable} 
+                    title={!isWritable ? 'Không thể từ chối cho học kỳ đã đóng' : ''}
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed ${isWritable ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400'}`}
                   >
-                    <XCircle className="h-4 w-4" />Từ chối
+                    {isWritable ? <XCircle className="h-4 w-4" /> : <Lock className="h-4 w-4" />}Từ chối
                   </button>
                 </>
               ) : (
@@ -304,17 +307,19 @@ export default function RegistrationCardInline({
             <>
               <button 
                 onClick={() => onApprove(registration)} 
-                disabled={processing} 
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={processing || !isWritable} 
+                title={!isWritable ? 'Không thể duyệt cho học kỳ đã đóng' : ''}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isWritable ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400'}`}
               >
-                <CheckCircle className="h-3.5 w-3.5" />Duyệt
+                {isWritable ? <CheckCircle className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}Duyệt
               </button>
               <button 
                 onClick={() => onReject(registration)} 
-                disabled={processing} 
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={processing || !isWritable} 
+                title={!isWritable ? 'Không thể từ chối cho học kỳ đã đóng' : ''}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isWritable ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400'}`}
               >
-                <XCircle className="h-3.5 w-3.5" />Từ chối
+                {isWritable ? <XCircle className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}Từ chối
               </button>
             </>
           ) : (

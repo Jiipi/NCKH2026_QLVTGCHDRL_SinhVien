@@ -2,17 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import teacherApprovalApi from '../../services/teacherApprovalApi';
-
-const getCurrentSemesterValue = () => {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  if (month >= 2 && month <= 8) {
-    return `hoc_ky_2-${year}`;
-  }
-  const academicYear = month === 1 ? year - 1 : year;
-  return `hoc_ky_1-${academicYear}`;
-};
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 const STATUS_LABELS = {
   cho_duyet: 'Chờ duyệt',
@@ -36,6 +26,7 @@ export default function useTeacherActivityApprovalPage() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [sortBy, setSortBy] = useState('newest');
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: '', activityId: null, title: '', message: '' });
@@ -81,7 +72,7 @@ export default function useTeacherActivityApprovalPage() {
   }, [loadActivities]);
 
   const filteredActivities = useMemo(() => {
-    return activities
+    const base = activities
       .filter(activity => {
         let matchesViewMode = false;
         switch (viewMode) {
@@ -100,13 +91,34 @@ export default function useTeacherActivityApprovalPage() {
         const matchesSearch = activity.ten_hd.toLowerCase().includes(searchTerm.toLowerCase()) ||
           activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesViewMode && matchesSearch;
-      })
-      .sort((a, b) => {
-        const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
-        const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
-        return tb - ta;
       });
-  }, [activities, viewMode, searchTerm]);
+
+    return [...base].sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest': {
+          const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+          const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+          return ta - tb;
+        }
+        case 'name-az': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return na.localeCompare(nb, 'vi');
+        }
+        case 'name-za': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return nb.localeCompare(na, 'vi');
+        }
+        case 'newest':
+        default: {
+          const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
+          const tb = new Date(b.ngay_cap_nhat || b.updated_at || b.updatedAt || b.ngay_tao || b.createdAt || b.ngay_bd || 0).getTime();
+          return tb - ta;
+        }
+      }
+    });
+  }, [activities, viewMode, searchTerm, sortBy]);
 
   useEffect(() => {
     setPagination(prev => {
@@ -122,6 +134,18 @@ export default function useTeacherActivityApprovalPage() {
     const start = (pagination.page - 1) * pagination.limit;
     return filteredActivities.slice(start, start + pagination.limit);
   }, [filteredActivities, pagination.page, pagination.limit]);
+
+  // Bỏ giới hạn hiển thị: luôn hiển thị toàn bộ danh sách hoạt động cho phê duyệt
+  useEffect(() => {
+    setPagination(prev => {
+      const total = filteredActivities.length;
+      if (!total) {
+        return { ...prev, limit: 0, total: 0, page: 1 };
+      }
+      if (prev.limit === total && prev.total === total) return prev;
+      return { ...prev, limit: total, total, page: 1 };
+    });
+  }, [filteredActivities.length]);
 
   const handleApproveClick = (activityId) => {
     setConfirmModal({
@@ -225,6 +249,8 @@ export default function useTeacherActivityApprovalPage() {
     setSearchTerm,
     setSemester,
     setPagination,
+    sortBy,
+    setSortBy,
     setConfirmModal,
     setRejectReason,
     setToast,

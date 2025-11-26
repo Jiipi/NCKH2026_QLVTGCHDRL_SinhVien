@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Calendar, Grid3X3, List } from 'lucide-react';
+import { Search, Calendar, Grid3X3, List, Filter } from 'lucide-react';
 import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
 
 export default function ActivityApprovalControls({
@@ -8,7 +8,9 @@ export default function ActivityApprovalControls({
   semester,
   onSemesterChange,
   displayViewMode,
-  onDisplayViewModeChange
+  onDisplayViewModeChange,
+  sortBy,
+  onSortChange
 }) {
   return (
     <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6 mb-6">
@@ -33,6 +35,24 @@ export default function ActivityApprovalControls({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+            <select
+              value={sortBy || 'newest'}
+              onChange={(e) => onSortChange?.(e.target.value)}
+              className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="name-az">Tên A → Z</option>
+              <option value="name-za">Tên Z → A</option>
+            </select>
+          </div>
+
+          <div className="w-px h-8 bg-gray-200"></div>
+
           <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
             <button

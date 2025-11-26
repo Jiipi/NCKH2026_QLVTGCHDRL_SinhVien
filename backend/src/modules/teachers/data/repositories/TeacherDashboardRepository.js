@@ -7,6 +7,7 @@
 const { prisma } = require('../../../../data/infrastructure/prisma/client');
 const { parseSemesterString } = require('../../../../core/utils/semester');
 const { findTeacherClassesRaw } = require('./helpers/teacherClassHelper');
+const { countClassActivities } = require('../../../../core/utils/classActivityCounter');
 
 class TeacherDashboardRepository {
   /**
@@ -43,35 +44,48 @@ class TeacherDashboardRepository {
     const studentIds = students.map(s => s.id);
     const studentUserIds = students.map(s => s.nguoi_dung_id).filter(Boolean);
 
-    // Build activity filter with simple semester matching
-    const activityWhere = {
-      nguoi_tao_id: { in: studentUserIds }
-    };
-    
+    // Parse semester filter
+    let semesterFilter = {};
     if (semester) {
       const parsed = parseSemesterString(semester);
       if (parsed && parsed.year) {
-        activityWhere.hoc_ky = parsed.semester;
-        activityWhere.nam_hoc = {
-          contains: parsed.year
-        };
+        semesterFilter = { hoc_ky: parsed.semester, nam_hoc: parsed.year };
       }
     }
 
+    // Build activity filter for pending/approved counts (dựa trên studentUserIds)
+    const activityWhere = {
+      nguoi_tao_id: { in: studentUserIds },
+      trang_thai: { in: ['da_duyet', 'ket_thuc'] }
+    };
+    if (semesterFilter.hoc_ky) {
+      activityWhere.hoc_ky = semesterFilter.hoc_ky;
+    }
+    if (semesterFilter.nam_hoc) {
+      // Data đã chuẩn hóa sang năm đơn
+      activityWhere.nam_hoc = semesterFilter.nam_hoc;
+    }
+
+    // Đếm tổng hoạt động theo chuẩn mới: dùng hàm chung countClassActivities
+    // Tổng hợp từ tất cả các lớp GV phụ trách
+    const totalActivitiesPromises = classIds.map(cId => countClassActivities(cId, semesterFilter));
+
     const [
-      totalActivities,
+      classActivityCounts,
       pendingActivitiesCount,
       approvedLastWeek,
       participatedRegistrations
     ] = await Promise.all([
-      // Total activities created by students
-      prisma.hoatDong.count({ where: activityWhere }),
+      // Total activities đã duyệt/kết thúc của các lớp GV phụ trách
+      Promise.all(totalActivitiesPromises),
 
       // Pending activities count
       prisma.hoatDong.count({
         where: {
-          ...activityWhere,
-          trang_thai: 'cho_duyet'
+          nguoi_tao_id: { in: studentUserIds },
+          trang_thai: 'cho_duyet',
+          ...(semesterFilter.hoc_ky && { hoc_ky: semesterFilter.hoc_ky }),
+          ...(semesterFilter.nam_hoc && { nam_hoc: semesterFilter.nam_hoc })
         }
       }),
 
@@ -100,6 +114,9 @@ class TeacherDashboardRepository {
         }
       })
     ]);
+
+    // Tổng hoạt động từ tất cả các lớp
+    const totalActivities = classActivityCounts.reduce((sum, count) => sum + count, 0);
 
     // Calculate average score
     const totalScore = participatedRegistrations.reduce((sum, reg) => {
@@ -150,12 +167,13 @@ class TeacherDashboardRepository {
         some: {
           sinh_vien: { lop_id: lop.id }
         }
-      }
+      },
+      // Chỉ tính hoạt động đã duyệt / đã kết thúc
+      trang_thai: { in: ['da_duyet', 'ket_thuc'] }
     };
 
     const approvedActivityWhere = {
-      ...activityWhere,
-      trang_thai: 'da_duyet'
+      ...activityWhere
     };
 
     if (semesterId) {

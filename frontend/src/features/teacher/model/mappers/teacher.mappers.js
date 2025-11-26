@@ -35,11 +35,14 @@ export function mapActivityStatus(status) {
     'cho_duyet': 'pending',
     'da_duyet': 'approved',
     'tu_choi': 'rejected',
+    'ket_thuc': 'completed',       // ✅ Added: ket_thuc -> completed
+    'da_huy': 'rejected',          // ✅ Added: da_huy -> rejected
     'pending': 'pending',
     'approved': 'approved',
     'rejected': 'rejected',
     'dang_dien_ra': 'ongoing',
-    'da_ket_thuc': 'completed'
+    'da_ket_thuc': 'completed',
+    'completed': 'completed'       // ✅ Added: completed -> completed
   };
   
   const normalized = String(status || '').toLowerCase();

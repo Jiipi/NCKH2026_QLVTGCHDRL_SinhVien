@@ -17,6 +17,7 @@ export function useClassApprovals(initialSemester) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ type: '', from: '', to: '', mssv: '' });
   const [selectedIds, setSelectedIds] = useState([]);
+  const [sortBy, setSortBy] = useState('newest');
 
   // --- Data Fetching ---
   const loadRegistrations = useCallback(async () => {
@@ -114,8 +115,33 @@ export function useClassApprovals(initialSemester) {
       if (filters.to && new Date(activity?.ngay_bd) > new Date(filters.to)) return false;
 
       return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest': {
+          const ta = new Date(a.ngay_dang_ky || a.updated_at || a.updatedAt || a.createdAt || a.tg_diem_danh || 0).getTime();
+          const tb = new Date(b.ngay_dang_ky || b.updated_at || b.updatedAt || b.createdAt || b.tg_diem_danh || 0).getTime();
+          return ta - tb;
+        }
+        case 'name-az': {
+          const nameA = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          const nameB = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          return nameA.localeCompare(nameB, 'vi');
+        }
+        case 'name-za': {
+          const nameA = (a.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          const nameB = (b.sinh_vien?.nguoi_dung?.ho_ten || '').toLowerCase();
+          return nameB.localeCompare(nameA, 'vi');
+        }
+        case 'newest':
+        default: {
+          const ta = new Date(a.ngay_dang_ky || a.updated_at || a.updatedAt || a.createdAt || a.tg_diem_danh || 0).getTime();
+          const tb = new Date(b.ngay_dang_ky || b.updated_at || b.updatedAt || b.createdAt || b.tg_diem_danh || 0).getTime();
+          return tb - ta;
+        }
+      }
     });
-  }, [allRegistrations, activeTab, searchTerm, filters]);
+  }, [allRegistrations, activeTab, searchTerm, filters, sortBy]);
 
   // --- Selection Logic ---
   const handleToggleSelect = (id) => {
@@ -135,6 +161,7 @@ export function useClassApprovals(initialSemester) {
     // State
     loading, processing, error, semester, setSemester, activeTab, setActiveTab,
     searchTerm, setSearchTerm, filters, setFilters, selectedIds, setSelectedIds,
+    sortBy, setSortBy,
     // Data
     allRegistrations,
     filteredRegistrations,

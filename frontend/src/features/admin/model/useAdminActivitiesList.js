@@ -8,7 +8,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import adminActivitiesApi from '../services/adminActivitiesApi';
 import http from '../../../shared/api/http';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
-import useSemesterData from '../../../shared/hooks/useSemesterData';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../shared/lib/semester';
 
 const ACTIVITY_STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -27,13 +28,13 @@ const SCOPE_OPTIONS = [
 // Option "Tất cả học kỳ" để xem toàn bộ hoạt động trong hệ thống
 const ALL_SEMESTERS_OPTION = { value: '', label: '📊 Tất cả học kỳ' };
 
-function getCurrentSemesterValue() {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  if (currentMonth >= 7 && currentMonth <= 11) return `hoc_ky_1-${currentYear}`;
-  if (currentMonth === 12) return `hoc_ky_2-${currentYear}`;
-  if (currentMonth >= 1 && currentMonth <= 4) return `hoc_ky_2-${currentYear - 1}`;
-  return `hoc_ky_1-${currentYear}`;
+/**
+ * Get initial semester from global storage or calculate current
+ */
+function loadInitialSemester() {
+  const globalSemester = getGlobalSemester();
+  if (globalSemester) return globalSemester;
+  return getCurrentSemesterValue();
 }
 
 /**
@@ -47,12 +48,15 @@ export default function useAdminActivitiesList() {
   const [filters, setFilters] = useState({ type: '', status: '', from: '', to: '' });
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('newest');
   const [selectedActivityId, setSelectedActivityId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scopeTab, setScopeTab] = useState('all'); // 'all' | 'class'
   const [selectedClass, setSelectedClass] = useState('');
-  const [systemSemester, setSystemSemester] = useState('');
-  const [classSemester, setClassSemester] = useState(getCurrentSemesterValue());
+  
+  // Semester with global sync - Admin có thể chọn "Tất cả học kỳ" (value = '')
+  const [systemSemesterState, setSystemSemesterState] = useState('');
+  const [classSemesterState, setClassSemesterState] = useState(() => loadInitialSemester());
   const [isTransitioning, setIsTransitioning] = useState(false);
   const activitiesGridRef = useRef(null);
 
@@ -64,10 +68,13 @@ export default function useAdminActivitiesList() {
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const selectedSemester = scopeTab === 'class' ? classSemester : systemSemester;
+  const selectedSemester = scopeTab === 'class' ? classSemesterState : systemSemesterState;
   const { options: baseSemesterOptions, isWritable, currentSemester, loading: semesterLoading } = useSemesterData(
     selectedSemester || undefined
   );
+
+  // Sync với global semester changes khi ở tab "Theo lớp"
+  useGlobalSemesterSync(classSemesterState, setClassSemesterState);
 
   const fallbackClassSemester = useMemo(
     () => currentSemester || baseSemesterOptions[0]?.value || getCurrentSemesterValue(),
@@ -75,10 +82,10 @@ export default function useAdminActivitiesList() {
   );
 
   useEffect(() => {
-    if (scopeTab === 'class' && (!classSemester || classSemester === '')) {
-      setClassSemester(fallbackClassSemester);
+    if (scopeTab === 'class' && (!classSemesterState || classSemesterState === '')) {
+      setClassSemesterState(fallbackClassSemester);
     }
-  }, [scopeTab, classSemester, fallbackClassSemester]);
+  }, [scopeTab, classSemesterState, fallbackClassSemester]);
 
   // Thêm option "Tất cả học kỳ" cho tab hệ thống, loại bỏ ở tab theo lớp
   const semesterOptions = useMemo(() => {
@@ -91,9 +98,15 @@ export default function useAdminActivitiesList() {
   const handleSemesterSelect = useCallback(
     (value) => {
       if (scopeTab === 'class') {
-        setClassSemester(value || fallbackClassSemester);
+        setClassSemesterState(value || fallbackClassSemester);
+        // Broadcast globally để các form khác sync
+        setGlobalSemester(value || fallbackClassSemester);
       } else {
-        setSystemSemester(value ?? '');
+        setSystemSemesterState(value ?? '');
+        // Không broadcast "Tất cả học kỳ" cho các form khác vì nó chỉ dành cho Admin
+        if (value) {
+          setGlobalSemester(value);
+        }
       }
     },
     [scopeTab, fallbackClassSemester]
@@ -138,23 +151,26 @@ export default function useAdminActivitiesList() {
         type: filters.type || undefined, // Backend expects 'type', not 'typeId'
         from: filters.from || undefined,
         to: filters.to || undefined,
+        // Khi chọn tab "Theo lớp" + chọn lớp, gửi lop_id để backend filter theo lớp
+        lop_id: scopeTab === 'class' && selectedClass ? selectedClass : undefined,
       };
 
       // Tab "Toàn hệ thống":
-      // - Nếu chọn "Tất cả học kỳ" (systemSemester = '') thì không gửi semesterValue → lấy tất cả
+      // - Nếu chọn "Tất cả học kỳ" (systemSemesterState = '') thì không gửi semesterValue → lấy tất cả
       // - Nếu chọn học kỳ cụ thể thì gửi semesterValue để filter
       // Tab "Theo lớp":
-      // - Luôn có học kỳ (classSemester), gửi semesterValue
+      // - Luôn có học kỳ (classSemesterState), gửi semesterValue
       // - Hiển thị hoạt động đã duyệt trong học kỳ đó (giống view sinh viên)
       // - selectedClass chỉ để UI reference, không filter theo lớp (hoạt động chung cho tất cả)
       if (scopeTab === 'class') {
-        // Tab theo lớp: bắt buộc có học kỳ, filter status = da_duyet
-        params.semesterValue = classSemester || undefined;
-        params.status = 'da_duyet'; // Chỉ hoạt động đã duyệt (như sinh viên thấy)
+        // Tab theo lớp: bắt buộc có học kỳ
+        params.semesterValue = classSemesterState || undefined;
+        // Không ép status = 'da_duyet' tại FE nữa.
+        // Mặc định (khi không chọn trạng thái) backend sẽ tự lọc da_duyet + ket_thuc cho đúng tổng hoạt động.
       } else {
         // Tab toàn hệ thống: semester có thể rỗng (Tất cả học kỳ)
-        if (systemSemester) {
-          params.semesterValue = systemSemester;
+        if (systemSemesterState) {
+          params.semesterValue = systemSemesterState;
         }
         // Không gửi semesterValue nếu = '' để lấy tất cả hoạt động
       }
@@ -190,7 +206,7 @@ export default function useAdminActivitiesList() {
     }
 
     setLoading(false);
-  }, [query, filters, scopeTab, systemSemester, classSemester]);
+  }, [query, filters, scopeTab, systemSemesterState, classSemesterState, selectedClass]);
 
   // Business logic: Load activity types
   const loadActivityTypes = useCallback(async () => {
@@ -264,13 +280,32 @@ export default function useAdminActivitiesList() {
 
   // Business logic: Sort all items (đã có từ API, không cần filter thêm vì API đã filter)
   const sortedItems = useMemo(() => {
-    // Sort by created date or start date (newest first)
     return [...allItems].sort((a, b) => {
-      const dateA = new Date(a.ngay_tao || a.ngay_bd || 0);
-      const dateB = new Date(b.ngay_tao || b.ngay_bd || 0);
-      return dateB - dateA;
+      switch (sortBy) {
+        case 'oldest': {
+          const dateA = new Date(a.ngay_tao || a.ngay_bd || 0).getTime();
+          const dateB = new Date(b.ngay_tao || b.ngay_bd || 0).getTime();
+          return dateA - dateB;
+        }
+        case 'name-az': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return na.localeCompare(nb, 'vi');
+        }
+        case 'name-za': {
+          const na = (a.ten_hd || '').toLowerCase();
+          const nb = (b.ten_hd || '').toLowerCase();
+          return nb.localeCompare(na, 'vi');
+        }
+        case 'newest':
+        default: {
+          const dateA = new Date(a.ngay_tao || a.ngay_bd || 0).getTime();
+          const dateB = new Date(b.ngay_tao || b.ngay_bd || 0).getTime();
+          return dateB - dateA;
+        }
+      }
     });
-  }, [allItems]);
+  }, [allItems, sortBy]);
 
   // Phân trang client-side: lấy items cho trang hiện tại
   const filteredItems = useMemo(() => {
@@ -329,8 +364,8 @@ export default function useAdminActivitiesList() {
     setQuery('');
     setScopeTab('all');
     setSelectedClass('');
-    setSystemSemester('');
-    setClassSemester(fallbackClassSemester);
+    setSystemSemesterState('');
+    setClassSemesterState(fallbackClassSemester);
     setPagination(prev => ({ ...prev, page: 1 }));
   }, [fallbackClassSemester]);
 
@@ -358,6 +393,8 @@ export default function useAdminActivitiesList() {
     setShowFilters,
     pagination,
     setPagination,
+    sortBy,
+    setSortBy,
     semester: selectedSemester,
     setSemester: handleSemesterSelect,
     semesterOptions,

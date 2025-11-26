@@ -18,8 +18,8 @@ class GetPendingActivitiesUseCase {
     }
 
     const scope = await buildScope('activities', user);
-    const { semester, page = 1, limit = 100 } = pagination;
-    
+    const { semester, page = 1, limit } = pagination;
+
     const dto = new GetActivitiesDto({
       status: 'cho_duyet',
       semester,

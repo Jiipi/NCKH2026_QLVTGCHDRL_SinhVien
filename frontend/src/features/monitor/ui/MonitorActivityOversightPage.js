@@ -6,6 +6,7 @@ import Pagination from '../../../shared/components/common/Pagination';
 import ActivityCard from './components/Activities/ActivityCard';
 import ActivityEditModal from './components/Activities/ActivityEditModal';
 import { useMonitorActivityOversight } from '../model/hooks/useMonitorActivityOversight';
+import ActivitySortBar from '../../activities/ui/shared/ActivitySortBar';
 
 export default function MonitorActivityOversightPage() {
   const {
@@ -55,6 +56,7 @@ export default function MonitorActivityOversightPage() {
     isAvailable,
     formatDate,
     filteredActivities,
+    paginatedActivities,
     approvedCount,
     availableCount,
     pendingCount,
@@ -68,7 +70,9 @@ export default function MonitorActivityOversightPage() {
     handleRegister,
     handleViewDetails,
     handleShowQR,
-    handleCloseEditModal
+    handleCloseEditModal,
+    sortBy,
+    setSortBy
   } = useMonitorActivityOversight();
 
   if (loading) {
@@ -297,33 +301,36 @@ export default function MonitorActivityOversightPage() {
             </div>
             
             {/* Right side: View mode toggle */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                <button
-                  onClick={() => setDisplayViewMode('grid')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    displayViewMode === 'grid' 
-                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Hiển thị dạng lưới"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Lưới</span>
-                </button>
-                <button
-                  onClick={() => setDisplayViewMode('list')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    displayViewMode === 'list' 
-                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Hiển thị dạng danh sách"
-                >
-                  <List className="h-4 w-4" />
-                  <span className="hidden sm:inline">Danh sách</span>
-                </button>
+            <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
+              <ActivitySortBar sortBy={sortBy} onSortChange={setSortBy} />
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+                  <button
+                    onClick={() => setDisplayViewMode('grid')}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+                      displayViewMode === 'grid'
+                        ? 'bg-white shadow-md text-blue-600 border border-blue-200'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    title="Hiển thị dạng lưới"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Lưới</span>
+                  </button>
+                  <button
+                    onClick={() => setDisplayViewMode('list')}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+                      displayViewMode === 'list'
+                        ? 'bg-white shadow-md text-blue-600 border border-blue-200'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    title="Hiển thị dạng danh sách"
+                  >
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">Danh sách</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -620,7 +627,7 @@ export default function MonitorActivityOversightPage() {
       {/* Activities Grid/List */}
       {filteredActivities.length > 0 ? (
         <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
-          {filteredActivities.map(activity => (
+          {paginatedActivities.map(activity => (
             <ActivityCard 
               key={activity.id} 
               activity={activity}

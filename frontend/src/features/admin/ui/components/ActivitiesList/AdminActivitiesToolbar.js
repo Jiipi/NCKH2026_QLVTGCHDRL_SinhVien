@@ -8,7 +8,9 @@ import {
   List,
   Plus,
   Building,
-  Globe
+  Globe,
+  Filter,
+  Lock
 } from 'lucide-react';
 import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
 
@@ -31,7 +33,10 @@ export default function AdminActivitiesToolbar({
   selectedClass,
   onClassChange,
   onCreateActivity,
-  scopeOptions = []
+  scopeOptions = [],
+  sortBy,
+  onSortChange,
+  isWritable = true
 }) {
 
   return (
@@ -57,9 +62,15 @@ export default function AdminActivitiesToolbar({
           </form>
           <button
             onClick={onCreateActivity}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold whitespace-nowrap"
+            disabled={!isWritable}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-200 shadow-lg font-semibold whitespace-nowrap ${
+              isWritable 
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+            title={!isWritable ? 'Không thể tạo hoạt động cho học kỳ đã đóng' : 'Tạo hoạt động mới'}
           >
-            <Plus className="h-5 w-5" />
+            {isWritable ? <Plus className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
             Tạo hoạt động
           </button>
         </div>
@@ -152,6 +163,24 @@ export default function AdminActivitiesToolbar({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+              <select
+                value={sortBy || 'newest'}
+                onChange={(e) => onSortChange?.(e.target.value)}
+                className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+                <option value="name-az">Tên A → Z</option>
+                <option value="name-za">Tên Z → A</option>
+              </select>
+            </div>
+
+            <div className="w-px h-8 bg-gray-200"></div>
+
             <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
             <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
               <ViewToggleButton

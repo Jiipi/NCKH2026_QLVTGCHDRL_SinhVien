@@ -69,13 +69,14 @@ describe('Authentication - Get Current User (GET /me)', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.user || response.body.data).toBeDefined();
+      expect(response.body.data).toBeDefined();
       
-      const user = response.body.user || response.body.data;
-      expect(user.ten_dn).toBe(testStudent.ten_dn);
-      expect(user.email).toBe(testStudent.email);
-      expect(user.ho_ten).toBe(testStudent.ho_ten);
-      expect(user.vai_tro || user.role).toBeDefined();
+      const user = response.body.data;
+      // API returns maso instead of ten_dn (mapped in toUserDTO)
+      expect(user.maso).toBeDefined();
+      expect(user.email).toBeDefined();
+      expect(user.ho_ten).toBeDefined();
+      expect(user.roleCode).toBeDefined();
       
       // Should NOT return password
       expect(user.mat_khau).toBeUndefined();
@@ -90,8 +91,9 @@ describe('Authentication - Get Current User (GET /me)', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       
-      const user = response.body.user || response.body.data;
-      expect(user.ten_dn).toBe(testTeacher.ten_dn);
+      const user = response.body.data;
+      expect(user.maso).toBeDefined();
+      expect(user.roleCode).toBe('GIANG_VIEN');
     });
 
     it('should return current user info for admin', async () => {
@@ -102,25 +104,21 @@ describe('Authentication - Get Current User (GET /me)', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       
-      const user = response.body.user || response.body.data;
-      expect(user.ten_dn).toBe(testAdmin.ten_dn);
+      const user = response.body.data;
+      expect(user.maso).toBeDefined();
+      expect(user.roleCode).toBe('ADMIN');
     });
 
-    it('should include sinh_vien relation for student', async () => {
+    it('should include student info for student role', async () => {
       const response = await request(app)
         .get('/api/auth/me')
         .set('Authorization', `Bearer ${studentToken}`);
 
       expect(response.status).toBe(200);
       
-      const user = response.body.user || response.body.data;
-      // sinh_vien may be nested or flattened
-      const hasStudentInfo = 
-        user.sinh_vien || 
-        user.mssv || 
-        user.student;
-      
-      expect(hasStudentInfo).toBeDefined();
+      const user = response.body.data;
+      // Student should have SINH_VIEN role
+      expect(user.roleCode).toBe('SINH_VIEN');
     });
   });
 

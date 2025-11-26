@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import qrAttendanceApi from '../../services/qrAttendanceApi';
+import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import http from '../../../../shared/api/http';
 
 export function useQRScanner() {
   const [isScanning, setIsScanning] = useState(false);
@@ -11,6 +13,9 @@ export function useQRScanner() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  
+  // Lấy thông tin học kỳ đang kích hoạt
+  const { currentSemester } = useSemesterData();
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -75,6 +80,24 @@ export function useQRScanner() {
         throw new Error('Mã QR không khớp hoặc đã hết hạn');
       }
 
+      // Kiểm tra học kỳ đang kích hoạt: Lấy thông tin hoạt động để kiểm tra học kỳ
+      try {
+        const activityRes = await http.get(`/activities/${payload.activityId}`);
+        const activity = activityRes?.data?.data || activityRes?.data || {};
+        const activitySemester = activity.semester || activity.semesterValue || activity.hoc_ky;
+        
+        // Nếu có học kỳ đang kích hoạt và hoạt động không thuộc học kỳ đó, từ chối
+        if (currentSemester && activitySemester && activitySemester !== currentSemester) {
+          throw new Error('Chỉ có thể điểm danh cho hoạt động thuộc học kỳ đang kích hoạt');
+        }
+      } catch (semesterCheckError) {
+        // Nếu lỗi là do học kỳ không khớp, throw lại
+        if (semesterCheckError.message && semesterCheckError.message.includes('học kỳ đang kích hoạt')) {
+          throw semesterCheckError;
+        }
+        // Nếu lỗi khác (không tìm thấy hoạt động), vẫn tiếp tục (backend sẽ xử lý)
+      }
+
       // Submit attendance with token
       const checkin = await qrAttendanceApi.scanAttendance(payload.activityId, payload.token);
       if (!checkin.success) throw new Error(checkin.error || 'Điểm danh thất bại');
@@ -102,7 +125,7 @@ export function useQRScanner() {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, stopCamera]);
+  }, [isProcessing, stopCamera, currentSemester]);
 
   const startScanningWithZXing = useCallback(async () => {
     try {

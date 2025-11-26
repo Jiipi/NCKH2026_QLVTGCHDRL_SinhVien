@@ -266,6 +266,7 @@ export default function TeacherRegistrationApprovalsPage() {
                 onReject={handleRejectWithConfirm}
                 onViewDetail={handleViewDetail}
                 displayViewMode={displayViewMode}
+                isWritable={isWritable}
               />
             ))
           )}

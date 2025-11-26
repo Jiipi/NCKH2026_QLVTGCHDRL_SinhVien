@@ -144,13 +144,32 @@ export default function useTeacherActivitiesPage() {
   const endIdx = startIdx + limit;
   const pageItems = filteredActivities.slice(startIdx, endIdx);
 
-  const heroStats = useMemo(() => ({
-    total: activities.length,
-    pending: activitiesByStatus.cho_duyet?.length || 0,
-    approved: activitiesByStatus.da_duyet?.length || 0,
-    rejected: activitiesByStatus.tu_choi?.length || 0,
-    types: activityTypes.length
-  }), [activities.length, activitiesByStatus, activityTypes.length]);
+  // Bỏ giới hạn hiển thị: luôn hiển thị toàn bộ hoạt động trên một trang
+  useEffect(() => {
+    if (!filteredActivities.length) {
+      setPage(1);
+      setLimit(0);
+      return;
+    }
+    setLimit(prevLimit => (prevLimit === filteredActivities.length ? prevLimit : filteredActivities.length));
+    setPage(1);
+  }, [filteredActivities.length]);
+
+  const heroStats = useMemo(() => {
+    // ✅ TỔNG HOẠT ĐỘNG = approved + completed (thống nhất với admin/SV/LT)
+    // Note: activitiesByStatus uses mapped keys: pending, approved, rejected, ongoing, completed
+    const approvedCount = activitiesByStatus.approved?.length || 0;
+    const completedCount = activitiesByStatus.completed?.length || 0;
+    const totalApprovedActivities = approvedCount + completedCount;
+    
+    return {
+      total: totalApprovedActivities,
+      pending: activitiesByStatus.pending?.length || 0,
+      approved: approvedCount,
+      rejected: activitiesByStatus.rejected?.length || 0,
+      types: activityTypes.length
+    };
+  }, [activitiesByStatus, activityTypes.length]);
 
   const fetchActivityDetails = useCallback(async (activityId) => {
     try {

@@ -27,7 +27,7 @@ export const teacherApprovalApi = {
    */
   async getPending({ semester, search }) {
     try {
-      const params = { page: 1, limit: 100 };
+      const params = { page: 1, limit: 'all' };
       if (semester) params.semester = semester;
       if (search) params.search = search;
       
@@ -53,7 +53,7 @@ export const teacherApprovalApi = {
    */
   async getHistory({ semester, search, status }) {
     try {
-      const params = { page: 1, limit: 100 };
+      const params = { page: 1, limit: 'all' };
       if (semester) params.semester = semester;
       if (search) params.search = search;
       if (status && status !== 'all') params.status = status;

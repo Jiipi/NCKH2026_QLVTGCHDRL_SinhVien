@@ -15,7 +15,7 @@ import http from '../../../shared/api/http';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { SemesterClosureWidget } from '../../../shared/components/semester';
 import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
-import { useSemesterData } from '../../../shared/hooks';
+import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../shared/hooks/useSemesterData';
 import useTeacherDashboard from '../model/hooks/useTeacherDashboard';
 import useTeacherRegistrationActions from '../model/hooks/useTeacherRegistrationActions';
 
@@ -96,9 +96,10 @@ export default function TeacherDashboardPage() {
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useNotification();
 
-  const [semester, setSemester] = useState(() => {
+  // Load từ global semester (đồng bộ giữa các form)
+  const [semester, setSemesterState] = useState(() => {
     try {
-      return sessionStorage.getItem('current_semester') || null;
+      return getGlobalSemester() || null;
     } catch {
       return null;
     }
@@ -110,23 +111,34 @@ export default function TeacherDashboardPage() {
 
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
 
+  // Sync với global semester changes từ các form khác
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  // Re-sync on mount (in case sessionStorage was updated while unmounted)
+  useEffect(() => {
+    const stored = getGlobalSemester();
+    if (stored && stored !== semester) {
+      setSemesterState(stored);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!semester && !semesterLoading) {
       if (currentSemester) {
-        setSemester(currentSemester);
+        setSemesterState(currentSemester);
+        setGlobalSemester(currentSemester);
       } else if (semesterOptions.length > 0) {
-        setSemester(semesterOptions[0]?.value || null);
+        const firstSemester = semesterOptions[0]?.value || null;
+        setSemesterState(firstSemester);
+        setGlobalSemester(firstSemester);
       }
     }
   }, [semester, semesterLoading, currentSemester, semesterOptions]);
 
+  // Wrapper để broadcast global khi thay đổi semester
   const handleSetSemester = useCallback((value) => {
-    setSemester(value);
-    try {
-      if (value) {
-        sessionStorage.setItem('current_semester', value);
-      }
-    } catch (_) {}
+    setSemesterState(value);
+    setGlobalSemester(value);
   }, []);
 
   const {
@@ -325,7 +337,7 @@ export default function TeacherDashboardPage() {
                 <SemesterFilter value={semester} onChange={handleSetSemester} />
               </div>
               <div className="bg-white/90 rounded-xl p-3 border-2 border-black">
-                <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} className="!p-0 !bg-transparent !border-0" />
+                <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} allowProposeWithoutClass={true} className="!p-0 !bg-transparent !border-0" />
               </div>
             </div>
           </div>

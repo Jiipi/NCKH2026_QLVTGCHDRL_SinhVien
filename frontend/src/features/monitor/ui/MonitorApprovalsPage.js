@@ -536,6 +536,7 @@ export default function MonitorApprovalsPage() {
                 formatDate={formatDate}
                 processing={processing}
                 roleLabel={roleLabel}
+                isWritable={isWritable}
               />
             ))}
           </div>

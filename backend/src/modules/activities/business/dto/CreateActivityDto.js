@@ -14,9 +14,22 @@ class CreateActivityDto {
     this.diem_rl = data.diem_rl || data.diem_ren_luyen;
     this.dia_diem = data.dia_diem;
     this.hoc_ky = data.hoc_ky;
-    this.nam_hoc = data.nam_hoc;
+    // Chuẩn hóa nam_hoc: chỉ lưu năm đầu tiên (2024-2025 -> 2024)
+    this.nam_hoc = this._normalizeNamHoc(data.nam_hoc);
     this.hinh_anh = data.hinh_anh;
     this.tep_dinh_kem = data.tep_dinh_kem;
+  }
+
+  /**
+   * Chuẩn hóa năm học: chỉ lấy năm đầu tiên
+   * "2024-2025" -> "2024"
+   * "2024" -> "2024"
+   */
+  _normalizeNamHoc(value) {
+    if (!value) return null;
+    const str = String(value);
+    const match = str.match(/^(\d{4})/);
+    return match ? match[1] : str;
   }
 
   static fromRequest(body) {

@@ -11,7 +11,8 @@ class GetMeUseCase {
   }
 
   async execute(userId) {
-    const user = await this.authRepository.findByEmailOrMaso(userId);
+    // userId is the UUID from JWT token's sub claim
+    const user = await this.authRepository.findUserById(userId);
     
     if (!user) {
       throw new NotFoundError('Người dùng không tồn tại');
