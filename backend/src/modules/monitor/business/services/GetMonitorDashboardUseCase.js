@@ -79,7 +79,11 @@ class GetMonitorDashboardUseCase {
           mssv: student.mssv,
           points: pts,
           pointsRounded: Math.round(pts),
-          activitiesCount: Number(countByStudent.get(student.id) || 0)
+          activitiesCount: Number(countByStudent.get(student.id) || 0),
+          nguoi_dung: student.nguoi_dung ? {
+            ho_ten: student.nguoi_dung.ho_ten,
+            anh_dai_dien: student.nguoi_dung.anh_dai_dien
+          } : null
         };
       });
 

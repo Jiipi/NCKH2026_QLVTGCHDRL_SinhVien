@@ -45,6 +45,9 @@ export default function useAdminDashboardPage() {
   // Sidebar tab
   const [sidebarTab, setSidebarTab] = useState('classes');
 
+  // User profile state
+  const [userProfile, setUserProfile] = useState(null);
+
   // Fetch classes
   const fetchClasses = useCallback(async () => {
     setLoadingClasses(true);
@@ -115,6 +118,39 @@ export default function useAdminDashboardPage() {
       setLoadingRegistrations(false);
     }
   }, [activeTab]);
+
+  // Load user profile
+  const loadProfile = useCallback(async () => {
+    try {
+      const response = await http.get('/core/profile');
+      const profileData = response.data?.data || response.data || {};
+      setUserProfile(profileData);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadProfile();
+      if (!cancelled) {
+        // Listen for profile updates
+        const handleProfileUpdate = (event) => {
+          if (event.detail?.profile) {
+            setUserProfile(event.detail.profile);
+          }
+        };
+        window.addEventListener('profileUpdated', handleProfileUpdate);
+        return () => {
+          window.removeEventListener('profileUpdated', handleProfileUpdate);
+        };
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadProfile]);
 
   // Initial fetch
   useEffect(() => {
@@ -454,7 +490,10 @@ export default function useAdminDashboardPage() {
     closeTeacherDetail,
 
     // Action feed
-    adminActionFeed
+    adminActionFeed,
+
+    // User profile
+    userProfile
   };
 }
 

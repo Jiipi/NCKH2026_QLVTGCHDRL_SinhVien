@@ -18,6 +18,7 @@ import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../shared/hooks/useSemesterData';
 import useTeacherDashboard from '../model/hooks/useTeacherDashboard';
 import useTeacherRegistrationActions from '../model/hooks/useTeacherRegistrationActions';
+import { getUserAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
 
 // Activity Card Component (kept for approval actions)
 function ActivityCard({ activity, onSelect, onApprove, onReject }) {
@@ -107,6 +108,7 @@ export default function TeacherDashboardPage() {
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [teacherName, setTeacherName] = useState('Giảng viên');
   const [teacherInitials, setTeacherInitials] = useState('GV');
+  const [teacherProfile, setTeacherProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('activities');
 
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
@@ -164,27 +166,42 @@ export default function TeacherDashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const updateProfileData = (profile) => {
+      setTeacherProfile(profile);
+      const name = profile.ho_ten || profile.name || 'Giảng viên';
+      setTeacherName(name);
+      const initials = String(name)
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+      setTeacherInitials(initials || 'GV');
+    };
+
     (async () => {
       try {
         const res = await http.get('/core/profile');
         const profile = res.data?.data || {};
         if (cancelled) return;
-        const name = profile.ho_ten || profile.name || 'Giảng viên';
-        setTeacherName(name);
-        const initials = String(name)
-          .split(' ')
-          .filter(Boolean)
-          .map((part) => part[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
-        setTeacherInitials(initials || 'GV');
+        updateProfileData(profile);
       } catch (_) {
         // ignore
       }
     })();
+
+    // Listen for profile updates
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.profile) {
+        updateProfileData(event.detail.profile);
+      }
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
     };
   }, []);
 
@@ -294,8 +311,25 @@ export default function TeacherDashboardPage() {
                     </linearGradient>
                   </defs>
                 </svg>
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
-                  <span className="text-2xl font-black text-white">{teacherInitials}</span>
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarGradient(teacherName)} border-4 border-white flex items-center justify-center shadow-lg overflow-hidden`}>
+                  {teacherProfile && (() => {
+                    const avatar = getUserAvatar(teacherProfile);
+                    return avatar.hasValidAvatar ? (
+                      <img
+                        src={avatar.src}
+                        alt={avatar.alt}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const next = e.target.nextSibling;
+                          if (next) next.style.display = 'flex';
+                        }}
+                      />
+                    ) : null;
+                  })()}
+                  <span className={`text-2xl font-black text-white ${teacherProfile && getUserAvatar(teacherProfile).hasValidAvatar ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
+                    {teacherInitials}
+                  </span>
                 </div>
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
               </div>

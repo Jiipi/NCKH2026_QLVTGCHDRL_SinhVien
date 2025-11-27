@@ -4,7 +4,8 @@ import http from '../../../shared/api/http';
 import { useAppStore } from '../../../shared/store';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../shared/lib/date';
-import AvatarUpload from '../../../entities/user/ui/Avatar';
+import { AvatarUpload } from '../../../shared/components/common';
+import { getUserAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
 
 export default function AdminProfile() {
   const { showSuccess, showError } = useNotification();
@@ -39,12 +40,7 @@ export default function AdminProfile() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      let response;
-      try {
-        response = await http.get('/core/profile');
-      } catch (e) {
-        response = await http.get('/auth/profile');
-      }
+      const response = await http.get('/core/profile');
       const profileData = response?.data?.data || response?.data || {};
       setProfile(profileData);
       setFormData({
@@ -147,181 +143,30 @@ export default function AdminProfile() {
   };
 
   const renderBasicInfo = () => {
-    // Debug: log avatar URL
-    console.log('Avatar URL:', profile.anh_dai_dien);
-    
-    // Check if URL is valid for image display
-    const isValidImageUrl = (url) => {
-      if (!url) return false;
-      
-      // Check if it's a direct image URL or data URL
-      if (url.startsWith('data:image/') || 
-          url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
-          url.includes('i.pinimg.com') ||
-          url.includes('images.unsplash.com') ||
-          url.includes('cdn') ||
-          url.includes('imgur.com') ||
-          url.includes('googleusercontent.com') ||
-          url.includes('drive.google.com') ||
-          url.includes('photos.google.com')) {
-        return true;
-      }
-      
-      // Check if it's a Google redirect URL that might contain an image
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        return true; // We'll handle this in getDirectImageUrl
-      }
-      
-      // Check if it's Google Images URL
-      if (url.includes('google.com/imgres')) {
-        return true;
-      }
-      
-      return false;
-    };
-    
-    // Function to convert Google Images URL to direct image URL with HD quality
-    const getDirectImageUrl = (url) => {
-      if (!url) return url;
-      
-      console.log('Original URL:', url);
-      
-      // Handle Google redirect URL
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        const match = url.match(/url=([^&]+)/);
-        if (match) {
-          let decodedUrl = decodeURIComponent(match[1]);
-          console.log('Extracted URL from Google redirect:', decodedUrl);
-          
-          // Check if the extracted URL is a Facebook page (not an image)
-          if (decodedUrl.includes('facebook.com')) {
-            console.log('Facebook page detected, cannot display as image');
-            return null;
-          }
-          
-          // Upgrade to HD quality if possible
-          decodedUrl = upgradeToHDQuality(decodedUrl);
-          return decodedUrl;
-        }
-      }
-      
-      // Handle Google Images URL
-      if (url.includes('google.com/imgres')) {
-        const match = url.match(/imgurl=([^&]+)/);
-        if (match) {
-          let decodedUrl = decodeURIComponent(match[1]);
-          console.log('Extracted image URL from Google Images:', decodedUrl);
-          
-          // Upgrade to HD quality
-          decodedUrl = upgradeToHDQuality(decodedUrl);
-          return decodedUrl;
-        }
-      }
-      
-      // Handle Google Drive URL
-      if (url.includes('drive.google.com')) {
-        const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (fileId) {
-          // Use high quality parameter for Drive
-          const driveUrl = `https://drive.google.com/uc?export=view&id=${fileId[1]}&sz=2000`;
-          console.log('Converted Google Drive URL (HD):', driveUrl);
-          return driveUrl;
-        }
-      }
-      
-      // Upgrade direct URLs to HD if possible
-      const hdUrl = upgradeToHDQuality(url);
-      console.log('Using URL:', hdUrl);
-      return hdUrl;
-    };
-    
-    // Helper function to upgrade image URLs to HD quality
-    const upgradeToHDQuality = (url) => {
-      if (!url) return url;
-      
-      // Pinterest: Remove size restrictions, get original
-      if (url.includes('pinimg.com')) {
-        // Replace any size parameters with originals
-        url = url.replace(/\/\d+x\d+\//, '/originals/')
-                 .replace(/\/236x\//, '/originals/')
-                 .replace(/\/474x\//, '/originals/')
-                 .replace(/\/736x\//, '/originals/');
-        console.log('Upgraded Pinterest to HD:', url);
-      }
-      
-      // Imgur: Request original size
-      if (url.includes('imgur.com')) {
-        // Remove size suffixes (s, m, l, t, b, h)
-        url = url.replace(/([a-zA-Z0-9]+)[smlthb]\.([a-z]+)$/, '$1.$2');
-        console.log('Upgraded Imgur to original:', url);
-      }
-      
-      // Unsplash: Request high quality
-      if (url.includes('unsplash.com') || url.includes('images.unsplash.com')) {
-        // Remove or upgrade quality parameters
-        if (url.includes('?')) {
-          url = url.split('?')[0] + '?q=85&w=2000&fit=max';
-        } else {
-          url = url + '?q=85&w=2000&fit=max';
-        }
-        console.log('Upgraded Unsplash to HD:', url);
-      }
-      
-      // Google User Content: Request high quality
-      if (url.includes('googleusercontent.com')) {
-        // Remove size restrictions
-        url = url.replace(/=s\d+-c/, '=s2000')
-                 .replace(/=w\d+-h\d+/, '=w2000')
-                 .replace(/-rw$/, '');
-        console.log('Upgraded Google content to HD:', url);
-      }
-      
-      // Generic CDN: Try to request larger size
-      if (url.includes('cdn') && url.includes('resize')) {
-        url = url.replace(/resize=\d+x\d+/i, 'resize=2000x2000');
-        console.log('Upgraded CDN to HD:', url);
-      }
-      
-      return url;
-    };
-    
-    const hasValidAvatar = profile.anh_dai_dien && isValidImageUrl(profile.anh_dai_dien);
-    const directImageUrl = getDirectImageUrl(profile.anh_dai_dien);
-    const canDisplayImage = hasValidAvatar && directImageUrl && !directImageUrl.includes('facebook.com');
-    
-    console.log('Avatar debug:', {
-      originalUrl: profile.anh_dai_dien,
-      hasValidAvatar,
-      directImageUrl,
-      canDisplayImage
-    });
+    const avatar = getUserAvatar(profile);
     
     return (
     <div className="space-y-6">
       {/* Avatar và thông tin cơ bản */}
       <div className="flex items-center gap-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
         <div className="w-24 h-24 rounded-full shadow-lg overflow-hidden relative">
-          {canDisplayImage ? (
+          {avatar.hasValidAvatar ? (
             <img 
-              src={directImageUrl} 
-              alt="Ảnh đại diện" 
+              src={avatar.src} 
+              alt={avatar.alt} 
               className="w-full h-full object-cover"
               onError={(e) => {
-                console.log('Image load error:', e.target.src);
-                console.log('Original URL:', profile.anh_dai_dien);
                 e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', directImageUrl);
+                const next = e.target.nextSibling;
+                if (next) next.style.display = 'flex';
               }}
             />
           ) : null}
           <div 
-            className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white"
-            style={{ display: canDisplayImage ? 'none' : 'flex' }}
+            className={`absolute inset-0 w-full h-full bg-gradient-to-br ${getAvatarGradient(profile.ho_ten || profile.email)} flex items-center justify-center text-2xl font-bold text-white`}
+            style={{ display: avatar.hasValidAvatar ? 'none' : 'flex' }}
           >
-            {(profile.ho_ten || profile.email || 'A').slice(0,1).toUpperCase()}
+            {avatar.fallback}
           </div>
         </div>
         <div className="flex-1">
@@ -354,36 +199,6 @@ export default function AdminProfile() {
   };
 
   const renderBasicEditForm = () => {
-    // Check if URL is valid for image display
-    const isValidImageUrl = (url) => {
-      if (!url) return false;
-      
-      // Check if it's a direct image URL or data URL
-      if (url.startsWith('data:image/') || 
-          url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
-          url.includes('i.pinimg.com') ||
-          url.includes('images.unsplash.com') ||
-          url.includes('cdn') ||
-          url.includes('imgur.com') ||
-          url.includes('googleusercontent.com') ||
-          url.includes('drive.google.com') ||
-          url.includes('photos.google.com')) {
-        return true;
-      }
-      
-      // Check if it's a Google redirect URL that might contain an image
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        return true; // We'll handle this in getDirectImageUrl
-      }
-      
-      // Check if it's Google Images URL
-      if (url.includes('google.com/imgres')) {
-        return true;
-      }
-      
-      return false;
-    };
-    
     return (
     <div className="space-y-4">
       <div>

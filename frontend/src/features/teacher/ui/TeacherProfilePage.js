@@ -3,8 +3,9 @@ import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, 
 import http from '../../../shared/api/http';
 import { useAppStore } from '../../../shared/store/useAppStore';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
-import { formatDateVN } from '../../../shared/lib/dateFormat';
+import { formatDateVN } from '../../../shared/lib/date';
 import { AvatarUpload } from '../../../shared/components/common';
+import { getUserAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
 
 export default function TeacherProfilePage() {
   const { showSuccess, showError } = useNotification();
@@ -40,12 +41,7 @@ export default function TeacherProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      let response;
-      try {
-        response = await http.get('/users/profile');
-      } catch (e) {
-        response = await http.get('/auth/profile');
-      }
+      const response = await http.get('/core/profile');
       
       // Load classes for teacher
       let classesResponse;
@@ -70,7 +66,7 @@ export default function TeacherProfilePage() {
         sdt: profileData.sdt || ''
       });
     } catch (error) {
-      showError('KhĂ´ng thá»ƒ táº£i thĂ´ng tin profile');
+      showError('Không thể tải thông tin profile');
     } finally {
       setLoading(false);
     }
@@ -79,14 +75,14 @@ export default function TeacherProfilePage() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      // Giáº£ng viĂªn chá»‰ cĂ³ thá»ƒ cáº­p nháº­t 3 trÆ°á»ng trong báº£ng nguoi_dung
+      // Giảng viên chỉ có thể cập nhật 3 trường trong bảng nguoi_dung
       const updateData = {
         ho_ten: formData.ho_ten,
         email: formData.email,
         anh_dai_dien: formData.anh_dai_dien
       };
       
-      await http.put('/users/profile', updateData);
+      await http.put('/core/profile', updateData);
       setEditing(false);
       loadProfile();
       
@@ -97,14 +93,14 @@ export default function TeacherProfilePage() {
         detail: { profile: updatedProfile } 
       }));
       
-      showSuccess('Cáº­p nháº­t thĂ´ng tin thĂ nh cĂ´ng', 'ThĂ nh cĂ´ng', 8000);
+      showSuccess('Cập nhật thông tin thành công', 'Thành công', 8000);
     } catch (error) {
       console.error('Profile update error:', error);
       const errorMessage = error.response?.data?.message || error.message;
-      if (errorMessage.includes('quĂ¡ dĂ i')) {
-        showError('URL áº£nh Ä‘áº¡i diá»‡n quĂ¡ dĂ i. Vui lĂ²ng sá»­ dá»¥ng URL ngáº¯n hÆ¡n hoáº·c áº£nh cĂ³ kĂ­ch thÆ°á»›c nhá» hÆ¡n.');
+      if (errorMessage.includes('quá dài')) {
+        showError('URL ảnh đại diện quá dài. Vui lòng sử dụng URL ngắn hơn hoặc ảnh có kích thước nhỏ hơn.');
       } else {
-        showError('Lá»—i cáº­p nháº­t: ' + errorMessage);
+        showError('Lỗi cập nhật: ' + errorMessage);
       }
     }
   };
@@ -112,33 +108,33 @@ export default function TeacherProfilePage() {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (passwordData.new_password !== passwordData.confirm_password) {
-      showError('Máº­t kháº©u má»›i vĂ  xĂ¡c nháº­n khĂ´ng khá»›p');
+      showError('Mật khẩu mới và xác nhận không khớp');
       return;
     }
     try {
       await http.put('/users/change-password', passwordData);
       setChangingPassword(false);
       setPasswordData({ old_password: '', new_password: '', confirm_password: '' });
-      showSuccess('Äá»•i máº­t kháº©u thĂ nh cĂ´ng', 'ThĂ nh cĂ´ng', 8000);
+      showSuccess('Đổi mật khẩu thành công', 'Thành công', 8000);
     } catch (error) {
-      showError('Lá»—i Ä‘á»•i máº­t kháº©u: ' + (error.response?.data?.message || error.message));
+      showError('Lỗi đổi mật khẩu: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const getGenderText = (gender) => {
     const genderMap = {
       'nam': 'Nam',
-      'nu': 'Ná»¯', 
-      'khac': 'KhĂ¡c'
+      'nu': 'Nữ', 
+      'khac': 'Khác'
     };
     return genderMap[gender] || '';
   };
 
   const getStatusText = (status) => {
     const statusMap = {
-      'hoat_dong': 'Hoáº¡t Ä‘á»™ng',
-      'khong_hoat_dong': 'KhĂ´ng hoáº¡t Ä‘á»™ng',
-      'khoa': 'KhĂ³a'
+      'hoat_dong': 'Hoạt động',
+      'khong_hoat_dong': 'Không hoạt động',
+      'khoa': 'Khóa'
     };
     return statusMap[status] || status;
   };
@@ -167,193 +163,42 @@ export default function TeacherProfilePage() {
   };
 
   const renderBasicInfo = () => {
-    // Debug: log avatar URL
-    console.log('Avatar URL:', profile.anh_dai_dien);
-    
-    // Check if URL is valid for image display
-    const isValidImageUrl = (url) => {
-      if (!url) return false;
-      
-      // Check if it's a direct image URL or data URL
-      if (url.startsWith('data:image/') || 
-          url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
-          url.includes('i.pinimg.com') ||
-          url.includes('images.unsplash.com') ||
-          url.includes('cdn') ||
-          url.includes('imgur.com') ||
-          url.includes('googleusercontent.com') ||
-          url.includes('drive.google.com') ||
-          url.includes('photos.google.com')) {
-        return true;
-      }
-      
-      // Check if it's a Google redirect URL that might contain an image
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        return true; // We'll handle this in getDirectImageUrl
-      }
-      
-      // Check if it's Google Images URL
-      if (url.includes('google.com/imgres')) {
-        return true;
-      }
-      
-      return false;
-    };
-    
-    // Function to convert Google Images URL to direct image URL with HD quality
-    const getDirectImageUrl = (url) => {
-      if (!url) return url;
-      
-      console.log('Original URL:', url);
-      
-      // Handle Google redirect URL
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        const match = url.match(/url=([^&]+)/);
-        if (match) {
-          let decodedUrl = decodeURIComponent(match[1]);
-          console.log('Extracted URL from Google redirect:', decodedUrl);
-          
-          // Check if the extracted URL is a Facebook page (not an image)
-          if (decodedUrl.includes('facebook.com')) {
-            console.log('Facebook page detected, cannot display as image');
-            return null;
-          }
-          
-          // Upgrade to HD quality if possible
-          decodedUrl = upgradeToHDQuality(decodedUrl);
-          return decodedUrl;
-        }
-      }
-      
-      // Handle Google Images URL
-      if (url.includes('google.com/imgres')) {
-        const match = url.match(/imgurl=([^&]+)/);
-        if (match) {
-          let decodedUrl = decodeURIComponent(match[1]);
-          console.log('Extracted image URL from Google Images:', decodedUrl);
-          
-          // Upgrade to HD quality
-          decodedUrl = upgradeToHDQuality(decodedUrl);
-          return decodedUrl;
-        }
-      }
-      
-      // Handle Google Drive URL
-      if (url.includes('drive.google.com')) {
-        const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (fileId) {
-          // Use high quality parameter for Drive
-          const driveUrl = `https://drive.google.com/uc?export=view&id=${fileId[1]}&sz=2000`;
-          console.log('Converted Google Drive URL (HD):', driveUrl);
-          return driveUrl;
-        }
-      }
-      
-      // Upgrade direct URLs to HD if possible
-      const hdUrl = upgradeToHDQuality(url);
-      console.log('Using URL:', hdUrl);
-      return hdUrl;
-    };
-    
-    // Helper function to upgrade image URLs to HD quality
-    const upgradeToHDQuality = (url) => {
-      if (!url) return url;
-      
-      // Pinterest: Remove size restrictions, get original
-      if (url.includes('pinimg.com')) {
-        // Replace any size parameters with originals
-        url = url.replace(/\/\d+x\d+\//, '/originals/')
-                 .replace(/\/236x\//, '/originals/')
-                 .replace(/\/474x\//, '/originals/')
-                 .replace(/\/736x\//, '/originals/');
-        console.log('Upgraded Pinterest to HD:', url);
-      }
-      
-      // Imgur: Request original size
-      if (url.includes('imgur.com')) {
-        // Remove size suffixes (s, m, l, t, b, h)
-        url = url.replace(/([a-zA-Z0-9]+)[smlthb]\.([a-z]+)$/, '$1.$2');
-        console.log('Upgraded Imgur to original:', url);
-      }
-      
-      // Unsplash: Request high quality
-      if (url.includes('unsplash.com') || url.includes('images.unsplash.com')) {
-        // Remove or upgrade quality parameters
-        if (url.includes('?')) {
-          url = url.split('?')[0] + '?q=85&w=2000&fit=max';
-        } else {
-          url = url + '?q=85&w=2000&fit=max';
-        }
-        console.log('Upgraded Unsplash to HD:', url);
-      }
-      
-      // Google User Content: Request high quality
-      if (url.includes('googleusercontent.com')) {
-        // Remove size restrictions
-        url = url.replace(/=s\d+-c/, '=s2000')
-                 .replace(/=w\d+-h\d+/, '=w2000')
-                 .replace(/-rw$/, '');
-        console.log('Upgraded Google content to HD:', url);
-      }
-      
-      // Generic CDN: Try to request larger size
-      if (url.includes('cdn') && url.includes('resize')) {
-        url = url.replace(/resize=\d+x\d+/i, 'resize=2000x2000');
-        console.log('Upgraded CDN to HD:', url);
-      }
-      
-      return url;
-    };
-    
-    const hasValidAvatar = profile.anh_dai_dien && isValidImageUrl(profile.anh_dai_dien);
-    const directImageUrl = getDirectImageUrl(profile.anh_dai_dien);
-    const canDisplayImage = hasValidAvatar && directImageUrl && !directImageUrl.includes('facebook.com');
+    const avatar = getUserAvatar(profile);
     
     // Format classes for display
     const classNames = classes.length > 0 
       ? classes.map(c => c.ten_lop).join(', ')
-      : 'â€”';
-    
-    console.log('Avatar debug:', {
-      originalUrl: profile.anh_dai_dien,
-      hasValidAvatar,
-      directImageUrl,
-      canDisplayImage
-    });
+      : '—';
     
     return (
     <div className="space-y-6">
-      {/* Avatar vĂ  thĂ´ng tin cÆ¡ báº£n */}
-      <div className="flex items-center gap-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+      {/* Avatar và thông tin cơ bản */}
+      <div className="flex items-center gap-6 p-6 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl">
         <div className="w-24 h-24 rounded-full shadow-lg overflow-hidden relative">
-          {canDisplayImage ? (
+          {avatar.hasValidAvatar ? (
             <img 
-              src={directImageUrl} 
-              alt="áº¢nh Ä‘áº¡i diá»‡n" 
+              src={avatar.src} 
+              alt={avatar.alt} 
               className="w-full h-full object-cover"
               onError={(e) => {
-                console.log('Image load error:', e.target.src);
-                console.log('Original URL:', profile.anh_dai_dien);
                 e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', directImageUrl);
+                const next = e.target.nextSibling;
+                if (next) next.style.display = 'flex';
               }}
             />
           ) : null}
           <div 
-            className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-2xl font-bold text-white"
-            style={{ display: canDisplayImage ? 'none' : 'flex' }}
+            className={`absolute inset-0 w-full h-full bg-gradient-to-br ${getAvatarGradient(profile.ho_ten || profile.email)} flex items-center justify-center text-2xl font-bold text-white`}
+            style={{ display: avatar.hasValidAvatar ? 'none' : 'flex' }}
           >
-            {(profile.ho_ten || profile.email || 'G').slice(0,1).toUpperCase()}
+            {avatar.fallback}
           </div>
         </div>
         <div className="flex-1">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">{profile.ho_ten || 'ChÆ°a cáº­p nháº­t'}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{profile.ho_ten || 'Chưa cập nhật'}</h3>
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-5 w-5 text-indigo-600" />
-            <span className="text-lg font-medium text-indigo-600">{profile.vai_tro?.ten_vt || 'Giáº£ng viĂªn'}</span>
+            <Shield className="h-5 w-5 text-blue-600" />
+            <span className="text-lg font-medium text-blue-600">{profile.vai_tro?.ten_vt || 'Giảng viên'}</span>
           </div>
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(profile.trang_thai)}`}>
             <CheckCircle className="h-4 w-4 mr-1" />
@@ -362,17 +207,17 @@ export default function TeacherProfilePage() {
         </div>
       </div>
 
-      {/* ThĂ´ng tin chi tiáº¿t */}
+      {/* Thông tin chi tiết */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {renderField('Há» vĂ  tĂªn', profile.ho_ten, null, <User className="h-5 w-5" />)}
+        {renderField('Họ và tên', profile.ho_ten, null, <User className="h-5 w-5" />)}
         {renderField('Email', profile.email, null, <Mail className="h-5 w-5" />)}
-        {renderField('TĂªn Ä‘Äƒng nháº­p', profile.ten_dn, null, <User className="h-5 w-5" />)}
-        {renderField('Vai trĂ²', profile.vai_tro?.ten_vt, null, <Shield className="h-5 w-5" />)}
-        {renderField('Lá»›p phá»¥ trĂ¡ch', classNames, null, <BookOpen className="h-5 w-5" />)}
-        {renderField('NgĂ y táº¡o tĂ i khoáº£n', profile.ngay_tao, formatDateVN, <Calendar className="h-5 w-5" />)}
-        {renderField('Cáº­p nháº­t láº§n cuá»‘i', profile.ngay_cap_nhat, formatDateVN, <Clock className="h-5 w-5" />)}
-        {renderField('Láº§n Ä‘Äƒng nháº­p cuá»‘i', profile.lan_cuoi_dn, formatDateVN, <Clock className="h-5 w-5" />)}
-        {renderField('Tráº¡ng thĂ¡i tĂ i khoáº£n', getStatusText(profile.trang_thai), null, <CheckCircle className="h-5 w-5" />)}
+        {renderField('Tên đăng nhập', profile.ten_dn, null, <User className="h-5 w-5" />)}
+        {renderField('Vai trò', profile.vai_tro?.ten_vt, null, <Shield className="h-5 w-5" />)}
+        {renderField('Lớp phụ trách', classNames, null, <BookOpen className="h-5 w-5" />)}
+        {renderField('Ngày tạo tài khoản', profile.ngay_tao, formatDateVN, <Calendar className="h-5 w-5" />)}
+        {renderField('Cập nhật lần cuối', profile.ngay_cap_nhat, formatDateVN, <Clock className="h-5 w-5" />)}
+        {renderField('Lần đăng nhập cuối', profile.lan_cuoi_dn, formatDateVN, <Clock className="h-5 w-5" />)}
+        {renderField('Trạng thái tài khoản', getStatusText(profile.trang_thai), null, <CheckCircle className="h-5 w-5" />)}
       </div>
 
     </div>
@@ -380,45 +225,15 @@ export default function TeacherProfilePage() {
   };
 
   const renderBasicEditForm = () => {
-    // Check if URL is valid for image display
-    const isValidImageUrl = (url) => {
-      if (!url) return false;
-      
-      // Check if it's a direct image URL or data URL
-      if (url.startsWith('data:image/') || 
-          url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
-          url.includes('i.pinimg.com') ||
-          url.includes('images.unsplash.com') ||
-          url.includes('cdn') ||
-          url.includes('imgur.com') ||
-          url.includes('googleusercontent.com') ||
-          url.includes('drive.google.com') ||
-          url.includes('photos.google.com')) {
-        return true;
-      }
-      
-      // Check if it's a Google redirect URL that might contain an image
-      if (url.includes('google.com/url') && url.includes('url=')) {
-        return true; // We'll handle this in getDirectImageUrl
-      }
-      
-      // Check if it's Google Images URL
-      if (url.includes('google.com/imgres')) {
-        return true;
-      }
-      
-      return false;
-    };
-    
     return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Há» vĂ  tĂªn</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
         <input 
           type="text" 
           value={formData.ho_ten} 
           onChange={e => setFormData(p => ({...p, ho_ten: e.target.value}))} 
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
           required 
         />
       </div>
@@ -428,12 +243,12 @@ export default function TeacherProfilePage() {
           type="email" 
           value={formData.email} 
           onChange={e => setFormData(p => ({...p, email: e.target.value}))} 
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
           required 
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-4">áº¢nh Ä‘áº¡i diá»‡n</label>
+        <label className="block text-sm font-medium text-gray-700 mb-4">Ảnh đại diện</label>
         <AvatarUpload
           value={formData.anh_dai_dien}
           onChange={(url) => setFormData(p => ({...p, anh_dai_dien: url}))}
@@ -453,13 +268,13 @@ export default function TeacherProfilePage() {
           onClick={() => setEditing(false)} 
           className="flex items-center gap-2 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
         >
-          <X className="h-4 w-4" /> Há»§y
+          <X className="h-4 w-4" /> Hủy
         </button>
         <button 
           type="submit" 
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <Save className="h-4 w-4" /> LÆ°u thay Ä‘á»•i
+          <Save className="h-4 w-4" /> Lưu thay đổi
         </button>
       </div>
     </form>
@@ -481,7 +296,7 @@ export default function TeacherProfilePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="text-center py-8">
-          <p className="text-gray-500">KhĂ´ng thá»ƒ táº£i thĂ´ng tin profile</p>
+          <p className="text-gray-500">Không thể tải thông tin profile</p>
         </div>
       </div>
     );
@@ -493,12 +308,12 @@ export default function TeacherProfilePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-100 rounded-xl">
-              <User className="h-8 w-8 text-indigo-600" />
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <User className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">ThĂ´ng tin cĂ¡ nhĂ¢n</h1>
-              <p className="text-gray-600 mt-1">Quáº£n lĂ½ thĂ´ng tin tĂ i khoáº£n giáº£ng viĂªn</p>
+              <h1 className="text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
+              <p className="text-gray-600 mt-1">Quản lý thông tin tài khoản giảng viên</p>
             </div>
           </div>
           {!editing && !changingPassword && (
@@ -507,13 +322,13 @@ export default function TeacherProfilePage() {
                 onClick={() => setChangingPassword(true)} 
                 className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 transition-colors shadow-sm"
               >
-                <Key className="h-4 w-4" /> Äá»•i máº­t kháº©u
+                <Key className="h-4 w-4" /> Đổi mật khẩu
               </button>
               <button 
                 onClick={() => setEditing(true)} 
-                className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
               >
-                <Edit3 className="h-4 w-4" /> Chá»‰nh sá»­a
+                <Edit3 className="h-4 w-4" /> Chỉnh sửa
               </button>
             </div>
           )}
@@ -527,15 +342,15 @@ export default function TeacherProfilePage() {
                 onClick={() => setActiveTab('info')} 
                 className={`flex flex-col items-center gap-2 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === 'info' 
-                    ? 'border-indigo-500 text-indigo-600' 
+                    ? 'border-blue-500 text-blue-600' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  <span>ThĂ´ng tin cÆ¡ báº£n</span>
+                  <span>Thông tin cơ bản</span>
                 </div>
-                <span className="text-xs text-gray-400 font-normal">Há» tĂªn, email, áº£nh Ä‘áº¡i diá»‡n</span>
+                <span className="text-xs text-gray-400 font-normal">Họ tên, email, ảnh đại diện</span>
               </button>
             </nav>
           </div>
@@ -550,17 +365,17 @@ export default function TeacherProfilePage() {
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Key className="h-6 w-6 text-yellow-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">Äá»•i máº­t kháº©u</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Đổi mật khẩu</h3>
               </div>
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Máº­t kháº©u hiá»‡n táº¡i</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu hiện tại</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.old ? 'text' : 'password'} 
                       value={passwordData.old_password} 
                       onChange={e => setPasswordData(p => ({...p, old_password: e.target.value}))} 
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                       required 
                     />
                     <button 
@@ -573,13 +388,13 @@ export default function TeacherProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Máº­t kháº©u má»›i</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu mới</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.new ? 'text' : 'password'} 
                       value={passwordData.new_password} 
                       onChange={e => setPasswordData(p => ({...p, new_password: e.target.value}))} 
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                       required 
                     />
                     <button 
@@ -592,13 +407,13 @@ export default function TeacherProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">XĂ¡c nháº­n máº­t kháº©u má»›i</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Xác nhận mật khẩu mới</label>
                   <div className="relative">
                     <input 
                       type={showPasswords.confirm ? 'text' : 'password'} 
                       value={passwordData.confirm_password} 
                       onChange={e => setPasswordData(p => ({...p, confirm_password: e.target.value}))} 
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                       required 
                     />
                     <button 
@@ -616,13 +431,13 @@ export default function TeacherProfilePage() {
                     onClick={() => setChangingPassword(false)} 
                     className="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Há»§y
+                    Hủy
                   </button>
                   <button 
                     type="submit" 
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Äá»•i máº­t kháº©u
+                    Đổi mật khẩu
                   </button>
                 </div>
               </form>
@@ -633,3 +448,6 @@ export default function TeacherProfilePage() {
     </div>
   );
 }
+
+
+

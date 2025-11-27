@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStudentAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 
 /**
  * TopStudentItem Component - Item trong danh sách top sinh viên
@@ -13,16 +14,53 @@ export default function TopStudentItem({ student, index }) {
   };
 
   const grade = getScoreGrade(student.points);
+  const avatar = getStudentAvatar(student);
 
   return (
     <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-300">
-      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-md ${
-        index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : 
-        index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' : 
-        index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 
-        'bg-gray-200 text-gray-600'
-      }`}>
-        {index + 1}
+      <div className="flex-shrink-0 relative">
+        {avatar.hasValidAvatar ? (
+          <>
+            <img
+              src={avatar.src}
+              alt={avatar.alt}
+              className="w-10 h-10 rounded-full object-cover shadow-md ring-2 ring-white"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                const parent = e.target.parentElement;
+                const fallbackDiv = parent.querySelector('.avatar-fallback');
+                if (fallbackDiv) {
+                  fallbackDiv.style.display = 'flex';
+                }
+              }}
+            />
+            <div className={`avatar-fallback hidden flex-shrink-0 w-10 h-10 rounded-full items-center justify-center font-bold text-sm shadow-md ${
+              index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : 
+              index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' : 
+              index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 
+              `bg-gradient-to-br ${getAvatarGradient(student.name || student.mssv)} text-white`
+            }`}>
+              {avatar.fallback || index + 1}
+            </div>
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
+              index === 0 ? 'bg-yellow-500 text-white' : 
+              index === 1 ? 'bg-gray-400 text-white' : 
+              index === 2 ? 'bg-orange-500 text-white' : 
+              'bg-gray-300 text-gray-700'
+            }`}>
+              {index + 1}
+            </div>
+          </>
+        ) : (
+          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-md ${
+            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : 
+            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' : 
+            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 
+            `bg-gradient-to-br ${getAvatarGradient(student.name || student.mssv)} text-white`
+          }`}>
+            {avatar.fallback || index + 1}
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-900 truncate">{student.name}</p>

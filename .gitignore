@@ -88,3 +88,8 @@ test-results/
 *.test-results/
 .last-run.json
 repo-reference/
+
+# Uploaded files (user-generated content)
+backend/uploads/
+backend/src/core/uploads/
+uploads/
