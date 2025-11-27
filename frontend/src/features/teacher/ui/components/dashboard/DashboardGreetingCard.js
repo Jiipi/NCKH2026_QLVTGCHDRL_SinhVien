@@ -1,13 +1,17 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
+import { getUserAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 
 export default function DashboardGreetingCard({
   teacherName,
   teacherInitials,
+  teacherProfile,
   classes = [],
   selectedClassId,
   onClassChange
 }) {
+  const avatar = teacherProfile ? getUserAvatar(teacherProfile) : null;
+  const displayInitials = teacherInitials || 'GV';
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6" data-ref="dashboard-greeting-card">
       <div className="flex items-center gap-4">
@@ -33,8 +37,22 @@ export default function DashboardGreetingCard({
               </linearGradient>
             </defs>
           </svg>
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
-            <span className="text-2xl font-black text-white">{teacherInitials || 'GV'}</span>
+          <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarGradient(teacherName || 'Giảng viên')} border-4 border-white flex items-center justify-center shadow-lg overflow-hidden`}>
+            {avatar?.hasValidAvatar ? (
+              <img
+                src={avatar.src}
+                alt={avatar.alt}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const next = e.target.nextSibling;
+                  if (next) next.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span className={`text-2xl font-black text-white ${avatar?.hasValidAvatar ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
+              {displayInitials}
+            </span>
           </div>
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
         </div>

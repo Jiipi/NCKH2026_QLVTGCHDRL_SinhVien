@@ -53,7 +53,8 @@ export default function AdminDashboardPage() {
     teacherDetailError,
     handleTeacherDetail,
     closeTeacherDetail,
-    adminActionFeed
+    adminActionFeed,
+    userProfile
   } = useAdminDashboardPage();
 
   const handleApprove = async (id) => {
@@ -94,7 +95,7 @@ export default function AdminDashboardPage() {
       {/* Header Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
-          <AdminDashboardHero />
+          <AdminDashboardHero userProfile={userProfile} />
           {/* Widget yêu cầu đóng học kỳ */}
           <SemesterClosureRequestsWidget />
         </div>

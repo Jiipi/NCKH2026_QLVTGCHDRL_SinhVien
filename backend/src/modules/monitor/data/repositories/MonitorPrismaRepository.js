@@ -281,7 +281,12 @@ class MonitorPrismaRepository extends IMonitorRepository {
     return await prisma.sinhVien.findMany({
       where: { lop_id: classId },
       include: {
-        nguoi_dung: { select: { ho_ten: true } }
+        nguoi_dung: { 
+          select: { 
+            ho_ten: true,
+            anh_dai_dien: true
+          } 
+        }
       },
       orderBy: { mssv: 'asc' }
     });

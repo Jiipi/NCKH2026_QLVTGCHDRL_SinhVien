@@ -88,7 +88,11 @@ export function mapDashboardToUI(apiData) {
       name: student.name,
       mssv: student.mssv,
       points: student.points || student.pointsRounded || 0,
-      activitiesCount: student.activitiesCount || 0
+      activitiesCount: student.activitiesCount || 0,
+      nguoi_dung: student.nguoi_dung ? {
+        ho_ten: student.nguoi_dung.ho_ten,
+        anh_dai_dien: student.nguoi_dung.anh_dai_dien
+      } : null
     }))
   };
 }

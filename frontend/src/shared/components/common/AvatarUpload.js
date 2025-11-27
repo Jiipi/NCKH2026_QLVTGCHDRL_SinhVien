@@ -17,13 +17,13 @@ export default function AvatarUpload({ value, onChange, size = 200, disabled = f
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      showError('Chá»‰ cháº¥p nháº­n file áº£nh (JPG, PNG, GIF, WEBP)');
+      showError('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)');
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      showError('KĂ­ch thÆ°á»›c file khĂ´ng Ä‘Æ°á»£c vÆ°á»£t quĂ¡ 5MB');
+      showError('Kích thước file không được vượt quá 5MB');
       return;
     }
 
@@ -55,13 +55,13 @@ export default function AvatarUpload({ value, onChange, size = 200, disabled = f
         setPreviewUrl(uploadedUrl);
         console.log('âœ… Calling onChange with URL:', uploadedUrl);
         onChange(uploadedUrl);
-        showSuccess('Upload avatar thĂ nh cĂ´ng!');
+        showSuccess('Upload avatar thành công!');
       } else {
-        throw new Error('KhĂ´ng nháº­n Ä‘Æ°á»£c URL tá»« server');
+        throw new Error('Không nhận được URL từ server');
       }
     } catch (error) {
       console.error('Avatar upload error:', error);
-      showError(error.response?.data?.message || 'Lá»—i upload avatar');
+      showError(error.response?.data?.message || 'Lỗi upload avatar');
       // Revert preview on error
       setPreviewUrl(value || null);
     } finally {
@@ -155,7 +155,7 @@ export default function AvatarUpload({ value, onChange, size = 200, disabled = f
             <div className="text-center">
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2" />
               <p className="text-xs text-gray-500 px-4">
-                {dragOver ? 'Tháº£ áº£nh vĂ o Ä‘Ă¢y' : 'Click hoáº·c kĂ©o tháº£'}
+                {dragOver ? 'Thả ảnh vào đây' : 'Click hoặc kéo thả'}
               </p>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function AvatarUpload({ value, onChange, size = 200, disabled = f
           <button
             onClick={handleRemove}
             className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
-            title="XĂ³a avatar"
+            title="Xóa avatar"
           >
             <X className="h-4 w-4" />
           </button>
@@ -197,10 +197,10 @@ export default function AvatarUpload({ value, onChange, size = 200, disabled = f
             <span className="text-blue-600 font-medium">Äang upload...</span>
           ) : (
             <>
-              Click hoáº·c kĂ©o tháº£ áº£nh vĂ o khung
+              Click hoặc kéo thả ảnh vào khung
               <br />
               <span className="text-xs text-gray-500">
-                JPG, PNG, GIF, WEBP - Tá»‘i Ä‘a 5MB
+                JPG, PNG, GIF, WEBP - Tối Đa 5MB
               </span>
             </>
           )}
