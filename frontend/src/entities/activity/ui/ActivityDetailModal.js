@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Clock, Users, Award, UserPlus, Eye, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { X, Calendar, MapPin, Clock, Users, Award, UserPlus, Eye, AlertCircle, CheckCircle, Info, FileText, Download } from 'lucide-react';
 import http from '../../../shared/api/http';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { getActivityImage, getDefaultActivityImage } from '../../../shared/lib/activityImages';
+import resolveAssetUrl from '../../../shared/lib/assetUrl';
 
 export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
   const { showSuccess, showError, confirm } = useNotification();
@@ -236,6 +237,38 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
                   </div>
                 )}
               </div>
+
+              {/* Attachments */}
+              {data.tep_dinh_kem && Array.isArray(data.tep_dinh_kem) && data.tep_dinh_kem.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-gray-600" />
+                    Tài liệu đính kèm
+                  </h4>
+                  <div className="grid gap-2">
+                    {data.tep_dinh_kem.map((file, idx) => {
+                      const fileUrl = typeof file === 'string' ? file : (file?.url || file?.path || '');
+                      const fileName = typeof file === 'string' 
+                        ? file.split('/').pop() 
+                        : (file?.originalName || file?.filename || file?.name || `Tài liệu ${idx + 1}`);
+                      return (
+                        <a
+                          key={idx}
+                          href={resolveAssetUrl(fileUrl)}
+                          download={fileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                        >
+                          <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <span className="flex-1 text-gray-700 truncate">{fileName}</span>
+                          <Download className="h-4 w-4 text-gray-400" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Registration Status */}
               {isRegistered && (

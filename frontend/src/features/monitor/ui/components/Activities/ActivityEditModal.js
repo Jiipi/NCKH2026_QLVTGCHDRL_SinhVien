@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Edit, Save, Eye } from 'lucide-react';
 import FileUpload from '../../../../../shared/ui/FileUpload';
+import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
 
 /**
  * ActivityEditModal Component - Modal chỉnh sửa/xem chi tiết hoạt động
@@ -237,7 +238,7 @@ export default function ActivityEditModal({
                           className={`relative cursor-pointer group ${idx === 0 ? 'ring-4 ring-indigo-500' : ''}`}
                         >
                           <img 
-                            src={url} 
+                            src={resolveAssetUrl(url)} 
                             alt={`Activity ${idx + 1}`}
                             className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 group-hover:border-indigo-400 transition-all"
                           />
@@ -273,7 +274,7 @@ export default function ActivityEditModal({
                 <div className="mb-4">
                   <div className="relative">
                     <img 
-                      src={activity.hinh_anh[0]} 
+                      src={resolveAssetUrl(activity.hinh_anh[0])} 
                       alt="Ảnh nền hoạt động"
                       className="w-full h-64 object-cover rounded-xl border-4 border-indigo-200 shadow-lg"
                     />
@@ -293,10 +294,10 @@ export default function ActivityEditModal({
                       {activity.hinh_anh.slice(1).map((url, idx) => (
                         <img 
                           key={idx}
-                          src={url} 
+                          src={resolveAssetUrl(url)} 
                           alt={`Activity detail ${idx + 2}`}
                           className="w-full h-24 object-cover rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-all cursor-pointer"
-                          onClick={() => window.open(url, '_blank')}
+                          onClick={() => window.open(resolveAssetUrl(url), '_blank')}
                         />
                       ))}
                     </div>
@@ -329,12 +330,7 @@ export default function ActivityEditModal({
                 <div className="space-y-2">
                   {activity.tep_dinh_kem.map((url, idx) => {
                     const filename = url.split('/').pop();
-                    // ✅ Fix: Prepend backend base URL for attachments
-                    const baseURL = (typeof window !== 'undefined' && window.location)
-                      ? window.location.origin.replace(/\/$/, '') + '/api'
-                      : (process.env.REACT_APP_API_URL || 'http://dacn_backend_dev:3001/api');
-                    const backendBase = baseURL.replace('/api', ''); // Remove /api to get base server URL
-                    const downloadUrl = url.startsWith('http') ? url : `${backendBase}${url}`;
+                    const downloadUrl = resolveAssetUrl(url);
                     
                     return (
                       <a 

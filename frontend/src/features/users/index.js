@@ -8,7 +8,6 @@
  */
 
 // Services Layer
-export { usersApi } from './services';
 export * from './services/apiErrorHandler';
 
 // Model Layer

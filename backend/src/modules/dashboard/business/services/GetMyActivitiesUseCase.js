@@ -107,7 +107,12 @@ class GetMyActivitiesUseCase {
           id: reg.hoat_dong.id,
           ten_hd: reg.hoat_dong.ten_hd,
           mo_ta: reg.hoat_dong.mo_ta,
-          loai_hd: reg.hoat_dong.loai_hd?.ten_loai_hd || 'Khác',
+          hinh_anh: reg.hoat_dong.hinh_anh || [],
+          loai_hd: reg.hoat_dong.loai_hd ? {
+            ten_loai_hd: reg.hoat_dong.loai_hd.ten_loai_hd || 'Khác',
+            diem_mac_dinh: reg.hoat_dong.loai_hd.diem_mac_dinh,
+            diem_toi_da: reg.hoat_dong.loai_hd.diem_toi_da
+          } : { ten_loai_hd: 'Khác' },
           diem_rl: calculatedPoints, // Tính điểm đúng với fallback
           ngay_bd: reg.hoat_dong.ngay_bd,
           ngay_kt: reg.hoat_dong.ngay_kt,
@@ -117,6 +122,7 @@ class GetMyActivitiesUseCase {
         },
         // Flatten để frontend có thể lấy trực tiếp
         diem_rl: calculatedPoints, // Frontend lấy activity.diem_rl
+        hinh_anh: reg.hoat_dong.hinh_anh || [], // Alias for direct access
         ten_hd: reg.hoat_dong.ten_hd, // Alias
         ngay_bd: reg.hoat_dong.ngay_bd, // Alias
         dia_diem: reg.hoat_dong.dia_diem, // Alias

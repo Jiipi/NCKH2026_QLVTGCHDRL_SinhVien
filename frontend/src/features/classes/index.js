@@ -1,17 +1,17 @@
 /**
  * Classes Feature - Main Entry Point
- * 
- * 3-Tier Architecture: model/ + services/ + ui/
+ *
+ * 3-Tier Architecture:
+ * - services/  : API layer (classesApi)
+ * - model/     : Business logic layer (hooks)
+ * - ui/        : Presentation layer (pages, shared components)
  */
-
-// Model Layer
-export * from './model';
 
 // Services Layer
 export * from './services';
 
-// UI Layer - Pages
-export { default as ClassManagementPage } from './ui/ClassManagementPage';
-export { default as ClassStudentsPage } from './ui/ClassStudentsPage';
-export { default as ImportStudentsPage } from './ui/ImportStudentsPage';
-export { default as StudentManagementPage } from './ui/StudentManagementPage';
+// Model Layer
+export * from './model';
+
+// UI Layer
+export * from './ui';

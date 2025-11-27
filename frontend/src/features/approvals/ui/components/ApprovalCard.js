@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserCheck, UserX, Eye, CheckCircle, XCircle, Calendar, Clock, MapPin, Award } from 'lucide-react';
-import { getBestActivityImage } from '../../../shared/lib/activityImages';
-import { getUserAvatar } from '../../../shared/lib/avatar';
+import { getBestActivityImage } from '../../../../shared/lib/activityImages';
+import { getUserAvatar } from '../../../../shared/lib/avatar';
 
 const statusInfo = {
   'cho_duyet': { label: 'Chờ duyệt', color: 'border-amber-300' },

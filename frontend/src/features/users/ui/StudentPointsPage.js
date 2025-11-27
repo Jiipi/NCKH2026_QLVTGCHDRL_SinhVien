@@ -4,7 +4,7 @@ import {
   Star, Trophy, CheckCircle, Clock, Filter, RefreshCw,
   ChevronRight, Sparkles, Medal, TrendingDown
 } from 'lucide-react';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 import { useSemesterData } from '../../../shared/hooks';
 
 export default function StudentPoints() {

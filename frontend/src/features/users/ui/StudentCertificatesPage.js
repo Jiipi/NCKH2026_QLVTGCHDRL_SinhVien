@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Calendar, MapPin, Download, Search, Filter, X, CheckCircle, Trophy, FileText, BookOpen } from 'lucide-react';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 export default function MonitorMyCertificates() {
   const [certificates, setCertificates] = useState([]);

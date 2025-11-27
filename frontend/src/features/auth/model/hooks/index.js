@@ -2,7 +2,7 @@
  * Auth Model Hooks - Barrel Export
  */
 
-export { useForgotPassword } from './useForgotPassword';
-export { useLogin } from './useLogin';
-export { useRegister } from './useRegister';
-export { useResetPassword } from './useResetPassword';
+export { default as useForgotPassword } from './useForgotPassword';
+export { default as useLogin } from './useLogin';
+export { default as useRegister } from './useRegister';
+export { default as useResetPassword } from './useResetPassword';

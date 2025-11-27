@@ -1,4 +1,4 @@
-import http from '../api/http';
+import resolveAssetUrl from './assetUrl';
 
 /**
  * Get default activity image based on activity type
@@ -65,10 +65,8 @@ function prefixUploadsIfNeeded(url) {
   try {
     if (typeof url !== 'string' || url.length === 0) return url;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-    if (url.startsWith('/uploads/')) {
-      const base = String(http.defaults.baseURL || '').replace(/\/?api\/?$/, '');
-      return base + url;
-    }
+    // Use resolveAssetUrl for all relative paths including /uploads/
+    return resolveAssetUrl(url);
   } catch (_) {}
   return url;
 }

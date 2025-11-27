@@ -11,6 +11,13 @@ router.use(requireAdmin);
 const adminUsersController = createAdminUsersController();
 
 /**
+ * @route   GET /api/core/admin/users/stats
+ * @desc    Get user statistics (counts by role)
+ * @access  Admin only
+ */
+router.get('/stats', (req, res) => adminUsersController.getStats(req, res));
+
+/**
  * @route   GET /api/core/admin/users
  * @desc    Get paginated users list with filters
  * @access  Admin only

@@ -1,6 +1,7 @@
 /**
  * Utility functions for handling user avatars
  */
+import resolveAssetUrl from './assetUrl';
 
 /**
  * Check if an image URL is valid
@@ -64,10 +65,10 @@ export const getDirectImageUrl = (url) => {
     }
   }
 
-  // 4) Relative backend paths: prefer relative to avoid cross-origin in dev
+  // 4) Relative backend paths: resolve to full URL
   if (url.startsWith('/uploads/') || url.startsWith('/images/')) {
-    // Keep as-is to leverage same-origin/proxy in dev and static in prod
-    return url;
+    // Resolve relative path to full URL using assetUrl utility
+    return resolveAssetUrl(url);
   }
 
   // 5) Generic quality upgrade for known CDNs/providers
@@ -130,17 +131,7 @@ export const getUserAvatar = (userOrStudent, fallbackText = null) => {
   // Otherwise treat as direct user object
   const nguoiDung = userOrStudent.nguoi_dung || userOrStudent;
   
-  console.log('🔎 getUserAvatar input:', {
-    hasNguoiDung: !!userOrStudent.nguoi_dung,
-    nguoiDung_anh_dai_dien: nguoiDung.anh_dai_dien,
-    nguoiDung_avatar: nguoiDung.avatar,
-    nguoiDung_profile_image: nguoiDung.profile_image,
-    nguoiDung_image: nguoiDung.image,
-    userOrStudent_anh_dai_dien: userOrStudent.anh_dai_dien,
-    userOrStudent_avatar: userOrStudent.avatar,
-    userOrStudent_profile_image: userOrStudent.profile_image,
-    allKeys: Object.keys(userOrStudent)
-  });
+  // Debug log removed for production
   
   // Exact same priority as ClassStudents.js line 112-114:
   // nguoiDung.anh_dai_dien || nguoiDung.avatar || nguoiDung.profile_image || nguoiDung.image || sv.anh_dai_dien || sv.avatar || sv.profile_image
@@ -152,16 +143,12 @@ export const getUserAvatar = (userOrStudent, fallbackText = null) => {
                  userOrStudent.avatar || 
                  userOrStudent.profile_image;
 
-  console.log('🔎 getUserAvatar rawUrl:', rawUrl);
+  // Debug log removed
 
   const avatarUrl = getDirectImageUrl(rawUrl);
   const hasValidAvatar = isValidImageUrl(avatarUrl);
 
-  console.log('🔎 getUserAvatar result:', {
-    rawUrl,
-    avatarUrl,
-    hasValidAvatar
-  });
+  // Debug log removed
 
   // Fallback text from name
   let fallback = fallbackText;

@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi';
 import { mapRegistrationToUI } from '../mappers/teacher.mappers';
 import useSemesterData, { useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
-import { activityTypesApi } from '../../../activity-types/services/activityTypesApi';
+import { activityTypesApi } from '../../../activity-types';
 import { 
   dedupeById, 
   loadInitialSemester, 

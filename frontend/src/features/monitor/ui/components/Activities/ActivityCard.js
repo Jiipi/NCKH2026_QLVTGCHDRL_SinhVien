@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Award, Eye, Edit, Trash2, QrCode, Users, UserPlus, Sparkles } from 'lucide-react';
-import { getActivityImage } from '../../../../../shared/lib/activityImages';
+import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
+import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
 
 /**
  * ActivityCard Component - Hiển thị thẻ hoạt động
@@ -38,6 +39,41 @@ export default function ActivityCard({
   const isRegistrationOpen = canRegister;
   
   const displayStatus = getDisplayStatus(activity);
+
+  // Get all available images
+  const allImages = useMemo(() => {
+    const images = getActivityImages(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
+    return images.length > 0 ? images : [getActivityImage(null, activity.loai_hd?.ten_loai_hd)];
+  }, [activity.hinh_anh, activity.loai_hd?.ten_loai_hd]);
+
+  // State to track current image index
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Reset image index when activity changes
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [activity.id]);
+  
+  // Get current image URL
+  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
+  
+  // Handle image error - try next image
+  const handleImageError = (e) => {
+    console.warn('[ActivityCard] Image load error, trying next:', {
+      currentIndex: currentImageIndex,
+      totalImages: allImages.length,
+      src: e.target.src
+    });
+    
+    if (currentImageIndex < allImages.length - 1) {
+      // Try next image
+      setCurrentImageIndex(currentImageIndex + 1);
+    } else {
+      // All images failed, use default
+      const defaultImage = getActivityImage(null, activity.loai_hd?.ten_loai_hd);
+      e.target.src = defaultImage;
+    }
+  };
   
   // LIST MODE - Compact horizontal layout
   if (displayViewMode === 'list') {
@@ -48,11 +84,12 @@ export default function ActivityCard({
         <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             {/* Compact Image */}
-            <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+            <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
               <img 
-                src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+                src={currentImageUrl} 
                 alt={activity.ten_hd}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={handleImageError}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               <div className="absolute top-2 left-2">
@@ -181,12 +218,21 @@ export default function ActivityCard({
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
         
         <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
-          {/* Header với gradient background - Giống sinh viên */}
+          {/* Header với ảnh hoặc gradient background - Giống sinh viên */}
           <div className={`relative h-24 overflow-hidden ${
             activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tình nguyện') || activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tinh nguyen')
               ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500'
               : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500'
           }`}>
+            {/* Activity Image */}
+            {currentImageUrl && (
+              <img 
+                src={currentImageUrl} 
+                alt={activity.ten_hd}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={handleImageError}
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             
             {/* Status badge - Top left */}
@@ -207,21 +253,6 @@ export default function ActivityCard({
               </div>
             )}
             
-            {/* Activity type - Center */}
-            <div className="absolute bottom-2 left-2 right-2">
-              <div className="text-white">
-                <div className="text-lg font-black mb-0.5 line-clamp-1">
-                  {activity.loai_hd?.ten_loai_hd?.toUpperCase() || 'HOẠT ĐỘNG'}
-                </div>
-                <div className="text-xs font-medium text-white/90 line-clamp-1">
-                  {activity.loai_hd?.ten_loai_hd === 'Tình nguyện' 
-                    ? 'Hoạt động cộng đồng và từ thiện'
-                    : activity.loai_hd?.ten_loai_hd === 'Hoạt động rèn luyện'
-                    ? 'Phát triển kỹ năng toàn diện'
-                    : 'Hoạt động rèn luyện'}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Content - White background */}
@@ -305,11 +336,12 @@ export default function ActivityCard({
       isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : ''
     }`}>
       {/* Activity Image - Compact */}
-      <div className="relative w-full h-36 overflow-hidden">
+      <div className="relative w-full h-36 overflow-hidden bg-gray-100">
         <img 
-          src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+          src={currentImageUrl} 
           alt={activity.ten_hd}
           className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+          onError={handleImageError}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
         

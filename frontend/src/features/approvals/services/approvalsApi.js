@@ -1,4 +1,4 @@
-import apiClient from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 const handleError = (error) => {
   const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
@@ -14,7 +14,7 @@ class ApprovalsAPI {
    */
   async getClassRegistrations(params = {}) {
     try {
-      const response = await apiClient.get('/class/registrations', { params });
+      const response = await http.get('/class/registrations', { params });
       const data = response.data?.data || response.data || [];
       return { success: true, data: Array.isArray(data) ? data : [] };
     } catch (error) {
@@ -29,7 +29,7 @@ class ApprovalsAPI {
    */
   async approveRegistration(registrationId) {
     try {
-      await apiClient.post(`/class/registrations/${registrationId}/approve`);
+      await http.post(`/class/registrations/${registrationId}/approve`);
       return { success: true };
     } catch (error) {
       return handleError(error);
@@ -44,7 +44,7 @@ class ApprovalsAPI {
    */
   async rejectRegistration(registrationId, reason) {
     try {
-      await apiClient.post(`/class/registrations/${registrationId}/reject`, { reason });
+      await http.post(`/class/registrations/${registrationId}/reject`, { reason });
       return { success: true };
     } catch (error) {
       return handleError(error);
@@ -58,7 +58,7 @@ class ApprovalsAPI {
    */
   async bulkApproveRegistrations(registrationIds) {
     try {
-      const response = await apiClient.post('/class/registrations/bulk-approve', { registrationIds });
+      const response = await http.post('/class/registrations/bulk-approve', { registrationIds });
       return { success: true, data: response.data?.data || null };
     } catch (error) {
       return handleError(error);

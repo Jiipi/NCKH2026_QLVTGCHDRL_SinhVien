@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, Eye, EyeOff, Key, Shield, Calendar, Mail, Phone, MapPin, Clock, CheckCircle, GraduationCap, Hash, Award, Crown } from 'lucide-react';
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 import { useAppStore } from '../../../shared/store/useAppStore';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../shared/lib/date';
