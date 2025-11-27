@@ -14,10 +14,12 @@ import AdminStudentLayout from './widgets/layout/ui/AdminStudentLayout';
 import MonitorLayout from './widgets/layout/ui/MonitorLayout';
 import StudentLayout from './widgets/layout/ui/StudentLayout';
 // Active admin pages
-import AdminDashboard from './features/admin/ui/AdminDashboardPage';
-import AdminUsers from './features/admin/ui/AdminUsersPage';
-import AdminActivities from './features/admin/ui/AdminActivitiesPage';
-import AdminApprovalsPage from './features/approvals/ui/AdminApprovalsPage';
+import { 
+  AdminDashboardPage as AdminDashboard,
+  AdminUsersPage as AdminUsers,
+  AdminActivitiesPage as AdminActivities,
+} from './features/admin';
+import { AdminApprovalsPage } from './features/approvals';
 import QRManagementPage from './features/qr-attendance/ui/QRManagementPage';
 import { AdminReportsPage as AdminReports } from './features/reports';
 import AdminRoles from './features/users/ui/AdminRolesPage';
@@ -57,7 +59,7 @@ import ImportStudentsPage from './features/teacher/ui/ImportStudentsPage';
 import ClassManagementPage from './features/teacher/ui/ClassManagementPage';
 import TeacherReportsPage from './features/teacher/ui/TeacherReportsPage';
 import TeacherNotificationsPage from './features/teacher/ui/TeacherNotificationsPage';
-import ActivityTypesManagementPage from './features/activity-types/ui/ActivityTypesManagementPage';
+import { ActivityTypesManagementPage } from './features/activity-types';
 import TeacherActivitiesPage from './features/teacher/ui/TeacherActivitiesPage';
 import TeacherAttendancePage from './features/teacher/ui/TeacherAttendancePage';
 import TeacherStudentScoresPage from './features/teacher/ui/TeacherStudentScoresPage';
@@ -75,11 +77,8 @@ import { NotificationProvider } from './shared/contexts/NotificationContext';
 import { SemesterProvider } from './shared/contexts/SemesterContext';
 import { useSessionTracking } from './shared/hooks/useSessionTracking';
 // import { TabSessionProvider } from './contexts/TabSessionContext';
-// Modern auth pages (legacy path kept due to different shared structure)
-import LoginPage from './features/auth/ui/LoginPage';
-import RegisterPage from './features/auth/ui/RegisterPage';
-import ForgotPasswordPage from './features/auth/ui/ForgotPasswordPage';
-import ResetPasswordPage from './features/auth/ui/ResetPasswordPage';
+// Modern auth pages - using barrel exports
+import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from './features/auth';
 
 // Use Neo-brutalism design for student dashboard
 // const StudentDashboardModern = DashboardStudentImproved;

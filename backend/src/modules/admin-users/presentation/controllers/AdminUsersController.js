@@ -28,6 +28,81 @@ class AdminUsersController {
     this.exportUsersUseCase = exportUsersUseCase;
   }
 
+  /**
+   * Get user statistics (counts by role, status)
+   */
+  async getStats(req, res) {
+    try {
+      const { prisma } = require('../../../../data/infrastructure/prisma/client');
+      
+      // Count by role
+      const roleCounts = await prisma.nguoiDung.groupBy({
+        by: ['vai_tro_id'],
+        _count: { id: true }
+      });
+
+      // Get role names
+      const roles = await prisma.vaiTro.findMany();
+      const roleMap = Object.fromEntries(roles.map(r => [r.id, r.ten_vt]));
+
+      // Normalize role name helper (remove diacritics, lowercase, remove special chars)
+      const normalizeRoleName = (name = '') =>
+        String(name)
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '');
+
+      // Calculate counts
+      let adminCount = 0, teacherCount = 0, classMonitorCount = 0, studentCount = 0;
+      roleCounts.forEach(rc => {
+        const roleName = roleMap[rc.vai_tro_id] || '';
+        const normalized = normalizeRoleName(roleName);
+        
+        // Match role names using normalized comparison
+        if (normalized.includes('admin') || normalized.includes('quantri')) {
+          adminCount += rc._count.id;
+        } else if (
+          normalized.includes('giangvien') ||
+          normalized.includes('giaovien') ||
+          normalized.includes('teacher')
+        ) {
+          teacherCount += rc._count.id;
+        } else if (
+          normalized.includes('loptruong') ||
+          normalized.includes('loptp') ||
+          normalized.includes('classmonitor')
+        ) {
+          classMonitorCount += rc._count.id;
+        } else if (
+          normalized.includes('sinhvien') ||
+          normalized.includes('sv') ||
+          normalized.includes('student')
+        ) {
+          studentCount += rc._count.id;
+        }
+      });
+
+      // Count by status
+      const totalUsers = await prisma.nguoiDung.count();
+      const lockedCount = await prisma.nguoiDung.count({ where: { trang_thai: 'khoa' } });
+      
+      // Debug: Log để kiểm tra
+      console.log('[AdminUsersController.getStats] Total users:', totalUsers);
+      console.log('[AdminUsersController.getStats] Locked users:', lockedCount);
+      console.log('[AdminUsersController.getStats] Role counts:', { adminCount, teacherCount, classMonitorCount, studentCount });
+
+      return sendResponse(res, 200, ApiResponse.success({
+        total: totalUsers,
+        locked: lockedCount,
+        roleCounts: { adminCount, teacherCount, classMonitorCount, studentCount }
+      }, 'Lấy thống kê thành công'));
+    } catch (error) {
+      logError('Error getting user stats', { error: error.message });
+      return sendResponse(res, 500, ApiResponse.error('Lỗi lấy thống kê'));
+    }
+  }
+
   async getUsers(req, res) {
     try {
       const dto = GetUsersDto.fromQuery(req.query);
@@ -37,8 +112,10 @@ class AdminUsersController {
         // Filter user đang online (có session active trong 5 phút)
         const activeData = await SessionTrackingService.getActiveUsers(5);
         dto.userIds = activeData.userIds || [];
+        console.log('[AdminUsersController.getUsers] status=hoat_dong, activeUserIds:', dto.userIds.length);
         // Nếu không có ai online thì trả về rỗng
         if (dto.userIds.length === 0) {
+          console.log('[AdminUsersController.getUsers] No active users, returning empty list');
           return sendResponse(res, 200, ApiResponse.success({
             users: [],
             pagination: { page: 1, limit: dto.limit || 20, total: 0, totalPages: 0 }
@@ -49,6 +126,9 @@ class AdminUsersController {
         const activeData = await SessionTrackingService.getActiveUsers(5);
         dto.excludeUserIds = activeData.userIds || [];
         dto.excludeStatus = 'khoa'; // Loại bỏ user bị khóa
+        console.log('[AdminUsersController.getUsers] status=khong_hoat_dong, excludeUserIds:', dto.excludeUserIds.length);
+      } else if (dto.status === 'khoa') {
+        console.log('[AdminUsersController.getUsers] status=khoa, filtering locked accounts');
       }
       // status === 'khoa' được xử lý trong UseCase bình thường
       

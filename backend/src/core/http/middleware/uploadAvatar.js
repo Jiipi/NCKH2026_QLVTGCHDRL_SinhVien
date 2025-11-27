@@ -2,8 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure avatars directory exists
-const avatarsDir = path.join(__dirname, '../../uploads/avatars');
+// Ensure avatars directory exists - path to backend/uploads/avatars
+const avatarsDir = path.resolve(__dirname, '../../../../uploads/avatars');
 if (!fs.existsSync(avatarsDir)) {
   fs.mkdirSync(avatarsDir, { recursive: true });
 }

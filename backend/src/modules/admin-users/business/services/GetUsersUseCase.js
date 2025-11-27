@@ -47,9 +47,12 @@ class GetUsersUseCase {
     const { search, role, status, userIds, excludeUserIds, excludeStatus } = params;
     const whereCondition = {};
 
+    console.log('[GetUsersUseCase.buildFilterConditions] params:', { status, userIds, excludeUserIds, excludeStatus, role, search });
+
     // Filter by specific user IDs (for online users filter)
     if (userIds && Array.isArray(userIds) && userIds.length > 0) {
       whereCondition.id = { in: userIds };
+      console.log('[GetUsersUseCase.buildFilterConditions] Filtering by userIds:', userIds.length);
     }
 
     // Exclude specific user IDs (for offline users filter)
@@ -58,11 +61,13 @@ class GetUsersUseCase {
         ...(whereCondition.id || {}),
         notIn: excludeUserIds 
       };
+      console.log('[GetUsersUseCase.buildFilterConditions] Excluding userIds:', excludeUserIds.length);
     }
 
     // Exclude specific status (for offline users - exclude locked)
     if (excludeStatus) {
       whereCondition.trang_thai = { not: excludeStatus };
+      console.log('[GetUsersUseCase.buildFilterConditions] Excluding status:', excludeStatus);
     }
 
     if (search) {
@@ -85,14 +90,22 @@ class GetUsersUseCase {
     // Note: 'hoat_dong' and 'khong_hoat_dong' are handled via userIds from sessions
     if (status && status === 'khoa') {
       whereCondition.trang_thai = status;
+      console.log('[GetUsersUseCase.buildFilterConditions] Filtering by status=khoa');
     }
 
+    console.log('[GetUsersUseCase.buildFilterConditions] Final whereCondition:', JSON.stringify(whereCondition, null, 2));
     return whereCondition;
   }
 
   normalizeRole(role) {
     if (!role) return role;
-    return ROLE_ALIASES[role] || role;
+    const trimmed = role.toString().trim();
+    const sanitized = trimmed
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .toUpperCase();
+    return ROLE_ALIASES[sanitized] || ROLE_ALIASES[trimmed] || sanitized;
   }
 }
 

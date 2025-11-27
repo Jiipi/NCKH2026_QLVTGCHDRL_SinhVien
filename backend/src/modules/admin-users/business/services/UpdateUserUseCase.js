@@ -15,7 +15,11 @@ class UpdateUserUseCase {
   }
 
   async execute(userId, dto, adminId) {
-    const existingUser = await this.adminUserRepository.findUserById(userId);
+    // Include sinh_vien to check if student profile already exists
+    const existingUser = await this.adminUserRepository.findUserById(userId, {
+      sinh_vien: true,
+      vai_tro: true
+    });
 
     if (!existingUser) {
       throw new NotFoundError(`Không tìm thấy người dùng với id ${userId}`);

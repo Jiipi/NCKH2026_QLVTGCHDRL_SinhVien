@@ -6,6 +6,11 @@
 
 import http from '../../../shared/api/http';
 
+const ADMIN_USERS_BASE = '/core/admin/users';
+const ROLES_BASE = '/core/roles';
+const CLASSES_BASE = '/core/classes';
+const SESSIONS_BASE = '/core/sessions';
+
 const handleError = (error) => {
   // Lấy message từ response hoặc error object
   let message = 'Đã có lỗi xảy ra.';
@@ -37,9 +42,24 @@ const handleError = (error) => {
  */
 export const userManagementApi = {
   /**
+   * Lấy thống kê người dùng (số lượng theo vai trò, trạng thái)
+   */
+  async fetchStats() {
+    try {
+      const response = await http.get(`${ADMIN_USERS_BASE}/stats`);
+      return {
+        success: true,
+        data: response?.data?.data || response?.data || {}
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
    * Lấy danh sách người dùng với phân trang và bộ lọc
    */
-  async fetchUsers({ page = 1, limit = 20, search = '', role = '' }) {
+  async fetchUsers({ page = 1, limit = 20, search = '', role = '', status = '' }) {
     try {
       // Sử dụng params object thay vì URLSearchParams để axios tự xử lý
       const params = {
@@ -53,8 +73,16 @@ export const userManagementApi = {
       if (role && role.trim()) {
         params.role = role.trim();
       }
+      if (status && status.trim()) {
+        params.status = status.trim();
+      }
       
-      const response = await http.get('/admin/users', { params });
+      console.log('[userManagementApi.fetchUsers] Request params:', params);
+      const response = await http.get(ADMIN_USERS_BASE, { params });
+      console.log('[userManagementApi.fetchUsers] Response:', { 
+        usersCount: response?.data?.data?.users?.length || 0,
+        total: response?.data?.data?.pagination?.total || 0
+      });
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -69,7 +97,7 @@ export const userManagementApi = {
    */
   async fetchUserDetails(userId) {
     try {
-      const response = await http.get(`/admin/users/${userId}`);
+      const response = await http.get(`${ADMIN_USERS_BASE}/${userId}`);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -84,7 +112,7 @@ export const userManagementApi = {
    */
   async fetchUserPoints(userId) {
     try {
-      const response = await http.get(`/admin/users/${userId}/points`);
+      const response = await http.get(`${ADMIN_USERS_BASE}/${userId}/points`);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -99,7 +127,7 @@ export const userManagementApi = {
    */
   async fetchRoles() {
     try {
-      const response = await http.get('/admin/roles');
+      const response = await http.get(ROLES_BASE);
       return {
         success: true,
         data: response?.data?.data || response?.data || []
@@ -114,7 +142,7 @@ export const userManagementApi = {
    */
   async fetchClasses() {
     try {
-      const response = await http.get('/admin/classes');
+      const response = await http.get(CLASSES_BASE);
       return {
         success: true,
         data: response?.data?.data || response?.data || []
@@ -129,7 +157,7 @@ export const userManagementApi = {
    */
   async createUser(userData) {
     try {
-      const response = await http.post('/admin/users', userData);
+      const response = await http.post(ADMIN_USERS_BASE, userData);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -144,7 +172,7 @@ export const userManagementApi = {
    */
   async updateUser(userId, userData) {
     try {
-      const response = await http.put(`/admin/users/${userId}`, userData);
+      const response = await http.put(`${ADMIN_USERS_BASE}/${userId}`, userData);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -159,7 +187,7 @@ export const userManagementApi = {
    */
   async deleteUser(userId) {
     try {
-      const response = await http.delete(`/admin/users/${userId}`);
+      const response = await http.delete(`${ADMIN_USERS_BASE}/${userId}`);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -174,7 +202,7 @@ export const userManagementApi = {
    */
   async lockUser(userId) {
     try {
-      const response = await http.patch(`/admin/users/${userId}/lock`);
+      const response = await http.patch(`${ADMIN_USERS_BASE}/${userId}/lock`);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}
@@ -189,7 +217,24 @@ export const userManagementApi = {
    */
   async unlockUser(userId) {
     try {
-      const response = await http.patch(`/admin/users/${userId}/unlock`);
+      const response = await http.patch(`${ADMIN_USERS_BASE}/${userId}/unlock`);
+      return {
+        success: true,
+        data: response?.data?.data || response?.data || {}
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Lấy danh sách phiên hoạt động
+   */
+  async fetchActiveSessions({ minutes = 5 } = {}) {
+    try {
+      const response = await http.get(`${SESSIONS_BASE}/active-users`, {
+        params: { minutes: String(minutes) }
+      });
       return {
         success: true,
         data: response?.data?.data || response?.data || {}

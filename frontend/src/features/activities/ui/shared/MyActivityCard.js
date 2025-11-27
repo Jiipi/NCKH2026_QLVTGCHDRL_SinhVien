@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Clock, CheckCircle, XCircle, Calendar, MapPin, Trophy, Eye, UserX, QrCode, FileText
 } from 'lucide-react';
-import { getActivityImage } from '../../../shared/lib/activityImages';
+import { getActivityImage, getActivityImages } from '../../../shared/lib/activityImages';
 
 const statusConfig = {
   'pending': { 
@@ -60,6 +60,33 @@ export function MyActivityCard({
 
   const config = statusConfig[status] || statusConfig['pending'];
 
+  // Get all available images with fallback logic
+  const allImages = useMemo(() => {
+    const images = getActivityImages(activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd);
+    return images.length > 0 ? images : [getActivityImage(null, activityData.loai_hd?.ten_loai_hd)];
+  }, [activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd]);
+
+  // State to track current image index
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Reset image index when activity changes
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [activityData.id]);
+  
+  // Get current image URL
+  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
+  
+  // Handle image error - try next image
+  const handleImageError = (e) => {
+    if (currentImageIndex < allImages.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    } else {
+      const defaultImage = getActivityImage(null, activityData.loai_hd?.ten_loai_hd);
+      e.target.src = defaultImage;
+    }
+  };
+
   // LIST MODE - Compact horizontal layout
   if (mode === 'list') {
     return (
@@ -69,10 +96,10 @@ export function MyActivityCard({
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
               <img 
-                src={getActivityImage(activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd)}
+                src={currentImageUrl}
                 alt={activityData.ten_hd || 'Hoạt động'}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => { e.target.src = getActivityImage(null, activityData.loai_hd?.ten_loai_hd); }}
+                onError={handleImageError}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               <div className="absolute top-2 left-2">
@@ -156,10 +183,10 @@ export function MyActivityCard({
       <div className={`relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-purple-300 transition-all duration-300 flex flex-col h-full`}>
         <div className="relative w-full h-36 overflow-hidden">
           <img
-            src={getActivityImage(activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd)}
+            src={currentImageUrl}
             alt={activityData.ten_hd || 'Hoạt động'}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => { e.target.src = getActivityImage(null, activityData.loai_hd?.ten_loai_hd); }}
+            onError={handleImageError}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
           <div className="absolute top-2 left-2 right-2 flex justify-between items-start">

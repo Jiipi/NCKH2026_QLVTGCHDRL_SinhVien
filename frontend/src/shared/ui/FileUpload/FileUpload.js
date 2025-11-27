@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, File, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import http from '../../api/http';
+import resolveAssetUrl from '../../lib/assetUrl';
 
 /**
  * FileUpload Component
@@ -12,6 +13,11 @@ import http from '../../api/http';
  * @param {string[]} value - Array URLs của files đã upload
  * @param {string} label - Label cho component
  */
+const buildApiPath = (path = '') => {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return normalized.startsWith('/api/') ? normalized : `/api${normalized}`;
+};
+
 export default function FileUpload({
   type = 'image',
   multiple = false,
@@ -66,8 +72,8 @@ export default function FileUpload({
       }
 
       const endpoint = multiple 
-        ? `/upload/${type}s` 
-        : `/upload/${type}`;
+        ? buildApiPath(`/upload/${type}s`) 
+        : buildApiPath(`/upload/${type}`);
 
       const response = await http.post(endpoint, formData, {
         headers: {
@@ -116,8 +122,9 @@ export default function FileUpload({
       const parts = url.split('/');
       const filename = parts[parts.length - 1];
       const fileType = type === 'image' ? 'images' : 'attachments';
+      const deletePath = buildApiPath(`/upload/${fileType}/${filename}`);
 
-      await http.delete(`/upload/${fileType}/${filename}`);
+      await http.delete(deletePath);
       
       const newValue = value.filter(v => v !== url);
       onChange(newValue);
@@ -130,6 +137,7 @@ export default function FileUpload({
   const renderPreview = (url, index) => {
     const isImage = type === 'image';
     const filename = url.split('/').pop();
+    const displayUrl = resolveAssetUrl(url);
 
     return (
       <div
@@ -138,7 +146,7 @@ export default function FileUpload({
       >
         {isImage ? (
           <img
-            src={url}
+            src={displayUrl}
             alt={`Upload ${index + 1}`}
             className="w-full h-32 object-cover"
           />
@@ -160,7 +168,7 @@ export default function FileUpload({
 
         {isImage && (
           <a
-            href={url}
+            href={displayUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity text-center"

@@ -134,7 +134,7 @@ class UploadController {
   static async deleteAvatar(req, res) {
     try {
       const { filename } = req.params;
-      const filePath = path.join(__dirname, '../../uploads/avatars', filename);
+      const filePath = path.resolve(__dirname, '../../../uploads/avatars', filename);
 
       await fs.unlink(filePath);
       logInfo('Avatar deleted', { filename, userId: req.user?.sub });
@@ -161,7 +161,8 @@ class UploadController {
         return res.status(400).json(ApiResponse.error('Invalid file type'));
       }
 
-      const filePath = path.join(__dirname, '../../uploads', type, filename);
+      // Path to uploads folder at project root: backend/uploads
+      const filePath = path.resolve(__dirname, '../../../uploads', type, filename);
       await fs.unlink(filePath);
       logInfo('File deleted', { type, filename, userId: req.user?.sub });
 
@@ -187,7 +188,7 @@ class UploadController {
         return res.status(400).json(ApiResponse.error('Invalid file type'));
       }
 
-      const filePath = path.join(__dirname, '../../uploads', type, filename);
+      const filePath = path.resolve(__dirname, '../../../uploads', type, filename);
       const stats = await fs.stat(filePath);
 
       return res.json(ApiResponse.success({

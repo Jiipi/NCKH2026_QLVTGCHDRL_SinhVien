@@ -1,5 +1,5 @@
 /**
- * Activity Types Model - Barrel Export
+ * Activity Types Model Layer - Barrel Export
+ * Gom toàn bộ hooks/utils để dễ kiểm soát dependencies
  */
-
-export { useActivityTypes } from './useActivityTypes';
+export * from './hooks';

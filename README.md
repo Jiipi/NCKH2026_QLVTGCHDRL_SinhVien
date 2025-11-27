@@ -255,25 +255,20 @@ GitHub Actions tự động:
 ## 📚 DOCUMENTATION
 
 ### Main Documentation
-- **[DOCS_INDEX.md](DOCS_INDEX.md)** - 📚 Documentation index & navigation
-- **[MIGRATION_COMPLETE.md](MIGRATION_COMPLETE.md)** - ✅ Backend migration report
-- **[backend/BACKEND_STRUCTURE.md](backend/BACKEND_STRUCTURE.md)** - 📖 Backend architecture
-- **[backend/QUICK_REFERENCE.md](backend/QUICK_REFERENCE.md)** - 🔍 API quick reference
+- **[DOCS_INDEX.md](docs/DOCS_INDEX.md)** - 📚 Documentation index & navigation
+- **[MIGRATION_COMPLETE.md](docs/MIGRATION_COMPLETE.md)** - ✅ Backend migration report
+- **[backend/BACKEND_STRUCTURE.md](docs/backend/BACKEND_STRUCTURE.md)** - 📖 Backend architecture
+- **[backend/QUICK_REFERENCE.md](docs/backend/QUICK_REFERENCE.md)** - 🔍 API quick reference
 
 ### Additional Documentation
-- **[API_FLOW_DOCUMENTATION.md](API_FLOW_DOCUMENTATION.md)** - API flow & integration
-- **[BAO_CAO_LUONG_API.md](BAO_CAO_LUONG_API.md)** - API flow report (Vietnamese)
-- **[SUMMARY_VI.md](SUMMARY_VI.md)** - System overview (Vietnamese)
-
-### Deployment & Setup
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Quick deployment guide
-- **[MANUAL_SETUP.md](MANUAL_SETUP.md)** - Manual setup checklist
-- **[docs/AWS_EC2_DEPLOYMENT_GUIDE.md](docs/AWS_EC2_DEPLOYMENT_GUIDE.md)** - AWS EC2 deployment
+- **[API_FLOW_DOCUMENTATION.md](docs/API_FLOW_DOCUMENTATION.md)** - API flow & integration
+- **[BAO_CAO_LUONG_API.md](docs/BAO_CAO_LUONG_API.md)** - API flow report (Vietnamese)
+- **[SUMMARY_VI.md](docs/SUMMARY_VI.md)** - System overview (Vietnamese)
 
 ### Fixes & Patches
-- **[RBAC_PERMISSIONS_FIX.md](RBAC_PERMISSIONS_FIX.md)** - RBAC permissions fix
-- **[SEMESTER_MANAGEMENT_FIX.md](SEMESTER_MANAGEMENT_FIX.md)** - Semester management fix
-- **[SORTING_FIX_SUMMARY.md](SORTING_FIX_SUMMARY.md)** - Sorting issues fix
+- **[RBAC_PERMISSIONS_FIX.md](docs/RBAC_PERMISSIONS_FIX.md)** - RBAC permissions fix
+- **[SEMESTER_MANAGEMENT_FIX.md](docs/SEMESTER_MANAGEMENT_FIX.md)** - Semester management fix
+- **[SORTING_FIX_SUMMARY.md](docs/SORTING_FIX_SUMMARY.md)** - Sorting issues fix
 
 ---
 
@@ -320,7 +315,7 @@ GitHub Actions tự động:
 
 ## 🐛 KNOWN ISSUES & FIXES
 
-See [EMERGENCY_FIX.md](EMERGENCY_FIX.md) for:
+See `docs/` for:
 - Role permissions bug fix (PostgreSQL JSON array issue)
 - Profile caching issue fix
 

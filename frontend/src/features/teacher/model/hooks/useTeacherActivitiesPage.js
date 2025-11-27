@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import useTeacherActivities from './useTeacherActivities';
-import { activityTypesApi } from '../../../activity-types/services/activityTypesApi';
+import { activityTypesApi } from '../../../activity-types';
 
 const STATUS_LABELS = {
   cho_duyet: 'Chờ duyệt',

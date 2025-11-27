@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import ActivityTypesManagementPage from '../../activity-types/ui/ActivityTypesManagementPage';
+import { ActivityTypesManagementPage } from '../../activity-types';
 import useTeacherActivitiesPage from '../model/hooks/useTeacherActivitiesPage';
 import { getBestActivityImage } from '../../../shared/lib/activityImages';
 import TeacherActivitiesHeroInline from './components/activities-management/TeacherActivitiesHeroInline';

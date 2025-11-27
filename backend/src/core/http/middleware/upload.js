@@ -2,8 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure upload directories exist
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+// Ensure upload directories exist - path to backend/uploads
+const UPLOAD_DIR = path.resolve(__dirname, '../../../../uploads');
 const IMAGE_DIR = path.join(UPLOAD_DIR, 'images');
 const ATTACHMENT_DIR = path.join(UPLOAD_DIR, 'attachments');
 

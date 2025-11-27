@@ -1,5 +1,6 @@
 const GetActivitiesDto = require('../../business/dto/GetActivitiesDto');
 const CreateActivityDto = require('../../business/dto/CreateActivityDto');
+const UpdateActivityDto = require('../../business/dto/UpdateActivityDto');
 const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
 const { logError } = require('../../../../core/logger');
 const { AppError } = require('../../../../core/errors/AppError');
@@ -76,7 +77,7 @@ class ActivitiesController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const dto = CreateActivityDto.fromRequest(req.body);
+      const dto = UpdateActivityDto.fromRequest(req.body);
       const scope = req.scope || {};
       const result = await this.useCases.update.execute(id, dto, req.user, scope);
 

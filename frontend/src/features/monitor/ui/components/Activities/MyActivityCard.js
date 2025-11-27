@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Award, Eye, Trophy, XCircle, AlertCircle } from 'lucide-react';
-import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
+import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
 
 /**
  * MyActivityCard Component - Card hiển thị hoạt động của tôi
@@ -16,7 +16,34 @@ export default function MyActivityCard({
   isWritable
 }) {
   const activity = registration.hoat_dong || {};
-  const imageUrl = getBestActivityImage(activity);
+  
+  // Get all available images with fallback logic
+  const allImages = useMemo(() => {
+    const images = getActivityImages(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
+    return images.length > 0 ? images : [getActivityImage(null, activity.loai_hd?.ten_loai_hd)];
+  }, [activity.hinh_anh, activity.loai_hd?.ten_loai_hd]);
+
+  // State to track current image index
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Reset image index when activity changes
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [activity.id]);
+  
+  // Get current image URL
+  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
+  
+  // Handle image error - try next image
+  const handleImageError = (e) => {
+    if (currentImageIndex < allImages.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    } else {
+      const defaultImage = getActivityImage(null, activity.loai_hd?.ten_loai_hd);
+      e.target.src = defaultImage;
+    }
+  };
+  
   const canCancel = registration.trang_thai_dk === 'cho_duyet';
   const canShowQR = registration.trang_thai_dk === 'da_duyet';
 
@@ -27,7 +54,7 @@ export default function MyActivityCard({
         <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <img src={imageUrl} alt={activity.ten_hd} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <img src={currentImageUrl} alt={activity.ten_hd} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={handleImageError} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               <div className="absolute top-2 left-2">{getStatusBadge(registration.trang_thai_dk)}</div>
               {activity.diem_rl && (
@@ -112,7 +139,7 @@ export default function MyActivityCard({
     <div className="group relative h-full">
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          <img src={imageUrl} alt={activity.ten_hd} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
+          <img src={currentImageUrl} alt={activity.ten_hd} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" onError={handleImageError} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           <div className="absolute top-2 left-2">{getStatusBadge(registration.trang_thai_dk)}</div>
           {activity.diem_rl && (
