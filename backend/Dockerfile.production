@@ -5,8 +5,8 @@ WORKDIR /app/backend
 RUN apk add --no-cache openssl libc6-compat bash curl
 
 COPY backend/package.json backend/package-lock.json ./
-# Install all dependencies (including devDependencies for prisma)
-RUN npm ci --ignore-scripts
+# Install dependencies and run prisma postinstall to create binary
+RUN npm ci
 
 # Stage 2: Prisma Client
 FROM node:18-alpine AS prisma-builder
@@ -17,7 +17,7 @@ RUN apk add --no-cache openssl libc6-compat
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/prisma ./prisma
 
-# Use local prisma binary instead of npx (avoids network calls)
+# Generate Prisma client
 RUN ./node_modules/.bin/prisma generate
 
 # Stage 3: Frontend Build
