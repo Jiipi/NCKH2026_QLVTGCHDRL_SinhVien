@@ -84,9 +84,25 @@ export default function useStudentScores() {
     try {
       const result = await studentScoresApi.getDetailedScores(semester);
       
+      // Debug: Log API response
+      console.log('[useStudentScores] API Response:', {
+        semester,
+        rawData: result.data,
+        summary: result.data?.summary,
+        tong_diem: result.data?.summary?.tong_diem
+      });
+      
       if (result.success) {
         // Map API data to UI format
         const mappedData = mapScoresToUI(result.data);
+        
+        // Debug: Log mapped data
+        console.log('[useStudentScores] Mapped Data:', {
+          summary: mappedData.summary,
+          tong_diem: mappedData.summary?.tong_diem,
+          activities: mappedData.activities?.length || 0
+        });
+        
         setData(mappedData);
       } else {
         setError(result.error || `Không thể tải dữ liệu điểm cho học kỳ ${semester}. Vui lòng thử lại.`);

@@ -9,10 +9,10 @@ import {
 import { useAdminApprovals } from '../../model/hooks/useAdminApprovals';
 import { useSemesterData } from '../../../../shared/hooks';
 
-// Shared Components
+// Shared Components (3-Tier Architecture)
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
 import SemesterFilter from '../../../../widgets/semester/ui/SemesterSwitcher';
-import RegistrationCard from '../../../monitor/ui/components/Approvals/RegistrationCard';
+import { AdminRegistrationCard } from '../shared';
 import Pagination from '../../../../shared/components/common/Pagination';
 
 // ============================================
@@ -726,7 +726,7 @@ export default function AdminApprovalsPage() {
               };
               
               return (
-                <RegistrationCard
+                <AdminRegistrationCard
                   key={reg.id}
                   registration={normalizedReg}
                   isSelected={selectedIds.includes(reg.id)}

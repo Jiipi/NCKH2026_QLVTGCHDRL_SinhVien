@@ -1,13 +1,24 @@
 /**
- * Reset Password Page (Tầng 1: UI)
- * Chỉ render UI, không chứa business logic
+ * Reset Password Page (3-Tier Architecture)
+ * 
+ * Tier 1: Services - authApi
+ * Tier 2: Model - useResetPassword hook
+ * Tier 3: UI - Shared components from shared/
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useResetPassword from '../../../model/hooks/useResetPassword';
 import '../../shared/AuthModern.css';
-import AuthLayout, { AuthPanel } from '../../shared/AuthLayout';
+import {
+  AuthLayout,
+  AuthPanel,
+  AuthPasswordInput,
+  AuthButton,
+  AuthErrorMessage,
+  AuthSuccessMessage,
+  AuthLink
+} from '../../shared';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -36,52 +47,42 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleResetPassword}>
           <h1>ĐẶT LẠI MẬT KHẨU</h1>
           
-          <div className="password-login">
-            <input
-              className="inpt"
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Mật khẩu mới"
-              required
-            />
-            <i
-              className={showPassword ? "fa fa-eye" : "fa fa-eye-slash"}
-              onClick={() => setShowPassword(!showPassword)}
-              style={{ cursor: 'pointer' }}
-            ></i>
-          </div>
-          {errors.password && <div className="error-message">{errors.password}</div>}
+          <AuthPasswordInput
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            placeholder="Mật khẩu mới"
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword(!showPassword)}
+            required
+            error={errors.password}
+          />
 
-          <div className="password-login">
-            <input
-              className="inpt"
-              type={showConfirmPassword ? 'text' : 'password'}
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              placeholder="Xác nhận mật khẩu mới"
-              required
-            />
-            <i
-              className={showConfirmPassword ? "fa fa-eye" : "fa fa-eye-slash"}
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={{ cursor: 'pointer' }}
-            ></i>
-          </div>
-          {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
+          <AuthPasswordInput
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            placeholder="Xác nhận mật khẩu mới"
+            showPassword={showConfirmPassword}
+            onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+            required
+            error={errors.confirmPassword}
+          />
 
-          {errors.submit && <div className="error-message">{errors.submit}</div>}
-          {success && <div className="success-message">{success}</div>}
+          <AuthErrorMessage message={errors.submit} />
+          <AuthSuccessMessage message={success} />
 
-          <button type="submit" className="btn" disabled={isLoading}>
-            {isLoading ? 'Đang xử lý...' : 'ĐẶT LẠI MẬT KHẨU'}
-          </button>
+          <AuthButton
+            type="submit"
+            isLoading={isLoading}
+            loadingText="Đang xử lý..."
+          >
+            ĐẶT LẠI MẬT KHẨU
+          </AuthButton>
         </form>
-        <div className="register-link">
-          <p>Nhớ mật khẩu rồi? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a></p>
-        </div>
+        <AuthLink to="/login">
+          Nhớ mật khẩu rồi? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a>
+        </AuthLink>
       </AuthPanel>
     </AuthLayout>
   );

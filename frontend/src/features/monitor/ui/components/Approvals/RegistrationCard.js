@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Award, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Award, Eye, CheckCircle, XCircle, QrCode } from 'lucide-react';
 import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
 import { getUserAvatar } from '../../../../../shared/lib/avatar';
 
@@ -21,6 +21,7 @@ export default function RegistrationCard({
   onApprove,
   onReject,
   onViewDetails,
+  onShowQR,
   isWritable = true
 }) {
   const student = registration.sinh_vien?.nguoi_dung;
@@ -148,6 +149,23 @@ export default function RegistrationCard({
                   >
                     <XCircle className="h-4 w-4" />
                     Từ chối
+                  </button>
+                </>
+              ) : registration.trang_thai_dk === 'da_duyet' && onShowQR ? (
+                <>
+                  <button 
+                    onClick={() => onShowQR(activity?.id)} 
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Mã QR
+                  </button>
+                  <button 
+                    onClick={() => onViewDetails(activity?.id)} 
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Chi tiết
                   </button>
                 </>
               ) : (
@@ -284,6 +302,23 @@ export default function RegistrationCard({
               >
                 <XCircle className="h-3.5 w-3.5" />
                 Từ chối
+              </button>
+            </>
+          ) : registration.trang_thai_dk === 'da_duyet' && onShowQR ? (
+            <>
+              <button 
+                onClick={() => onShowQR(activity?.id)} 
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <QrCode className="h-3.5 w-3.5" />
+                Mã QR
+              </button>
+              <button 
+                onClick={() => onViewDetails(activity?.id)} 
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Chi tiết
               </button>
             </>
           ) : (

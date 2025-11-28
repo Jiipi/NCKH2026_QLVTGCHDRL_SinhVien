@@ -22,10 +22,9 @@ import {
 import { AdminApprovalsPage } from './features/approvals';
 import QRManagementPage from './features/qr-attendance/ui/QRManagementPage';
 import { AdminReportsPage as AdminReports } from './features/reports';
-import AdminRoles from './features/users/ui/AdminRolesPage';
+import { AdminRolesPage as AdminRoles, AdminProfilePage as AdminProfile } from './features/users';
 import AdminNotifications from './features/notifications/ui/AdminNotificationsPage';
 import AdminSettings from './features/settings/ui/AdminSettingsPage';
-import AdminProfile from './features/users/ui/AdminProfilePage';
 import SemesterManagement from './features/semesters/ui/SemesterManagementPage';
 import ModernTeacherLayout from './widgets/layout/ui/TeacherLayout';
 // Legacy pages removed in favor of modern auth pages
@@ -41,28 +40,22 @@ import MyActivitiesPage from './features/student/ui/MyActivitiesPage';
 import StudentProfilePage from './features/student/ui/StudentProfilePage';
 import StudentScoresPage from './features/student/ui/StudentScoresPage';
 import QRScannerPage from './features/qr-attendance/ui/QRScannerModernPage';
-import TeacherDashboardPage from './features/teacher/ui/TeacherDashboardPage';
-// TeacherProfile moved to features - was ./pages/teacher/TeacherProfile
-import TeacherProfilePage from './features/teacher/ui/TeacherProfilePage';
-import TeacherPreferencesPage from './features/teacher/ui/TeacherPreferencesPage';
-// Legacy approval page replaced by FSD implementation
-// import ModernActivityApproval from './pages/teacher/ModernActivityApproval';
-import TeacherActivityApprovalPage from './features/teacher/ui/TeacherActivityApprovalPage';
-// Legacy registration approvals replaced by FSD page
-// import TeacherRegistrationApprovals from './pages/teacher/TeacherRegistrationApprovals';
-import TeacherRegistrationApprovalsPage from './features/teacher/ui/TeacherRegistrationApprovalsPage';
-// Legacy student management replaced by FSD 3-tier implementation
-// import ModernStudentManagement from './pages/teacher/ModernStudentManagement';
-import TeacherStudentManagementPage from './features/teacher/ui/TeacherStudentManagementPage';
-// ImportStudents, ModernReports, ModernNotifications moved to features
-import ImportStudentsPage from './features/teacher/ui/ImportStudentsPage';
-import ClassManagementPage from './features/teacher/ui/ClassManagementPage';
-import TeacherReportsPage from './features/teacher/ui/TeacherReportsPage';
-import TeacherNotificationsPage from './features/teacher/ui/TeacherNotificationsPage';
+import {
+  ClassManagementPage,
+  ImportStudentsPage,
+  TeacherActivitiesPage,
+  TeacherActivityApprovalPage,
+  TeacherAttendancePage,
+  TeacherDashboardPage,
+  TeacherNotificationsPage,
+  TeacherPreferencesPage,
+  TeacherProfilePage,
+  TeacherRegistrationApprovalsPage,
+  TeacherReportsPage,
+  TeacherStudentManagementPage,
+  TeacherStudentScoresPage
+} from './features/teacher';
 import { ActivityTypesManagementPage } from './features/activity-types';
-import TeacherActivitiesPage from './features/teacher/ui/TeacherActivitiesPage';
-import TeacherAttendancePage from './features/teacher/ui/TeacherAttendancePage';
-import TeacherStudentScoresPage from './features/teacher/ui/TeacherStudentScoresPage';
 import MonitorDashboardPage from './features/monitor/ui/MonitorDashboardPage';
 import MonitorMyActivitiesPage from './features/monitor/ui/MonitorMyActivitiesPage';
 import MonitorMyProfilePage from './features/monitor/ui/MonitorMyProfilePage';

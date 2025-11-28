@@ -1,11 +1,10 @@
 /**
  * Auth Feature - Main Entry Point
  * 
- * 3-Tier Architecture:
- * - services/  : API layer (authApi)
- * - model/     : Business logic layer (hooks, mappers)
- * - ui/        : Presentation layer (components, pages)
- * - pages/     : Legacy pages (to be migrated)
+ * 3-Tier Architecture (SOLID):
+ * - services/  : API layer (authApi) - Data Access
+ * - model/     : Business logic layer (hooks, mappers) - Business Logic
+ * - ui/        : Presentation layer (pages, shared components) - Presentation
  */
 
 // Services Layer

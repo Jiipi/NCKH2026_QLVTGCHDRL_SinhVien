@@ -66,8 +66,8 @@ class DashboardController {
   async getDetailedScores(req, res) {
     try {
       const userId = req.user.sub;
-      const { semester, year, hoc_ky, nam_hoc } = req.query;
-      const data = await this.useCases.getDetailedScores.execute(userId, { semester, year, hoc_ky, nam_hoc });
+      // Pass full query to ensure semester parsing is consistent with getStudentDashboard
+      const data = await this.useCases.getDetailedScores.execute(userId, req.query);
       return sendResponse(res, 200, ApiResponse.success(data, 'Chi tiết điểm rèn luyện'));
     } catch (error) {
       logError('Get detailed scores error', error);

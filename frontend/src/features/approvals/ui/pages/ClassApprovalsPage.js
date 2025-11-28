@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 
-// Refactored imports
+// Refactored imports (3-Tier Architecture)
 import { useClassApprovals } from '../../model/hooks/useClassApprovals';
-import ApprovalHeader from '../components/ApprovalHeader';
-import ApprovalFilters from '../components/ApprovalFilters';
-import ApprovalCard from '../components/ApprovalCard';
-import BulkActionToolbar from '../components/BulkActionToolbar';
+import {
+  ApprovalHeader,
+  ApprovalFilters,
+  ApprovalCard,
+  BulkActionToolbar
+} from '../shared';
 
 // Shared components
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';

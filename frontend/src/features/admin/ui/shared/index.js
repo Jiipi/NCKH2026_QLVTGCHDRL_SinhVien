@@ -12,6 +12,9 @@ export { default as AdminActivitiesError } from './ActivitiesList/AdminActivitie
 export { default as AdminActivitiesEmpty } from './ActivitiesList/AdminActivitiesEmpty';
 export { default as AdminActivitiesResults } from './ActivitiesList/AdminActivitiesResults';
 
+// Registrations shared components
+export * from './Registrations';
+
 // Misc shared components
 export { RoleFilterButtons } from './RoleFilterButtons';
 export { UserFilters } from './UserFilters';
