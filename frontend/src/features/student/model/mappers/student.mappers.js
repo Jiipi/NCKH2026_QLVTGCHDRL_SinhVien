@@ -29,6 +29,14 @@ export function mapRegistrationStatus(status) {
 export function mapActivityToUI(activity) {
   const activityData = activity.hoat_dong || activity;
   
+  // Process images - normalize to array
+  const rawImages = activityData.hinh_anh || activity.hinh_anh || [];
+  const hinh_anh = Array.isArray(rawImages) ? rawImages : (rawImages ? [rawImages] : []);
+  
+  // Process attachments - normalize to array
+  const rawAttachments = activityData.tep_dinh_kem || activity.tep_dinh_kem || [];
+  const tep_dinh_kem = Array.isArray(rawAttachments) ? rawAttachments : (rawAttachments ? [rawAttachments] : []);
+  
   return {
     id: activity.id || activity.hd_id || activityData.id,
     hd_id: activity.hd_id || activity.id || activityData.id,
@@ -44,6 +52,8 @@ export function mapActivityToUI(activity) {
     ngay_dang_ky: activity.ngay_dang_ky,
     ngay_duyet: activity.ngay_duyet,
     ly_do_tu_choi: activity.ly_do_tu_choi,
+    hinh_anh: hinh_anh,
+    tep_dinh_kem: tep_dinh_kem,
     is_class_activity: activity.is_class_activity !== false, // Default true
     hoat_dong: activityData
   };

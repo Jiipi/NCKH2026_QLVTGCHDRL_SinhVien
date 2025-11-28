@@ -7,6 +7,14 @@
  * Map activity data từ API sang UI format
  */
 export function mapActivityToUI(activity) {
+  // Process images - normalize to array
+  const rawImages = activity.hinh_anh || [];
+  const hinh_anh = Array.isArray(rawImages) ? rawImages : (rawImages ? [rawImages] : []);
+  
+  // Process attachments - normalize to array
+  const rawAttachments = activity.tep_dinh_kem || [];
+  const tep_dinh_kem = Array.isArray(rawAttachments) ? rawAttachments : (rawAttachments ? [rawAttachments] : []);
+  
   return {
     id: activity.id || activity.hd_id,
     hd_id: activity.hd_id || activity.id,
@@ -17,6 +25,8 @@ export function mapActivityToUI(activity) {
     ngay_bd: activity.ngay_bd,
     ngay_kt: activity.ngay_kt,
     dia_diem: activity.dia_diem || activity.location,
+    hinh_anh: hinh_anh,
+    tep_dinh_kem: tep_dinh_kem,
     registeredStudents: activity.registeredStudents || activity._count?.dang_ky_hd || 0
   };
 }

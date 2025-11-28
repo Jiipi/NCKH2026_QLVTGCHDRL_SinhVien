@@ -519,9 +519,6 @@ export default function TeacherActivitiesPage() {
                   key={activity.id}
                   activity={activity}
                       viewMode="grid"
-                      getStatusColor={getStatusColor}
-                      getStatusLabel={getStatusLabel}
-                      getTypeColor={getTypeColor}
                   isWritable={isWritable}
                   onApprove={handleApprove}
                   onReject={handleReject}
@@ -536,9 +533,6 @@ export default function TeacherActivitiesPage() {
                   key={activity.id}
                   activity={activity}
                       viewMode="list"
-                      getStatusColor={getStatusColor}
-                      getStatusLabel={getStatusLabel}
-                      getTypeColor={getTypeColor}
                   isWritable={isWritable}
                   onApprove={handleApprove}
                   onReject={handleReject}
