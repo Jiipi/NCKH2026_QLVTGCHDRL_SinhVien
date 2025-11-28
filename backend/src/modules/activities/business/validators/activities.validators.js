@@ -155,18 +155,16 @@ const createActivitySchema = z.object({
     pham_vi: activityScopeEnum,
     
     khoa_id: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().transform((val) => parseInt(val, 10)))
+      .string()
+      .min(1, 'Khoa ID không hợp lệ')
+      .or(z.number().int().positive().transform(String))
       .optional()
       .nullable(),
     
     lop_id: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().transform((val) => parseInt(val, 10)))
+      .string()
+      .min(1, 'Lớp ID không hợp lệ')
+      .or(z.number().int().positive().transform(String))
       .optional()
       .nullable(),
     
@@ -269,18 +267,16 @@ const updateActivitySchema = z.object({
     pham_vi: activityScopeEnum.optional(),
     
     khoa_id: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().transform((val) => parseInt(val, 10)))
+      .string()
+      .min(1, 'Khoa ID không hợp lệ')
+      .or(z.number().int().positive().transform(String))
       .optional()
       .nullable(),
     
     lop_id: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().transform((val) => parseInt(val, 10)))
+      .string()
+      .min(1, 'Lớp ID không hợp lệ')
+      .or(z.number().int().positive().transform(String))
       .optional()
       .nullable(),
     
