@@ -17,7 +17,8 @@ RUN apk add --no-cache openssl libc6-compat
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/prisma ./prisma
 
-RUN npx prisma generate
+# Use local prisma binary instead of npx (avoids network calls)
+RUN ./node_modules/.bin/prisma generate
 
 # Stage 3: Frontend Build
 FROM node:18-alpine AS frontend-builder
