@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, Sparkles, TrendingUp, Mail, Phone, Award, MapPin, BookOpen, Trophy, ArrowUp, ArrowDown, SlidersHorizontal, RefreshCw, Grid3X3, List, X } from 'lucide-react';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
+import { ActivityQRModal } from '../../qr-attendance/ui/components';
 import Pagination from '../../../shared/components/common/Pagination';
 import RegistrationCard from './components/Approvals/RegistrationCard';
 import { useMonitorApprovals } from '../model/hooks/useMonitorApprovals';
@@ -62,6 +63,25 @@ export default function MonitorApprovalsPage() {
     handleReject,
     handleBulkApprove
   } = useMonitorApprovals();
+
+  // QR Modal state
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrActivityId, setQrActivityId] = useState(null);
+  const [qrActivityName, setQrActivityName] = useState('');
+
+  const handleShowQR = (activityId) => {
+    // Find activity name from registrations
+    const reg = filteredRegistrations.find(r => r.hoat_dong?.id === activityId);
+    setQrActivityId(activityId);
+    setQrActivityName(reg?.hoat_dong?.ten_hd || 'Hoạt động');
+    setQrModalOpen(true);
+  };
+
+  const handleCloseQR = () => {
+    setQrModalOpen(false);
+    setQrActivityId(null);
+    setQrActivityName('');
+  };
 
   const effectiveTotal = filteredRegistrations.length;
 
@@ -530,6 +550,7 @@ export default function MonitorApprovalsPage() {
                   setActivityDetailId(activityId);
                   setIsDetailModalOpen(true);
                 }}
+                onShowQR={handleShowQR}
                 displayViewMode={displayViewMode}
                 statusColors={statusColors}
                 statusLabels={statusLabels}
@@ -562,6 +583,7 @@ export default function MonitorApprovalsPage() {
       </div>
 
       <ActivityDetailModal activityId={activityDetailId} isOpen={isDetailModalOpen} onClose={() => { setIsDetailModalOpen(false); setActivityDetailId(null); }} />
+      <ActivityQRModal activityId={qrActivityId} activityName={qrActivityName} isOpen={qrModalOpen} onClose={handleCloseQR} />
     </div>
   );
 }

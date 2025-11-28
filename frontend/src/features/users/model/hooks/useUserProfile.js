@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import http from '../../../../shared/services/api/client';
-import sessionStorageManager from '../../../../shared/services/storage/sessionStorageManager';
+import http from '../../../../shared/api/http';
+import sessionStorageManager from '../../../../shared/api/sessionStorageManager';
 import { useAppStore } from '../../../../shared/store/useAppStore';
 
 export function useUserProfile() {

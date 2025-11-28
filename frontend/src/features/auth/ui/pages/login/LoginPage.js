@@ -1,13 +1,24 @@
 /**
- * Login Page (Tầng 1: UI)
- * Chỉ render UI, không chứa business logic
+ * Login Page (3-Tier Architecture)
+ * 
+ * Tier 1: Services - authApi
+ * Tier 2: Model - useLogin hook
+ * Tier 3: UI - Shared components from shared/
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useLogin from '../../../model/hooks/useLogin';
 import '../../shared/AuthModern.css';
-import AuthLayout, { AuthPanel } from '../../shared/AuthLayout';
+import {
+  AuthLayout,
+  AuthPanel,
+  AuthInput,
+  AuthPasswordInput,
+  AuthButton,
+  AuthErrorMessage,
+  AuthLink
+} from '../../shared';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -26,38 +37,28 @@ export default function LoginPage() {
       <AuthPanel>
         <form onSubmit={handleLogin}>
           <h1 className="auth-form-title">ĐĂNG NHẬP</h1>
-          <div className="email-login">
-            <input
-              className="inpt"
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              placeholder="Mã số sinh viên hoặc Email"
-              required
-            />
-            <i className='fa fa-envelope'></i>
-          </div>
-          {errors.username && <div className="error-message">{errors.username}</div>}
+          
+          <AuthInput
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleInputChange}
+            placeholder="Mã số sinh viên hoặc Email"
+            icon="fa fa-envelope"
+            required
+            error={errors.username}
+          />
 
-          <div className="password-login">
-            <input
-              className="inpt"
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Mật khẩu"
-              required
-            />
-            <i
-              id="eye-login"
-              className={showPassword ? "fa fa-eye" : "fa fa-eye-slash"}
-              onClick={() => setShowPassword(!showPassword)}
-              style={{ cursor: 'pointer' }}
-            ></i>
-          </div>
-          {errors.password && <div className="error-message">{errors.password}</div>}
+          <AuthPasswordInput
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            placeholder="Mật khẩu"
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword(!showPassword)}
+            required
+            error={errors.password}
+          />
 
           <div className="forget" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -74,15 +75,19 @@ export default function LoginPage() {
             <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Quên mật khẩu?</a>
           </div>
 
-          {errors.submit && <div className="error-message">{errors.submit}</div>}
+          <AuthErrorMessage message={errors.submit} />
 
-          <button type="submit" className="btn" disabled={isLoading}>
-            {isLoading ? 'Đang đăng nhập...' : 'ĐĂNG NHẬP'}
-          </button>
+          <AuthButton
+            type="submit"
+            isLoading={isLoading}
+            loadingText="Đang đăng nhập..."
+          >
+            ĐĂNG NHẬP
+          </AuthButton>
         </form>
-        <div className="register-link">
-          <p>Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a></p>
-        </div>
+        <AuthLink to="/register">
+          Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a>
+        </AuthLink>
       </AuthPanel>
     </AuthLayout>
   );

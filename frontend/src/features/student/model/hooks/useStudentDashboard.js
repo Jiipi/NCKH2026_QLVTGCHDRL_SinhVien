@@ -89,6 +89,14 @@ export default function useStudentDashboard() {
 
       // Set dashboard data
       if (dashboardResult.success) {
+        // Debug: Log API response
+        console.log('[useStudentDashboard] API Response:', {
+          semester,
+          rawData: dashboardResult.data,
+          tong_quan: dashboardResult.data?.tong_quan,
+          tong_diem: dashboardResult.data?.tong_quan?.tong_diem
+        });
+        
         setDashboardData(dashboardResult.data);
       } else {
         console.error('[useStudentDashboard] Dashboard error:', dashboardResult.error);
@@ -157,6 +165,13 @@ export default function useStudentDashboard() {
     const tongQuan = dashboard.tong_quan || {};
     const soSanhLop = dashboard.so_sanh_lop || {};
     const totalPoints = Number(tongQuan.tong_diem || 0);
+    
+    // Debug: Log calculated summary
+    console.log('[useStudentDashboard] Calculated Summary:', {
+      tongQuan,
+      totalPoints,
+      semester
+    });
     const targetPoints = Number(tongQuan.muc_tieu || 100);
     const progress = Math.round(Math.min((totalPoints / targetPoints) * 100, 100) * 10) / 10;
 

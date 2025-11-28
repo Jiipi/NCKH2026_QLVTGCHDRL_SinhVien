@@ -1,13 +1,24 @@
 /**
- * Register Page (Tầng 1: UI)
- * Chỉ render UI, không chứa business logic
+ * Register Page (3-Tier Architecture)
+ * 
+ * Tier 1: Services - authApi
+ * Tier 2: Model - useRegister hook
+ * Tier 3: UI - Shared components from shared/
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useRegister from '../../../model/hooks/useRegister';
 import '../../shared/AuthModern.css';
-import AuthLayout from '../../shared/AuthLayout';
+import {
+  AuthLayout,
+  AuthInput,
+  AuthPasswordInput,
+  AuthButton,
+  AuthErrorMessage,
+  AuthFormGroup,
+  AuthLink
+} from '../../shared';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -36,47 +47,50 @@ export default function RegisterPage() {
               
               <div className="form-row">
                 <div className="form-column">
-                  <div className="input-group">
-                    <input
-                      className="inpt"
+                  <AuthFormGroup>
+                    <AuthInput
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="Họ và tên *"
-                    />
-                    <i className="fa fa-user field-icon"></i>
-                    {errors.name && <div className="error-message">{errors.name}</div>}
-                  </div>
-
-                  <div className="input-group">
-                    <input
+                      icon="fa fa-user field-icon"
+                      containerClassName=""
                       className="inpt"
+                      error={errors.name}
+                    />
+                  </AuthFormGroup>
+
+                  <AuthFormGroup>
+                    <AuthInput
                       type="text"
                       name="maso"
                       value={formData.maso}
                       onChange={handleInputChange}
                       placeholder="Mã số sinh viên (7 chữ số) *"
-                    />
-                    <i className="fa fa-id-card field-icon"></i>
-                    {errors.maso && <div className="error-message">{errors.maso}</div>}
-                  </div>
-
-                  <div className="input-group">
-                    <input
+                      icon="fa fa-id-card field-icon"
+                      containerClassName=""
                       className="inpt"
+                      error={errors.maso}
+                    />
+                  </AuthFormGroup>
+
+                  <AuthFormGroup>
+                    <AuthInput
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       placeholder="Email *"
+                      icon="fa fa-envelope field-icon"
+                      containerClassName=""
+                      className="inpt"
                       required
+                      error={errors.email}
                     />
-                    <i className='fa fa-envelope field-icon'></i>
-                    {errors.email && <div className="error-message">{errors.email}</div>}
-                  </div>
+                  </AuthFormGroup>
 
-                  <div className="input-group">
+                  <AuthFormGroup>
                     <select
                       className="inpt"
                       name="khoa"
@@ -99,9 +113,9 @@ export default function RegisterPage() {
                         Danh sách khoa trống. Vui lòng thêm Khoa/Lớp trong cơ sở dữ liệu (Prisma) hoặc liên hệ quản trị viên.
                       </div>
                     )}
-                  </div>
+                  </AuthFormGroup>
 
-                  <div className="input-group">
+                  <AuthFormGroup>
                     <select
                       className="inpt"
                       name="lopId"
@@ -117,59 +131,56 @@ export default function RegisterPage() {
                     </select>
                     <i className="fa fa-building field-icon"></i>
                     {errors.lopId && <div className="error-message">{errors.lopId}</div>}
-                  </div>
+                  </AuthFormGroup>
                 </div>
 
                 <div className="form-column">
-                  <div className="input-group">
-                    <input
-                      className="inpt"
-                      type={showPassword ? 'text' : 'password'}
+                  <AuthFormGroup>
+                    <AuthPasswordInput
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="Mật khẩu *"
-                      required
-                    />
-                    <i
-                      className={showPassword ? "fa fa-eye field-icon clickable" : "fa fa-eye-slash field-icon clickable"}
-                      onClick={() => setShowPassword(!showPassword)}
-                    ></i>
-                    {errors.password && <div className="error-message">{errors.password}</div>}
-                  </div>
-
-                  <div className="input-group">
-                    <input
+                      showPassword={showPassword}
+                      onTogglePassword={() => setShowPassword(!showPassword)}
+                      containerClassName=""
                       className="inpt"
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      error={errors.password}
+                    />
+                  </AuthFormGroup>
+
+                  <AuthFormGroup>
+                    <AuthPasswordInput
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="Xác nhận mật khẩu *"
-                      required
-                    />
-                    <i
-                      className={showConfirmPassword ? "fa fa-eye field-icon clickable" : "fa fa-eye-slash field-icon clickable"}
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    ></i>
-                    {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
-                  </div>
-
-                  <div className="input-group">
-                    <input
+                      showPassword={showConfirmPassword}
+                      onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                      containerClassName=""
                       className="inpt"
+                      required
+                      error={errors.confirmPassword}
+                    />
+                  </AuthFormGroup>
+
+                  <AuthFormGroup>
+                    <AuthInput
                       type="date"
                       name="ngaySinh"
                       value={formData.ngaySinh}
                       onChange={handleInputChange}
                       placeholder="Ngày sinh *"
+                      icon="fa fa-calendar field-icon"
+                      containerClassName=""
+                      className="inpt"
                       required
+                      error={errors.ngaySinh}
                     />
-                    <i className="fa fa-calendar field-icon"></i>
-                    {errors.ngaySinh && <div className="error-message">{errors.ngaySinh}</div>}
-                  </div>
+                  </AuthFormGroup>
 
-                  <div className="input-group">
+                  <AuthFormGroup>
                     <select
                       className="inpt"
                       name="gioiTinh"
@@ -182,44 +193,51 @@ export default function RegisterPage() {
                       <option value="khac">Khác</option>
                     </select>
                     <i className="fa fa-venus-mars field-icon"></i>
-                  </div>
+                  </AuthFormGroup>
 
-                  <div className="input-group">
-                    <input
-                      className="inpt"
+                  <AuthFormGroup>
+                    <AuthInput
                       type="text"
                       name="sdt"
                       value={formData.sdt}
                       onChange={handleInputChange}
                       placeholder="Số điện thoại (tuỳ chọn)"
+                      icon="fa fa-phone field-icon"
+                      containerClassName=""
+                      className="inpt"
+                      error={errors.sdt}
                     />
-                    <i className="fa fa-phone field-icon"></i>
-                    {errors.sdt && <div className="error-message">{errors.sdt}</div>}
-                  </div>
+                  </AuthFormGroup>
                 </div>
               </div>
 
-              <div className="input-group input-full">
-                <input
-                  className="inpt"
+              <AuthFormGroup className="input-group input-full">
+                <AuthInput
                   type="text"
                   name="diaChi"
                   value={formData.diaChi}
                   onChange={handleInputChange}
                   placeholder="Địa chỉ (tuỳ chọn)"
+                  icon="fa fa-map-marker field-icon"
+                  containerClassName=""
+                  className="inpt"
                 />
-                <i className="fa fa-map-marker field-icon"></i>
-              </div>
+              </AuthFormGroup>
 
-              {errors.submit && <div className="error-message error-full">{errors.submit}</div>}
+              <AuthErrorMessage message={errors.submit} className="error-message error-full" />
 
-              <button type="submit" className="btn btn-register" disabled={isLoading}>
-                {isLoading ? 'Đang đăng ký...' : 'ĐĂNG KÝ'}
-              </button>
+              <AuthButton
+                type="submit"
+                className="btn btn-register"
+                isLoading={isLoading}
+                loadingText="Đang đăng ký..."
+              >
+                ĐĂNG KÝ
+              </AuthButton>
 
-              <div className="register-link">
-                <p>Đã có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a></p>
-              </div>
+              <AuthLink to="/login">
+                Đã có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a>
+              </AuthLink>
             </form>
           </div>
         </div>

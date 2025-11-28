@@ -1,6 +1,9 @@
 /**
- * Forgot Password Page (Tầng 1: UI)
- * Chỉ render UI, không chứa business logic
+ * Forgot Password Page (3-Tier Architecture)
+ * 
+ * Tier 1: Services - authApi
+ * Tier 2: Model - useForgotPassword hook
+ * Tier 3: UI - Shared components from shared/
  */
 
 import React from 'react';
@@ -8,7 +11,15 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import useForgotPassword from '../../../model/hooks/useForgotPassword';
 import '../../shared/AuthModern.css';
-import AuthLayout, { AuthPanel } from '../../shared/AuthLayout';
+import {
+  AuthLayout,
+  AuthPanel,
+  AuthInput,
+  AuthButton,
+  AuthErrorMessage,
+  AuthSuccessMessage,
+  AuthLink
+} from '../../shared';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -39,78 +50,74 @@ export default function ForgotPasswordPage() {
           <h1 className="auth-form-title">QUÊN MẬT KHẨU</h1>
           
           {step === 1 && (
-            <div className="email-login">
-              <input
-                className="inpt"
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email đã đăng ký"
-                required
-              />
-              <i className='fa fa-envelope'></i>
-            </div>
+            <AuthInput
+              type="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Nhập email đã đăng ký"
+              icon="fa fa-envelope"
+              required
+            />
           )}
           
           {step === 2 && (
-            <div className="email-login">
-              <input
-                className="inpt"
-                type="text"
-                name="otp"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Nhập mã xác minh 6 số"
-                required
-              />
-              <ShieldCheck className='icon-inline' />
-            </div>
+            <AuthInput
+              type="text"
+              name="otp"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="Nhập mã xác minh 6 số"
+              iconComponent={ShieldCheck}
+              required
+            />
           )}
           
           {step === 3 && (
             <>
-              <div className="email-login">
-                <input
-                  className="inpt"
-                  type="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mật khẩu mới"
-                  required
-                />
-                <i className='fa fa-lock'></i>
-              </div>
-              <div className="email-login">
-                <input
-                  className="inpt"
-                  type="password"
-                  name="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Xác nhận mật khẩu mới"
-                  required
-                />
-                <i className='fa fa-lock'></i>
-              </div>
+              <AuthInput
+                type="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mật khẩu mới"
+                icon="fa fa-lock"
+                required
+              />
+              <AuthInput
+                type="password"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Xác nhận mật khẩu mới"
+                icon="fa fa-lock"
+                required
+              />
             </>
           )}
           
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
+          <AuthErrorMessage message={error} />
+          <AuthSuccessMessage message={success} />
 
           {step === 1 && (
-            <button type="submit" className="btn" disabled={isLoading}>
-              {isLoading ? 'Đang gửi...' : 'GỬI MÃ XÁC MINH'}
-            </button>
+            <AuthButton
+              type="submit"
+              isLoading={isLoading}
+              loadingText="Đang gửi..."
+            >
+              GỬI MÃ XÁC MINH
+            </AuthButton>
           )}
           
           {step === 2 && (
             <>
-              <button onClick={handleVerifyCode} className="btn" disabled={isLoading}>
-                {isLoading ? 'Đang kiểm tra...' : 'XÁC MINH MÃ'}
-              </button>
+              <AuthButton
+                onClick={handleVerifyCode}
+                isLoading={isLoading}
+                loadingText="Đang kiểm tra..."
+              >
+                XÁC MINH MÃ
+              </AuthButton>
               <div className="register-link" style={{ marginTop: 8 }}>
                 <p>Mã chưa tới? <a href="#" onClick={(e) => { e.preventDefault(); resendCode(); }}>{countdown > 0 ? `Gửi lại sau ${countdown}s` : 'Gửi lại mã'}</a></p>
               </div>
@@ -118,14 +125,18 @@ export default function ForgotPasswordPage() {
           )}
           
           {step === 3 && (
-            <button onClick={handleResetPassword} className="btn" disabled={isLoading}>
-              {isLoading ? 'Đang đặt lại...' : 'ĐẶT LẠI MẬT KHẨU'}
-            </button>
+            <AuthButton
+              onClick={handleResetPassword}
+              isLoading={isLoading}
+              loadingText="Đang đặt lại..."
+            >
+              ĐẶT LẠI MẬT KHẨU
+            </AuthButton>
           )}
         </form>
-        <div className="register-link">
-          <p>Nhớ mật khẩu rồi? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a></p>
-        </div>
+        <AuthLink to="/login">
+          Nhớ mật khẩu rồi? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Đăng nhập</a>
+        </AuthLink>
       </AuthPanel>
     </AuthLayout>
   );

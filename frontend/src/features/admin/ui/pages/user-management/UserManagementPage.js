@@ -4,17 +4,20 @@
  * 3-Tier SOLID Architecture:
  * - services: userManagementApi
  * - model: useUserManagement hook
- * - ui: Hero, Filters, List, Modals components
+ * - ui: Hero, Filters, List, Modals components (từ shared/)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useUserManagement } from '../../../model/hooks/useAdminUsersPage';
-import AdminUsersHero from '../admin-users/components/AdminUsersHero';
-import AdminUsersFilters from '../admin-users/components/AdminUsersFilters';
-import AdminUsersStatusChips from '../admin-users/components/AdminUsersStatusChips';
-import AdminUsersList from '../admin-users/components/AdminUsersList';
-import AdminUserDetailModal from '../admin-users/components/AdminUserDetailModal';
-import AdminUserCreateModal from '../admin-users/components/AdminUserCreateModal';
+import {
+  AdminUsersHero,
+  AdminUsersStatusChips,
+  AdminUsersFilterBar,
+  AdminUsersResults,
+  AdminUserDetailModal,
+  AdminUserCreateModal
+} from '../../shared/users';
+import Pagination from '../../../../../shared/components/common/Pagination';
 
 export default function UserManagementPage() {
   const {
@@ -80,21 +83,66 @@ export default function UserManagementPage() {
     studentCount: 0
   };
 
-  // Sort users
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    switch (sortBy) {
-      case 'newest':
-        return new Date(b.ngay_tao || 0) - new Date(a.ngay_tao || 0);
-      case 'oldest':
-        return new Date(a.ngay_tao || 0) - new Date(b.ngay_tao || 0);
-      case 'name-az':
-        return (a.ho_ten || '').localeCompare(b.ho_ten || '', 'vi');
-      case 'name-za':
-        return (b.ho_ten || '').localeCompare(a.ho_ten || '', 'vi');
-      default:
-        return 0;
+  // Helper functions cho AdminUsersResults
+  const getDerivedStatus = useMemo(() => (user) => {
+    const locked = user.trang_thai === 'khoa' || user.khoa === true;
+    if (locked) return 'khoa';
+    const isActiveNow =
+      allActiveIdentifiers.has(String(user.id)) ||
+      allActiveIdentifiers.has(String(user.ten_dn)) ||
+      (user.sinh_vien?.mssv && allActiveIdentifiers.has(String(user.sinh_vien.mssv)));
+    return isActiveNow ? 'hoat_dong' : 'khong_hoat_dong';
+  }, [allActiveIdentifiers]);
+
+  const getStatusColor = useMemo(() => (status) => {
+    const variants = {
+      hoat_dong: { bg: '#dcfce7', color: '#15803d', text: 'Hoạt động' },
+      khong_hoat_dong: { bg: '#f3f4f6', color: '#374151', text: 'Không hoạt động' },
+      khoa: { bg: '#fef2f2', color: '#dc2626', text: 'Bị khóa' },
+      default: { bg: '#fef3c7', color: '#92400e', text: 'Chưa xác định' }
+    };
+    return variants[status] || variants.default;
+  }, []);
+
+  const getRoleColor = useMemo(() => (role = '') => {
+    const normalized = role.toString().trim();
+    const lower = normalized.toLowerCase();
+    const variants = [
+      { match: ['admin'], bg: '#fef2f2', color: '#dc2626', label: 'Admin' },
+      { match: ['giảng viên', 'gv'], bg: '#fef3c7', color: '#92400e', label: 'Giảng viên' },
+      { match: ['lớp trưởng', 'lop truong'], bg: '#dbeafe', color: '#1e40af', label: 'Lớp trưởng' },
+      { match: ['sinh viên', 'sinh vien'], bg: '#dcfce7', color: '#15803d', label: 'Sinh viên' }
+    ];
+    for (const variant of variants) {
+      if (variant.match.some((key) => lower.includes(key))) {
+        return { bg: variant.bg, color: variant.color, label: variant.label };
+      }
     }
-  });
+    return { bg: '#f3f4f6', color: '#374151', label: normalized || 'Chưa xác định' };
+  }, []);
+
+  const getDisplayRoleName = useMemo(() => (role = '') => {
+    const roleColor = getRoleColor(role);
+    return roleColor.label;
+  }, [getRoleColor]);
+
+  // Sort users
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.ngay_tao || 0) - new Date(a.ngay_tao || 0);
+        case 'oldest':
+          return new Date(a.ngay_tao || 0) - new Date(b.ngay_tao || 0);
+        case 'name-az':
+          return (a.ho_ten || '').localeCompare(b.ho_ten || '', 'vi');
+        case 'name-za':
+          return (b.ho_ten || '').localeCompare(a.ho_ten || '', 'vi');
+        default:
+          return 0;
+      }
+    });
+  }, [filteredUsers, sortBy]);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -219,7 +267,7 @@ export default function UserManagementPage() {
           liveSessions={liveSessions}
           lockedAccounts={lockedAccounts}
           roleCounts={roleCounts}
-          onAddUser={handleAddUser}
+          onCreateClick={handleAddUser}
         />
 
         {/* Status Chips Section */}
@@ -233,33 +281,65 @@ export default function UserManagementPage() {
         />
 
         {/* Filters Section */}
-        <AdminUsersFilters
+        <AdminUsersFilterBar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           roles={roles}
           roleFilter={roleFilter}
           onRoleFilterChange={setRoleFilter}
-          countLabel={`${pagination?.total || filteredUsers.length} kết quả`}
+          summaryText={`${pagination?.total || filteredUsers.length} kết quả`}
           sortBy={sortBy}
           onSortChange={setSortBy}
-          viewMode={viewMode}
+          displayViewMode={viewMode}
           onViewModeChange={setViewMode}
         />
 
         {/* Users List Section */}
-        <AdminUsersList
-          loading={loading}
-          users={sortedUsers}
-          viewMode={viewMode}
-          pagination={pagination}
-          onPageChange={handlePageChange}
-          onLimitChange={handleLimitChange}
-          activeUserIds={allActiveIdentifiers}
-          onViewDetails={handleViewDetails}
-          onLockUser={handleLockUser}
-          onUnlockUser={handleUnlockUser}
-          onDeleteUser={handleDeleteUser}
-        />
+        {loading && sortedUsers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <p>Đang tải danh sách người dùng...</p>
+          </div>
+        ) : (
+          <>
+            <AdminUsersResults
+              users={sortedUsers}
+              viewMode={viewMode}
+              onViewDetails={handleViewDetails}
+              onLockUser={(userId) => {
+                const user = sortedUsers.find(u => u.id === userId);
+                if (user) handleLockUser(user);
+              }}
+              onUnlockUser={(userId) => {
+                const user = sortedUsers.find(u => u.id === userId);
+                if (user) handleUnlockUser(user);
+              }}
+              onDeleteUser={(userId) => {
+                const user = sortedUsers.find(u => u.id === userId);
+                if (user) handleDeleteUser(user);
+              }}
+              getDerivedStatus={getDerivedStatus}
+              getStatusColor={getStatusColor}
+              getRoleColor={getRoleColor}
+              getDisplayRoleName={getDisplayRoleName}
+            />
+            {pagination?.total > 0 && (
+              <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6 mt-8">
+                <Pagination
+                  pagination={{
+                    page: pagination.page,
+                    limit: pagination.limit,
+                    total: pagination.total
+                  }}
+                  onPageChange={handlePageChange}
+                  onLimitChange={handleLimitChange}
+                  itemLabel="tài khoản"
+                  showLimitSelector
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* User Detail Modal */}
