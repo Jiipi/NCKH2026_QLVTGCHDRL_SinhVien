@@ -3,6 +3,43 @@ import { Calendar, Clock, MapPin, Award, Eye, Edit, Trash2, QrCode, Users, UserP
 import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
 import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
 
+// Helper to check if image is a real upload vs default SVG
+const isRealImage = (imageUrl) => {
+  if (!imageUrl) return false;
+  const url = String(imageUrl);
+  // Check if it's a default SVG file
+  const isDefaultSvg = url.includes('/images/activity-') || 
+                       url.includes('/images/default-activity') ||
+                       (url.endsWith('.svg') && url.includes('/images/'));
+  // Real image = not a default SVG
+  return !isDefaultSvg;
+};
+
+// Get gradient based on activity type
+const getTypeGradient = (activityType) => {
+  if (!activityType) return 'from-indigo-500 via-purple-500 to-pink-500';
+  const type = activityType.toLowerCase();
+  if (type.includes('tình nguyện') || type.includes('tinh nguyen') || type.includes('volunteer')) {
+    return 'from-emerald-500 via-green-500 to-teal-500';
+  }
+  if (type.includes('thể thao') || type.includes('the thao') || type.includes('sport')) {
+    return 'from-blue-500 via-cyan-500 to-teal-500';
+  }
+  if (type.includes('văn hóa') || type.includes('van hoa') || type.includes('văn nghệ')) {
+    return 'from-orange-500 via-amber-500 to-yellow-500';
+  }
+  if (type.includes('học thuật') || type.includes('hoc thuat') || type.includes('khoa học')) {
+    return 'from-violet-500 via-purple-500 to-fuchsia-500';
+  }
+  if (type.includes('đoàn') || type.includes('hội')) {
+    return 'from-red-500 via-rose-500 to-pink-500';
+  }
+  if (type.includes('kỹ năng')) {
+    return 'from-teal-500 via-cyan-500 to-blue-500';
+  }
+  return 'from-indigo-500 via-purple-500 to-pink-500';
+};
+
 /**
  * ActivityCard Component - Hiển thị thẻ hoạt động
  * Hỗ trợ 2 chế độ: list và grid
@@ -57,6 +94,10 @@ export default function ActivityCard({
   // Get current image URL
   const currentImageUrl = allImages[currentImageIndex] || allImages[0];
   
+  // Check if we have a real uploaded image (not SVG default)
+  const hasRealImage = isRealImage(currentImageUrl);
+  const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
+  
   // Handle image error - try next image
   const handleImageError = (e) => {
     console.warn('[ActivityCard] Image load error, trying next:', {
@@ -69,9 +110,8 @@ export default function ActivityCard({
       // Try next image
       setCurrentImageIndex(currentImageIndex + 1);
     } else {
-      // All images failed, use default
-      const defaultImage = getActivityImage(null, activity.loai_hd?.ten_loai_hd);
-      e.target.src = defaultImage;
+      // All images failed - hide img and show gradient instead
+      e.target.style.display = 'none';
     }
   };
   
@@ -84,13 +124,15 @@ export default function ActivityCard({
         <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             {/* Compact Image */}
-            <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-              <img 
-                src={currentImageUrl} 
-                alt={activity.ten_hd}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={handleImageError}
-              />
+            <div className={`relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden ${!hasRealImage ? `bg-gradient-to-br ${typeGradient}` : 'bg-gray-100'}`}>
+              {hasRealImage && (
+                <img 
+                  src={currentImageUrl} 
+                  alt={activity.ten_hd}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={handleImageError}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               <div className="absolute top-2 left-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[displayStatus]}`}>
@@ -219,13 +261,9 @@ export default function ActivityCard({
         
         <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
           {/* Header với ảnh hoặc gradient background - Giống sinh viên */}
-          <div className={`relative h-24 overflow-hidden ${
-            activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tình nguyện') || activity.loai_hd?.ten_loai_hd?.toLowerCase().includes('tinh nguyen')
-              ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500'
-              : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500'
-          }`}>
-            {/* Activity Image */}
-            {currentImageUrl && (
+          <div className={`relative h-24 overflow-hidden bg-gradient-to-br ${typeGradient}`}>
+            {/* Activity Image - only show if real upload */}
+            {hasRealImage && (
               <img 
                 src={currentImageUrl} 
                 alt={activity.ten_hd}
@@ -336,13 +374,15 @@ export default function ActivityCard({
       isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : ''
     }`}>
       {/* Activity Image - Compact */}
-      <div className="relative w-full h-36 overflow-hidden bg-gray-100">
-        <img 
-          src={currentImageUrl} 
-          alt={activity.ten_hd}
-          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-          onError={handleImageError}
-        />
+      <div className={`relative w-full h-36 overflow-hidden ${!hasRealImage ? `bg-gradient-to-br ${typeGradient}` : 'bg-gray-100'}`}>
+        {hasRealImage && (
+          <img 
+            src={currentImageUrl} 
+            alt={activity.ten_hd}
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+            onError={handleImageError}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
         
         {/* Status Badge on Image - Compact */}

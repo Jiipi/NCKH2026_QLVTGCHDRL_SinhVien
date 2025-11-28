@@ -12,6 +12,37 @@ import {
 } from 'lucide-react';
 import { getActivityImage } from '../../../../../shared/lib/activityImages';
 
+// Helper to check if image is a real upload vs default SVG
+const isRealImage = (imageUrl) => {
+  if (!imageUrl) return false;
+  const url = String(imageUrl);
+  // Check if it's a default SVG file
+  const isDefaultSvg = url.includes('/images/activity-') || 
+                       url.includes('/images/default-activity') ||
+                       (url.endsWith('.svg') && url.includes('/images/'));
+  // Real image = not a default SVG
+  return !isDefaultSvg;
+};
+
+// Get gradient based on activity type
+const getTypeGradient = (activityType) => {
+  if (!activityType) return 'from-indigo-500 via-purple-500 to-pink-500';
+  const type = activityType.toLowerCase();
+  if (type.includes('tình nguyện') || type.includes('tinh nguyen') || type.includes('volunteer')) {
+    return 'from-emerald-500 via-green-500 to-teal-500';
+  }
+  if (type.includes('thể thao') || type.includes('the thao') || type.includes('sport')) {
+    return 'from-blue-500 via-cyan-500 to-teal-500';
+  }
+  if (type.includes('văn hóa') || type.includes('van hoa') || type.includes('văn nghệ')) {
+    return 'from-orange-500 via-amber-500 to-yellow-500';
+  }
+  if (type.includes('học thuật') || type.includes('hoc thuat') || type.includes('khoa học')) {
+    return 'from-violet-500 via-purple-500 to-fuchsia-500';
+  }
+  return 'from-indigo-500 via-purple-500 to-pink-500';
+};
+
 export default function ActivitiesListCard({
   activity,
   mode = 'grid',
@@ -34,6 +65,10 @@ export default function ActivitiesListCard({
     rejectionReason
   } = useMemo(() => buildActivityMeta(activity, role, isWritable), [activity, role, isWritable]);
 
+  const imageUrl = getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
+  const hasRealImage = isRealImage(imageUrl);
+  const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
+
   if (mode === 'list') {
     return (
       <div className="group relative">
@@ -41,11 +76,15 @@ export default function ActivitiesListCard({
         <div className="relative bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-300 transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden">
-              <img
-                src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
-                alt={activity.ten_hd}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+              {hasRealImage ? (
+                <img
+                  src={imageUrl}
+                  alt={activity.ten_hd}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className={`w-full h-full bg-gradient-to-br ${typeGradient}`} />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               <div className="absolute top-2 left-2">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${status.bg} ${status.text} border ${status.border} shadow-sm`}>
@@ -123,11 +162,15 @@ export default function ActivitiesListCard({
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          <img
-            src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
-            alt={activity.ten_hd}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {hasRealImage ? (
+            <img
+              src={imageUrl}
+              alt={activity.ten_hd}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${typeGradient}`} />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
           <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm ${status.text} shadow-md`}>
