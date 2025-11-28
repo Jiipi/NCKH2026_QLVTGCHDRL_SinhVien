@@ -63,10 +63,12 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      SEMESTER_DATA_DIR: /app/backend/data/semesters
     volumes:
       - ./backend/logs:/app/backend/logs
       - ./backend/uploads:/app/backend/uploads
       - ./backend/backups:/app/backend/backups
+      - ./backend/data:/app/backend/data
     ports:
       - "127.0.0.1:3001:3001"  # Only expose to localhost (nginx will proxy)
     networks:
