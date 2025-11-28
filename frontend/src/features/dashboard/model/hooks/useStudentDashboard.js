@@ -59,9 +59,9 @@ export function useStudentDashboard(semester) {
 
             setSummary({
                 totalPoints: totalPoints,
-                activitiesJoined: tongQuan.tong_hoat_dong || 0,
-                classRank: dashboardData.so_sanh_lop?.my_rank_in_class || 1,
-                totalStudents: dashboardData.so_sanh_lop?.total_students_in_class || 1,
+                activitiesJoined: tongQuan.tong_hoat_dong ?? 0,
+                classRank: dashboardData.so_sanh_lop?.my_rank_in_class ?? null,
+                totalStudents: dashboardData.so_sanh_lop?.total_students_in_class ?? null,
                 progress: Math.min((totalPoints / 100) * 100, 100),
                 goalText: goal.goalText,
                 goalPoints: goal.goalPoints,

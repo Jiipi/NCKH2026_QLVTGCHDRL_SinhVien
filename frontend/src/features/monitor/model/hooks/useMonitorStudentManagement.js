@@ -6,13 +6,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { monitorStudentManagementApi } from '../../services/monitorStudentManagementApi';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
-import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { sessionStorageManager } from '../../../../shared/api';
 
 /**
  * Hook quản lý sinh viên lớp
  */
 export function useMonitorStudentManagement() {
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const { options: semesterOptions = [], currentSemester } = useSemesterData();
+  const [semester, setSemester] = useState(() => {
+    try {
+      return sessionStorage.getItem('monitor_student_semester') || currentSemester || '';
+    } catch {
+      return currentSemester || '';
+    }
+  });
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,7 +27,6 @@ export function useMonitorStudentManagement() {
   const [sortBy, setSortBy] = useState('points_desc');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
   const [showDetails, setShowDetails] = useState(null);
-  const { options: semesterOptions } = useSemesterData();
 
   // Business logic: Load students
   const loadStudents = useCallback(async () => {
@@ -197,6 +203,37 @@ export function useMonitorStudentManagement() {
     loadStudents();
     setPagination(prev => ({ ...prev, page: 1 }));
   }, [semester, loadStudents]);
+
+  useEffect(() => {
+    if (!semester && currentSemester) {
+      setSemester(currentSemester);
+      sessionStorageManager.safeSetItem?.('monitor_student_semester', currentSemester);
+      return;
+    }
+
+    const hasSemesterInOptions = semester && semesterOptions.some(opt => opt.value === semester);
+    const fallbackSemester = (() => {
+      if (currentSemester && semesterOptions.some(opt => opt.value === currentSemester)) {
+        return currentSemester;
+      }
+      return semesterOptions[0]?.value || semester;
+    })();
+
+    if (semester && !hasSemesterInOptions && fallbackSemester && fallbackSemester !== semester) {
+      setSemester(fallbackSemester);
+      sessionStorageManager.safeSetItem?.('monitor_student_semester', fallbackSemester);
+    }
+  }, [semester, semesterOptions, currentSemester]);
+
+  useEffect(() => {
+    if (semester) {
+      try {
+        sessionStorage.setItem('monitor_student_semester', semester);
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [semester]);
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }));

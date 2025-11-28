@@ -152,6 +152,46 @@ class GetStudentDashboardUseCase {
     // Đếm tổng hoạt động của lớp theo chuẩn:
     // Tất cả hoạt động da_duyet/ket_thuc do SV/GVCN của lớp tạo
     const totalClassActivities = await countClassActivities(studentInfo.lop_id, semesterFilter);
+
+    let myRankInClass = null;
+    if (studentInfo.lop_id && totalStudentsInClass > 0) {
+      const classScores = await Promise.all(
+        classStudents.map(async (classmate) => {
+          const classmateRegistrations = await this.repository.getStudentRegistrations(
+            classmate.id,
+            activityFilter
+          );
+
+          const classmateAttended = classmateRegistrations.filter(reg =>
+            reg.trang_thai_dk === 'da_tham_gia' && reg.hoat_dong
+          );
+
+          const totalClassmatePoints = classmateAttended.reduce((sum, reg) => {
+            return sum + this._calculateActivityPoints(reg.hoat_dong);
+          }, 0);
+
+          return {
+            sv_id: classmate.id,
+            tong_diem: totalClassmatePoints
+          };
+        })
+      );
+
+      classScores.sort((a, b) => b.tong_diem - a.tong_diem);
+
+      let prevScore = null;
+      let currentRank = 0;
+      classScores.forEach((score, index) => {
+        if (prevScore === null || score.tong_diem < prevScore) {
+          currentRank = index + 1;
+          prevScore = score.tong_diem;
+        }
+
+        if (score.sv_id === studentInfo.id && myRankInClass === null) {
+          myRankInClass = currentRank;
+        }
+      });
+    }
     
     // Map recent activities với điểm đã được tính đúng
     const hoatDongGanDay = registrations.slice(0, 5).map(reg => ({
@@ -186,7 +226,7 @@ class GetStudentDashboardUseCase {
         muc_tieu: 100
       },
       so_sanh_lop: {
-        my_rank_in_class: 1,
+        my_rank_in_class: myRankInClass,
         total_students_in_class: totalStudentsInClass
       }
     };
