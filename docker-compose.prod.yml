@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Load environment variables from .env.production
 # Make sure to create .env.production before running
 # Command: cp .env.example .env.production && nano .env.production
