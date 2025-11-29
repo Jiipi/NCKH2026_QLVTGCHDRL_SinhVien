@@ -1,7 +1,7 @@
 import React from 'react';
-import { 
-  Activity, Search, Calendar, MapPin, Users, Award, 
-  CheckCircle, XCircle, Filter, List, Tag, Grid3X3, 
+import {
+  Activity, Search, Calendar, MapPin, Users, Award,
+  CheckCircle, XCircle, Filter, List, Tag, Grid3X3,
   Clock, Sparkles, SlidersHorizontal, RefreshCw, X
 } from 'lucide-react';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
@@ -86,7 +86,7 @@ export default function TeacherActivitiesPage() {
     );
   }
 
-    return (
+  return (
     <div className="space-y-6">
       {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
       <TeacherActivitiesHeroInline
@@ -98,7 +98,7 @@ export default function TeacherActivitiesPage() {
 
       {/* Content based on active tab */}
       {activeTab === 'types' ? (
-          <ActivityTypesManagementPage showHeader={false} />
+        <ActivityTypesManagementPage showHeader={false} />
       ) : (
         <>
           {/* Filters */}
@@ -193,11 +193,10 @@ export default function TeacherActivitiesPage() {
                   <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                        viewMode === 'grid'
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${viewMode === 'grid'
                           ? 'bg-white shadow-md text-indigo-600 border border-indigo-200'
                           : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                        }`}
                       title="Hiển thị dạng lưới"
                     >
                       <Grid3X3 className="h-4 w-4" />
@@ -205,11 +204,10 @@ export default function TeacherActivitiesPage() {
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                        viewMode === 'list'
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${viewMode === 'list'
                           ? 'bg-white shadow-md text-indigo-600 border border-indigo-200'
                           : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                        }`}
                       title="Hiển thị dạng danh sách"
                     >
                       <List className="h-4 w-4" />
@@ -351,22 +349,20 @@ export default function TeacherActivitiesPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setStatusFilter('')}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                      !statusFilter
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${!statusFilter
                         ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     Tất cả
                     {!statusFilter && <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">{filteredActivities.length}</span>}
                   </button>
                   <button
                     onClick={() => setStatusFilter('cho_duyet')}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                      statusFilter === 'cho_duyet'
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'cho_duyet'
                         ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     <Clock className="h-4 w-4" />
                     Chờ duyệt
@@ -374,11 +370,10 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('da_duyet')}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                      statusFilter === 'da_duyet'
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'da_duyet'
                         ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     <CheckCircle className="h-4 w-4" />
                     Đã duyệt
@@ -386,22 +381,20 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('ket_thuc')}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                      statusFilter === 'ket_thuc'
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'ket_thuc'
                         ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     Kết thúc
                     {statusFilter === 'ket_thuc' && <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">{filteredActivities.length}</span>}
                   </button>
                   <button
                     onClick={() => setStatusFilter('tu_choi')}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                      statusFilter === 'tu_choi'
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'tu_choi'
                         ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     <XCircle className="h-4 w-4" />
                     Từ chối
@@ -423,18 +416,17 @@ export default function TeacherActivitiesPage() {
                     <option value="ket_thuc">Kết thúc ({allActivities.filter(a => a.trang_thai === 'ket_thuc').length})</option>
                     <option value="tu_choi">Từ chối ({allActivities.filter(a => a.trang_thai === 'tu_choi').length})</option>
                   </select>
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${
-                    !statusFilter ? 'bg-gradient-to-r from-indigo-500 to-purple-600' :
-                    statusFilter === 'cho_duyet' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                    statusFilter === 'da_duyet' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                    statusFilter === 'ket_thuc' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
-                    'bg-gradient-to-r from-red-500 to-rose-500'
-                  } text-white`}>
+                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${!statusFilter ? 'bg-gradient-to-r from-indigo-500 to-purple-600' :
+                      atusFilter === 'cho_duyet' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                        stusFilter === 'da_duyet' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                          statFilter === 'ket_thuc' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
+                            'bg-grient-to-r from-red-500 to-rose-500'
+                    } text-white`}>
                     {!statusFilter ? <Filter className="h-4 w-4" /> :
-                     statusFilter === 'cho_duyet' ? <Clock className="h-4 w-4" /> :
-                     statusFilter === 'da_duyet' ? <CheckCircle className="h-4 w-4" /> :
-                     statusFilter === 'tu_choi' ? <XCircle className="h-4 w-4" /> :
-                     <Filter className="h-4 w-4" />}
+                      statusFilter === 'cho_duyet' ? <Clock className="h-4 w-4" /> :
+                        statusFilter === 'da_duyet' ? <CheckCircle className="h-4 w-4" /> :
+                          statusFilter === 'tu_choi' ? <XCircle className="h-4 w-4" /> :
+                            <Filter className="h-4 w-4" />}
                     <span className="font-bold text-sm">{filteredActivities.length}</span>
                   </div>
                 </div>
@@ -444,9 +436,8 @@ export default function TeacherActivitiesPage() {
                 <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
                   <button
                     onClick={() => setStatusFilter('')}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      !statusFilter ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${!statusFilter ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                      }`}
                     title="Tất cả"
                   >
                     <Filter className={`h-5 w-5 ${!statusFilter ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -454,9 +445,8 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('cho_duyet')}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                      }`}
                     title="Chờ duyệt"
                   >
                     <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -464,9 +454,8 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('da_duyet')}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                      }`}
                     title="Đã duyệt"
                   >
                     <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -474,9 +463,8 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('ket_thuc')}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                      }`}
                     title="Kết thúc"
                   >
                     <CheckCircle className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -484,9 +472,8 @@ export default function TeacherActivitiesPage() {
                   </button>
                   <button
                     onClick={() => setStatusFilter('tu_choi')}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                      statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                    }`}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                      }`}
                     title="Từ chối"
                   >
                     <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -500,7 +487,7 @@ export default function TeacherActivitiesPage() {
           {/* Activities List */}
           <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg">
             <div className="p-6">
-          {filteredActivities.length === 0 ? (
+              {filteredActivities.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="flex justify-center mb-4">
                     <div className="p-4 bg-gray-100 rounded-full">
@@ -512,35 +499,35 @@ export default function TeacherActivitiesPage() {
                     {searchTerm ? `Không có hoạt động nào khớp với "${searchTerm}"` : 'Chưa có hoạt động nào trong học kỳ này'}
                   </p>
                 </div>
-          ) : viewMode === 'grid' ? (
+              ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {activities.map((activity) => (
                     <TeacherActivityCardInline
-                  key={activity.id}
-                  activity={activity}
+                      key={activity.id}
+                      activity={activity}
                       viewMode="grid"
-                  isWritable={isWritable}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
+                      isWritable={isWritable}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
                       onViewDetail={fetchActivityDetails}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4">
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
                   {activities.map((activity) => (
                     <TeacherActivityCardInline
-                  key={activity.id}
-                  activity={activity}
+                      key={activity.id}
+                      activity={activity}
                       viewMode="list"
-                  isWritable={isWritable}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
+                      isWritable={isWritable}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
                       onViewDetail={fetchActivityDetails}
-                />
-              ))}
-            </div>
-          )}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

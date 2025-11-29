@@ -3,6 +3,7 @@ import adminRegistrationsApi from '../../services/adminRegistrationsApi';
 import { extractActivitiesFromAxiosResponse } from '../../../../shared/lib/apiNormalization';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
 export default function useAdminRegistrations() {
   const [registrations, setRegistrations] = useState([]);
@@ -22,8 +23,18 @@ export default function useAdminRegistrations() {
   const [exporting, setExporting] = useState(false);
   const [counts, setCounts] = useState({ cho_duyet: 0, da_duyet: 0, tu_choi: 0, da_tham_gia: 0 });
 
-  const { options: semesterOptions } = useSemesterData();
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   const getStatusFromViewMode = () => {
     switch (viewMode) {
@@ -82,6 +93,17 @@ export default function useAdminRegistrations() {
     fetchActivities();
     fetchClasses();
   }, [fetchRegistrations, fetchActivities, fetchClasses]);
+
+  // Listen for data changes from same tab
+  useDataChangeListener(['REGISTRATIONS', 'APPROVALS', 'ACTIVITIES'], fetchRegistrations, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync
+  useAutoRefresh(fetchRegistrations, { 
+    intervalMs: 30000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   const filteredRegistrations = useMemo(() => {
     return Array.isArray(registrations) ? registrations.filter(registration => {

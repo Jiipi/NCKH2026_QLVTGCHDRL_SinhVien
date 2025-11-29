@@ -8,6 +8,7 @@ import activitiesApi from '../../../activities/services/activitiesApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 const ACTIVITY_STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -22,7 +23,7 @@ const ACTIVITY_STATUS_OPTIONS = [
 function loadInitialSemester() {
   const globalSemester = getGlobalSemester();
   if (globalSemester) return globalSemester;
-  return getCurrentSemesterValue();
+  return getCurrentSemesterValue(true);
 }
 
 /**
@@ -123,6 +124,18 @@ export default function useStudentActivitiesList() {
   useEffect(() => {
     loadActivityTypes();
   }, [loadActivityTypes]);
+
+  // Auto-reload when activities data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], loadActivities, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (when teacher approves activities)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadActivities, { 
+    intervalMs: 30000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   // Business logic: Handle register
   const handleRegister = useCallback(async (activityId, activityName) => {

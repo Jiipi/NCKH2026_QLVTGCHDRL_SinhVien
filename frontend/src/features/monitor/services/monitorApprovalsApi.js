@@ -5,6 +5,7 @@
  */
 
 import http from '../../../shared/api/http';
+import { emitApprovalsChange, emitRegistrationsChange } from '../../../shared/lib/dataRefresh';
 
 const handleError = (error) => {
   const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
@@ -43,6 +44,8 @@ export const monitorApprovalsApi = {
   async approve(registrationId) {
     try {
       const response = await http.put(`/core/monitor/registrations/${registrationId}/approve`);
+      emitApprovalsChange({ action: 'approve', id: registrationId });
+      emitRegistrationsChange({ action: 'approve', id: registrationId });
       return {
         success: true,
         data: response.data?.data || response.data
@@ -58,6 +61,8 @@ export const monitorApprovalsApi = {
   async reject(registrationId, reason) {
     try {
       const response = await http.put(`/core/monitor/registrations/${registrationId}/reject`, { reason });
+      emitApprovalsChange({ action: 'reject', id: registrationId });
+      emitRegistrationsChange({ action: 'reject', id: registrationId });
       return {
         success: true,
         data: response.data?.data || response.data
@@ -73,6 +78,8 @@ export const monitorApprovalsApi = {
   async bulkApprove(ids) {
     try {
       const response = await http.post('/core/registrations/bulk-approve', { ids });
+      emitApprovalsChange({ action: 'bulk-approve', ids });
+      emitRegistrationsChange({ action: 'bulk-approve', ids });
       return {
         success: true,
         data: response.data?.data || response.data

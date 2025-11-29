@@ -9,6 +9,7 @@ import { mapRegistrationToUI } from '../mappers/monitor.mappers';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Get initial semester from global storage or calculate current
@@ -16,7 +17,7 @@ import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 function loadInitialSemester() {
   const globalSemester = getGlobalSemester();
   if (globalSemester) return globalSemester;
-  return getCurrentSemesterValue();
+  return getCurrentSemesterValue(true);
 }
 
 /**
@@ -163,6 +164,18 @@ export function useMonitorApprovals() {
     }
   }, [semester, enrichActivityTypes]);
 
+  // Auto-reload when approvals data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], loadRegistrations, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (when students register for activities)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadRegistrations, { 
+    intervalMs: 30000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
+
   // Business logic: Approve registration
   const handleApprove = useCallback(async (registration) => {
     try {
@@ -171,6 +184,7 @@ export function useMonitorApprovals() {
       
       const result = await monitorApprovalsApi.approve(registration.id);
       if (result.success) {
+        // API already emits events for other components, just refresh locally
         await loadRegistrations();
         showSuccess(`Đã phê duyệt đăng ký cho ${registration.sinh_vien?.nguoi_dung?.ho_ten}`, 'Phê duyệt thành công');
       } else {
@@ -192,6 +206,7 @@ export function useMonitorApprovals() {
       
       const result = await monitorApprovalsApi.reject(registration.id, reason);
       if (result.success) {
+        // API already emits events for other components, just refresh locally
         await loadRegistrations();
         showSuccess(`Đã từ chối đăng ký của ${registration.sinh_vien?.nguoi_dung?.ho_ten}`, 'Từ chối thành công');
       } else {

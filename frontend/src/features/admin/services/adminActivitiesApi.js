@@ -1,4 +1,5 @@
 import http from '../../../shared/api/http';
+import { emitActivitiesChange } from '../../../shared/lib/dataRefresh';
 
 const adminActivitiesApi = {
   async listActivities(params) {
@@ -12,13 +13,19 @@ const adminActivitiesApi = {
     return res?.data?.data || res?.data || {};
   },
   async deleteActivity(id) {
-    return http.delete(`/core/activities/${id}`);
+    const res = await http.delete(`/core/activities/${id}`);
+    emitActivitiesChange({ action: 'delete', id });
+    return res;
   },
   async approveActivity(id) {
-    return http.post(`/core/activities/${id}/approve`);
+    const res = await http.post(`/core/activities/${id}/approve`);
+    emitActivitiesChange({ action: 'approve', id });
+    return res;
   },
   async rejectActivity(id, reason) {
-    return http.post(`/core/activities/${id}/reject`, { reason });
+    const res = await http.post(`/core/activities/${id}/reject`, { reason });
+    emitActivitiesChange({ action: 'reject', id });
+    return res;
   },
 };
 

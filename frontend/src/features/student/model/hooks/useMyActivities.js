@@ -11,6 +11,7 @@ import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import sessionStorageManager from '../../../../shared/api/sessionStorageManager';
 import { normalizeRole } from '../../../../shared/lib/role';
 import activitiesApi from '../../../activities/services/activitiesApi';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Hook quản lý danh sách hoạt động của sinh viên
@@ -133,6 +134,18 @@ export default function useMyActivities() {
     loadActivityTypes();
   }, [loadMyActivities, loadActivityTypes]);
 
+  // Auto-reload when data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], loadMyActivities, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (when teacher/monitor approves)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadMyActivities, { 
+    intervalMs: 30000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
+
   // Auto-refresh when attendance is updated
   useEffect(() => {
     const onUpdated = () => {
@@ -173,7 +186,8 @@ export default function useMyActivities() {
       
       if (result.success) {
         showSuccess('Hủy đăng ký thành công');
-        loadMyActivities();
+        loadMyActivities(); // Immediate local refresh
+        // Note: API layer handles emitRegistrationsChange for cross-component sync
       } else {
         showError(result.error || 'Hủy đăng ký thất bại');
       }

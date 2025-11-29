@@ -12,9 +12,19 @@ export default function TeacherReportsPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'detailed'
 
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
 
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 

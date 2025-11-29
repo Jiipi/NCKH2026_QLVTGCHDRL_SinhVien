@@ -20,15 +20,15 @@ export default function TeacherRegistrationApprovals() {
   const { options: semesterOptions, isWritable } = useSemesterData(semester);
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState('');
-  
+
   // Modal states
-  const [confirmModal, setConfirmModal] = useState({ 
-    isOpen: false, 
-    type: '', 
-    registrationId: null, 
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: '',
+    registrationId: null,
     isBulk: false,
-    title: '', 
-    message: '' 
+    title: '',
+    message: ''
   });
   const [rejectReason, setRejectReason] = useState('');
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
@@ -79,7 +79,7 @@ export default function TeacherRegistrationApprovals() {
       setLoading(true);
       setError('');
       console.log('🔍 Đang tải danh sách đăng ký từ API...');
-      
+
       // Teacher has specific endpoint /teacher/registrations/pending
       const params = {
         semester: semester || undefined,
@@ -91,20 +91,20 @@ export default function TeacherRegistrationApprovals() {
       };
       const response = await http.get('/teacher/registrations/pending', { params });
       console.log('📦 Response từ API:', response.data);
-      
+
       // Parse response - backend returns: { success: true, data: { items: [...], total }, message }
       const responseData = response.data?.data || response.data || {};
       const items = responseData.items || responseData.data || responseData || [];
       const registrationsArray = Array.isArray(items) ? items : [];
       console.log('📋 Dữ liệu đăng ký:', registrationsArray);
-      
+
       setRegistrations(registrationsArray);
       const p = responseData.pagination || {};
       const nextTotal = typeof p.total === 'number' ? p.total : (responseData.total || registrationsArray.length);
       setTotal(nextTotal);
       if (responseData.counts) setCounts(responseData.counts);
       setError('');
-      
+
       if (registrationsArray.length > 0) {
         console.log(`✅ Tải thành công ${registrationsArray.length} đăng ký`);
       } else {
@@ -182,14 +182,14 @@ export default function TeacherRegistrationApprovals() {
 
   const handleConfirmAction = async () => {
     const { type, registrationId, isBulk } = confirmModal;
-    
+
     try {
       setProcessing(true);
-      
+
       if (type === 'approve') {
         if (isBulk) {
           await Promise.all(
-            selectedRegistrations.map(id => 
+            selectedRegistrations.map(id =>
               http.post(`/teacher/registrations/${id}/approve`)
             )
           );
@@ -206,10 +206,10 @@ export default function TeacherRegistrationApprovals() {
           setProcessing(false);
           return;
         }
-        
+
         if (isBulk) {
           await Promise.all(
-            selectedRegistrations.map(id => 
+            selectedRegistrations.map(id =>
               http.post(`/teacher/registrations/${id}/reject`, { reason: rejectReason.trim() })
             )
           );
@@ -221,7 +221,7 @@ export default function TeacherRegistrationApprovals() {
         }
         await loadRegistrations();
       }
-      
+
       setConfirmModal({ isOpen: false, type: '', registrationId: null, isBulk: false, title: '', message: '' });
       setRejectReason('');
     } catch (err) {
@@ -234,8 +234,8 @@ export default function TeacherRegistrationApprovals() {
   };
 
   const toggleSelectRegistration = (id) => {
-    setSelectedRegistrations(prev => 
-      prev.includes(id) 
+    setSelectedRegistrations(prev =>
+      prev.includes(id)
         ? prev.filter(regId => regId !== id)
         : [...prev, id]
     );
@@ -252,11 +252,11 @@ export default function TeacherRegistrationApprovals() {
 
   // Filter registrations
   const filteredRegistrations = registrations.filter(registration => {
-    const matchesSearch = 
+    const matchesSearch =
       registration.sinh_vien?.nguoi_dung?.ho_ten?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       registration.sinh_vien?.mssv?.includes(searchTerm) ||
       registration.hoat_dong?.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || registration.trang_thai_dk === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -516,7 +516,7 @@ export default function TeacherRegistrationApprovals() {
             {searchTerm || statusFilter !== 'cho_duyet' ? 'Không tìm thấy đăng ký' : 'Không có đăng ký nào cần duyệt'}
           </h3>
           <p className="text-gray-600">
-            {searchTerm || statusFilter !== 'cho_duyet' 
+            {searchTerm || statusFilter !== 'cho_duyet'
               ? 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc'
               : 'Tất cả đăng ký đã được xử lý'}
           </p>
@@ -540,7 +540,7 @@ export default function TeacherRegistrationApprovals() {
             onChange={(e) => { setPage(1); setLimit(Number(e.target.value)); }}
             className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
           >
-            {[10,20,30,50,100].map(n => <option key={n} value={n}>{n}/trang</option>)}
+            {[10, 20, 30, 50, 100].map(n => <option key={n} value={n}>{n}/trang</option>)}
           </select>
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { 
+import {
   Clock, Calendar, Filter, Search, RefreshCw, SlidersHorizontal, Grid3X3, List,
   CheckCircle, XCircle, Sparkles, Trophy
 } from 'lucide-react';
@@ -59,9 +59,9 @@ export default function MonitorMyActivitiesPage() {
     'joined': 'da_tham_gia',
     'rejected': 'tu_choi'
   };
-  
+
   const currentViewMode = viewModeMap[tab] || 'cho_duyet';
-  
+
   // Get registrations for current view
   const myRegistrations = useMemo(() => {
     const allRegistrations = [...data.pending, ...data.approved, ...data.joined, ...data.rejected];
@@ -101,8 +101,8 @@ export default function MonitorMyActivitiesPage() {
     }
     if (filters.minPoints) { const minPoints = parseFloat(filters.minPoints); if (!isNaN(minPoints)) filtered = filtered.filter(reg => (parseFloat(reg.hoat_dong?.diem_rl) || 0) >= minPoints); }
     if (filters.maxPoints) { const maxPoints = parseFloat(filters.maxPoints); if (!isNaN(maxPoints)) filtered = filtered.filter(reg => (parseFloat(reg.hoat_dong?.diem_rl) || 0) <= maxPoints); }
-    if (filters.from) { const fromDate = new Date(filters.from); fromDate.setHours(0,0,0,0); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd).setHours(0,0,0,0) >= fromDate.getTime()); }
-    if (filters.to) { const toDate = new Date(filters.to); toDate.setHours(23,59,59,999); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd) <= toDate); }
+    if (filters.from) { const fromDate = new Date(filters.from); fromDate.setHours(0, 0, 0, 0); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd).setHours(0, 0, 0, 0) >= fromDate.getTime()); }
+    if (filters.to) { const toDate = new Date(filters.to); toDate.setHours(23, 59, 59, 999); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd) <= toDate); }
     return filtered;
   }
 

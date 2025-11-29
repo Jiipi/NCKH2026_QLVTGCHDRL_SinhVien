@@ -161,7 +161,7 @@ export default function useTeacherActivitiesPage() {
     const approvedCount = activitiesByStatus.approved?.length || 0;
     const completedCount = activitiesByStatus.completed?.length || 0;
     const totalApprovedActivities = approvedCount + completedCount;
-    
+
     return {
       total: totalApprovedActivities,
       pending: activitiesByStatus.pending?.length || 0,
@@ -274,7 +274,7 @@ export default function useTeacherActivitiesPage() {
     activityTypes,
     selectedActivity,
     showDetailModal,
-    
+
     // UI State
     activeTab,
     viewMode,
@@ -288,7 +288,7 @@ export default function useTeacherActivitiesPage() {
     limit,
     effectiveTotal,
     heroStats,
-    
+
     // Setters
     setActiveTab,
     setViewMode,
@@ -303,7 +303,7 @@ export default function useTeacherActivitiesPage() {
     setSemester,
     setSelectedActivity,
     setShowDetailModal,
-    
+
     // Actions
     fetchActivityDetails,
     handleApprove,
@@ -311,7 +311,7 @@ export default function useTeacherActivitiesPage() {
     getActiveFilterCount,
     clearAllFilters,
     getTypeColor,
-    
+
     // Constants
     STATUS_LABELS,
     STATUS_COLORS

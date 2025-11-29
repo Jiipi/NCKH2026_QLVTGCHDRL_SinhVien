@@ -14,6 +14,7 @@ import {
   extractApiData,
   extractArrayItems
 } from './apiErrorHandler';
+import { emitActivitiesChange } from '../../../shared/lib/dataRefresh';
 
 /**
  * Teacher Activities API
@@ -74,6 +75,7 @@ export const teacherActivitiesApi = {
     
     try {
       const response = await http.post(`/teacher/activities/${id}/approve`);
+      emitActivitiesChange({ action: 'approve', id });
       return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
       return handleApiError(error, 'Activities.approve');
@@ -95,6 +97,7 @@ export const teacherActivitiesApi = {
     
     try {
       const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
+      emitActivitiesChange({ action: 'reject', id });
       return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
       return handleApiError(error, 'Activities.reject');

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Users, 
-  Calendar, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Users,
+  Calendar,
   Award,
   AlertCircle,
   Eye,
@@ -29,7 +29,7 @@ export default function ModernActivityApproval() {
   const [searchTerm, setSearchTerm] = useState('');
   const [semester, setSemester] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
-  
+
   // Modal states
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: '', activityId: null, title: '', message: '' });
   const [rejectReason, setRejectReason] = useState('');
@@ -60,7 +60,7 @@ export default function ModernActivityApproval() {
       setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
     }
     setError('');
-    
+
     loadActivities();
   }, [semester, activeTab, filter]);
 
@@ -68,35 +68,35 @@ export default function ModernActivityApproval() {
     try {
       setLoading(true);
       setError('');
-      
+
       // Chọn endpoint dựa trên tab hiện tại
-      const endpoint = activeTab === 'pending' 
-        ? '/teacher/activities/pending' 
+      const endpoint = activeTab === 'pending'
+        ? '/teacher/activities/pending'
         : '/teacher/activities/history';
-      
-      const params = { 
-        page: 1, 
+
+      const params = {
+        page: 1,
         limit: 100,
         search: searchTerm || undefined,
         semester: semester || undefined
       };
-      
+
       // Nếu là tab history, thêm status filter
       if (activeTab === 'history' && filter !== 'all') {
         params.status = filter;
       }
-      
+
       console.log('[TeacherActivityApproval] Loading activities:', { endpoint, params, activeTab });
-      
+
       const res = await http.get(endpoint, { params });
-      
+
       // Parse response - backend returns: { success: true, data: { items: [...], total, page, limit, stats } }
       const responseData = res.data?.data || res.data || {};
       const activities = responseData.items || responseData.data || responseData || [];
       const activitiesArray = Array.isArray(activities) ? activities : [];
-      
+
       setActivities(activitiesArray);
-      
+
       // Cập nhật stats từ API (chỉ cho tab pending)
       if (activeTab === 'pending' && responseData.stats) {
         setStats(responseData.stats);
@@ -104,9 +104,9 @@ export default function ModernActivityApproval() {
         // Fallback nếu backend chưa trả stats
         setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
       }
-      
+
       setError('');
-      
+
       console.log(`✅ Loaded ${activitiesArray.length} activities (tab: ${activeTab})`);
       if (activeTab === 'pending') console.log(`📊 Stats:`, responseData.stats);
     } catch (err) {
@@ -148,7 +148,7 @@ export default function ModernActivityApproval() {
 
   const handleConfirmAction = async () => {
     const { type, activityId } = confirmModal;
-    
+
     try {
       if (type === 'approve') {
         await http.post(`/teacher/activities/${activityId}/approve`);
@@ -179,7 +179,7 @@ export default function ModernActivityApproval() {
   const filteredActivities = activities.filter(activity => {
     const matchesFilter = filter === 'all' || activity.trang_thai === filter;
     const matchesSearch = activity.ten_hd.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
+      activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   }).sort((a, b) => {
     const ta = new Date(a.ngay_cap_nhat || a.updated_at || a.updatedAt || a.ngay_tao || a.createdAt || a.ngay_bd || 0).getTime();
@@ -216,7 +216,7 @@ export default function ModernActivityApproval() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
           <p className="text-red-600">{error}</p>
-          <button 
+          <button
             onClick={loadActivities}
             className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
           >
@@ -248,11 +248,10 @@ export default function ModernActivityApproval() {
           <nav className="flex -mb-px space-x-4">
             <button
               onClick={() => setActiveTab('pending')}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'pending'
+              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'pending'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
@@ -266,11 +265,10 @@ export default function ModernActivityApproval() {
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'history'
+              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'history'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5" />
@@ -374,13 +372,13 @@ export default function ModernActivityApproval() {
             <div key={activity.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
               {/* Activity Image */}
               <div className="relative w-full h-36 overflow-hidden">
-                <img 
-                  src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+                <img
+                  src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
                   alt={activity.ten_hd}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-                
+
                 {/* Status Badge */}
                 <div className="absolute top-3 right-3">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-sm ${statusColors[activity.trang_thai]}`}>
@@ -418,7 +416,7 @@ export default function ModernActivityApproval() {
 
                 {/* Description */}
                 <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-shrink-0">{activity.mo_ta || 'Không có mô tả'}</p>
-              
+
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-3 flex-shrink-0">
                   <div className="flex items-center gap-2 bg-amber-50 rounded-lg p-2">
@@ -428,7 +426,7 @@ export default function ModernActivityApproval() {
                       <div className="font-semibold text-sm text-gray-900">{activity.diem_rl}</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 bg-blue-50 rounded-lg p-2">
                     <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <div className="min-w-0">
@@ -438,7 +436,7 @@ export default function ModernActivityApproval() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 bg-green-50 rounded-lg p-2">
                     <Users className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <div className="min-w-0">
@@ -446,7 +444,7 @@ export default function ModernActivityApproval() {
                       <div className="font-semibold text-sm text-gray-900">{activity.sl_toi_da}</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 bg-purple-50 rounded-lg p-2">
                     <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
                     <div className="min-w-0">
@@ -479,7 +477,7 @@ export default function ModernActivityApproval() {
                           <XCircle className="w-4 h-4" />
                           Từ chối
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleViewDetail(activity)}
                           className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
                         >
@@ -497,7 +495,7 @@ export default function ModernActivityApproval() {
                           <div className="text-sm text-gray-700">{activity.ly_do_tu_choi}</div>
                         </div>
                       )}
-                      <button 
+                      <button
                         onClick={() => handleViewDetail(activity)}
                         className="w-full border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
                       >
@@ -517,10 +515,10 @@ export default function ModernActivityApproval() {
                 <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-500 mb-2">Không có hoạt động nào</h3>
                 <p className="text-gray-400 text-sm">
-                  {searchTerm || filter !== 'all' 
-                    ? 'Không tìm thấy hoạt động phù hợp với bộ lọc' 
-                    : semester 
-            ? `Chưa có hoạt động nào cần phê duyệt trong ${(semesterOptions || []).find(opt => opt.value === semester)?.label || 'học kỳ này'}`
+                  {searchTerm || filter !== 'all'
+                    ? 'Không tìm thấy hoạt động phù hợp với bộ lọc'
+                    : semester
+                      ? `Chưa có hoạt động nào cần phê duyệt trong ${(semesterOptions || []).find(opt => opt.value === semester)?.label || 'học kỳ này'}`
                       : 'Chưa có hoạt động nào cần phê duyệt'
                   }
                 </p>
@@ -531,10 +529,10 @@ export default function ModernActivityApproval() {
                 <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-500 mb-2">Chưa có lịch sử phê duyệt</h3>
                 <p className="text-gray-400 text-sm">
-                  {searchTerm || filter !== 'all' 
-                    ? 'Không tìm thấy hoạt động phù hợp với bộ lọc' 
-                    : semester 
-            ? `Chưa có hoạt động nào đã xử lý trong ${(semesterOptions || []).find(opt => opt.value === semester)?.label || 'học kỳ này'}`
+                  {searchTerm || filter !== 'all'
+                    ? 'Không tìm thấy hoạt động phù hợp với bộ lọc'
+                    : semester
+                      ? `Chưa có hoạt động nào đã xử lý trong ${(semesterOptions || []).find(opt => opt.value === semester)?.label || 'học kỳ này'}`
                       : 'Chưa có hoạt động nào đã được phê duyệt hoặc từ chối'
                   }
                 </p>

@@ -14,6 +14,7 @@ import {
   extractApiData,
   extractArrayItems
 } from './apiErrorHandler';
+import { emitApprovalsChange, emitActivitiesChange } from '../../../shared/lib/dataRefresh';
 
 /**
  * Teacher Approval API
@@ -79,6 +80,9 @@ export const teacherApprovalApi = {
     
     try {
       const response = await http.post(`/teacher/activities/${id}/approve`);
+      // Emit both APPROVALS and ACTIVITIES events for cross-component sync
+      emitApprovalsChange({ action: 'approve', id });
+      emitActivitiesChange({ action: 'approve', id });
       return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
       return handleApiError(error, 'Approval.approve');
@@ -100,6 +104,9 @@ export const teacherApprovalApi = {
     
     try {
       const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
+      // Emit both APPROVALS and ACTIVITIES events for cross-component sync
+      emitApprovalsChange({ action: 'reject', id });
+      emitActivitiesChange({ action: 'reject', id });
       return createSuccessResponse(extractApiData(response, {}));
     } catch (error) {
       return handleApiError(error, 'Approval.reject');

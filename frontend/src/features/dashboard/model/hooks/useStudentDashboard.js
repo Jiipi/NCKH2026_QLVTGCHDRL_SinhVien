@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import dashboardApi from '../../services/dashboardApi';
 import http from '../../../../shared/services/api/client'; // Correct client for profile endpoints
+import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
 const calculateGoal = (points) => {
     const p = Number(points || 0);
@@ -93,6 +94,17 @@ export function useStudentDashboard(semester) {
         console.log('[useStudentDashboard] useEffect triggered, calling fetchData...');
         fetchData();
     }, [fetchData]);
+
+    // Listen for data changes from same tab
+    useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'SCORES', 'ATTENDANCE'], fetchData, { debounceMs: 500 });
+
+    // Auto-refresh for cross-user sync (60s interval for dashboard)
+    useAutoRefresh(fetchData, { 
+        intervalMs: 60000, 
+        enabled: true,
+        refreshOnFocus: true,
+        refreshOnVisible: true 
+    });
 
     return {
         summary,

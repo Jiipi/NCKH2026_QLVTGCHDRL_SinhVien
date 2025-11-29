@@ -5,6 +5,7 @@
  */
 
 import http from '../../../shared/api/http';
+import { emitRegistrationsChange } from '../../../shared/lib/dataRefresh';
 
 const handleError = (error) => {
   const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
@@ -43,6 +44,7 @@ export const studentActivitiesApi = {
         return { success: false, error: 'activityId là bắt buộc' };
       }
       const response = await http.post(`/core/activities/${activityId}/cancel`);
+      emitRegistrationsChange({ action: 'cancel', id: activityId });
       return {
         success: true,
         data: response?.data?.data || response?.data || {}

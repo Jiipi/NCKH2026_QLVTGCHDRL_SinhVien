@@ -12,12 +12,22 @@ export default function ClassStudents() {
   const [sortBy, setSortBy] = useState('points_desc');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
   
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(null);
 
   // Unified semester options
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   useEffect(() => {
     loadStudents();

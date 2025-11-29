@@ -6,12 +6,30 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { teacherActivitiesApi } from '../../services/teacherActivitiesApi';
 import { mapActivityToUI, groupActivitiesByStatus } from '../mappers/teacher.mappers';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
+
+/**
+ * Get initial semester from session storage
+ */
+function getInitialSemester() {
+  try {
+    const backendCurrent = sessionStorage.getItem('backend_current_semester');
+    if (backendCurrent) return backendCurrent;
+    
+    const selected = sessionStorage.getItem('selected_semester');
+    if (selected) return selected;
+    
+    const current = sessionStorage.getItem('current_semester');
+    if (current) return current;
+  } catch (_) {}
+  return '';
+}
 
 /**
  * Hook quản lý hoạt động của giáo viên
  */
 export default function useTeacherActivities({ initialSemester, initialLimit = 'all' } = {}) {
-  const [semester, setSemester] = useState(initialSemester || '');
+  const [semester, setSemester] = useState(() => initialSemester || getInitialSemester());
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(initialLimit);
   const [activitiesData, setActivitiesData] = useState([]);
@@ -58,6 +76,17 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
     load({ nextPage: page, nextLimit: limit, nextSemester: semester });
   }, [page, limit, semester, load]);
 
+  // Auto-reload when activities data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], refresh, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync
+  useAutoRefresh(refresh, { 
+    intervalMs: 30000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
+
   // Business logic: Transform activities
   const activities = useMemo(() => {
     if (!activitiesData || activitiesData.length === 0) {
@@ -76,6 +105,7 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
     try {
       const result = await teacherActivitiesApi.approveActivity(id);
       if (result.success) {
+        // API already emits event for other components, just refresh locally
         await refresh();
       } else {
         setError(result.error || 'Không thể phê duyệt hoạt động');
@@ -91,6 +121,7 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
     try {
       const result = await teacherActivitiesApi.rejectActivity(id, reason);
       if (result.success) {
+        // API already emits event for other components, just refresh locally
         await refresh();
       } else {
         setError(result.error || 'Không thể từ chối hoạt động');
