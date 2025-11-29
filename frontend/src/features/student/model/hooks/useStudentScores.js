@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { studentScoresApi } from '../../services/studentScoresApi';
 import { mapScoresToUI } from '../mappers/student.mappers';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Hook quản lý điểm rèn luyện của sinh viên
@@ -58,7 +59,7 @@ export default function useStudentScores() {
       setData(null);
       try {
         sessionStorage.setItem('current_semester', newSemester);
-      } catch {}
+      } catch { }
     }
   }, [semester]);
 
@@ -66,7 +67,7 @@ export default function useStudentScores() {
     if (semester && userSelectedSemester) {
       try {
         sessionStorage.setItem('current_semester', semester);
-      } catch {}
+      } catch { }
     }
   }, [semester, userSelectedSemester]);
 
@@ -76,14 +77,14 @@ export default function useStudentScores() {
       setData(null);
       return;
     }
-    
+
     setLoading(true);
     setError('');
     setData(null);
-    
+
     try {
       const result = await studentScoresApi.getDetailedScores(semester);
-      
+
       // Debug: Log API response
       console.log('[useStudentScores] API Response:', {
         semester,
@@ -91,18 +92,18 @@ export default function useStudentScores() {
         summary: result.data?.summary,
         tong_diem: result.data?.summary?.tong_diem
       });
-      
+
       if (result.success) {
         // Map API data to UI format
         const mappedData = mapScoresToUI(result.data);
-        
+
         // Debug: Log mapped data
         console.log('[useStudentScores] Mapped Data:', {
           summary: mappedData.summary,
           tong_diem: mappedData.summary?.tong_diem,
           activities: mappedData.activities?.length || 0
         });
-        
+
         setData(mappedData);
       } else {
         setError(result.error || `Không thể tải dữ liệu điểm cho học kỳ ${semester}. Vui lòng thử lại.`);
@@ -120,10 +121,22 @@ export default function useStudentScores() {
     loadScores();
   }, [loadScores]);
 
+  // Auto-reload when activities or scores data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'SCORES', 'ATTENDANCE'], loadScores, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (when scores are updated)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadScores, { 
+    intervalMs: 30000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
+
   // Business logic: Calculate target and progress
   const targetScore = 100;
   const currentScore = data?.summary?.tong_diem || 0;
-  
+
   const progressPercentage = useMemo(() => {
     if (!data || !data.summary) return 0;
     return Math.min((currentScore / targetScore) * 100, 100);
@@ -134,7 +147,7 @@ export default function useStudentScores() {
     if (!data) {
       return { categoryStats: [], totalActivities: 0, averagePoints: 0 };
     }
-    
+
     const criteriaBreakdown = data.criteria_breakdown || [];
     const categoryStats = criteriaBreakdown.map(criteria => {
       let color = 'yellow';
@@ -142,7 +155,7 @@ export default function useStudentScores() {
       else if (criteria.key === 'tinh_nguyen') color = 'red';
       else if (criteria.key === 'cong_dan') color = 'purple';
       else if (criteria.key === 'noi_quy') color = 'green';
-      
+
       return {
         key: criteria.key,
         name: criteria.name,
@@ -152,12 +165,12 @@ export default function useStudentScores() {
         percentage: criteria.percentage,
       };
     });
-    
+
     return {
       categoryStats,
       totalActivities: data.summary?.tong_hoat_dong || 0,
-      averagePoints: data.summary?.tong_hoat_dong > 0 
-        ? (data.summary?.tong_diem / data.summary?.tong_hoat_dong) 
+      averagePoints: data.summary?.tong_hoat_dong > 0
+        ? (data.summary?.tong_diem / data.summary?.tong_hoat_dong)
         : 0,
     };
   }, [data]);
@@ -170,7 +183,7 @@ export default function useStudentScores() {
     data,
     loading,
     error,
-    
+
     // Business logic results
     stats,
     targetScore,

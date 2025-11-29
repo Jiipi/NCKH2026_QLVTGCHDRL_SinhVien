@@ -12,6 +12,7 @@ import { studentProfileApi } from '../../../student/services/studentProfileApi';
 import { mapDashboardToUI, groupRegistrationsByStatus } from '../mappers/monitor.mappers';
 import { mapDashboardToUI as mapStudentDashboardToUI } from '../../../student/model/mappers/student.mappers';
 import { groupActivitiesByStatus } from '../../../student/model/mappers/student.mappers';
+import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
 export default function useMonitorDashboard() {
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -120,6 +121,17 @@ export default function useMonitorDashboard() {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  // Listen for data changes from same tab
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS', 'SCORES'], loadDashboardData, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (60s interval for dashboard)
+  useAutoRefresh(loadDashboardData, { 
+    intervalMs: 60000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   // Set initial semester only once (use backend active semester)
   useEffect(() => {

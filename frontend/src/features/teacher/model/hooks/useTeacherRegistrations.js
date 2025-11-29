@@ -11,6 +11,7 @@ import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi'
 import { mapRegistrationToUI } from '../mappers/teacher.mappers';
 import useSemesterData, { useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
 import { activityTypesApi } from '../../../activity-types';
+import { useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 import { 
   dedupeById, 
   loadInitialSemester, 
@@ -114,6 +115,15 @@ export default function useTeacherRegistrations() {
   useEffect(() => {
     loadRegistrations();
   }, [loadRegistrations]);
+
+  // Auto-refresh for cross-user/cross-role sync (when students register)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadRegistrations, { 
+    intervalMs: 30000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   // Business logic: Transform registrations
   const mappedRegistrations = useMemo(() => {

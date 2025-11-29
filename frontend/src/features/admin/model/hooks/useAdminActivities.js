@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import adminActivitiesApi from '../../services/adminActivitiesApi';
 import { extractActivitiesFromAxiosResponse } from '../../../../shared/lib/apiNormalization';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 export default function useAdminActivities() {
   const [activities, setActivities] = useState([]);
@@ -37,7 +38,7 @@ export default function useAdminActivities() {
     })();
   }, []);
 
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     setLoading(true);
     try {
       const params = {
@@ -59,13 +60,24 @@ export default function useAdminActivities() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, statusFilter, typeFilter, semesterValue]);
 
   useEffect(() => {
     if (semesterValue) {
       loadActivities();
     }
-  }, [statusFilter, typeFilter, semesterValue, page, limit, search]);
+  }, [loadActivities, semesterValue]);
+
+  // Auto-reload when activities data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], loadActivities, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync
+  useAutoRefresh(loadActivities, { 
+    intervalMs: 30000, 
+    enabled: !!semesterValue,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

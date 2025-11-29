@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dashboardApi from '../../services/dashboardApi';
+import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
 export function useAdminDashboard() {
   const [stats, setStats] = useState({
@@ -26,6 +27,17 @@ export function useAdminDashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Listen for data changes from same tab
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], fetchData, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (60s interval for dashboard)
+  useAutoRefresh(fetchData, { 
+    intervalMs: 60000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   return {
     stats,

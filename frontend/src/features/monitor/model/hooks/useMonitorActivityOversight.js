@@ -30,7 +30,7 @@ function loadInitialSemester() {
 export function useMonitorActivityOversight() {
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning, confirm } = useNotification();
-  
+
   const [activities, setActivities] = useState([]);
   const [availableActivities, setAvailableActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export function useMonitorActivityOversight() {
       if (value) {
         sessionStorage.setItem('current_semester', value);
       }
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const statusLabels = {
@@ -104,13 +104,13 @@ export function useMonitorActivityOversight() {
         sort: 'ngay_tao',
         order: 'desc'
       };
-      
+
       const result = await monitorActivityOversightApi.getAvailableActivities(params);
       if (result.success) {
         const responseData = result.data || {};
         const activitiesArray = responseData.items || [];
         const total = responseData.total || activitiesArray.length;
-        
+
         setAllActivities(activitiesArray);
         setActivities(activitiesArray);
         setPagination(prev => ({ ...prev, page: 1, total }));
@@ -139,13 +139,13 @@ export function useMonitorActivityOversight() {
         semester: semester || undefined,
         limit: 'all' // Lấy tất cả
       };
-      
+
       const result = await monitorActivityOversightApi.getAvailableActivities(params);
       if (result.success) {
         const responseData = result.data || {};
         const activitiesArray = responseData.items || [];
         const total = responseData.total || activitiesArray.length;
-        
+
         setAvailableActivities(activitiesArray);
         setAvailablePagination(prev => ({ ...prev, page: 1, total }));
       } else {
@@ -222,11 +222,11 @@ export function useMonitorActivityOversight() {
   // Business logic: Save activity
   const handleSaveActivity = useCallback(async () => {
     if (!selectedActivity) return;
-    
+
     try {
       const diem_rl = selectedActivity.diem_rl === '' ? 0 : parseFloat(selectedActivity.diem_rl) || 0;
       const sl_toi_da = selectedActivity.sl_toi_da === '' ? 0 : parseInt(selectedActivity.sl_toi_da) || 0;
-      
+
       const updateData = {
         ten_hd: selectedActivity.ten_hd,
         mo_ta: selectedActivity.mo_ta,
@@ -243,7 +243,7 @@ export function useMonitorActivityOversight() {
         hinh_anh: selectedActivity.hinh_anh,
         tep_dinh_kem: selectedActivity.tep_dinh_kem
       };
-      
+
       const result = await monitorActivityOversightApi.update(selectedActivity.id, updateData);
       if (result.success) {
         await loadActivities();
@@ -293,9 +293,9 @@ export function useMonitorActivityOversight() {
       confirmText: 'Đăng ký',
       cancelText: 'Hủy'
     });
-    
+
     if (!confirmed) return;
-    
+
     try {
       const result = await monitorActivityOversightApi.register(activityId);
       if (result.success) {
@@ -353,12 +353,12 @@ export function useMonitorActivityOversight() {
   }, []);
 
   // Helper functions for activity status and filtering
-  const parseDateSafe = useCallback((d) => { 
-    try { 
-      return d ? new Date(d) : null; 
-    } catch(_) { 
-      return null; 
-    } 
+  const parseDateSafe = useCallback((d) => {
+    try {
+      return d ? new Date(d) : null;
+    } catch (_) {
+      return null;
+    }
   }, []);
 
   const hasEndedByTime = useCallback((a) => {
@@ -375,22 +375,22 @@ export function useMonitorActivityOversight() {
 
   const isAvailable = useCallback((a) => {
     if (!a) return false;
-    
+
     // ✅ Chỉ hiển thị hoạt động ĐÃ DUYỆT
     if (a.trang_thai !== 'da_duyet') return false;
-    
+
     const now = new Date();
     const endDate = parseDateSafe(a.ngay_kt);
-    
+
     // ✅ Loại bỏ hoạt động đã kết thúc
     if (endDate && endDate < now) return false;
-    
+
     // ✅ Kiểm tra còn chỗ trống (nếu có giới hạn số lượng)
     const capacity = a.so_luong_toi_da ?? a.sl_toi_da ?? null;
     const registeredCount = a.registrationCount ?? a.so_dang_ky ?? a._count?.dang_ky_hd ?? 0;
     const isFull = capacity !== null ? Number(registeredCount) >= Number(capacity) : false;
     if (isFull) return false;
-    
+
     // ✅ Cho phép đăng ký nếu chưa đăng ký hoặc đã bị từ chối trước đó
     const notRegisteredOrRejected = (!a.is_registered) || a.registration_status === 'tu_choi';
     return notRegisteredOrRejected;
@@ -414,8 +414,8 @@ export function useMonitorActivityOversight() {
     const base = activities
       .filter(activity => {
         const matchesSearch = activity.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
-        
+          activity.mo_ta?.toLowerCase().includes(searchTerm.toLowerCase());
+
         // Tab "Có sẵn": chỉ hiển thị hoạt động da_duyet + ket_thuc (giống SV)
         // Tab khác: lọc theo trạng thái hiện tại
         const displayStatus = getDisplayStatus(activity);
@@ -428,7 +428,7 @@ export function useMonitorActivityOversight() {
         } else {
           matchesStatus = displayStatus === statusFilter;
         }
-        
+
         // Advanced filters
         let matchesType = true;
         let matchesDateFrom = true;
@@ -524,13 +524,13 @@ export function useMonitorActivityOversight() {
   const localApprovedCount = tabCounts.da_duyet;
   const localPendingCount = tabCounts.cho_duyet;
   const localEndedCount = tabCounts.ket_thuc;
-  
+
   // ✅ TỔNG HOẠT ĐỘNG = da_duyet + ket_thuc (thống nhất với admin/GV/SV)
   const totalActivitiesCount = localApprovedCount + localEndedCount;
-  
+
   // ✅ "Có sẵn" = da_duyet + ket_thuc (same as totalActivitiesCount)
   const localAvailableCount = totalActivitiesCount;
-  
+
   // ✅ Use dashboard stats for display (accurate count from backend)
   const approvedCount = dashboardStats.approvedCount || localApprovedCount;
   const availableCount = localAvailableCount;
@@ -557,7 +557,7 @@ export function useMonitorActivityOversight() {
     if (semester) {
       try {
         sessionStorage.setItem('current_semester', semester);
-      } catch (_) {}
+      } catch (_) { }
     }
   }, [semester]);
 
@@ -580,7 +580,7 @@ export function useMonitorActivityOversight() {
     availableActivities,
     activityTypes,
     dashboardStats,
-    
+
     // State
     loading,
     error,
@@ -614,7 +614,7 @@ export function useMonitorActivityOversight() {
     setSemester,
     semesterOptions,
     isWritable,
-    
+
     // Helpers
     statusLabels,
     statusColors,
@@ -633,7 +633,7 @@ export function useMonitorActivityOversight() {
     endedCount,
     totalActivitiesCount,
     tabCounts,
-    
+
     // Actions
     loadActivities,
     loadAvailableActivities,

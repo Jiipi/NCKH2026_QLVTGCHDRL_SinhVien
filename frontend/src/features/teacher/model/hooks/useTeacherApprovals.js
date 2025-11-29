@@ -3,9 +3,10 @@
  * Xử lý logic nghiệp vụ cho phê duyệt hoạt động giáo viên
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { teacherApprovalApi } from '../../services/teacherApprovalApi';
 import { mapActivityToUI, groupActivitiesByStatus } from '../mappers/teacher.mappers';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Hook quản lý phê duyệt hoạt động (pending & history)
@@ -57,6 +58,21 @@ export default function useTeacherApprovals({ initialSemester }) {
 
   const refresh = useCallback(() => load(), [load]);
 
+  // Auto-reload when approvals data changes from other components (same tab)
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], refresh, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync
+  useAutoRefresh(refresh, { 
+    intervalMs: 30000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
+
   // Business logic: Transform activities
   const activities = useMemo(() => {
     if (!activitiesData || activitiesData.length === 0) {
@@ -78,6 +94,7 @@ export default function useTeacherApprovals({ initialSemester }) {
     try {
       const result = await teacherApprovalApi.approve(id);
       if (result.success) {
+        // API already emits event for other components, just refresh locally
         await refresh();
       } else {
         setError(result.error || 'Không thể phê duyệt hoạt động');
@@ -93,6 +110,7 @@ export default function useTeacherApprovals({ initialSemester }) {
     try {
       const result = await teacherApprovalApi.reject(id, reason);
       if (result.success) {
+        // API already emits event for other components, just refresh locally
         await refresh();
       } else {
         setError(result.error || 'Không thể từ chối hoạt động');

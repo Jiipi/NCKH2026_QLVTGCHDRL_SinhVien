@@ -38,17 +38,22 @@ export function getCurrentSemesterValue() {
  */
 export const SEMESTER_SESSION_KEY = 'current_semester';
 export const GLOBAL_SEMESTER_KEY = 'selected_semester';
+const BACKEND_CURRENT_SEMESTER_KEY = 'backend_current_semester';
 
 /**
  * Load initial semester from session storage or calculate current
- * Prioritizes global selection, then legacy key, then current semester
+ * Priority: global selection > backend current semester > legacy key > calculated
  * @returns {string} Semester value
  */
 export function loadInitialSemester() {
   try {
-    // First check global selection
+    // First check global selection (user's explicit choice)
     const globalSemester = getGlobalSemester();
     if (globalSemester) return globalSemester;
+    
+    // Check backend current semester (actual active semester from API)
+    const backendCurrent = sessionStorage.getItem(BACKEND_CURRENT_SEMESTER_KEY);
+    if (backendCurrent) return backendCurrent;
     
     // Legacy fallback
     const legacySemester = sessionStorage.getItem(SEMESTER_SESSION_KEY);

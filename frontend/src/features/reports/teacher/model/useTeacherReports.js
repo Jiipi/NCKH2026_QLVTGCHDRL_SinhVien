@@ -14,10 +14,20 @@ export default function useTeacherReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dateRange, setDateRange] = useState('month');
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
   const [filterMode, setFilterMode] = useState('semester'); // 'semester' | 'dateRange'
 
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   const getDateRangeParams = useCallback(() => {
     const now = new Date();

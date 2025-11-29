@@ -116,64 +116,72 @@ export default function MyActivitiesPage() {
         showQrHint={tab === 'approved'}
       />
 
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="relative inline-block mb-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-purple-600 border-r-pink-600 absolute inset-0"></div>
-            <Clock className="absolute inset-0 m-auto h-6 w-6 text-purple-600 animate-pulse" />
-          </div>
-          <p className="text-gray-700 font-semibold text-lg">Đang tải...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-500 rounded-xl p-3">
-              <AlertCircle className="h-6 w-6 text-white" />
+      {
+        loading && (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="relative inline-block mb-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-purple-600 border-r-pink-600 absolute inset-0"></div>
+              <Clock className="absolute inset-0 m-auto h-6 w-6 text-purple-600 animate-pulse" />
             </div>
-            <div>
-              <p className="text-red-900 font-semibold">Đã xảy ra lỗi</p>
-              <p className="text-red-700">{error}</p>
+            <p className="text-gray-700 font-semibold text-lg">Đang tải...</p>
+          </div>
+        )
+      }
+
+      {
+        error && (
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-red-500 rounded-xl p-3">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-red-900 font-semibold">Đã xảy ra lỗi</p>
+                <p className="text-red-700">{error}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {!loading && !error && currentItems.length === 0 && (
-        <div className="text-center py-16">
-          <div className="inline-block p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-full mb-6">
-            <Award className="h-16 w-16 text-gray-400" />
+      {
+        !loading && !error && currentItems.length === 0 && (
+          <div className="text-center py-16">
+            <div className="inline-block p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-full mb-6">
+              <Award className="h-16 w-16 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Chưa có hoạt động nào</h3>
+            <p className="text-gray-600 mb-6">Bạn chưa có hoạt động nào trong danh mục này</p>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">Chưa có hoạt động nào</h3>
-          <p className="text-gray-600 mb-6">Bạn chưa có hoạt động nào trong danh mục này</p>
-        </div>
-      )}
+        )
+      }
 
-      {!loading && !error && currentItems.length > 0 && (
-        <MyActivitiesResults
-          viewMode={viewMode}
-          paginatedItems={paginatedItems}
-          currentItemsCount={currentItems.length}
-          filteredTotal={filteredTotal}
-          query={query}
-          activeFilterCount={activeFilterCount}
-          status={tab}
-          pagination={pagination}
-          onPageChange={handlePageChange}
-          onLimitChange={handleLimitChange}
-          onViewDetail={handleViewDetail}
-          onShowQr={handleShowQR}
-          onCancel={cancelRegistration}
-          canShowQr={canShowQR}
-          isWritable={isWritable}
-        />
-      )}
+      {
+        !loading && !error && currentItems.length > 0 && (
+          <MyActivitiesResults
+            viewMode={viewMode}
+            paginatedItems={paginatedItems}
+            currentItemsCount={currentItems.length}
+            filteredTotal={filteredTotal}
+            query={query}
+            activeFilterCount={activeFilterCount}
+            status={tab}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+            onViewDetail={handleViewDetail}
+            onShowQr={handleShowQR}
+            onCancel={cancelRegistration}
+            canShowQr={canShowQR}
+            isWritable={isWritable}
+          />
+        )
+      }
 
       <ActivityDetailModal activityId={selectedActivityId} isOpen={isModalOpen} onClose={handleCloseModal} />
       <ActivityQRModal activityId={qrActivityId} activityName={qrActivityName} isOpen={qrModalOpen} onClose={handleCloseQRModal} />
-    </div>
+    </div >
   );
 }
 

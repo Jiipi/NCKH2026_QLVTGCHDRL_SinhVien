@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { teacherStudentScoresApi } from '../../services/teacherStudentScoresApi';
 import { mapStudentScoreToUI } from '../mappers/teacher.mappers';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Hook quản lý điểm rèn luyện sinh viên của giáo viên
@@ -42,9 +43,25 @@ export function useTeacherStudentScores() {
     }
   }, []);
 
+  // Business logic: Refresh
+  const refresh = useCallback(async () => {
+    await load();
+  }, [load]);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  // Auto-reload when scores or attendance data changes from other components (same tab)
+  useDataChangeListener(['SCORES', 'ATTENDANCE', 'ACTIVITIES'], refresh, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync
+  useAutoRefresh(refresh, { 
+    intervalMs: 30000, 
+    enabled: true,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   // Business logic: Transform scores
   const scores = useMemo(() => {
@@ -53,11 +70,6 @@ export function useTeacherStudentScores() {
     }
     return scoresData.map(mapStudentScoreToUI);
   }, [scoresData]);
-
-  // Business logic: Refresh
-  const refresh = useCallback(async () => {
-    await load();
-  }, [load]);
 
   // Business logic: Get student score detail
   const getStudentScore = useCallback(async (studentId, semester) => {

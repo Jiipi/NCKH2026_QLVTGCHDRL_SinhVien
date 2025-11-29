@@ -12,12 +12,22 @@ import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
  * Hook quản lý reports
  */
 export function useMonitorReports() {
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedChart, setSelectedChart] = useState('participation');
-  const { options: semesterOptions } = useSemesterData();
+  const { options: semesterOptions, currentSemester } = useSemesterData();
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   // Business logic: Load report data
   const loadReportData = useCallback(async () => {

@@ -126,7 +126,7 @@ export default function MonitorApprovalsPage() {
         {/* Main Content Container with Glassmorphism */}
         <div className="relative z-10 p-8">
           <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-            
+
             {/* Top Bar with Badge */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -166,7 +166,7 @@ export default function MonitorApprovalsPage() {
                   <div className="absolute -bottom-2 left-0 right-0 h-4 bg-green-400/30 blur-sm"></div>
                 </span>
               </h1>
-              
+
               <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
                 Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên
               </p>
@@ -218,7 +218,8 @@ export default function MonitorApprovalsPage() {
         </div>
 
         {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes grid-move {
             0% { transform: translateY(0); }
             100% { transform: translateY(50px); }
@@ -306,7 +307,7 @@ export default function MonitorApprovalsPage() {
                 </button>
               )}
             </div>
-            
+
             {/* Right side: Sort dropdown + View mode toggle */}
             <div className="flex items-center gap-3">
               {/* Sort Dropdown */}
@@ -330,11 +331,10 @@ export default function MonitorApprovalsPage() {
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
                 <button
                   onClick={() => setDisplayViewMode('grid')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    displayViewMode === 'grid' 
-                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid'
+                      ? 'bg-white shadow-md text-blue-600 border border-blue-200'
                       : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                   title="Hiển thị dạng lưới"
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -342,11 +342,10 @@ export default function MonitorApprovalsPage() {
                 </button>
                 <button
                   onClick={() => setDisplayViewMode('list')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    displayViewMode === 'list' 
-                      ? 'bg-white shadow-md text-blue-600 border border-blue-200' 
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list'
+                      ? 'bg-white shadow-md text-blue-600 border border-blue-200'
                       : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                   title="Hiển thị dạng danh sách"
                 >
                   <List className="h-4 w-4" />

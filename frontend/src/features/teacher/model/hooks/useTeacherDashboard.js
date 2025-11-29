@@ -17,6 +17,7 @@ import {
   toFiniteNumber, 
   devLog 
 } from '../utils/teacherUtils';
+import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
 /**
  * Hook quản lý dashboard của giáo viên
@@ -60,6 +61,17 @@ export default function useTeacherDashboard({ semester, classId }) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Listen for data changes from same tab
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], fetchData, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user sync (60s interval for dashboard)
+  useAutoRefresh(fetchData, { 
+    intervalMs: 60000, 
+    enabled: !!semester,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   useEffect(() => {
     let cancelled = false;

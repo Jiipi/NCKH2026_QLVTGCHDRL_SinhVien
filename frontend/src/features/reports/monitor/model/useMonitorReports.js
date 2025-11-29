@@ -14,9 +14,19 @@ export default function useMonitorReports() {
   const [loading, setLoading] = useState(true);
   const [selectedChart, setSelectedChart] = useState('participation');
   const [error, setError] = useState('');
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
 
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+
+  // Sync with backend current semester when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (inOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   const loadReportData = useCallback(async () => {
     try {

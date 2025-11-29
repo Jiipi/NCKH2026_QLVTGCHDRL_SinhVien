@@ -3,6 +3,7 @@ import { useNotification } from '../../../../shared/contexts/NotificationContext
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import teacherApprovalApi from '../../services/teacherApprovalApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 const STATUS_LABELS = {
   cho_duyet: 'Chờ duyệt',
@@ -25,15 +26,25 @@ export default function useTeacherActivityApprovalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [semester, setSemester] = useState(getCurrentSemesterValue());
+  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
   const [sortBy, setSortBy] = useState('newest');
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: '', activityId: null, title: '', message: '' });
   const [rejectReason, setRejectReason] = useState('');
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
   const [detailModal, setDetailModal] = useState({ isOpen: false, activity: null });
   const [pagination, setPagination] = useState({ page: 1, limit: 9, total: 0 });
+
+  // Sync semester with currentSemester from API when available
+  useEffect(() => {
+    if (currentSemester && semesterOptions.length > 0) {
+      const currentInOptions = semesterOptions.some(opt => opt.value === currentSemester);
+      if (currentInOptions && semester !== currentSemester) {
+        setSemester(currentSemester);
+      }
+    }
+  }, [currentSemester, semesterOptions, semester]);
 
   const loadActivities = useCallback(async () => {
     try {
@@ -67,9 +78,36 @@ export default function useTeacherActivityApprovalPage() {
     }
   }, [semester, searchTerm]);
 
+  // Only load after semester is synced with backend
+  const [semesterReady, setSemesterReady] = useState(false);
+  
   useEffect(() => {
-    loadActivities();
-  }, [loadActivities]);
+    // Wait for semester options to load, then check if current semester matches
+    if (semesterOptions.length > 0) {
+      // If currentSemester is available and semester matches, or no currentSemester yet
+      if (!currentSemester || semester === currentSemester) {
+        setSemesterReady(true);
+      }
+    }
+  }, [semesterOptions.length, currentSemester, semester]);
+
+  useEffect(() => {
+    if (semesterReady) {
+      loadActivities();
+    }
+  }, [loadActivities, semesterReady]);
+
+  // Auto-reload when approvals data changes from other components (same tab)
+  useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], loadActivities, { debounceMs: 500 });
+
+  // Auto-refresh for cross-user/cross-role sync (when LOP_TRUONG creates new activity)
+  // Polls every 30 seconds and on window focus/visibility
+  useAutoRefresh(loadActivities, { 
+    intervalMs: 30000, 
+    enabled: semesterReady,
+    refreshOnFocus: true,
+    refreshOnVisible: true 
+  });
 
   const filteredActivities = useMemo(() => {
     const base = activities
@@ -193,7 +231,8 @@ export default function useTeacherActivityApprovalPage() {
       }
       setConfirmModal({ isOpen: false, type: '', activityId: null, title: '', message: '' });
       setRejectReason('');
-      await loadActivities();
+      // Small delay to ensure backend has committed changes, then reload
+      setTimeout(() => loadActivities(), 100);
     } catch (err) {
       console.error('Error processing activity:', err);
       setToast({ isOpen: true, message: 'Không thể xử lý hoạt động. Vui lòng thử lại.', type: 'error' });

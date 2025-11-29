@@ -6,6 +6,7 @@ import {
   extractPaginatedData,
   extractArrayData 
 } from './apiErrorHandler';
+import { emitActivitiesChange } from '../../../shared/lib/dataRefresh';
 
 // Map frontend form fields to backend validator schema
 const mapToBackendActivityPayload = async (data) => {
@@ -126,6 +127,7 @@ class ActivitiesAPI {
     try {
       const body = await mapToBackendActivityPayload(activityData);
       const response = await http.post('/core/activities', body);
+      emitActivitiesChange({ action: 'create' });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);
@@ -136,6 +138,7 @@ class ActivitiesAPI {
     try {
       const body = await mapToBackendActivityPayload(activityData);
       const response = await http.put(`/core/activities/${activityId}`, body);
+      emitActivitiesChange({ action: 'update', id: activityId });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);
@@ -145,6 +148,7 @@ class ActivitiesAPI {
   async deleteActivity(activityId) {
     try {
       await http.delete(`/core/activities/${activityId}`);
+      emitActivitiesChange({ action: 'delete', id: activityId });
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -176,6 +180,7 @@ class ActivitiesAPI {
   async deleteAdminActivity(activityId) {
     try {
       await http.delete(`/core/admin/activities/${activityId}`);
+      emitActivitiesChange({ action: 'delete', id: activityId });
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -185,6 +190,7 @@ class ActivitiesAPI {
   async approveAdminActivity(activityId) {
     try {
       const response = await http.post(`/core/admin/activities/${activityId}/approve`);
+      emitActivitiesChange({ action: 'approve', id: activityId });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);
@@ -194,6 +200,7 @@ class ActivitiesAPI {
   async rejectAdminActivity(activityId, reason) {
     try {
       const response = await http.post(`/core/admin/activities/${activityId}/reject`, { reason });
+      emitActivitiesChange({ action: 'reject', id: activityId });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);
@@ -204,6 +211,7 @@ class ActivitiesAPI {
   async approveActivity(activityId) {
     try {
       const response = await http.post(`/core/teachers/activities/${activityId}/approve`);
+      emitActivitiesChange({ action: 'approve', id: activityId });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);
@@ -213,6 +221,7 @@ class ActivitiesAPI {
   async rejectActivity(activityId, reason) {
     try {
       const response = await http.post(`/core/teachers/activities/${activityId}/reject`, { reason });
+      emitActivitiesChange({ action: 'reject', id: activityId });
       return createSuccessResponse(response.data?.data);
     } catch (error) {
       return handleApiError(error);

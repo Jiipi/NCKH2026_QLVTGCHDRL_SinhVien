@@ -64,9 +64,25 @@ export function parseSemesterString(semesterStr) {
  * Get current semester value based on current date
  * HK1: July - November (tháng 7-11)
  * HK2: December - April (tháng 12-4)
+ * @param {boolean} useSessionFirst - If true, check sessionStorage first
  * @returns {string} - Format: hoc_ky_X_YYYY
  */
-export function getCurrentSemesterValue() {
+export function getCurrentSemesterValue(useSessionFirst = false) {
+  // Check sessionStorage for backend current semester first if requested
+  if (useSessionFirst) {
+    try {
+      const backendCurrent = sessionStorage.getItem('backend_current_semester');
+      if (backendCurrent) return backendCurrent;
+      
+      const selected = sessionStorage.getItem('selected_semester');
+      if (selected) return selected;
+      
+      const current = sessionStorage.getItem('current_semester');
+      if (current) return current;
+    } catch (_) {}
+  }
+  
+  // Calculate from current date
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;

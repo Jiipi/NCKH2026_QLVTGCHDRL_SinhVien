@@ -111,7 +111,7 @@ export default function MonitorActivityOversightPage() {
         {/* Main Content Container with Glassmorphism */}
         <div className="relative z-10 p-8">
           <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-            
+
             {/* Top Bar with Badge */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ export default function MonitorActivityOversightPage() {
                   <div className="absolute -bottom-2 left-0 right-0 h-4 bg-blue-400/30 blur-sm"></div>
                 </span>
               </h1>
-              
+
               <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
                 Tổ chức và quản lý các hoạt động của lớp, theo dõi sinh viên tham gia
               </p>
@@ -211,7 +211,8 @@ export default function MonitorActivityOversightPage() {
         </div>
 
         {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes grid-move {
             0% { transform: translateY(0); }
             100% { transform: translateY(50px); }
@@ -299,7 +300,7 @@ export default function MonitorActivityOversightPage() {
                 </button>
               )}
             </div>
-            
+
             {/* Right side: View mode toggle */}
             <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
               <ActivitySortBar sortBy={sortBy} onSortChange={setSortBy} />
@@ -308,11 +309,10 @@ export default function MonitorActivityOversightPage() {
                 <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
                   <button
                     onClick={() => setDisplayViewMode('grid')}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                      displayViewMode === 'grid'
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid'
                         ? 'bg-white shadow-md text-blue-600 border border-blue-200'
                         : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                      }`}
                     title="Hiển thị dạng lưới"
                   >
                     <Grid3X3 className="h-4 w-4" />
@@ -320,11 +320,10 @@ export default function MonitorActivityOversightPage() {
                   </button>
                   <button
                     onClick={() => setDisplayViewMode('list')}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                      displayViewMode === 'list'
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list'
                         ? 'bg-white shadow-md text-blue-600 border border-blue-200'
                         : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                      }`}
                     title="Hiển thị dạng danh sách"
                   >
                     <List className="h-4 w-4" />
@@ -410,7 +409,7 @@ export default function MonitorActivityOversightPage() {
       {/* Status Tabs - Multiple View Modes */}
       <div className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-        
+
         <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
           {/* Header với View Mode Toggle */}
           <div className="flex items-center justify-between mb-4">
@@ -429,17 +428,16 @@ export default function MonitorActivityOversightPage() {
               </button>
             </div>
           </div>
-          
+
           {/* Pills Mode (Default) */}
           {statusViewMode === 'pills' && (
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setStatusFilter('co_san')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  statusFilter === 'co_san'
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'co_san'
                     ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <UserPlus className="h-4 w-4" />
                 Có sẵn
@@ -451,11 +449,10 @@ export default function MonitorActivityOversightPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('cho_duyet')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  statusFilter === 'cho_duyet'
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'cho_duyet'
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <Clock className="h-4 w-4" />
                 Chờ duyệt
@@ -467,11 +464,10 @@ export default function MonitorActivityOversightPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('da_duyet')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  statusFilter === 'da_duyet'
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'da_duyet'
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <CheckCircle className="h-4 w-4" />
                 Đã duyệt
@@ -483,11 +479,10 @@ export default function MonitorActivityOversightPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('ket_thuc')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  statusFilter === 'ket_thuc'
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'ket_thuc'
                     ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <Award className="h-4 w-4" />
                 Kết thúc
@@ -499,11 +494,10 @@ export default function MonitorActivityOversightPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('tu_choi')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  statusFilter === 'tu_choi'
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'tu_choi'
                     ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <XCircle className="h-4 w-4" />
                 Bị từ chối
@@ -557,9 +551,8 @@ export default function MonitorActivityOversightPage() {
             <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
               <button
                 onClick={() => setStatusFilter('co_san')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                  statusFilter === 'co_san' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'co_san' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  }`}
                 title="Có sẵn"
               >
                 <UserPlus className={`h-5 w-5 ${statusFilter === 'co_san' ? 'text-emerald-600' : 'text-gray-500'}`} />
@@ -570,9 +563,8 @@ export default function MonitorActivityOversightPage() {
 
               <button
                 onClick={() => setStatusFilter('cho_duyet')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                  statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  }`}
                 title="Chờ duyệt"
               >
                 <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -580,12 +572,11 @@ export default function MonitorActivityOversightPage() {
                   {tabCounts.cho_duyet}
                 </span>
               </button>
-              
+
               <button
                 onClick={() => setStatusFilter('da_duyet')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                  statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  }`}
                 title="Đã duyệt"
               >
                 <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -593,12 +584,11 @@ export default function MonitorActivityOversightPage() {
                   {tabCounts.da_duyet}
                 </span>
               </button>
-              
+
               <button
                 onClick={() => setStatusFilter('ket_thuc')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                  statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  }`}
                 title="Đã tham gia"
               >
                 <Award className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -606,12 +596,11 @@ export default function MonitorActivityOversightPage() {
                   {tabCounts.ket_thuc}
                 </span>
               </button>
-              
+
               <button
                 onClick={() => setStatusFilter('tu_choi')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                  statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  }`}
                 title="Bị từ chối"
               >
                 <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
@@ -628,8 +617,8 @@ export default function MonitorActivityOversightPage() {
       {filteredActivities.length > 0 ? (
         <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
           {paginatedActivities.map(activity => (
-            <ActivityCard 
-              key={activity.id} 
+            <ActivityCard
+              key={activity.id}
               activity={activity}
               displayViewMode={displayViewMode}
               statusFilter={statusFilter}
@@ -656,7 +645,7 @@ export default function MonitorActivityOversightPage() {
               {searchTerm || statusFilter !== 'all' ? 'Không tìm thấy hoạt động' : 'Chưa có hoạt động nào'}
             </h3>
             <p className="text-gray-600 mb-8 text-lg">
-              {searchTerm || statusFilter !== 'all' 
+              {searchTerm || statusFilter !== 'all'
                 ? 'Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác'
                 : 'Bắt đầu bằng cách tạo hoạt động đầu tiên cho lớp của bạn'}
             </p>
