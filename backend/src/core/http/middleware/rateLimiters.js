@@ -1,9 +1,10 @@
 const rateLimit = require('express-rate-limit');
 
 // Giới hạn đăng nhập theo IP và (nếu có) theo username
+// Tăng lên cao cho production để tránh bị chặn khi test
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: process.env.NODE_ENV === 'production' ? 1000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
