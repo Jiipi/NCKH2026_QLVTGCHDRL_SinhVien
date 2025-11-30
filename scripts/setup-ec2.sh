@@ -27,6 +27,15 @@ ADMIN_EMAIL="ngochungtran.aity@gmail.com"
 DB_PASSWORD="hungloveakiha13"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# SMTP Configuration (Gmail) - Đã cấu hình từ local
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
+SMTP_SECURE="true"
+SMTP_USER="hungmegame.it@gmail.com"
+SMTP_PASS="osvwuajsrywtpgym"
+SMTP_FROM="Hệ thống <hungmegame.it@gmail.com>"
+SMTP_DEBUG="true"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -161,6 +170,9 @@ cd "$PROJECT_DIR"
 # Generate JWT secret
 JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n' | tr -d '/')
 
+# SMTP đã được cấu hình sẵn từ local
+echo -e "${GREEN}✓ SMTP Email đã được cấu hình: ${SMTP_USER}${NC}"
+
 # Create .env.production
 cat > .env.production << EOF
 # =========================
@@ -182,6 +194,28 @@ JWT_EXPIRES_IN=7d
 # =========================
 CORS_ORIGIN=https://${DOMAIN}
 REACT_APP_API_URL=https://${DOMAIN}/api
+
+# =========================
+# SMTP Email Configuration
+# =========================
+# Cấu hình SMTP để gửi email (quên mật khẩu, thông báo, etc.)
+# Ví dụ với Gmail:
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_SECURE=false
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASS=your-app-password
+# SMTP_FROM=your-email@gmail.com
+# SMTP_DEBUG=false
+#
+# LƯU Ý: Cần cấu hình SMTP để tính năng quên mật khẩu hoạt động!
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=${SMTP_PORT}
+SMTP_SECURE=${SMTP_SECURE}
+SMTP_USER=${SMTP_USER}
+SMTP_PASS=${SMTP_PASS}
+SMTP_FROM=${SMTP_FROM}
+SMTP_DEBUG=${SMTP_DEBUG}
 
 # =========================
 # Runtime
