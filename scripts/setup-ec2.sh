@@ -257,9 +257,9 @@ upstream frontend_upstream {
     keepalive 32;
 }
 
-# Rate limiting
-limit_req_zone \$binary_remote_addr zone=api_limit:10m rate=10r/s;
-limit_req_zone \$binary_remote_addr zone=login_limit:10m rate=5r/m;
+# Rate limiting - Tăng cao để tránh bị chặn khi sử dụng nhiều
+limit_req_zone \$binary_remote_addr zone=api_limit:10m rate=100r/s;
+limit_req_zone \$binary_remote_addr zone=login_limit:10m rate=100r/m;
 
 # HTTP Server
 server {
@@ -283,7 +283,7 @@ server {
 
     # API proxy
     location /api/ {
-        limit_req zone=api_limit burst=20 nodelay;
+        limit_req zone=api_limit burst=200 nodelay;
         
         proxy_pass http://backend_upstream;
         proxy_http_version 1.1;
