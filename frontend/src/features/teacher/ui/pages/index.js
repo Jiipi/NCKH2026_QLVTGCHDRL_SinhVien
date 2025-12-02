@@ -12,7 +12,6 @@ export { default as TeacherActivityApprovalPage } from './teacher-activity-appro
 export { default as TeacherAttendancePage } from './teacher-attendance/TeacherAttendancePage';
 export { default as TeacherDashboardPage } from './teacher-dashboard/TeacherDashboardPage';
 export { default as TeacherNotificationsPage } from './teacher-notifications/TeacherNotificationsPage';
-export { default as TeacherPreferencesPage } from './teacher-preferences/TeacherPreferencesPage';
 export { default as TeacherProfilePage } from './teacher-profile/TeacherProfilePage';
 export { default as TeacherRegistrationApprovalsPage } from './teacher-registration-approvals/TeacherRegistrationApprovalsPage';
 export { default as TeacherReportsPage } from './teacher-reports/TeacherReportsPage';
