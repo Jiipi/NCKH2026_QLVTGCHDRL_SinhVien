@@ -59,26 +59,46 @@ class ScanAttendanceUseCase {
       throw new ValidationError('Mã QR không khớp hoặc đã hết hạn. Vui lòng tạo QR code mới.');
     }
 
-    // TODO: Tạm gỡ kiểm tra thời gian để test
-    // Validate attendance time - chỉ cho phép điểm danh trong khoảng thời gian hoạt động
-    // const now = new Date();
-    // const activityStart = new Date(activity.ngay_bd);
-    // const activityEnd = new Date(activity.ngay_kt);
-    // 
-    // // Cho phép điểm danh trước 30 phút và sau 1 giờ (buffer time)
-    // const bufferBefore = 30 * 60 * 1000; // 30 phút
-    // const bufferAfter = 60 * 60 * 1000; // 1 giờ
-    // 
-    // const allowedStart = new Date(activityStart.getTime() - bufferBefore);
-    // const allowedEnd = new Date(activityEnd.getTime() + bufferAfter);
-    // 
-    // if (now < allowedStart) {
-    //   throw new ValidationError('Chưa đến thời gian điểm danh. Hoạt động bắt đầu lúc ' + activityStart.toLocaleString('vi-VN'));
-    // }
-    // 
-    // if (now > allowedEnd) {
-    //   throw new ValidationError('Đã quá thời gian điểm danh. Hoạt động kết thúc lúc ' + activityEnd.toLocaleString('vi-VN'));
-    // }
+    // Validate attendance time - chính xác đến giây
+    const now = new Date();
+    const activityStart = new Date(activity.ngay_bd);
+    const activityEnd = new Date(activity.ngay_kt);
+    
+    // Debug log để kiểm tra múi giờ
+    console.log('🕐 [ScanAttendance] Time validation:', {
+      now: now.toISOString(),
+      nowLocal: now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      start: activityStart.toISOString(),
+      startLocal: activityStart.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      end: activityEnd.toISOString(),
+      endLocal: activityEnd.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      nowTime: now.getTime(),
+      startTime: activityStart.getTime(),
+      endTime: activityEnd.getTime(),
+      diffToStart: ((activityStart.getTime() - now.getTime()) / 1000).toFixed(0) + ' seconds'
+    });
+    
+    // Kiểm tra chưa đến giờ bắt đầu
+    if (now.getTime() < activityStart.getTime()) {
+      const startDateStr = activityStart.toLocaleString('vi-VN', { 
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      console.log('❌ [ScanAttendance] Activity not started yet');
+      throw new ValidationError(`Hoạt động chưa bắt đầu. Thời gian bắt đầu: ${startDateStr}`);
+    }
+    
+    // Kiểm tra đã quá giờ kết thúc
+    if (now.getTime() > activityEnd.getTime()) {
+      const endDateStr = activityEnd.toLocaleString('vi-VN', { 
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      console.log('❌ [ScanAttendance] Activity already ended');
+      throw new ValidationError(`Hoạt động đã kết thúc lúc ${endDateStr}, không thể điểm danh`);
+    }
 
     // Get current student by user
     const student = await prisma.sinhVien.findUnique({

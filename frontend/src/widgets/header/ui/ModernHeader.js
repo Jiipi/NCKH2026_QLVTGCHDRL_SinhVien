@@ -303,19 +303,25 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? { ...n, unread: false } : n
       ));
-      await http.put(`/core/notifications/${notificationId}/read`);
+      await http.patch(`/core/notifications/${notificationId}/read`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      // Rollback on error
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, unread: true } : n
+      ));
     }
   };
 
   const markAllAsRead = async () => {
+    const previousNotifications = [...notifications];
     try {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-      await http.put('/core/notifications/mark-all-read');
+      await http.patch('/core/notifications/mark-all-read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
-      loadNotifications();
+      // Rollback on error
+      setNotifications(previousNotifications);
     }
   };
 

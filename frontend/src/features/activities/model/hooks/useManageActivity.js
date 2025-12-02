@@ -103,20 +103,31 @@ export function useManageActivity() {
       const result = await activitiesApi.getActivityDetails(activityId);
       if (result.success) {
         const d = result.data;
-        const pad = (value) => {
+        /**
+         * Format datetime cho input datetime-local
+         * Sử dụng local timezone thay vì UTC để tránh lệch giờ
+         */
+        const formatDateTimeLocal = (value) => {
           if (!value) return '';
           try {
             const dt = new Date(value);
-            return dt.toISOString().substring(0, 16);
+            if (isNaN(dt.getTime())) return '';
+            // Lấy các thành phần theo local timezone
+            const year = dt.getFullYear();
+            const month = String(dt.getMonth() + 1).padStart(2, '0');
+            const day = String(dt.getDate()).padStart(2, '0');
+            const hours = String(dt.getHours()).padStart(2, '0');
+            const minutes = String(dt.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
           } catch (e) { return ''; }
         };
         setForm({
           ten_hd: d.ten_hd || '',
           loai_hd_id: d.loai_hd_id || '',
           mo_ta: d.mo_ta || '',
-          ngay_bd: pad(d.ngay_bd),
-          ngay_kt: pad(d.ngay_kt),
-          han_dk: pad(d.han_dk),
+          ngay_bd: formatDateTimeLocal(d.ngay_bd),
+          ngay_kt: formatDateTimeLocal(d.ngay_kt),
+          han_dk: formatDateTimeLocal(d.han_dk),
           diem_rl: d.diem_rl?.toString() || '',
           dia_diem: d.dia_diem || '',
           sl_toi_da: d.sl_toi_da?.toString() || '',

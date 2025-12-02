@@ -17,9 +17,9 @@ router.use(authenticateJWT);
  * POST /api/core/notifications
  * Create new notification
  * Supports: single recipient, class broadcast, activity broadcast
- * Requires: notifications.write permission
+ * Requires: notifications.create permission
  */
-router.post('/', requireDynamicPermission('notifications.write'), (req, res) => notificationsController.createNotification(req, res));
+router.post('/', requireDynamicPermission('notifications.create'), (req, res) => notificationsController.createNotification(req, res));
 
 /**
  * GET /api/core/notifications/unread-count

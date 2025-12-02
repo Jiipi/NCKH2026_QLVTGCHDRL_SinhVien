@@ -107,41 +107,117 @@ function clearPermissionsCache(userId = null) {
 }
 
 /**
- * Middleware kiểm tra quyền động
- * Usage: requireDynamicPermission('profile.read')
+ * PERMISSION ALIASES - Bảng ánh xạ quyền tương đương
  * 
- * Quyền theo format: <resource>.<action>
- * Ví dụ:
- * - profile.read
- * - profile.update
- * - activities.read
- * - activities.write
- * - activities.delete
- * - activities.approve
- * - registrations.read
- * - registrations.write
- * - registrations.delete
- * - attendance.read
- * - attendance.write
- * - attendance.delete
- * - reports.read
- * - reports.export
- * - notifications.read
- * - notifications.write
- * - notifications.delete
- * - students.read
- * - students.update
- * - classmates.read
- * - classmates.assist
- * - scores.read
- * - roles.read
- * - roles.write
- * - roles.delete
- * - system.manage
- * - system.configure
- * - activityTypes.read
- * - activityTypes.write
- * - activityTypes.delete
+ * Khi route yêu cầu quyền X, user có thể dùng quyền Y nếu được định nghĩa ở đây.
+ * Format: requiredPermission -> [list of acceptable alternatives]
+ */
+const PERMISSION_ALIASES = {
+  // ============ NOTIFICATIONS ============
+  // CHỈ dùng aliases cho backward compatibility (số ít/số nhiều)
+  // KHÔNG dùng aliases cho quyền riêng biệt - admin phải bật/tắt từng quyền cụ thể
+  'notifications.write': ['notification.write'],  // Chỉ alias số ít/số nhiều
+  'notifications.read': ['notifications.view', 'notification.read'],
+  'notifications.delete': ['notification.delete'],
+  'notification.write': ['notifications.write'],
+  'notification.read': ['notifications.read', 'notifications.view'],
+  'notifications.create': [],  // Quyền riêng, không có alias
+
+  // ============ ACTIVITIES ============
+  'activities.write': ['activities.create', 'activities.update', 'activities.manage'],
+  'activities.read': ['activities.view'],
+  'activities.delete': ['activities.manage'],
+
+  // ============ REGISTRATIONS ============
+  'registrations.write': ['registrations.register', 'registrations.approve', 'registrations.reject', 'registrations.manage'],
+  'registrations.read': ['registrations.view'],
+  'registrations.delete': ['registrations.cancel', 'registrations.manage'],
+
+  // ============ USERS ============
+  'users.write': ['users.create', 'users.update', 'users.manage'],
+  'users.read': ['users.view'],
+  'users.delete': ['users.manage'],
+
+  // ============ ATTENDANCE ============
+  'attendance.write': ['attendance.manage', 'attendance.checkin'],
+  'attendance.read': ['attendance.view'],
+
+  // ============ REPORTS ============
+  'reports.read': ['reports.view'],
+  'reports.write': ['reports.export', 'reports.manage'],
+
+  // ============ STUDENTS ============
+  'students.write': ['students.update', 'students.manage'],
+  'students.read': ['students.view'],
+
+  // ============ ACTIVITY TYPES ============
+  'activityTypes.write': ['activityTypes.create', 'activityTypes.update', 'activityTypes.manage'],
+  'activityTypes.read': ['activityTypes.view'],
+
+  // ============ PROFILE ============
+  'profile.write': ['profile.update'],
+  'profile.read': ['profile.view'],
+
+  // ============ POINTS ============
+  'points.read': ['points.view_own', 'points.view_all', 'points.view'],
+
+  // ============ SYSTEM ============
+  'system.write': ['system.manage', 'system.configure', 'system.settings'],
+  'system.read': ['system.view', 'system.dashboard', 'system.logs'],
+
+  // ============ CLASSMATES ============
+  'classmates.write': ['classmates.assist', 'classmates.manage'],
+  'classmates.read': ['classmates.view'],
+
+  // ============ SEMESTERS ============
+  'semesters.write': ['semesters.create', 'semesters.update', 'semesters.manage'],
+  'semesters.read': ['semesters.view'],
+};
+
+/**
+ * Kiểm tra user có quyền hay không (bao gồm aliases)
+ * 
+ * Logic:
+ * 1. Kiểm tra quyền trực tiếp
+ * 2. Kiểm tra wildcard (*) cho admin
+ * 3. Kiểm tra resource wildcard (resource.*)
+ * 4. Kiểm tra aliases đã định nghĩa trong PERMISSION_ALIASES
+ * 5. Fallback .read -> .view (chỉ cho đọc)
+ * 
+ * LƯU Ý: KHÔNG tự động fallback .write -> .create/.update/.manage
+ * Admin phải bật từng quyền cụ thể trong giao diện quản lý
+ */
+function checkPermissionWithAliases(userPermissions, requiredPermission) {
+  // 1. Kiểm tra trực tiếp
+  if (userPermissions.includes(requiredPermission)) return true;
+
+  // 2. Kiểm tra quyền wildcard (admin có tất cả)
+  if (userPermissions.includes('*')) return true;
+
+  // 3. Kiểm tra resource wildcard (ví dụ: notifications.*)
+  const [resource] = requiredPermission.split('.');
+  if (userPermissions.includes(`${resource}.*`)) return true;
+
+  // 4. Kiểm tra aliases đã định nghĩa
+  const aliases = PERMISSION_ALIASES[requiredPermission] || [];
+  for (const alias of aliases) {
+    if (userPermissions.includes(alias)) return true;
+  }
+
+  // 5. Kiểm tra .read -> .view fallback (chỉ cho quyền đọc)
+  if (requiredPermission.endsWith('.read')) {
+    const viewPermission = requiredPermission.replace('.read', '.view');
+    if (userPermissions.includes(viewPermission)) return true;
+  }
+
+  // KHÔNG tự động fallback .write -> .create/.update/.manage
+  // Admin phải bật từng quyền cụ thể
+
+  return false;
+}
+
+/**
+ * Middleware kiểm tra quyền động - có hỗ trợ PERMISSION_ALIASES
  */
 function requireDynamicPermission(requiredPermission) {
   return async (req, res, next) => {
@@ -163,36 +239,8 @@ function requireDynamicPermission(requiredPermission) {
       // Lấy quyền từ database
       const userPermissions = await getUserPermissions(userId, forceRefresh);
 
-
-      // Kiểm tra quyền trực tiếp
-      let hasPermission = userPermissions.includes(requiredPermission);
-      
-      // Nếu không có quyền, kiểm tra backward compatibility:
-      // 1. Nếu yêu cầu .read nhưng user có .view thì cũng chấp nhận
-      if (!hasPermission && requiredPermission.endsWith('.read')) {
-        const viewPermission = requiredPermission.replace('.read', '.view');
-        hasPermission = userPermissions.includes(viewPermission);
-      }
-      
-      // 2. Nếu yêu cầu registrations.write nhưng user có registrations.register thì cũng chấp nhận
-      if (!hasPermission && requiredPermission === 'registrations.write') {
-        hasPermission = userPermissions.includes('registrations.register');
-      }
-      
-      // 3. Nếu yêu cầu notifications.write nhưng user có notification.write (số ít) thì cũng chấp nhận
-      if (!hasPermission && requiredPermission === 'notifications.write') {
-        hasPermission = userPermissions.includes('notification.write');
-      }
-      
-      // 4. Nếu yêu cầu notification.write nhưng user có notifications.write (số nhiều) thì cũng chấp nhận
-      if (!hasPermission && requiredPermission === 'notification.write') {
-        hasPermission = userPermissions.includes('notifications.write');
-      }
-
-      // 5. Cho phép activities.create thay cho activities.write (áp dụng với lớp trưởng)
-      if (!hasPermission && requiredPermission === 'activities.write') {
-        hasPermission = userPermissions.includes('activities.create');
-      }
+      // Kiểm tra quyền với hệ thống aliases
+      const hasPermission = checkPermissionWithAliases(userPermissions, requiredPermission);
 
       if (!hasPermission) {
         // Clear cache để force refresh permissions từ database
@@ -207,7 +255,8 @@ function requireDynamicPermission(requiredPermission) {
           debug: process.env.NODE_ENV !== 'production' ? {
             userId,
             role: req.user?.role,
-            permissionsCount: userPermissions.length
+            permissionsCount: userPermissions.length,
+            aliases: PERMISSION_ALIASES[requiredPermission] || []
           } : undefined
         });
       }
@@ -244,9 +293,9 @@ function requireAnyPermission(requiredPermissions) {
       const userId = req.user.sub;
       const userPermissions = await getUserPermissions(userId);
 
-      // Kiểm tra có ít nhất 1 quyền
+      // Kiểm tra có ít nhất 1 quyền (với aliases)
       const hasAnyPermission = requiredPermissions.some(perm => 
-        userPermissions.includes(perm)
+        checkPermissionWithAliases(userPermissions, perm)
       );
 
       if (!hasAnyPermission) {
@@ -290,9 +339,9 @@ function requireAllPermissions(requiredPermissions) {
       const userId = req.user.sub;
       const userPermissions = await getUserPermissions(userId);
 
-      // Kiểm tra có đủ tất cả quyền
+      // Kiểm tra có đủ tất cả quyền (với aliases)
       const hasAllPermissions = requiredPermissions.every(perm => 
-        userPermissions.includes(perm)
+        checkPermissionWithAliases(userPermissions, perm)
       );
 
       if (!hasAllPermissions) {
@@ -329,4 +378,6 @@ module.exports = {
   requireAllPermissions,
   clearPermissionsCache,
   getUserPermissions,
+  checkPermissionWithAliases,
+  PERMISSION_ALIASES,
 };

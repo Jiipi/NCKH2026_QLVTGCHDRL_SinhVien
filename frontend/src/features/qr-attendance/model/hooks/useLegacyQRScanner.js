@@ -369,7 +369,8 @@ export function useLegacyQRScanner() {
       try { window.localStorage.setItem('ATTENDANCE_UPDATED_AT', String(Date.now())); } catch (_) {}
     } catch (err) {
       const statusCode = err?.status || err?.response?.status;
-      const backendMessage = err?.message || err?.response?.data?.message;
+      // Ưu tiên lấy message từ backend response trước, sau đó là error.message
+      const backendMessage = err?.response?.data?.message || err?.message;
       const errorCode = err?.response?.data?.errors?.code;
       if (statusCode === 409 && errorCode === 'ALREADY_CHECKED_IN') {
         const userMessage = 'Bạn đã điểm danh hoạt động này rồi';

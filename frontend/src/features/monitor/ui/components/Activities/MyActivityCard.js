@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Award, Eye, Trophy, XCircle, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { Calendar, Clock, MapPin, Award, Eye, Trophy, XCircle, AlertCircle, CalendarClock, CalendarCheck, CalendarX } from 'lucide-react';
 import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 /**
  * MyActivityCard Component - Card hiển thị hoạt động của tôi
@@ -17,33 +18,6 @@ export default function MyActivityCard({
 }) {
   const activity = registration.hoat_dong || {};
   
-  // Get all available images with fallback logic
-  const allImages = useMemo(() => {
-    const images = getActivityImages(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
-    return images.length > 0 ? images : [getActivityImage(null, activity.loai_hd?.ten_loai_hd)];
-  }, [activity.hinh_anh, activity.loai_hd?.ten_loai_hd]);
-
-  // State to track current image index
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Reset image index when activity changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [activity.id]);
-  
-  // Get current image URL
-  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
-  
-  // Handle image error - try next image
-  const handleImageError = (e) => {
-    if (currentImageIndex < allImages.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1);
-    } else {
-      const defaultImage = getActivityImage(null, activity.loai_hd?.ten_loai_hd);
-      e.target.src = defaultImage;
-    }
-  };
-  
   const canCancel = registration.trang_thai_dk === 'cho_duyet';
   const canShowQR = registration.trang_thai_dk === 'da_duyet';
 
@@ -54,8 +28,14 @@ export default function MyActivityCard({
         <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <img src={currentImageUrl} alt={activity.ten_hd} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={handleImageError} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+              <ActivityImageSlideshow
+                images={activity.hinh_anh}
+                activityType={activity.loai_hd?.ten_loai_hd}
+                alt={activity.ten_hd}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                showDots={true}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
               <div className="absolute top-2 left-2">{getStatusBadge(registration.trang_thai_dk)}</div>
               {activity.diem_rl && (
                 <div className="absolute bottom-2 left-2">
@@ -75,8 +55,26 @@ export default function MyActivityCard({
                   </div>
                   {activity.ngay_bd && (
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                      <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-gray-900 font-medium">
+                        BĐ: {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {activity.ngay_kt && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarCheck className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-gray-900 font-medium">
+                        KT: {new Date(activity.ngay_kt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.ngay_kt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {activity.han_dk && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarX className={`h-3.5 w-3.5 ${new Date(activity.han_dk) < new Date() ? 'text-red-500' : 'text-orange-500'}`} />
+                      <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
+                        Hạn ĐK: {new Date(activity.han_dk).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.han_dk).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   )}
                   {activity.dia_diem && (
@@ -139,8 +137,14 @@ export default function MyActivityCard({
     <div className="group relative h-full">
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          <img src={currentImageUrl} alt={activity.ten_hd} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" onError={handleImageError} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
+            alt={activity.ten_hd}
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+            showDots={true}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
           <div className="absolute top-2 left-2">{getStatusBadge(registration.trang_thai_dk)}</div>
           {activity.diem_rl && (
             <div className="absolute bottom-2 right-2">
@@ -162,8 +166,26 @@ export default function MyActivityCard({
           <div className="space-y-1.5">
             {activity.ngay_bd && (
               <div className="flex items-center gap-1.5 text-xs">
-                <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Bắt đầu: {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.ngay_kt && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Kết thúc: {new Date(activity.ngay_kt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_kt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.han_dk && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${new Date(activity.han_dk) < new Date() ? 'text-red-500' : 'text-orange-500'}`} />
+                <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
+                  Hạn ĐK: {new Date(activity.han_dk).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.han_dk).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             )}
             {activity.dia_diem && (

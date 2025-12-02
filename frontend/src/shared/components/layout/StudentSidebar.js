@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { usePermissions } from '../../hooks/usePermissions';
 import '../../styles/teacher-sidebar.css'; // Sử dụng cùng CSS với TeacherSidebar
 import { 
   Users, 
@@ -196,6 +197,9 @@ function StudentSidebar(props) {
   const path = location.pathname;
   const roleUpper = role.toUpperCase();
   
+  // Permission checking
+  const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
+  
   // Sidebar toggle state với persistence
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('student-sidebar-collapsed');
@@ -270,63 +274,81 @@ function StudentSidebar(props) {
     return cleanCurrentPath === cleanMenuPath;
   };
 
-  // Student menu structure
+  // Student menu structure with permission filtering
   const studentMenu = useMemo(() => {
-    return [
-    // Dashboard - Trang chủ
-    {
-      key: 'dashboard',
-      to: '/student',
-      label: 'Trang chủ',
-      icon: <Home className="w-5 h-5" />,
-      active: getActiveState('/student')
-    },
+    const baseMenu = [
+      // Dashboard - Trang chủ (luôn hiển thị)
+      {
+        key: 'dashboard',
+        to: '/student',
+        label: 'Trang chủ',
+        icon: <Home className="w-5 h-5" />,
+        active: getActiveState('/student')
+      },
+    ];
     
-    // Hoạt động
-    {
-      type: 'group',
-      key: 'activities',
-      title: 'Hoạt động',
-      groupKey: 'activities',
-      icon: <Activity className="w-5 h-5" />,
-      defaultOpen: true,
-      items: [
-        {
-          key: 'activities-list',
-          to: '/student/activities',
-          label: 'Danh sách hoạt động',
-          icon: <Calendar className="w-4 h-4" />,
-          active: getActiveState('/student/activities')
-        },
-        {
-          key: 'my-activities',
-          to: '/student/my-activities',
-          label: 'Hoạt động của tôi',
-          icon: <CheckCircle className="w-4 h-4" />,
-          active: getActiveState('/student/my-activities')
-        }
-      ]
-    },
-
-    // Điểm rèn luyện
-    {
-      key: 'scores',
-      to: '/student/scores',
-      label: 'Điểm rèn luyện',
-      icon: <Award className="w-5 h-5" />,
-      active: getActiveState('/student/scores')
-    },
-
-    // QR Điểm danh
-    {
-      key: 'qr-scanner',
-      to: '/student/qr-scanner',
-      label: 'QR Điểm danh',
-      icon: <QrCode className="w-5 h-5" />,
-      active: getActiveState('/student/qr-scanner')
+    // Hoạt động group
+    const activitiesItems = [];
+    
+    // Danh sách hoạt động - cần activities.view
+    if (hasAnyPermission(['activities.view', 'activities.read'])) {
+      activitiesItems.push({
+        key: 'activities-list',
+        to: '/student/activities',
+        label: 'Danh sách hoạt động',
+        icon: <Calendar className="w-4 h-4" />,
+        active: getActiveState('/student/activities')
+      });
     }
-  ];
-  }, [path]); // IMPORTANT: Include path to re-calculate when URL changes
+    
+    // Hoạt động của tôi - cần registrations.view
+    if (hasAnyPermission(['registrations.view', 'registrations.read', 'registrations.register'])) {
+      activitiesItems.push({
+        key: 'my-activities',
+        to: '/student/my-activities',
+        label: 'Hoạt động của tôi',
+        icon: <CheckCircle className="w-4 h-4" />,
+        active: getActiveState('/student/my-activities')
+      });
+    }
+    
+    // Chỉ thêm group Hoạt động nếu có ít nhất 1 item
+    if (activitiesItems.length > 0) {
+      baseMenu.push({
+        type: 'group',
+        key: 'activities',
+        title: 'Hoạt động',
+        groupKey: 'activities',
+        icon: <Activity className="w-5 h-5" />,
+        defaultOpen: true,
+        items: activitiesItems
+      });
+    }
+
+    // Điểm rèn luyện - cần points.view_own hoặc scores.read
+    if (hasAnyPermission(['points.view_own', 'points.view_all', 'scores.read'])) {
+      baseMenu.push({
+        key: 'scores',
+        to: '/student/scores',
+        label: 'Điểm rèn luyện',
+        icon: <Award className="w-5 h-5" />,
+        active: getActiveState('/student/scores')
+      });
+    }
+
+    // QR Điểm danh - cần attendance.write hoặc attendance.view
+    if (hasAnyPermission(['attendance.write', 'attendance.view', 'attendance.mark'])) {
+      baseMenu.push({
+        key: 'qr-scanner',
+        to: '/student/qr-scanner',
+        label: 'QR Điểm danh',
+        icon: <QrCode className="w-5 h-5" />,
+        active: getActiveState('/student/qr-scanner')
+      });
+    }
+    
+    return baseMenu;
+  }, [path, hasAnyPermission]); // Include path and hasAnyPermission
 
   // Render menu items
   const renderMenuItems = useCallback((items) => {

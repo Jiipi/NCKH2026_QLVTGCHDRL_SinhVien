@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { usePermissions } from '../../hooks/usePermissions';
 import { 
   Users, 
   Calendar, 
@@ -169,6 +170,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
 function AdminStudentSidebar() {
   const location = useLocation();
   const path = location.pathname;
+  const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('admin-sidebar-collapsed');
@@ -215,28 +217,63 @@ function AdminStudentSidebar() {
     return cleanCurrentPath === cleanMenuPath;
   };
 
-  const adminMenu = useMemo(() => ([
-    { key: 'dashboard', to: '/admin', label: 'Trang chủ', icon: <Home className="w-5 h-5" />, active: isActive('/admin') },
-    {
-      type: 'group', key: 'users', title: 'Người dùng', groupKey: 'users', icon: <Users className="w-5 h-5" />, defaultOpen: true,
-      items: [
-        { key: 'admin-users', to: '/admin/users', label: 'Tài khoản', icon: <Users className="w-4 h-4" />, active: isActive('/admin/users') },
-        { key: 'admin-roles', to: '/admin/roles', label: 'Vai trò & Quyền', icon: <Shield className="w-4 h-4" />, active: isActive('/admin/roles') },
-      ]
-    },
-    {
-      type: 'group', key: 'activities', title: 'Hoạt động', groupKey: 'activities', icon: <Activity className="w-5 h-5" />, defaultOpen: true,
-      items: [
-        { key: 'admin-activities', to: '/admin/activities', label: 'Danh sách hoạt động', icon: <Activity className="w-4 h-4" />, active: isActive('/admin/activities') },
-        { key: 'admin-approvals', to: '/admin/approvals', label: 'Phê duyệt đăng ký', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/approvals') },
-        { key: 'admin-qr', to: '/admin/qr-attendance', label: 'QR Điểm danh', icon: <QrCode className="w-4 h-4" />, active: isActive('/admin/qr-attendance') },
-        { key: 'admin-activity-types', to: '/admin/activity-types', label: 'Loại hoạt động', icon: <Layers className="w-4 h-4" />, active: isActive('/admin/activity-types') },
-        { key: 'admin-semesters', to: '/admin/semesters', label: 'Quản lý học kỳ', icon: <Calendar className="w-4 h-4" />, active: isActive('/admin/semesters') },
-      ]
-    },
-    { key: 'reports', to: '/admin/reports', label: 'Báo cáo', icon: <FileText className="w-5 h-5" />, active: isActive('/admin/reports') },
-    { key: 'notifications', to: '/admin/notifications', label: 'Thông báo', icon: <Bell className="w-5 h-5" />, active: isActive('/admin/notifications') },
-  ]), [path]);
+  // Admin menu với permission filtering
+  const adminMenu = useMemo(() => {
+    const menu = [
+      { key: 'dashboard', to: '/admin', label: 'Trang chủ', icon: <Home className="w-5 h-5" />, active: isActive('/admin') },
+    ];
+
+    // Users group
+    const usersItems = [];
+    if (hasAnyPermission(['users.view', 'users.read', 'users.write'])) {
+      usersItems.push({ key: 'admin-users', to: '/admin/users', label: 'Tài khoản', icon: <Users className="w-4 h-4" />, active: isActive('/admin/users') });
+    }
+    if (hasAnyPermission(['roles.read', 'roles.write', 'system.roles'])) {
+      usersItems.push({ key: 'admin-roles', to: '/admin/roles', label: 'Vai trò & Quyền', icon: <Shield className="w-4 h-4" />, active: isActive('/admin/roles') });
+    }
+    if (usersItems.length > 0) {
+      menu.push({
+        type: 'group', key: 'users', title: 'Người dùng', groupKey: 'users', icon: <Users className="w-5 h-5" />, defaultOpen: true,
+        items: usersItems
+      });
+    }
+
+    // Activities group
+    const activitiesItems = [];
+    if (hasAnyPermission(['activities.view', 'activities.read', 'activities.write'])) {
+      activitiesItems.push({ key: 'admin-activities', to: '/admin/activities', label: 'Danh sách hoạt động', icon: <Activity className="w-4 h-4" />, active: isActive('/admin/activities') });
+    }
+    if (hasAnyPermission(['activities.approve', 'registrations.approve'])) {
+      activitiesItems.push({ key: 'admin-approvals', to: '/admin/approvals', label: 'Phê duyệt đăng ký', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/approvals') });
+    }
+    if (hasAnyPermission(['attendance.view', 'attendance.read', 'attendance.write', 'attendance.mark'])) {
+      activitiesItems.push({ key: 'admin-qr', to: '/admin/qr-attendance', label: 'QR Điểm danh', icon: <QrCode className="w-4 h-4" />, active: isActive('/admin/qr-attendance') });
+    }
+    if (hasAnyPermission(['activityTypes.read', 'activityTypes.write'])) {
+      activitiesItems.push({ key: 'admin-activity-types', to: '/admin/activity-types', label: 'Loại hoạt động', icon: <Layers className="w-4 h-4" />, active: isActive('/admin/activity-types') });
+    }
+    if (hasAnyPermission(['system.settings', 'system.manage'])) {
+      activitiesItems.push({ key: 'admin-semesters', to: '/admin/semesters', label: 'Quản lý học kỳ', icon: <Calendar className="w-4 h-4" />, active: isActive('/admin/semesters') });
+    }
+    if (activitiesItems.length > 0) {
+      menu.push({
+        type: 'group', key: 'activities', title: 'Hoạt động', groupKey: 'activities', icon: <Activity className="w-5 h-5" />, defaultOpen: true,
+        items: activitiesItems
+      });
+    }
+
+    // Reports
+    if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
+      menu.push({ key: 'reports', to: '/admin/reports', label: 'Báo cáo', icon: <FileText className="w-5 h-5" />, active: isActive('/admin/reports') });
+    }
+
+    // Notifications
+    if (hasAnyPermission(['notifications.view', 'notifications.read', 'notifications.write', 'notifications.create'])) {
+      menu.push({ key: 'notifications', to: '/admin/notifications', label: 'Thông báo', icon: <Bell className="w-5 h-5" />, active: isActive('/admin/notifications') });
+    }
+
+    return menu;
+  }, [path, hasAnyPermission]);
 
   const renderMenuItems = useCallback((items) => {
     return items.map(item => {

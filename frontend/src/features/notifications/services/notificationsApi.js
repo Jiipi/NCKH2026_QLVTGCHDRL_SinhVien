@@ -52,7 +52,7 @@ class NotificationsAPI {
 
   async markAsRead(id) {
     try {
-      await http.put(`/core/notifications/${id}/read`);
+      await http.patch(`/core/notifications/${id}/read`);
       return { success: true };
     } catch (error) {
       return handleError(error);
@@ -61,7 +61,7 @@ class NotificationsAPI {
 
   async markAllAsRead() {
     try {
-      await http.put('/core/notifications/mark-all-read');
+      await http.patch('/core/notifications/mark-all-read');
       return { success: true };
     } catch (error) {
       return handleError(error);

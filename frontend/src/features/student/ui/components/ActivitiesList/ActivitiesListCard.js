@@ -8,40 +8,12 @@ import {
   Info,
   UserPlus,
   Eye,
-  Trophy
+  Trophy,
+  CalendarClock,
+  CalendarCheck,
+  CalendarX
 } from 'lucide-react';
-import { getActivityImage } from '../../../../../shared/lib/activityImages';
-
-// Helper to check if image is a real upload vs default SVG
-const isRealImage = (imageUrl) => {
-  if (!imageUrl) return false;
-  const url = String(imageUrl);
-  // Check if it's a default SVG file
-  const isDefaultSvg = url.includes('/images/activity-') || 
-                       url.includes('/images/default-activity') ||
-                       (url.endsWith('.svg') && url.includes('/images/'));
-  // Real image = not a default SVG
-  return !isDefaultSvg;
-};
-
-// Get gradient based on activity type
-const getTypeGradient = (activityType) => {
-  if (!activityType) return 'from-indigo-500 via-purple-500 to-pink-500';
-  const type = activityType.toLowerCase();
-  if (type.includes('tình nguyện') || type.includes('tinh nguyen') || type.includes('volunteer')) {
-    return 'from-emerald-500 via-green-500 to-teal-500';
-  }
-  if (type.includes('thể thao') || type.includes('the thao') || type.includes('sport')) {
-    return 'from-blue-500 via-cyan-500 to-teal-500';
-  }
-  if (type.includes('văn hóa') || type.includes('van hoa') || type.includes('văn nghệ')) {
-    return 'from-orange-500 via-amber-500 to-yellow-500';
-  }
-  if (type.includes('học thuật') || type.includes('hoc thuat') || type.includes('khoa học')) {
-    return 'from-violet-500 via-purple-500 to-fuchsia-500';
-  }
-  return 'from-indigo-500 via-purple-500 to-pink-500';
-};
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 export default function ActivitiesListCard({
   activity,
@@ -54,6 +26,7 @@ export default function ActivitiesListCard({
   const {
     startDate,
     endDate,
+    deadline,
     status,
     timeStatus,
     timeStatusColor,
@@ -65,10 +38,6 @@ export default function ActivitiesListCard({
     rejectionReason
   } = useMemo(() => buildActivityMeta(activity, role, isWritable), [activity, role, isWritable]);
 
-  const imageUrl = getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
-  const hasRealImage = isRealImage(imageUrl);
-  const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
-
   if (mode === 'list') {
     return (
       <div className="group relative">
@@ -76,23 +45,22 @@ export default function ActivitiesListCard({
         <div className="relative bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-300 transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden">
-              {hasRealImage ? (
-                <img
-                  src={imageUrl}
-                  alt={activity.ten_hd}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className={`w-full h-full bg-gradient-to-br ${typeGradient}`} />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-              <div className="absolute top-2 left-2">
+              <ActivityImageSlideshow
+                images={activity.hinh_anh}
+                activityType={activity.loai_hd?.ten_loai_hd}
+                alt={activity.ten_hd}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                showDots={true}
+                dotsPosition="bottom"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
+              <div className="absolute top-2 left-2 pointer-events-none">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${status.bg} ${status.text} border ${status.border} shadow-sm`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
                   {status.label}
                 </span>
               </div>
-              <div className="absolute bottom-2 left-2 right-2">
+              <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/90 backdrop-blur-sm text-white shadow-sm text-xs font-bold w-fit">
                   <Trophy className="h-3 w-3" />
                   +{activity.diem_rl || 0}
@@ -116,10 +84,37 @@ export default function ActivitiesListCard({
                   <span className={`text-xs font-semibold ${timeStatusColor}`}>• {timeStatus}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <InfoRow icon={Clock} label={startDate?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} subLabel={startDate?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} />
-                  <InfoRow icon={MapPin} label={activity.dia_diem || 'Chưa xác định'} />
-                  <InfoRow icon={Users} label={activity.don_vi_to_chuc || 'Nhà trường'} />
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {startDate && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-gray-900 font-medium">
+                        BĐ: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {endDate && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarCheck className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-gray-900 font-medium">
+                        KT: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {deadline && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarX className={`h-3.5 w-3.5 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                      <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                        Hạn ĐK: {deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {activity.dia_diem && (
+                    <div className="flex items-center gap-1.5 text-xs col-span-2">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -162,17 +157,16 @@ export default function ActivitiesListCard({
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          {hasRealImage ? (
-            <img
-              src={imageUrl}
-              alt={activity.ten_hd}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${typeGradient}`} />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-          <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
+            alt={activity.ten_hd}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            showDots={true}
+            dotsPosition="bottom"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+          <div className="absolute top-2 left-2 right-2 flex justify-between items-start pointer-events-none">
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm ${status.text} shadow-md`}>
               <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
               {status.label}
@@ -196,8 +190,36 @@ export default function ActivitiesListCard({
           </div>
 
           <div className="space-y-1.5">
-            <InfoRow icon={Clock} label={startDate?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} subLabel={startDate?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} />
-            <InfoRow icon={MapPin} label={activity.dia_diem || 'Chưa xác định'} />
+            {startDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Bắt đầu: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {endDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Kết thúc: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {deadline && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                  Hạn ĐK: {deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.dia_diem && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -290,6 +312,7 @@ function buildActivityMeta(activity = {}, role, isWritable) {
   return {
     startDate,
     endDate,
+    deadline,
     status,
     timeStatus,
     timeStatusColor,

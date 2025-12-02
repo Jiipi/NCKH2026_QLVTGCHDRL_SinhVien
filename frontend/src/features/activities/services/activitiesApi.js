@@ -7,6 +7,7 @@ import {
   extractArrayData 
 } from './apiErrorHandler';
 import { emitActivitiesChange } from '../../../shared/lib/dataRefresh';
+import { toISOWithTimezone } from '../../../shared/lib/dateTime';
 
 // Map frontend form fields to backend validator schema
 const mapToBackendActivityPayload = async (data) => {
@@ -14,13 +15,14 @@ const mapToBackendActivityPayload = async (data) => {
     ten_hoat_dong: data.ten_hd ?? data.ten_hoat_dong,
     mo_ta: data.mo_ta ?? null,
     loai_hoat_dong_id: data.loai_hd_id ?? data.loai_hoat_dong_id,
-    ngay_bat_dau: data.ngay_bd ?? data.ngay_bat_dau,
-    ngay_ket_thuc: data.ngay_kt ?? data.ngay_ket_thuc,
+    // Chuyển đổi datetime sang ISO format với timezone để backend parse đúng
+    ngay_bat_dau: toISOWithTimezone(data.ngay_bd ?? data.ngay_bat_dau),
+    ngay_ket_thuc: toISOWithTimezone(data.ngay_kt ?? data.ngay_ket_thuc),
     dia_diem: data.dia_diem ?? null,
     so_luong_toi_da: data.sl_toi_da ?? data.so_luong_toi_da ?? null,
     diem_ren_luyen: data.diem_rl ?? data.diem_ren_luyen ?? null,
     // Keep original fields for service normalization (ignored by validator)
-    han_dk: data.han_dk ?? null,
+    han_dk: toISOWithTimezone(data.han_dk),
     hoc_ky: data.hoc_ky,
     nam_hoc: data.nam_hoc,
   };

@@ -32,6 +32,29 @@ class CheckInRegistrationUseCase {
       throw new ValidationError('Chỉ có thể điểm danh registration đã được duyệt');
     }
 
+    // Business rule: Cannot check-in before activity starts (exact time)
+    const now = new Date();
+    const activityStart = new Date(registration.activity.ngay_bd);
+    
+    if (now.getTime() < activityStart.getTime()) {
+      const startDateStr = activityStart.toLocaleString('vi-VN', { 
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      throw new ValidationError(`Hoạt động chưa bắt đầu. Thời gian bắt đầu: ${startDateStr}`);
+    }
+
+    // Business rule: Cannot check-in after activity ends (exact time)
+    const activityEnd = new Date(registration.activity.ngay_kt);
+    
+    if (now.getTime() > activityEnd.getTime()) {
+      const endDateStr = activityEnd.toLocaleString('vi-VN', { 
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      throw new ValidationError(`Hoạt động đã kết thúc lúc ${endDateStr}, không thể điểm danh`);
+    }
+
     // Check-in using repository
     const updated = await this.registrationRepository.checkIn(id, new Date());
 

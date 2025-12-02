@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar, Users, Clock, Eye, CheckCircle, XCircle, Award } from 'lucide-react';
-import { getActivityImage } from '../../../../../shared/lib/activityImages';
+import { Calendar, Users, Clock, Eye, CheckCircle, XCircle, Award, CalendarClock, CalendarCheck, CalendarX, MapPin } from 'lucide-react';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 export default function ActivityApprovalGridCard({
   activity,
@@ -22,10 +22,12 @@ export default function ActivityApprovalGridCard({
     <div className="group relative h-full" data-ref="teacher-approval-grid-card">
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          <img
-            src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
             alt={activity.ten_hd}
             className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+            showDots={true}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
@@ -74,13 +76,31 @@ export default function ActivityApprovalGridCard({
           <div className="space-y-1.5 text-xs">
             {activity.ngay_bd && (
               <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Bắt đầu: {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.ngay_kt && (
+              <div className="flex items-center gap-1.5">
+                <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Kết thúc: {new Date(activity.ngay_kt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_kt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.han_dk && (
+              <div className="flex items-center gap-1.5">
+                <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${new Date(activity.han_dk) < new Date() ? 'text-red-500' : 'text-orange-500'}`} />
+                <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
+                  Hạn ĐK: {new Date(activity.han_dk).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.han_dk).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             )}
             {activity.dia_diem && (
               <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                 <span className="text-gray-600 truncate">{activity.dia_diem}</span>
               </div>
             )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Edit, Save, Eye } from 'lucide-react';
 import FileUpload from '../../../../../shared/ui/FileUpload';
 import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
+import { formatDateTimeLocal } from '../../../../../shared/lib/dateTime';
 
 /**
  * ActivityEditModal Component - Modal chỉnh sửa/xem chi tiết hoạt động
@@ -118,7 +119,7 @@ export default function ActivityEditModal({
               </label>
               <input
                 type="datetime-local"
-                value={activity.ngay_bd ? new Date(activity.ngay_bd).toISOString().slice(0, 16) : ''}
+                value={formatDateTimeLocal(activity.ngay_bd)}
                 onChange={(e) => editMode && onActivityChange({...activity, ngay_bd: e.target.value})}
                 disabled={!editMode}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600"
@@ -132,7 +133,7 @@ export default function ActivityEditModal({
               </label>
               <input
                 type="datetime-local"
-                value={activity.ngay_kt ? new Date(activity.ngay_kt).toISOString().slice(0, 16) : ''}
+                value={formatDateTimeLocal(activity.ngay_kt)}
                 onChange={(e) => editMode && onActivityChange({...activity, ngay_kt: e.target.value})}
                 disabled={!editMode}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600"
@@ -146,7 +147,7 @@ export default function ActivityEditModal({
               </label>
               <input
                 type="datetime-local"
-                value={activity.han_dk ? new Date(activity.han_dk).toISOString().slice(0, 16) : ''}
+                value={formatDateTimeLocal(activity.han_dk)}
                 onChange={(e) => editMode && onActivityChange({...activity, han_dk: e.target.value})}
                 disabled={!editMode}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600"

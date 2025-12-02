@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Save, X } from 'lucide-react';
 import FileUpload from '../../../shared/ui/FileUpload'; // Assuming FileUpload is a shared component
+import { formatDateTimeLocal } from '../../../../shared/lib/dateTime';
 
 export default function EditActivityModal({ isOpen, onClose, activity, onSave }) {
   const [editMode, setEditMode] = useState(false);
@@ -64,11 +65,11 @@ export default function EditActivityModal({ isOpen, onClose, activity, onSave })
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Ngày bắt đầu *</label>
-              <input type="datetime-local" name="ngay_bd" value={localActivity.ngay_bd ? new Date(localActivity.ngay_bd).toISOString().slice(0, 16) : ''} onChange={handleInputChange} disabled={!editMode} className="mt-1 w-full p-2 border rounded-md disabled:bg-gray-100" />
+              <input type="datetime-local" name="ngay_bd" value={formatDateTimeLocal(localActivity.ngay_bd)} onChange={handleInputChange} disabled={!editMode} className="mt-1 w-full p-2 border rounded-md disabled:bg-gray-100" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Ngày kết thúc *</label>
-              <input type="datetime-local" name="ngay_kt" value={localActivity.ngay_kt ? new Date(localActivity.ngay_kt).toISOString().slice(0, 16) : ''} onChange={handleInputChange} disabled={!editMode} className="mt-1 w-full p-2 border rounded-md disabled:bg-gray-100" />
+              <input type="datetime-local" name="ngay_kt" value={formatDateTimeLocal(localActivity.ngay_kt)} onChange={handleInputChange} disabled={!editMode} className="mt-1 w-full p-2 border rounded-md disabled:bg-gray-100" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Mô tả</label>

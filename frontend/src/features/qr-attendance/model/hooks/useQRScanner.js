@@ -119,7 +119,8 @@ export function useQRScanner() {
       try { window.dispatchEvent(new CustomEvent('attendance:updated', { detail: { activityId: payload.activityId }})); } catch (_) {}
       try { window.localStorage.setItem('ATTENDANCE_UPDATED_AT', String(Date.now())); } catch (_) {}
     } catch (e) {
-      const msg = e?.message || 'Không thể xác thực mã QR. Vui lòng thử lại.';
+      // Ưu tiên lấy message từ backend response trước, sau đó là error.message
+      const msg = e?.response?.data?.message || e?.message || 'Không thể xác thực mã QR. Vui lòng thử lại.';
       setScanResult({ success: false, message: msg });
       setError(msg);
     } finally {

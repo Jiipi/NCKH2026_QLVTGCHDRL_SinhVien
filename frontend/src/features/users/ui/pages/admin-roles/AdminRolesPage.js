@@ -977,6 +977,85 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
   const [setDirty, setSetDirty] = React.useState(false);
   const [selected, setSelected] = React.useState(Array.isArray(role.quyen_han) ? new Set(role.quyen_han) : new Set());
 
+  // Mapping permission slugs sang tiếng Việt
+  const PERMISSION_LABELS = {
+    // Users
+    'users.read': 'Xem người dùng',
+    'users.write': 'Sửa người dùng',
+    'users.delete': 'Xóa người dùng',
+    'users.view': 'Xem người dùng',
+    'users.create': 'Tạo người dùng',
+    'users.update': 'Cập nhật người dùng',
+    // Activities
+    'activities.read': 'Xem hoạt động',
+    'activities.write': 'Sửa hoạt động',
+    'activities.delete': 'Xóa hoạt động',
+    'activities.approve': 'Duyệt hoạt động',
+    'activities.view': 'Xem hoạt động',
+    'activities.create': 'Tạo hoạt động',
+    'activities.update': 'Cập nhật hoạt động',
+    'activities.reject': 'Từ chối hoạt động',
+    // Registrations
+    'registrations.read': 'Xem đăng ký',
+    'registrations.write': 'Sửa đăng ký',
+    'registrations.delete': 'Xóa đăng ký',
+    'registrations.view': 'Xem đăng ký',
+    'registrations.register': 'Đăng ký tham gia',
+    'registrations.cancel': 'Hủy đăng ký',
+    'registrations.approve': 'Duyệt đăng ký',
+    'registrations.reject': 'Từ chối đăng ký',
+    // Attendance
+    'attendance.read': 'Xem điểm danh',
+    'attendance.write': 'Điểm danh',
+    'attendance.delete': 'Xóa điểm danh',
+    'attendance.view': 'Xem điểm danh',
+    'attendance.mark': 'Đánh dấu điểm danh',
+    // Reports
+    'reports.read': 'Xem báo cáo',
+    'reports.export': 'Xuất báo cáo',
+    'reports.view': 'Xem báo cáo',
+    // Roles
+    'roles.read': 'Xem vai trò',
+    'roles.write': 'Sửa vai trò',
+    'roles.delete': 'Xóa vai trò',
+    // Notifications
+    'notifications.read': 'Xem thông báo',
+    'notifications.write': 'Gửi thông báo',
+    'notifications.delete': 'Xóa thông báo',
+    'notifications.view': 'Xem thông báo',
+    'notifications.create': 'Tạo thông báo',
+    'notifications.manage': 'Quản lý thông báo',
+    // Students
+    'students.read': 'Xem sinh viên',
+    'students.update': 'Cập nhật sinh viên',
+    // Classmates
+    'classmates.read': 'Xem bạn cùng lớp',
+    'classmates.assist': 'Hỗ trợ bạn cùng lớp',
+    // Profile
+    'profile.read': 'Xem hồ sơ',
+    'profile.update': 'Cập nhật hồ sơ',
+    // Scores
+    'scores.read': 'Xem điểm',
+    'points.view_all': 'Xem tất cả điểm',
+    'points.view_own': 'Xem điểm của mình',
+    // System
+    'system.manage': 'Quản lý hệ thống',
+    'system.configure': 'Cấu hình hệ thống',
+    'system.dashboard': 'Bảng điều khiển',
+    'system.roles': 'Quản lý vai trò',
+    'system.settings': 'Cài đặt hệ thống',
+    'system.logs': 'Xem nhật ký',
+    // Activity Types
+    'activityTypes.read': 'Xem loại hoạt động',
+    'activityTypes.write': 'Sửa loại hoạt động',
+    'activityTypes.delete': 'Xóa loại hoạt động',
+  };
+
+  // Hàm lấy label tiếng Việt cho permission
+  const getPermissionLabel = (slug) => {
+    return PERMISSION_LABELS[slug] || slug;
+  };
+
   // Update state whenever role data changes (important for permission display)
   React.useEffect(() => {
     console.log('?? RolePermissionEditor updating state:', {
@@ -1102,8 +1181,9 @@ function RolePermissionEditor({ role, allPermissions, onSaved, useCanonical, onR
           }
           return (
             <button key={p} onClick={() => toggle(p)}
+              title={p}
               style={{ ...buttonStyle, borderColor: active ? '#c7d2fe' : '#e5e7eb', background: active ? '#eef2ff' : 'white', color: active ? '#4338ca' : '#374151' }}>
-              {p}
+              {getPermissionLabel(p)}
             </button>
           );
         })}

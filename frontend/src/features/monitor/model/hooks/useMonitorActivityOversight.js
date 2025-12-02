@@ -10,6 +10,7 @@ import { mapActivityToUI } from '../mappers/monitor.mappers';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { toISOWithTimezone } from '../../../../shared/lib/dateTime';
 
 /**
  * Get initial semester from global storage or calculate current
@@ -233,9 +234,10 @@ export function useMonitorActivityOversight() {
         loai_hd_id: selectedActivity.loai_hd_id,
         diem_rl: diem_rl,
         dia_diem: selectedActivity.dia_diem,
-        ngay_bd: selectedActivity.ngay_bd,
-        ngay_kt: selectedActivity.ngay_kt,
-        han_dk: selectedActivity.han_dk,
+        // Chuyển đổi datetime sang ISO format với timezone
+        ngay_bd: toISOWithTimezone(selectedActivity.ngay_bd),
+        ngay_kt: toISOWithTimezone(selectedActivity.ngay_kt),
+        han_dk: toISOWithTimezone(selectedActivity.han_dk),
         sl_toi_da: sl_toi_da,
         don_vi_to_chuc: selectedActivity.don_vi_to_chuc,
         yeu_cau_tham_gia: selectedActivity.yeu_cau_tham_gia,
