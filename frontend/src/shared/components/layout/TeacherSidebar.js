@@ -387,15 +387,6 @@ function TeacherSidebar(props) {
         active: getActiveState('/teacher/students')
       });
     }
-    if (hasAnyPermission(['points.view_all', 'scores.read', 'students.read'])) {
-      studentItems.push({
-        key: 'student-scores',
-        to: '/teacher/student-scores',
-        label: 'Điểm rèn luyện',
-        icon: <TrendingUp className="w-4 h-4" />,
-        active: getActiveState('/teacher/student-scores')
-      });
-    }
     if (studentItems.length > 0) {
       menu.push({
         type: 'group',
@@ -447,17 +438,6 @@ function TeacherSidebar(props) {
             active: getActiveState('/teacher/notifications')
           }
         ]
-      });
-    }
-
-    // Hồ sơ cá nhân
-    if (hasAnyPermission(['profile.read', 'profile.view'])) {
-      menu.push({
-        key: 'profile',
-        to: '/teacher/profile',
-        label: 'Hồ sơ',
-        icon: <Users className="w-5 h-5" />,
-        active: getActiveState('/teacher/profile')
       });
     }
 
