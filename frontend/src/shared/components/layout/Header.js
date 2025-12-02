@@ -539,24 +539,14 @@ export default function Header() {
                       </Link>
                     </>
                   ) : isTeacherContext ? (
-                    <>
-                      <Link
-                        replace
-                        to="/teacher/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => setOpen(false)}
-                      >
-                        ThĂ´ng tin cĂ¡ nhĂ¢n
-                      </Link>
-                      <Link
-                        replace
-                        to="/teacher/preferences"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => setOpen(false)}
-                      >
-                        TĂ¹y chá»n
-                      </Link>
-                    </>
+                    <Link
+                      replace
+                      to="/teacher/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setOpen(false)}
+                    >
+                      Thông tin cá nhân
+                    </Link>
                   ) : (
                     <>
                       <Link

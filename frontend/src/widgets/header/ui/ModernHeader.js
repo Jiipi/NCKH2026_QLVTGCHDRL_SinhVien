@@ -902,24 +902,14 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                       )}
                       
                       {isTeacherContext && (
-                        <>
-                          <Link
-                            to="/teacher/profile"
-                            onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <User className="h-5 w-5 text-gray-400" />
-                            <span>Thông tin cá nhân</span>
-                          </Link>
-                          <Link
-                            to="/teacher/preferences"
-                            onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <Settings className="h-5 w-5 text-gray-400" />
-                            <span>Tùy chọn</span>
-                          </Link>
-                        </>
+                        <Link
+                          to="/teacher/profile"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          <User className="h-5 w-5 text-gray-400" />
+                          <span>Thông tin cá nhân</span>
+                        </Link>
                       )}
                       
                       {!isAdminContext && !isMonitorContext && !isTeacherContext && (

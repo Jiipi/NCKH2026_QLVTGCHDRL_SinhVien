@@ -48,7 +48,6 @@ import {
   TeacherAttendancePage,
   TeacherDashboardPage,
   TeacherNotificationsPage,
-  TeacherPreferencesPage,
   TeacherProfilePage,
   TeacherRegistrationApprovalsPage,
   TeacherReportsPage,
@@ -263,8 +262,7 @@ function App() {
             React.createElement(Route, { key: 'teacher-reports', path: 'reports', element: React.createElement(TeacherReportsPage) }),
           React.createElement(Route, { key: 'teacher-reports-export', path: 'reports/export', element: React.createElement(TeacherReportsPage) }),
             React.createElement(Route, { key: 'teacher-profile', path: 'profile', element: React.createElement(TeacherProfilePage) }),
-          React.createElement(Route, { key: 'teacher-notifications-create', path: 'notifications/create', element: React.createElement(TeacherNotificationsPage) }),
-            React.createElement(Route, { key: 'teacher-preferences', path: 'preferences', element: React.createElement(TeacherPreferencesPage) })
+          React.createElement(Route, { key: 'teacher-notifications-create', path: 'notifications/create', element: React.createElement(TeacherNotificationsPage) })
           ]),
 
           // Monitor nested layout
