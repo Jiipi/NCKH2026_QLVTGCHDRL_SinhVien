@@ -4,6 +4,7 @@ import http from '../../../shared/api/http';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { getActivityImage, getDefaultActivityImage } from '../../../shared/lib/activityImages';
 import resolveAssetUrl from '../../../shared/lib/assetUrl';
+import ActivityImageSlideshow from '../../../shared/components/ActivityImageSlideshow';
 
 export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
   const { showSuccess, showError, confirm } = useNotification();
@@ -140,15 +141,15 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
 
           {data && !loading && !error && (
             <div className="space-y-6">
-              {/* Activity Image */}
+              {/* Activity Image with Slideshow */}
               <div className="w-full h-64 rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
-                <img
-                  src={getActivityImage(data.hinh_anh, data.loai_hd?.ten_loai_hd)}
+                <ActivityImageSlideshow
+                  images={data.hinh_anh}
+                  activityType={data.loai_hd?.ten_loai_hd}
                   alt={data.ten_hd}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = getDefaultActivityImage(data.loai_hd?.ten_loai_hd);
-                  }}
+                  showDots={true}
+                  dotsPosition="bottom"
                 />
               </div>
 

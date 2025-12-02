@@ -264,7 +264,7 @@ export default function Header() {
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? { ...n, unread: false } : n
       ));
-      await http.put(`/core/notifications/${notificationId}/read`);
+      await http.patch(`/core/notifications/${notificationId}/read`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       setNotifications(prev => prev.map(n => 
@@ -276,7 +276,7 @@ export default function Header() {
   const markAllAsRead = async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-      await http.put('/core/notifications/mark-all-read');
+      await http.patch('/core/notifications/mark-all-read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       loadNotifications();

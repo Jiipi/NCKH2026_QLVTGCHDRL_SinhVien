@@ -77,14 +77,22 @@ export const getCurrentSemesterValue = () => {
 
 /**
  * Formats a date to datetime-local input format
+ * Sử dụng local timezone thay vì UTC để tránh lệch giờ
  * @param {string|Date} dateValue - Date to format
- * @returns {string} Formatted date string
+ * @returns {string} Formatted date string (YYYY-MM-DDTHH:mm)
  */
 export const formatToDatetimeLocal = (dateValue) => {
   if (!dateValue) return '';
   try {
     const dt = new Date(dateValue);
-    return dt.toISOString().substring(0, 16);
+    if (isNaN(dt.getTime())) return '';
+    // Lấy các thành phần theo local timezone (không dùng toISOString vì nó trả về UTC)
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    const hours = String(dt.getHours()).padStart(2, '0');
+    const minutes = String(dt.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   } catch (_) {
     return '';
   }

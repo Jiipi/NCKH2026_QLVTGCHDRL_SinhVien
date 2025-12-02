@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar, Users, Clock, Eye, CheckCircle, XCircle, Award } from 'lucide-react';
-import { getActivityImage } from '../../../../../shared/lib/activityImages';
+import { Calendar, Users, Clock, Eye, CheckCircle, XCircle, Award, CalendarClock, CalendarCheck, CalendarX, MapPin } from 'lucide-react';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 export default function ActivityApprovalListItem({
   activity,
@@ -24,10 +24,12 @@ export default function ActivityApprovalListItem({
       <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
         <div className="flex items-stretch gap-4 p-4">
           <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-            <img
-              src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+            <ActivityImageSlideshow
+              images={activity.hinh_anh}
+              activityType={activity.loai_hd?.ten_loai_hd}
               alt={activity.ten_hd}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              showDots={true}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             <div className="absolute top-2 left-2">
@@ -56,8 +58,26 @@ export default function ActivityApprovalListItem({
                 </div>
                 {activity.ngay_bd && (
                   <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                    <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
+                    <span className="text-gray-900 font-medium">
+                      BĐ: {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+                {activity.ngay_kt && (
+                  <div className="flex items-center gap-1.5">
+                    <CalendarCheck className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-gray-900 font-medium">
+                      KT: {new Date(activity.ngay_kt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.ngay_kt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+                {activity.han_dk && (
+                  <div className="flex items-center gap-1.5">
+                    <CalendarX className={`h-3.5 w-3.5 ${new Date(activity.han_dk) < new Date() ? 'text-red-500' : 'text-orange-500'}`} />
+                    <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
+                      Hạn ĐK: {new Date(activity.han_dk).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {new Date(activity.han_dk).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
                 )}
                 {activity.nguoi_tao && (

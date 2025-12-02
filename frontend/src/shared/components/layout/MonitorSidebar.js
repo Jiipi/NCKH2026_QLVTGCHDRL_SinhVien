@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { usePermissions } from '../../hooks/usePermissions';
 import http from '../../api/http';
 import '../../styles/teacher-sidebar.css';
 import {
@@ -159,6 +160,9 @@ export default function MonitorSidebar() {
   const path = location.pathname;
   const asideRef = React.useRef(null);
 
+  // Permission checking
+  const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('monitor-sidebar-collapsed');
     return stored === 'true';
@@ -228,56 +232,77 @@ export default function MonitorSidebar() {
     return cleanCurrentPath === cleanMenuPath;
   };
 
+  // Monitor menu with permission filtering
   const monitorMenu = useMemo(() => {
-    return [
-      // ====================================
-      // TRANG CHỦ - Đầu tiên
-      // ====================================
+    const menu = [
+      // Trang chủ (luôn hiển thị)
       { key: 'dashboard', to: '/monitor', label: 'Trang chủ', icon: <Home className="w-5 h-5" />, active: getActiveState('/monitor') },
-      
-      // ====================================
-      // PHẦN CÁ NHÂN (Chức năng sinh viên)
-      // ====================================
-      {
+    ];
+    
+    // PHẦN CÁ NHÂN (Chức năng sinh viên)
+    const personalItems = [];
+    if (hasAnyPermission(['registrations.view', 'registrations.read', 'registrations.register'])) {
+      personalItems.push({ key: 'my-activities', to: '/monitor/my-activities', label: 'Hoạt động của tôi', icon: <Activity className="w-4 h-4" />, active: getActiveState('/monitor/my-activities') });
+    }
+    if (hasAnyPermission(['attendance.write', 'attendance.view', 'attendance.mark'])) {
+      personalItems.push({ key: 'qr-scanner', to: '/monitor/qr-scanner', label: 'Quét QR điểm danh', icon: <QrCode className="w-4 h-4" />, active: getActiveState('/monitor/qr-scanner') });
+    }
+    if (personalItems.length > 0) {
+      menu.push({
         type: 'group', 
         key: 'personal', 
         title: 'Cá nhân', 
         groupKey: 'personal', 
         icon: <User className="w-5 h-5" />, 
         defaultOpen: true,
-        items: [
-          { key: 'my-activities', to: '/monitor/my-activities', label: 'Hoạt động của tôi', icon: <Activity className="w-4 h-4" />, active: getActiveState('/monitor/my-activities') },
-          { key: 'qr-scanner', to: '/monitor/qr-scanner', label: 'Quét QR điểm danh', icon: <QrCode className="w-4 h-4" />, active: getActiveState('/monitor/qr-scanner') }
-        ]
-      },
-      
-      // ====================================
-      // PHẦN QUẢN LÝ LỚP (Quyền lớp trưởng)
-      // ====================================
-      {
+        items: personalItems
+      });
+    }
+    
+    // PHẦN QUẢN LÝ LỚP (Quyền lớp trưởng)
+    const activityItems = [];
+    if (hasAnyPermission(['activities.view', 'activities.read', 'activities.write'])) {
+      activityItems.push({ key: 'class-activities', to: '/monitor/activities', label: 'Hoạt động lớp', icon: <Activity className="w-4 h-4" />, active: getActiveState('/monitor/activities') });
+    }
+    if (hasAnyPermission(['registrations.approve', 'registrations.reject', 'registrations.write'])) {
+      activityItems.push({ 
+        key: 'class-approvals', 
+        to: '/monitor/approvals', 
+        label: 'Phê duyệt đăng ký', 
+        icon: <CheckCircle className="w-4 h-4" />, 
+        active: getActiveState('/monitor/approvals'),
+        badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null
+      });
+    }
+    if (activityItems.length > 0) {
+      menu.push({
         type: 'group', 
         key: 'activities', 
         title: 'Quản lý hoạt động', 
         groupKey: 'activities', 
         icon: <Activity className="w-5 h-5" />, 
         defaultOpen: true,
-        items: [
-          { key: 'class-activities', to: '/monitor/activities', label: 'Hoạt động lớp', icon: <Activity className="w-4 h-4" />, active: getActiveState('/monitor/activities') },
-          { 
-            key: 'class-approvals', 
-            to: '/monitor/approvals', 
-            label: 'Phê duyệt đăng ký', 
-            icon: <CheckCircle className="w-4 h-4" />, 
-            active: getActiveState('/monitor/approvals'),
-            badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null
-          }
-        ]
-      },
-      { key: 'students', to: '/monitor/students', label: 'Sinh viên lớp', icon: <Users className="w-5 h-5" />, active: getActiveState('/monitor/students') },
-      { key: 'reports', to: '/monitor/reports', label: 'Báo cáo & Thống kê', icon: <BarChart3 className="w-5 h-5" />, active: getActiveState('/monitor/reports') },
-      { key: 'notifications', to: '/monitor/notifications', label: 'Thông báo', icon: <Bell className="w-5 h-5" />, active: getActiveState('/monitor/notifications') }
-    ];
-  }, [path, pendingApprovalsCount]);
+        items: activityItems
+      });
+    }
+    
+    // Sinh viên lớp
+    if (hasAnyPermission(['students.read', 'classmates.read', 'classmates.assist'])) {
+      menu.push({ key: 'students', to: '/monitor/students', label: 'Sinh viên lớp', icon: <Users className="w-5 h-5" />, active: getActiveState('/monitor/students') });
+    }
+    
+    // Báo cáo
+    if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
+      menu.push({ key: 'reports', to: '/monitor/reports', label: 'Báo cáo & Thống kê', icon: <BarChart3 className="w-5 h-5" />, active: getActiveState('/monitor/reports') });
+    }
+    
+    // Thông báo
+    if (hasAnyPermission(['notifications.view', 'notifications.read', 'notifications.write', 'notifications.create'])) {
+      menu.push({ key: 'notifications', to: '/monitor/notifications', label: 'Thông báo', icon: <Bell className="w-5 h-5" />, active: getActiveState('/monitor/notifications') });
+    }
+    
+    return menu;
+  }, [path, pendingApprovalsCount, hasAnyPermission]);
 
   const renderMenuItems = useCallback((items) => {
     return items.map(item => {

@@ -49,18 +49,47 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 3. Time validation (allow điểm danh đến hết ngày kết thúc)
+    // 3. Time validation - kiểm tra thời gian bắt đầu (chính xác đến giây)
     const now = new Date();
-    const end = new Date(activity.ngay_kt);
-    const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+    const start = new Date(activity.ngay_bd);
     
-    if (now > endOfDay) {
-      const error = new Error('Điểm danh đã hết hạn');
+    // Debug log để kiểm tra múi giờ
+    console.log('🕐 Time validation:', {
+      now: now.toISOString(),
+      nowLocal: now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      start: start.toISOString(),
+      startLocal: start.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      nowTime: now.getTime(),
+      startTime: start.getTime(),
+      diff: (start.getTime() - now.getTime()) / 1000 + ' seconds'
+    });
+    
+    if (now.getTime() < start.getTime()) {
+      const startDateStr = start.toLocaleString('vi-VN', { 
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      console.log('❌ Activity not started yet:', activity.ngay_bd);
+      const error = new Error(`Hoạt động chưa bắt đầu. Thời gian bắt đầu: ${startDateStr}`);
       error.status = 400;
       throw error;
     }
 
-    // 4. Verify QR token matches (security check)
+    // 4. Time validation - kiểm tra thời gian kết thúc (chính xác đến giây)
+    const end = new Date(activity.ngay_kt);
+    
+    if (now.getTime() > end.getTime()) {
+      const endDateStr = end.toLocaleString('vi-VN', { 
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      const error = new Error(`Hoạt động đã kết thúc lúc ${endDateStr}, không thể điểm danh`);
+      error.status = 400;
+      throw error;
+    }
+
+    // 5. Verify QR token matches (security check)
     if (activity.qr) {
       if (!parsed.token || parsed.token !== activity.qr) {
         console.log('❌ QR token mismatch');
@@ -70,7 +99,7 @@ class QrAttendanceService {
       }
     }
 
-    // 5. Verify user is a student or monitor
+    // 6. Verify user is a student or monitor
     const role = String(user.role || '').toUpperCase();
     if (role !== 'SINH_VIEN' && role !== 'LOP_TRUONG') {
       console.log('❌ Non-student attempted to scan QR:', role);
@@ -79,7 +108,7 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 6. Get student info
+    // 7. Get student info
     const sv = await prisma.sinhVien.findUnique({
       where: { nguoi_dung_id: user.sub },
       select: { id: true, mssv: true, nguoi_dung_id: true }
@@ -92,7 +121,7 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 7. Check if student has registered for this activity
+    // 8. Check if student has registered for this activity
     const reg = await prisma.dangKyHoatDong.findUnique({
       where: {
         sv_id_hd_id: {
@@ -110,7 +139,7 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 8. Check registration status
+    // 9. Check registration status
     if (reg.trang_thai_dk === 'tu_choi') {
       console.log('❌ Registration rejected');
       const error = new Error('Đăng ký của bạn đã bị từ chối. Không thể điểm danh.');
@@ -118,7 +147,7 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 9. Check duplicate attendance
+    // 10. Check duplicate attendance
     const existed = await prisma.diemDanh.findUnique({
       where: {
         sv_id_hd_id: {
@@ -137,7 +166,7 @@ class QrAttendanceService {
       throw error;
     }
 
-    // 10. Create attendance record
+    // 11. Create attendance record
     const clientIp = (req.headers['x-forwarded-for'] || '').toString().split(',')[0] || req.ip || null;
     
     const created = await prisma.diemDanh.create({
@@ -152,7 +181,7 @@ class QrAttendanceService {
       }
     });
 
-    // 11. Update registration status to "participated"
+    // 12. Update registration status to "participated"
     if (reg.trang_thai_dk !== 'da_tham_gia') {
       await prisma.dangKyHoatDong.update({
         where: { id: reg.id },

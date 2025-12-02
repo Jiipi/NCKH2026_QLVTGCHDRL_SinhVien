@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { usePermissions } from '../../hooks/usePermissions';
 import http from '../../api/http';
 import '../../styles/teacher-sidebar.css';
 import { 
@@ -198,6 +199,9 @@ function TeacherSidebar(props) {
   const path = location.pathname;
   const roleUpper = role.toUpperCase();
   
+  // Permission checking
+  const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
+  
   // Pending registrations count
   const [pendingCount, setPendingCount] = useState(0);
   
@@ -308,111 +312,157 @@ function TeacherSidebar(props) {
     return false;
   };
 
-  // Teacher menu structure based on tkht.md analysis
-  // IMPORTANT: Include 'path' in dependencies to re-calculate when URL changes
+  // Teacher menu structure with permission filtering
   const teacherMenu = useMemo(() => {
-    return [
-    // Dashboard - Trang chủ
-    {
-      key: 'dashboard',
-      to: '/teacher',
-      label: 'Trang chủ',
-      icon: <Home className="w-5 h-5" />,
-      active: getActiveState('/teacher')
-    },
+    const menu = [
+      // Dashboard - Trang chủ (luôn hiển thị)
+      {
+        key: 'dashboard',
+        to: '/teacher',
+        label: 'Trang chủ',
+        icon: <Home className="w-5 h-5" />,
+        active: getActiveState('/teacher')
+      },
+    ];
     
     // Quản lý hoạt động - Group
-    {
-      type: 'group',
-      key: 'activity-management',
-      title: 'Quản lý hoạt động',
-      groupKey: 'activity-management',
-      icon: <Activity className="w-5 h-5" />,
-      defaultOpen: true,
-      items: [
-        {
-          key: 'pending-activities',
-          to: '/teacher/approve',
-          label: 'Phê duyệt hoạt động',
-          icon: <Clipboard className="w-4 h-4" />,
-          active: getActiveState('/teacher/approve')
-        },
-        {
-          key: 'pending-registrations',
-          to: '/teacher/registrations/approve',
-          label: 'Phê duyệt đăng ký',
-          icon: <UserCheck className="w-4 h-4" />,
-          active: getActiveState('/teacher/registrations/approve'),
-          badge: pendingCount > 0 ? pendingCount : null
-        },
-        {
-          key: 'all-activities',
-          to: '/teacher/activities',
-          label: 'Danh mục hoạt động',
-          icon: <Calendar className="w-4 h-4" />,
-          active: getActiveState('/teacher/activities')
-        }
-      ]
-    },
+    const activityItems = [];
+    if (hasAnyPermission(['activities.approve', 'activities.reject'])) {
+      activityItems.push({
+        key: 'pending-activities',
+        to: '/teacher/approve',
+        label: 'Phê duyệt hoạt động',
+        icon: <Clipboard className="w-4 h-4" />,
+        active: getActiveState('/teacher/approve')
+      });
+    }
+    if (hasAnyPermission(['registrations.approve', 'registrations.reject', 'registrations.write'])) {
+      activityItems.push({
+        key: 'pending-registrations',
+        to: '/teacher/registrations/approve',
+        label: 'Phê duyệt đăng ký',
+        icon: <UserCheck className="w-4 h-4" />,
+        active: getActiveState('/teacher/registrations/approve'),
+        badge: pendingCount > 0 ? pendingCount : null
+      });
+    }
+    if (hasAnyPermission(['activities.view', 'activities.read', 'activities.write'])) {
+      activityItems.push({
+        key: 'all-activities',
+        to: '/teacher/activities',
+        label: 'Danh mục hoạt động',
+        icon: <Calendar className="w-4 h-4" />,
+        active: getActiveState('/teacher/activities')
+      });
+    }
+    if (hasAnyPermission(['attendance.view', 'attendance.read', 'attendance.write', 'attendance.mark'])) {
+      activityItems.push({
+        key: 'attendance',
+        to: '/teacher/attendance',
+        label: 'Điểm danh',
+        icon: <QrCode className="w-4 h-4" />,
+        active: getActiveState('/teacher/attendance')
+      });
+    }
+    if (activityItems.length > 0) {
+      menu.push({
+        type: 'group',
+        key: 'activity-management',
+        title: 'Quản lý hoạt động',
+        groupKey: 'activity-management',
+        icon: <Activity className="w-5 h-5" />,
+        defaultOpen: true,
+        items: activityItems
+      });
+    }
 
     // Quản lý sinh viên - Group
-    {
-      type: 'group',
-      key: 'student-management',
-      title: 'Quản lý sinh viên',
-      groupKey: 'student-management',
-      icon: <Users className="w-5 h-5" />,
-      defaultOpen: false,
-      items: [
-        {
-          key: 'student-list',
-          to: '/teacher/students',
-          label: 'Danh sách sinh viên',
-          icon: <Users className="w-4 h-4" />,
-          active: getActiveState('/teacher/students')
-        }
-      ]
-    },
+    const studentItems = [];
+    if (hasAnyPermission(['students.read', 'students.update', 'classmates.read'])) {
+      studentItems.push({
+        key: 'student-list',
+        to: '/teacher/students',
+        label: 'Danh sách sinh viên',
+        icon: <Users className="w-4 h-4" />,
+        active: getActiveState('/teacher/students')
+      });
+    }
+    if (hasAnyPermission(['points.view_all', 'scores.read', 'students.read'])) {
+      studentItems.push({
+        key: 'student-scores',
+        to: '/teacher/student-scores',
+        label: 'Điểm rèn luyện',
+        icon: <TrendingUp className="w-4 h-4" />,
+        active: getActiveState('/teacher/student-scores')
+      });
+    }
+    if (studentItems.length > 0) {
+      menu.push({
+        type: 'group',
+        key: 'student-management',
+        title: 'Quản lý sinh viên',
+        groupKey: 'student-management',
+        icon: <Users className="w-5 h-5" />,
+        defaultOpen: false,
+        items: studentItems
+      });
+    }
 
     // Báo cáo & Thống kê - Group
-    {
-      type: 'group',
-      key: 'reports-analytics',
-      title: 'Báo cáo & Thống kê',
-      groupKey: 'reports-analytics',
-      icon: <BarChart3 className="w-5 h-5" />,
-      defaultOpen: false,
-      items: [
-        {
-          key: 'statistics',
-          to: '/teacher/reports',
-          label: 'Thống kê & Báo cáo',
-          icon: <TrendingUp className="w-4 h-4" />,
-          active: getActiveState('/teacher/reports')
-        }
-      ]
-    },
+    if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
+      menu.push({
+        type: 'group',
+        key: 'reports-analytics',
+        title: 'Báo cáo & Thống kê',
+        groupKey: 'reports-analytics',
+        icon: <BarChart3 className="w-5 h-5" />,
+        defaultOpen: false,
+        items: [
+          {
+            key: 'statistics',
+            to: '/teacher/reports',
+            label: 'Thống kê & Báo cáo',
+            icon: <TrendingUp className="w-4 h-4" />,
+            active: getActiveState('/teacher/reports')
+          }
+        ]
+      });
+    }
 
     // Quản lý thông báo - Group
-    {
-      type: 'group',
-      key: 'notifications',
-      title: 'Thông báo',
-      groupKey: 'notifications',
-      icon: <Bell className="w-5 h-5" />,
-      defaultOpen: false,
-      items: [
-        {
-          key: 'notification-list',
-          to: '/teacher/notifications',
-          label: 'Danh sách thông báo',
-          icon: <MessageSquare className="w-4 h-4" />,
-          active: getActiveState('/teacher/notifications')
-        }
-      ]
+    if (hasAnyPermission(['notifications.view', 'notifications.read', 'notifications.write', 'notifications.create'])) {
+      menu.push({
+        type: 'group',
+        key: 'notifications',
+        title: 'Thông báo',
+        groupKey: 'notifications',
+        icon: <Bell className="w-5 h-5" />,
+        defaultOpen: false,
+        items: [
+          {
+            key: 'notification-list',
+            to: '/teacher/notifications',
+            label: 'Danh sách thông báo',
+            icon: <MessageSquare className="w-4 h-4" />,
+            active: getActiveState('/teacher/notifications')
+          }
+        ]
+      });
     }
-  ];
-  }, [path]);
+
+    // Hồ sơ cá nhân
+    if (hasAnyPermission(['profile.read', 'profile.view'])) {
+      menu.push({
+        key: 'profile',
+        to: '/teacher/profile',
+        label: 'Hồ sơ',
+        icon: <Users className="w-5 h-5" />,
+        active: getActiveState('/teacher/profile')
+      });
+    }
+
+    return menu;
+  }, [path, hasAnyPermission, pendingCount]);
 
   // Render menu items
   const renderMenuItem = useCallback((item) => {

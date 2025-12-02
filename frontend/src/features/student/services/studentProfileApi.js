@@ -57,7 +57,13 @@ export const studentProfileApi = {
       if (!passwordData) {
         return { success: false, error: 'passwordData là bắt buộc' };
       }
-      const response = await http.put('/users/change-password', passwordData);
+      // Map field names từ frontend sang backend format
+      const payload = {
+        currentPassword: passwordData.old_password,
+        newPassword: passwordData.new_password
+      };
+      // Sử dụng đúng endpoint backend: POST /api/auth/change-password
+      const response = await http.post('/auth/change-password', payload);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}

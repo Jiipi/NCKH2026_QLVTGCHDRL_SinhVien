@@ -123,10 +123,10 @@ const API_ENDPOINTS = {
 
   // Notifications endpoints
   notifications: {
-    list: '/notifications',
-    detail: (id) => `/notifications/${id}`,
-    markRead: (id) => `/notifications/${id}/read`,
-    markAllRead: '/notifications/read-all',
+    list: '/core/notifications',
+    detail: (id) => `/core/notifications/${id}`,
+    markRead: (id) => `/core/notifications/${id}/read`,
+    markAllRead: '/core/notifications/mark-all-read',
   },
 };
 

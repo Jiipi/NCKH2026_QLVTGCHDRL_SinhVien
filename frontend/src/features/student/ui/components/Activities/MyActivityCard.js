@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React from 'react';
 import {
   Clock,
   CheckCircle,
@@ -10,9 +10,13 @@ import {
   QrCode,
   Eye,
   Trophy,
-  FileText
+  FileText,
+  CalendarClock,
+  CalendarCheck,
+  CalendarX
 } from 'lucide-react';
 import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 const STATUS_CONFIG = {
   pending: {
@@ -65,41 +69,18 @@ export default function MyActivityCard({
 }) {
   const activityData = activity.hoat_dong || activity;
   const startDate = activityData.ngay_bd ? new Date(activityData.ngay_bd) : null;
+  const endDate = activityData.ngay_kt ? new Date(activityData.ngay_kt) : null;
+  const deadlineDate = activityData.han_dk ? new Date(activityData.han_dk) : null;
   const registrationDate = activity.ngay_dang_ky ? new Date(activity.ngay_dang_ky) : null;
   const approvalDate = activity.ngay_duyet ? new Date(activity.ngay_duyet) : null;
+  const now = new Date();
+  const isDeadlinePast = deadlineDate ? deadlineDate < now : false;
   const normalizedStatus = status || 'pending';
   const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG.pending;
   const StatusIcon = config.icon;
 
   const statusLabel = config.label;
   const pointsValue = activityData.diem_rl || activityData.diem || 0;
-
-  // Get all available images with fallback logic
-  const allImages = useMemo(() => {
-    const images = getActivityImages(activityData.hinh_anh, activityData.loai || activityData.loai_hd?.ten_loai_hd);
-    return images.length > 0 ? images : [getActivityImage(null, activityData.loai || activityData.loai_hd?.ten_loai_hd)];
-  }, [activityData.hinh_anh, activityData.loai, activityData.loai_hd?.ten_loai_hd]);
-
-  // State to track current image index
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Reset image index when activity changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [activity.id || activity.hd_id || activityData.id]);
-  
-  // Get current image URL
-  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
-  
-  // Handle image error - try next image
-  const handleImageError = (e) => {
-    if (currentImageIndex < allImages.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1);
-    } else {
-      const defaultImage = getActivityImage(null, activityData.loai || activityData.loai_hd?.ten_loai_hd);
-      e.target.src = defaultImage;
-    }
-  };
 
   const handleViewDetail = () => {
     if (onViewDetail) {
@@ -128,13 +109,14 @@ export default function MyActivityCard({
         <div className={`relative bg-white border-2 ${config.border} rounded-xl hover:shadow-lg transition-all duration-200`}>
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <img
-                src={currentImageUrl}
+              <ActivityImageSlideshow
+                images={activityData.hinh_anh}
+                activityType={activityData.loai || activityData.loai_hd?.ten_loai_hd}
                 alt={activityData.ten_hd || activityData.name || 'Hoạt động'}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={handleImageError}
+                showDots={true}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
               <div className="absolute top-2 left-2">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-white/90 backdrop-blur-sm ${config.text} shadow-sm`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
@@ -165,9 +147,25 @@ export default function MyActivityCard({
                   </div>
                   {startDate && (
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-gray-400" />
+                      <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
                       <span className="text-gray-900 font-medium">
-                        {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                        BĐ: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {endDate && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarCheck className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-gray-900 font-medium">
+                        KT: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {deadlineDate && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarX className={`h-3.5 w-3.5 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                      <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                        Hạn ĐK: {deadlineDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {deadlineDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   )}
@@ -214,13 +212,14 @@ export default function MyActivityCard({
       ></div>
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-purple-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
-          <img
-            src={currentImageUrl}
+          <ActivityImageSlideshow
+            images={activityData.hinh_anh}
+            activityType={activityData.loai || activityData.loai_hd?.ten_loai_hd}
             alt={activityData.ten_hd || activityData.name || 'Hoạt động'}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={handleImageError}
+            showDots={true}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm ${config.text} shadow-md`}>
               <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
@@ -247,14 +246,31 @@ export default function MyActivityCard({
           <div className="space-y-1.5">
             {startDate && (
               <div className="flex items-center gap-1.5 text-xs">
-                <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                  </p>
-                  <p className="text-gray-500">
-                    {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <span className="font-medium text-gray-900">
+                    Bắt đầu: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            )}
+            {endDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-gray-900">
+                    Kết thúc: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            )}
+            {deadlineDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                <div className="flex-1 min-w-0">
+                  <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                    Hạn ĐK: {deadlineDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {deadlineDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
             )}

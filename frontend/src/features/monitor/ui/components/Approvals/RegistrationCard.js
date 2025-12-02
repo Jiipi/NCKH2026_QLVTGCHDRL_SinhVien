@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Award, Eye, CheckCircle, XCircle, QrCode } from 'lucide-react';
-import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
 import { getUserAvatar } from '../../../../../shared/lib/avatar';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 /**
  * RegistrationCard Component - Hiển thị thẻ đăng ký hoạt động
@@ -26,7 +26,6 @@ export default function RegistrationCard({
 }) {
   const student = registration.sinh_vien?.nguoi_dung;
   const activity = registration.hoat_dong;
-  const activityImage = getBestActivityImage(activity);
   const approvedBy = registration.trang_thai_dk === 'da_duyet' ? roleLabel(registration.approvedByRole) : null;
   const rejectedBy = registration.trang_thai_dk === 'tu_choi' ? roleLabel(registration.rejectedByRole) : null;
 
@@ -38,15 +37,22 @@ export default function RegistrationCard({
         <div className={`relative bg-white border-2 rounded-xl hover:shadow-lg transition-all duration-200 ${isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'}`}>
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <img src={activityImage} alt={activity?.ten_hd || 'Hoạt động'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-              <div className="absolute top-2 left-2">
+              <ActivityImageSlideshow
+                images={activity?.hinh_anh}
+                activityType={activity?.loai_hd?.ten_loai_hd}
+                alt={activity?.ten_hd || 'Hoạt động'}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                showDots={true}
+                dotsPosition="bottom"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
+              <div className="absolute top-2 left-2 pointer-events-none">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[registration.trang_thai_dk]}`}>
                   {statusLabels[registration.trang_thai_dk]}
                 </span>
               </div>
               {activity?.diem_rl && (
-                <div className="absolute bottom-2 left-2">
+                <div className="absolute bottom-2 left-2 pointer-events-none">
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/90 backdrop-blur-sm text-white shadow-sm text-xs font-bold">
                     <Award className="h-3 w-3" />
                     +{activity.diem_rl}
@@ -189,15 +195,22 @@ export default function RegistrationCard({
     <div className={`group relative h-full ${isSelected ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`}>
       <div className={`relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full ${isPending ? 'border-amber-200 shadow-lg shadow-amber-100' : ''}`}>
         <div className="relative w-full h-36 overflow-hidden">
-          <img src={activityImage} alt={activity?.ten_hd || 'Hoạt động'} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-          <div className="absolute top-2 left-2">
+          <ActivityImageSlideshow
+            images={activity?.hinh_anh}
+            activityType={activity?.loai_hd?.ten_loai_hd}
+            alt={activity?.ten_hd || 'Hoạt động'}
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+            showDots={true}
+            dotsPosition="bottom"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
+          <div className="absolute top-2 left-2 pointer-events-none">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[registration.trang_thai_dk]}`}>
               {statusLabels[registration.trang_thai_dk]}
             </span>
           </div>
           {activity?.diem_rl && (
-            <div className="absolute bottom-2 right-2">
+            <div className="absolute bottom-2 right-2 pointer-events-none">
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/95 backdrop-blur-sm text-white rounded-lg text-xs font-bold shadow-md">
                 <Award className="h-3 w-3" />
                 +{activity.diem_rl}

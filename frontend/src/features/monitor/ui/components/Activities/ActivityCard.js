@@ -1,19 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Award, Eye, Edit, Trash2, QrCode, Users, UserPlus, Sparkles } from 'lucide-react';
+import { Calendar, Clock, MapPin, Award, Eye, Edit, Trash2, QrCode, Users, UserPlus, Sparkles, CalendarClock, CalendarCheck, CalendarX } from 'lucide-react';
 import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
 import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
-
-// Helper to check if image is a real upload vs default SVG
-const isRealImage = (imageUrl) => {
-  if (!imageUrl) return false;
-  const url = String(imageUrl);
-  // Check if it's a default SVG file
-  const isDefaultSvg = url.includes('/images/activity-') || 
-                       url.includes('/images/default-activity') ||
-                       (url.endsWith('.svg') && url.includes('/images/'));
-  // Real image = not a default SVG
-  return !isDefaultSvg;
-};
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 // Get gradient based on activity type
 const getTypeGradient = (activityType) => {
@@ -76,44 +65,7 @@ export default function ActivityCard({
   const isRegistrationOpen = canRegister;
   
   const displayStatus = getDisplayStatus(activity);
-
-  // Get all available images
-  const allImages = useMemo(() => {
-    const images = getActivityImages(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
-    return images.length > 0 ? images : [getActivityImage(null, activity.loai_hd?.ten_loai_hd)];
-  }, [activity.hinh_anh, activity.loai_hd?.ten_loai_hd]);
-
-  // State to track current image index
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Reset image index when activity changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [activity.id]);
-  
-  // Get current image URL
-  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
-  
-  // Check if we have a real uploaded image (not SVG default)
-  const hasRealImage = isRealImage(currentImageUrl);
   const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
-  
-  // Handle image error - try next image
-  const handleImageError = (e) => {
-    console.warn('[ActivityCard] Image load error, trying next:', {
-      currentIndex: currentImageIndex,
-      totalImages: allImages.length,
-      src: e.target.src
-    });
-    
-    if (currentImageIndex < allImages.length - 1) {
-      // Try next image
-      setCurrentImageIndex(currentImageIndex + 1);
-    } else {
-      // All images failed - hide img and show gradient instead
-      e.target.style.display = 'none';
-    }
-  };
   
   // LIST MODE - Compact horizontal layout
   if (displayViewMode === 'list') {
@@ -124,16 +76,15 @@ export default function ActivityCard({
         <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
           <div className="flex items-stretch gap-4 p-4">
             {/* Compact Image */}
-            <div className={`relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden ${!hasRealImage ? `bg-gradient-to-br ${typeGradient}` : 'bg-gray-100'}`}>
-              {hasRealImage && (
-                <img 
-                  src={currentImageUrl} 
-                  alt={activity.ten_hd}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={handleImageError}
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+            <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+              <ActivityImageSlideshow
+                images={activity.hinh_anh}
+                activityType={activity.loai_hd?.ten_loai_hd}
+                alt={activity.ten_hd}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                showDots={true}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
               <div className="absolute top-2 left-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[displayStatus]}`}>
                   {statusLabels[displayStatus]}
@@ -164,10 +115,42 @@ export default function ActivityCard({
                       {activity.loai_hd?.ten_loai_hd || 'Chưa phân loại'}
                     </span>
                   </div>
+                  {/* Thời gian bắt đầu */}
                   {activity.ngay_bd && (
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="text-gray-900 font-medium">{formatDate(activity.ngay_bd)}</span>
+                      <CalendarClock className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-gray-900 font-medium">
+                        {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
+                          day: '2-digit', month: '2-digit',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* Thời gian kết thúc */}
+                  {activity.ngay_kt && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarCheck className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-gray-600">KT:</span>
+                      <span className="text-gray-900 font-medium">
+                        {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
+                          day: '2-digit', month: '2-digit',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* Hạn đăng ký */}
+                  {activity.han_dk && (
+                    <div className="flex items-center gap-1.5">
+                      <CalendarX className="h-3.5 w-3.5 text-orange-500" />
+                      <span className="text-gray-600">Hạn:</span>
+                      <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                        {new Date(activity.han_dk).toLocaleString('vi-VN', {
+                          day: '2-digit', month: '2-digit',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
                     </div>
                   )}
                   {activity.dia_diem && (
@@ -261,17 +244,15 @@ export default function ActivityCard({
         
         <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
           {/* Header với ảnh hoặc gradient background - Giống sinh viên */}
-          <div className={`relative h-24 overflow-hidden bg-gradient-to-br ${typeGradient}`}>
-            {/* Activity Image - only show if real upload */}
-            {hasRealImage && (
-              <img 
-                src={currentImageUrl} 
-                alt={activity.ten_hd}
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={handleImageError}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+          <div className="relative h-24 overflow-hidden">
+            <ActivityImageSlideshow
+              images={activity.hinh_anh}
+              activityType={activity.loai_hd?.ten_loai_hd}
+              alt={activity.ten_hd}
+              className="w-full h-full object-cover"
+              showDots={true}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
             
             {/* Status badge - Top left */}
             <div className="absolute top-2 left-2">
@@ -290,7 +271,6 @@ export default function ActivityCard({
                 </span>
               </div>
             )}
-            
           </div>
 
           {/* Content - White background */}
@@ -310,17 +290,45 @@ export default function ActivityCard({
 
             {/* Meta Info */}
             <div className="space-y-1.5">
+              {/* Thời gian bắt đầu */}
               {activity.ngay_bd && (
                 <div className="flex items-center gap-1.5 text-xs">
-                  <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </p>
-                    <p className="text-gray-500">
-                      {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
+                  <CalendarClock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                  <span className="text-gray-600">Bắt đầu:</span>
+                  <span className="text-gray-900 font-medium">
+                    {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Thời gian kết thúc */}
+              {activity.ngay_kt && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <CalendarCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                  <span className="text-gray-600">Kết thúc:</span>
+                  <span className="text-gray-900 font-medium">
+                    {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Hạn đăng ký */}
+              {activity.han_dk && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <CalendarX className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                  <span className="text-gray-600">Hạn ĐK:</span>
+                  <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                    {new Date(activity.han_dk).toLocaleString('vi-VN', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </span>
                 </div>
               )}
               
@@ -374,16 +382,15 @@ export default function ActivityCard({
       isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : ''
     }`}>
       {/* Activity Image - Compact */}
-      <div className={`relative w-full h-36 overflow-hidden ${!hasRealImage ? `bg-gradient-to-br ${typeGradient}` : 'bg-gray-100'}`}>
-        {hasRealImage && (
-          <img 
-            src={currentImageUrl} 
-            alt={activity.ten_hd}
-            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-            onError={handleImageError}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+      <div className="relative w-full h-36 overflow-hidden">
+        <ActivityImageSlideshow
+          images={activity.hinh_anh}
+          activityType={activity.loai_hd?.ten_loai_hd}
+          alt={activity.ten_hd}
+          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+          showDots={true}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
         
         {/* Status Badge on Image - Compact */}
         <div className="absolute top-2 left-2">
@@ -431,14 +438,43 @@ export default function ActivityCard({
 
         {/* Compact Meta Info */}
         <div className="space-y-1.5">
+          {/* Thời gian bắt đầu */}
           {activity.ngay_bd && (
             <div className="flex items-center gap-1.5 text-xs">
-              <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+              <CalendarClock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+              <span className="text-gray-600">Bắt đầu:</span>
               <span className="text-gray-900 font-medium">
-                {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
+                {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })}
+              </span>
+            </div>
+          )}
+
+          {/* Thời gian kết thúc */}
+          {activity.ngay_kt && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <CalendarCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+              <span className="text-gray-600">Kết thúc:</span>
+              <span className="text-gray-900 font-medium">
+                {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })}
+              </span>
+            </div>
+          )}
+
+          {/* Hạn đăng ký */}
+          {activity.han_dk && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <CalendarX className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+              <span className="text-gray-600">Hạn ĐK:</span>
+              <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                {new Date(activity.han_dk).toLocaleString('vi-VN', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
                 })}
               </span>
             </div>

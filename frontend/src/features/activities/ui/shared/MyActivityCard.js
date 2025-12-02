@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React from 'react';
 import {
   Clock, CheckCircle, XCircle, Calendar, MapPin, Trophy, Eye, UserX, QrCode, FileText
 } from 'lucide-react';
 import { getActivityImage, getActivityImages } from '../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../shared/components/ActivityImageSlideshow';
 
 const statusConfig = {
   'pending': { 
@@ -60,33 +61,6 @@ export function MyActivityCard({
 
   const config = statusConfig[status] || statusConfig['pending'];
 
-  // Get all available images with fallback logic
-  const allImages = useMemo(() => {
-    const images = getActivityImages(activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd);
-    return images.length > 0 ? images : [getActivityImage(null, activityData.loai_hd?.ten_loai_hd)];
-  }, [activityData.hinh_anh, activityData.loai_hd?.ten_loai_hd]);
-
-  // State to track current image index
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Reset image index when activity changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [activityData.id]);
-  
-  // Get current image URL
-  const currentImageUrl = allImages[currentImageIndex] || allImages[0];
-  
-  // Handle image error - try next image
-  const handleImageError = (e) => {
-    if (currentImageIndex < allImages.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1);
-    } else {
-      const defaultImage = getActivityImage(null, activityData.loai_hd?.ten_loai_hd);
-      e.target.src = defaultImage;
-    }
-  };
-
   // LIST MODE - Compact horizontal layout
   if (mode === 'list') {
     return (
@@ -95,13 +69,14 @@ export function MyActivityCard({
         <div className={`relative bg-white border-2 ${config.border} rounded-xl hover:shadow-lg transition-all duration-200`}>
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <img 
-                src={currentImageUrl}
+              <ActivityImageSlideshow
+                images={activityData.hinh_anh}
+                activityType={activityData.loai_hd?.ten_loai_hd}
                 alt={activityData.ten_hd || 'Hoạt động'}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={handleImageError}
+                showDots={true}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
               <div className="absolute top-2 left-2">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-white/90 backdrop-blur-sm ${config.text} shadow-sm`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
@@ -182,13 +157,14 @@ export function MyActivityCard({
       <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
       <div className={`relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-purple-300 transition-all duration-300 flex flex-col h-full`}>
         <div className="relative w-full h-36 overflow-hidden">
-          <img
-            src={currentImageUrl}
+          <ActivityImageSlideshow
+            images={activityData.hinh_anh}
+            activityType={activityData.loai_hd?.ten_loai_hd}
             alt={activityData.ten_hd || 'Hoạt động'}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={handleImageError}
+            showDots={true}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm ${config.text} shadow-md`}>
               <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>

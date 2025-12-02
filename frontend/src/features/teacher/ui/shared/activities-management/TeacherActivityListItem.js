@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Users, MapPin, Award, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 export default function TeacherActivityListItem({
   activity,
@@ -21,10 +21,12 @@ export default function TeacherActivityListItem({
       <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity" />
       <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-4 hover:shadow-lg transition-all flex gap-4">
         <div className="relative w-40 h-28 flex-shrink-0 rounded-xl overflow-hidden">
-          <img
-            src={getBestActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
             alt={activity.ten_hd}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            showDots={true}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="absolute top-2 left-2">

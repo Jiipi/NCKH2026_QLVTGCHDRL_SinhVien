@@ -11,9 +11,12 @@ import {
   XCircle,
   Trophy,
   Sparkles,
-  Lock
+  Lock,
+  CalendarClock,
+  CalendarCheck,
+  CalendarX
 } from 'lucide-react';
-import { getActivityImage } from '../../../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 const statusLabels = {
   cho_duyet: 'Chờ duyệt',
@@ -44,11 +47,13 @@ export default function AdminActivitiesCard({
   const {
     startDate,
     endDate,
+    deadline,
     status,
     timeStatus,
     timeStatusColor,
     activityType,
-    isOpen
+    isOpen,
+    isDeadlinePast
   } = useMemo(() => buildActivityMeta(activity), [activity]);
 
   if (mode === 'list') {
@@ -59,10 +64,12 @@ export default function AdminActivitiesCard({
           <div className="flex items-stretch gap-4 p-4">
             {/* Image */}
             <div className="relative w-40 h-32 flex-shrink-0 rounded-lg overflow-hidden">
-              <img
-                src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+              <ActivityImageSlideshow
+                images={activity.hinh_anh}
+                activityType={activity.loai_hd?.ten_loai_hd}
                 alt={activity.ten_hd}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                showDots={true}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
               {isOpen && (
@@ -102,10 +109,37 @@ export default function AdminActivitiesCard({
                   <span className={`text-xs font-semibold ${timeStatusColor}`}>• {timeStatus}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <InfoRow icon={Clock} label={startDate?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} subLabel={startDate?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} />
-                  <InfoRow icon={MapPin} label={activity.dia_diem || 'Chưa xác định'} />
-                  <InfoRow icon={Users} label={activity.don_vi_to_chuc || 'Nhà trường'} />
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {startDate && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
+                      <span className="text-gray-900 font-medium">
+                        BĐ: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {endDate && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarCheck className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-gray-900 font-medium">
+                        KT: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {deadline && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <CalendarX className={`h-3.5 w-3.5 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                      <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                        Hạn ĐK: {deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}, {deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {activity.dia_diem && (
+                    <div className="flex items-center gap-1.5 text-xs col-span-2">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -173,10 +207,12 @@ export default function AdminActivitiesCard({
       }`}>
         {/* Image */}
         <div className="relative w-full h-40 overflow-hidden">
-          <img
-            src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
             alt={activity.ten_hd}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            showDots={true}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
           
@@ -216,8 +252,36 @@ export default function AdminActivitiesCard({
           </div>
 
           <div className="space-y-1.5">
-            <InfoRow icon={Clock} label={startDate?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} subLabel={startDate?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} />
-            <InfoRow icon={MapPin} label={activity.dia_diem || 'Chưa xác định'} />
+            {startDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Bắt đầu: {startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {endDate && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900">
+                  Kết thúc: {endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {deadline && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${isDeadlinePast ? 'text-red-500' : 'text-orange-500'}`} />
+                <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
+                  Hạn ĐK: {deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {deadline.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {activity.dia_diem && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -302,6 +366,8 @@ function buildActivityMeta(activity = {}) {
   const isOngoing = startDate <= now && endDate >= now;
   const isPast = endDate < now;
 
+  const isDeadlinePast = deadline ? deadline.getTime() < now.getTime() : false;
+
   const status = statusConfig[activity.trang_thai] || statusConfig.da_duyet;
 
   const timeStatus = isPast ? 'Đã kết thúc' : isOngoing ? 'Đang diễn ra' : isUpcoming ? 'Sắp diễn ra' : 'Chưa xác định';
@@ -315,11 +381,13 @@ function buildActivityMeta(activity = {}) {
   return {
     startDate,
     endDate,
+    deadline,
     status,
     timeStatus,
     timeStatusColor,
     activityType: activity.loai || activity.loai_hd?.ten_loai_hd || 'Chưa phân loại',
-    isOpen
+    isOpen,
+    isDeadlinePast
   };
 }
 

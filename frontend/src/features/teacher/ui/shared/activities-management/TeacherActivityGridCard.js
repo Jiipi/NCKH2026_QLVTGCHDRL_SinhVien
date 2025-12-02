@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Users, MapPin, Award, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 export default function TeacherActivityGridCard({
   activity,
@@ -20,10 +20,12 @@ export default function TeacherActivityGridCard({
     <div className="group relative h-full" data-ref="teacher-activity-grid-card">
       <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-40 overflow-hidden">
-          <img
-            src={getBestActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
+          <ActivityImageSlideshow
+            images={activity.hinh_anh}
+            activityType={activity.loai_hd?.ten_loai_hd}
             alt={activity.ten_hd}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            showDots={true}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute top-3 left-3">

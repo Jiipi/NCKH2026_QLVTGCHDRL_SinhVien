@@ -2,18 +2,7 @@ import React from 'react';
 import { X, Calendar, MapPin, Award, Users, Clock, FileText, Download, Info } from 'lucide-react';
 import { getActivityImage, getDefaultActivityImage } from '../../../../../shared/lib/activityImages';
 import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
-
-// Helper to check if it's a real uploaded image (not SVG default)
-const isRealImage = (url) => {
-  if (!url) return false;
-  const urlStr = String(url);
-  // Check if it's a default SVG file
-  const isDefaultSvg = urlStr.includes('/images/activity-') || 
-                       urlStr.includes('/images/default-activity') ||
-                       (urlStr.endsWith('.svg') && urlStr.includes('/images/'));
-  // Real image = not a default SVG
-  return !isDefaultSvg;
-};
+import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
 
 // Get gradient based on activity type
 const getTypeGradient = (type) => {
@@ -42,8 +31,6 @@ export default function ActivityDetailModalInline({
   const now = new Date();
   const isDeadlinePast = deadline ? deadline < now : false;
 
-  const activityImage = getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd);
-  const hasRealImage = isRealImage(activityImage);
   const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
 
   return (
@@ -63,18 +50,16 @@ export default function ActivityDetailModalInline({
         {/* Content */}
         <div className="p-6">
           <div className="space-y-6">
-            {/* Activity Image */}
-            <div className={`w-full h-64 rounded-xl overflow-hidden ${!hasRealImage ? `bg-gradient-to-br ${typeGradient}` : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}>
-              {hasRealImage && (
-                <img
-                  src={activityImage}
-                  alt={activity.ten_hd}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
+            {/* Activity Image with Slideshow */}
+            <div className="w-full h-64 rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+              <ActivityImageSlideshow
+                images={activity.hinh_anh}
+                activityType={activity.loai_hd?.ten_loai_hd}
+                alt={activity.ten_hd}
+                className="w-full h-full object-cover"
+                showDots={true}
+                dotsPosition="bottom"
+              />
             </div>
 
             {/* Title */}

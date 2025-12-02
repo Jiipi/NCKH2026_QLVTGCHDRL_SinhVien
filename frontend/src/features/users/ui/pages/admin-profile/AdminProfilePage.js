@@ -92,7 +92,11 @@ export default function AdminProfile() {
       return;
     }
     try {
-      await http.put('/users/change-password', passwordData);
+      // Sử dụng đúng endpoint: POST /api/auth/change-password với field names đúng
+      await http.post('/auth/change-password', {
+        currentPassword: passwordData.old_password,
+        newPassword: passwordData.new_password
+      });
       setChangingPassword(false);
       setPasswordData({ old_password: '', new_password: '', confirm_password: '' });
       showSuccess('Đổi mật khẩu thành công', 'Thành công', 8000);
