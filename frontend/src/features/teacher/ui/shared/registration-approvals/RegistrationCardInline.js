@@ -37,8 +37,23 @@ export default function RegistrationCardInline({
   const activity = registration.hoat_dong;
   const isPending = registration.trang_thai_dk === 'cho_duyet';
   const activityImage = getBestActivityImage(activity?.hinh_anh, activity?.loai_hd?.ten_loai_hd);
-  const approvedBy = registration.trang_thai_dk === 'da_duyet' ? (registration.approvedByRole === 'LOP_TRUONG' ? 'Lớp trưởng' : registration.approvedByRole === 'GIANG_VIEN' ? 'Giảng viên' : null) : null;
-  const rejectedBy = registration.trang_thai_dk === 'tu_choi' ? (registration.rejectedByRole === 'LOP_TRUONG' ? 'Lớp trưởng' : registration.rejectedByRole === 'GIANG_VIEN' ? 'Giảng viên' : null) : null;
+  
+  // Helper function to get role label
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      'LOP_TRUONG': 'Lớp trưởng',
+      'GIANG_VIEN': 'Giảng viên',
+      'ADMIN': 'Admin',
+      'SINH_VIEN': 'Sinh viên'
+    };
+    return roleLabels[role] || role;
+  };
+  
+  // Get approver/rejector info with name if available
+  const approverRole = registration.trang_thai_dk === 'da_duyet' ? getRoleLabel(registration.approvedByRole) : null;
+  const rejectorRole = registration.trang_thai_dk === 'tu_choi' ? getRoleLabel(registration.rejectedByRole) : null;
+  const approvedBy = approverRole ? (registration.approvedByName ? `${registration.approvedByName} (${approverRole})` : approverRole) : null;
+  const rejectedBy = rejectorRole ? (registration.approvedByName ? `${registration.approvedByName} (${rejectorRole})` : rejectorRole) : null;
 
   if (displayViewMode === 'list') {
     return (

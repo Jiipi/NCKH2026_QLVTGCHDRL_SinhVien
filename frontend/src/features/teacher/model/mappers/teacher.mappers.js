@@ -4,6 +4,32 @@
  */
 
 /**
+ * Extract approver role from nguoi_duyet object
+ * @param {Object} nguoiDuyet - The nguoi_duyet object from API
+ * @returns {string|null} - Role string like 'GIANG_VIEN', 'LOP_TRUONG', etc.
+ */
+function extractApproverRole(nguoiDuyet) {
+  if (!nguoiDuyet) return null;
+  // Try to get role from vai_tro.ten_vt (Prisma field name)
+  const roleName = nguoiDuyet.vai_tro?.ten_vt;
+  if (roleName) {
+    // Map common role names to role codes
+    const roleMap = {
+      'Giảng viên': 'GIANG_VIEN',
+      'GIANG_VIEN': 'GIANG_VIEN',
+      'Lớp trưởng': 'LOP_TRUONG',
+      'LOP_TRUONG': 'LOP_TRUONG',
+      'Admin': 'ADMIN',
+      'ADMIN': 'ADMIN',
+      'Sinh viên': 'SINH_VIEN',
+      'SINH_VIEN': 'SINH_VIEN'
+    };
+    return roleMap[roleName] || roleName;
+  }
+  return null;
+}
+
+/**
  * Map activity data từ API sang UI format
  */
 export function mapActivityToUI(activity) {
@@ -103,6 +129,9 @@ export function mapDashboardToUI(apiData) {
  * Map registration data từ API sang UI format
  */
 export function mapRegistrationToUI(registration) {
+  // Extract approver role từ nguoi_duyet object nếu có
+  const approverRole = extractApproverRole(registration.nguoi_duyet);
+  
   // Giữ nguyên registration nếu đã có cấu trúc đúng
   if (registration.id && registration.trang_thai_dk && registration.hoat_dong && registration.sinh_vien) {
     // Đảm bảo sinh_vien có nguoi_dung nếu chưa có
@@ -111,6 +140,17 @@ export function mapRegistrationToUI(registration) {
         ho_ten: registration.sinh_vien.ho_ten,
         email: registration.sinh_vien.email
       };
+    }
+    // Thêm approvedByRole/rejectedByRole nếu chưa có
+    if (!registration.approvedByRole && approverRole && registration.trang_thai_dk === 'da_duyet') {
+      registration.approvedByRole = approverRole;
+    }
+    if (!registration.rejectedByRole && approverRole && registration.trang_thai_dk === 'tu_choi') {
+      registration.rejectedByRole = approverRole;
+    }
+    // Thêm tên người duyệt
+    if (registration.nguoi_duyet?.ho_ten) {
+      registration.approvedByName = registration.nguoi_duyet.ho_ten;
     }
     return registration;
   }
@@ -121,18 +161,31 @@ export function mapRegistrationToUI(registration) {
   const studentData = registration.sinh_vien || registration.student || {};
   const userData = studentData.nguoi_dung || studentData.user || {};
   
+  // Determine approvedByRole/rejectedByRole based on status
+  const status = registration.trang_thai_dk || registration.status || registrationData.trang_thai_dk;
+  let finalApprovedByRole = registration.approvedByRole || registrationData.approvedByRole;
+  let finalRejectedByRole = registration.rejectedByRole || registrationData.rejectedByRole;
+  
+  if (!finalApprovedByRole && approverRole && status === 'da_duyet') {
+    finalApprovedByRole = approverRole;
+  }
+  if (!finalRejectedByRole && approverRole && status === 'tu_choi') {
+    finalRejectedByRole = approverRole;
+  }
+  
   return {
     id: registration.id || registration.dk_id || registrationData.id,
     dk_id: registration.dk_id || registration.id || registrationData.id,
     hoat_dong_id: registration.hoat_dong_id || registration.activity_id || registrationData.hoat_dong_id,
     sinh_vien_id: registration.sinh_vien_id || registration.student_id || registrationData.sinh_vien_id,
-    trang_thai_dk: registration.trang_thai_dk || registration.status || registrationData.trang_thai_dk,
-    status: mapRegistrationStatus(registration.trang_thai_dk || registration.status),
+    trang_thai_dk: status,
+    status: mapRegistrationStatus(status),
     ngay_dang_ky: registration.ngay_dang_ky || registrationData.ngay_dang_ky,
     ngay_duyet: registration.ngay_duyet || registrationData.ngay_duyet,
     ly_do_tu_choi: registration.ly_do_tu_choi || registrationData.ly_do_tu_choi,
-    approvedByRole: registration.approvedByRole || registrationData.approvedByRole,
-    rejectedByRole: registration.rejectedByRole || registrationData.rejectedByRole,
+    approvedByRole: finalApprovedByRole,
+    rejectedByRole: finalRejectedByRole,
+    approvedByName: registration.nguoi_duyet?.ho_ten || null,
     canProcess: registration.canProcess !== false,
     hoat_dong: mapActivityToUI(activityData),
     sinh_vien: {

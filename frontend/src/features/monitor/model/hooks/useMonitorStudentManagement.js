@@ -100,8 +100,8 @@ export function useMonitorStudentManagement() {
       switch (sortBy) {
         case 'points_desc': return b.totalPoints - a.totalPoints;
         case 'points_asc': return a.totalPoints - b.totalPoints;
-        case 'name_asc': return a.nguoi_dung.ho_ten.localeCompare(b.nguoi_dung.ho_ten);
-        case 'name_desc': return b.nguoi_dung.ho_ten.localeCompare(a.nguoi_dung.ho_ten);
+        case 'name_asc': return a.nguoi_dung.ho_ten.localeCompare(b.nguoi_dung.ho_ten, 'vi');
+        case 'name_desc': return b.nguoi_dung.ho_ten.localeCompare(a.nguoi_dung.ho_ten, 'vi');
         case 'activities_desc': return b.activitiesJoined - a.activitiesJoined;
         default: return 0;
       }

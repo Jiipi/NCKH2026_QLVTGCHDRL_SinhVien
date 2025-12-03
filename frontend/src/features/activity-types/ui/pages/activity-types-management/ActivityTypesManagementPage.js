@@ -105,7 +105,7 @@ export default function ActivityTypesManagementPage({ showHeader = true }) {
     return [...filtered].sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.ngay_tao) - new Date(a.ngay_tao);
       if (sortBy === 'oldest') return new Date(a.ngay_tao) - new Date(b.ngay_tao);
-      if (sortBy === 'name') return (a.ten_loai_hd || '').localeCompare(b.ten_loai_hd || '');
+      if (sortBy === 'name') return (a.ten_loai_hd || '').localeCompare(b.ten_loai_hd || '', 'vi');
       return 0;
     });
   }, [filtered, sortBy]);

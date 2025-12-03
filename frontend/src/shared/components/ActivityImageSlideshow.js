@@ -107,6 +107,9 @@ export default function ActivityImageSlideshow({
           alt={alt}
           className={`${className} transition-opacity duration-300 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}
           onError={handleImageError}
+          loading="eager"
+          decoding="sync"
+          style={{ imageRendering: 'high-quality' }}
         />
         {/* Dots indicator */}
         <div className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 ${
@@ -135,6 +138,9 @@ export default function ActivityImageSlideshow({
       alt={alt}
       className={`${className} transition-opacity duration-300 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}
       onError={handleImageError}
+      loading="eager"
+      decoding="sync"
+      style={{ imageRendering: 'high-quality' }}
     />
   );
 }

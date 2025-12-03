@@ -7,13 +7,27 @@
  * - Polling mỗi 30s để cập nhật permissions
  * - Auto refresh khi nhận 403 error
  * - Provide hasPermission() function để check permissions
+ * - Cache permissions PER USER để tránh conflict khi multi-tab với users khác nhau
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axiosInstance from '../api/http';
+import sessionStorageManager from '../api/sessionStorageManager';
 
 const POLLING_INTERVAL = 30000; // 30 seconds
-const PERMISSIONS_STORAGE_KEY = 'user_permissions';
+const PERMISSIONS_STORAGE_KEY_PREFIX = 'user_permissions';
+
+// Get cache key for current user session
+const getPermissionsCacheKey = () => {
+  const session = sessionStorageManager.getSession();
+  const userId = session?.user?.id;
+  const role = session?.role;
+  if (userId && role) {
+    return `${PERMISSIONS_STORAGE_KEY_PREFIX}_${userId}_${role}`;
+  }
+  // Fallback to tab-specific key để tránh conflict giữa các tabs
+  return `${PERMISSIONS_STORAGE_KEY_PREFIX}_${sessionStorageManager.getTabId()}`;
+};
 
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState([]);
@@ -22,10 +36,11 @@ export const usePermissions = () => {
   const intervalRef = useRef(null);
   const mountedRef = useRef(true);
 
-  // Lấy permissions từ localStorage (cache)
+  // Lấy permissions từ localStorage (cache) - now per-user
   const getCachedPermissions = useCallback(() => {
     try {
-      const cached = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
+      const cacheKey = getPermissionsCacheKey();
+      const cached = localStorage.getItem(cacheKey);
       if (cached) {
         return JSON.parse(cached);
       }
@@ -35,10 +50,11 @@ export const usePermissions = () => {
     return null;
   }, []);
 
-  // Lưu permissions vào localStorage
+  // Lưu permissions vào localStorage - now per-user
   const cachePermissions = useCallback((perms) => {
     try {
-      localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(perms));
+      const cacheKey = getPermissionsCacheKey();
+      localStorage.setItem(cacheKey, JSON.stringify(perms));
     } catch (err) {
       console.error('Error caching permissions:', err);
     }
@@ -69,7 +85,8 @@ export const usePermissions = () => {
       
       // Nếu bị 401, xóa cache và logout
       if (err.response?.status === 401) {
-        localStorage.removeItem(PERMISSIONS_STORAGE_KEY);
+        const cacheKey = getPermissionsCacheKey();
+        localStorage.removeItem(cacheKey);
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
@@ -103,17 +120,36 @@ export const usePermissions = () => {
     return fetchPermissions(false);
   }, [fetchPermissions]);
 
-  // Setup polling
+  // Track current user for cache invalidation
+  const userIdRef = useRef(null);
+
+  // Setup polling và cache validation
   useEffect(() => {
-    // Load cached permissions immediately
-    const cached = getCachedPermissions();
-    if (cached) {
-      setPermissions(cached);
-      setLoading(false);
+    // Get current user ID from session
+    const session = sessionStorageManager.getSession();
+    const currentUserId = session?.user?.id;
+    
+    // Check if user changed (login with different account)
+    const userChanged = userIdRef.current !== null && userIdRef.current !== currentUserId;
+    userIdRef.current = currentUserId;
+    
+    // Load cached permissions ONLY if same user
+    let cached = null;
+    if (!userChanged) {
+      cached = getCachedPermissions();
+      if (cached) {
+        setPermissions(cached);
+        setLoading(false);
+      }
+    } else {
+      // User changed - clear old permissions immediately
+      console.log('[usePermissions] User changed, clearing cached permissions');
+      setPermissions([]);
+      setLoading(true);
     }
 
-    // Fetch fresh permissions
-    fetchPermissions(cached === null);
+    // ALWAYS fetch fresh permissions to ensure accuracy
+    fetchPermissions(cached === null || userChanged);
 
     // Start polling
     intervalRef.current = setInterval(() => {
@@ -131,10 +167,12 @@ export const usePermissions = () => {
     };
   }, [fetchPermissions, getCachedPermissions]);
 
-  // Listen for storage changes (multi-tab sync)
+  // Listen for storage changes (multi-tab sync) - now per-user
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === PERMISSIONS_STORAGE_KEY && e.newValue) {
+      const currentCacheKey = getPermissionsCacheKey();
+      // Only sync if this is our user's permission cache
+      if (e.key === currentCacheKey && e.newValue) {
         try {
           const newPerms = JSON.parse(e.newValue);
           setPermissions(newPerms);
@@ -147,6 +185,41 @@ export const usePermissions = () => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Listen for login/session changes to refresh permissions
+  // Only refresh when session changes from OTHER tabs (not current tab)
+  useEffect(() => {
+    let debounceTimer = null;
+    const currentTabId = sessionStorageManager.getTabId();
+    
+    const handleSessionSync = (event) => {
+      // Skip if event is from current tab (we already have latest data)
+      const eventTabId = event?.detail?.tabId;
+      if (eventTabId === currentTabId) {
+        return;
+      }
+      
+      // Debounce to avoid multiple rapid refreshes
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+      
+      debounceTimer = setTimeout(() => {
+        console.log('[usePermissions] Session sync from other tab, refreshing permissions...');
+        fetchPermissions(false); // Don't show loading for background refresh
+      }, 500);
+    };
+
+    // Listen for custom session sync events
+    window.addEventListener('tab_session_sync', handleSessionSync);
+    
+    return () => {
+      window.removeEventListener('tab_session_sync', handleSessionSync);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [fetchPermissions]);
 
   return {
     permissions,

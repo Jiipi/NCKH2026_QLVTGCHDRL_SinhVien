@@ -177,10 +177,11 @@ export default function useStudentActivitiesList() {
     // Type filter
     if (filters.type) {
       filtered = filtered.filter(item => {
-        const type = typeof item.loai === 'string'
-          ? item.loai
-          : (item.loai?.name || item.loai_hd?.ten_loai_hd || '');
-        return type === filters.type;
+        // Support both ID and name comparison
+        const typeId = String(item.loai_hd_id || item.loai_hd?.id || '');
+        const typeName = item.loai?.name || item.loai_hd?.ten_loai_hd || '';
+        const filterValue = String(filters.type);
+        return typeId === filterValue || typeName === filterValue;
       });
     }
 
@@ -224,31 +225,32 @@ export default function useStudentActivitiesList() {
       });
     }
 
-    // Sort: ưu tiên thời gian tạo để "Mới nhất/Cũ nhất" đúng nghĩa
-    filtered.sort((a, b) => {
-      const createdA = new Date(a.ngay_tao || a.ngay_cap_nhat || a.ngay_bd || 0);
-      const createdB = new Date(b.ngay_tao || b.ngay_cap_nhat || b.ngay_bd || 0);
+    // Sort: ưu tiên thời gian cập nhật/tạo để "Mới nhất/Cũ nhất" đúng nghĩa
+    // Dùng spread để tránh mutate array gốc
+    const sorted = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.ngay_cap_nhat || a.ngay_tao || a.ngay_bd || 0).getTime();
+      const dateB = new Date(b.ngay_cap_nhat || b.ngay_tao || b.ngay_bd || 0).getTime();
 
       switch (sortBy) {
         case 'oldest':
-          return createdA - createdB;
+          return dateA - dateB;
         case 'name-az': {
           const nameA = (a.ten_hd || '').toLowerCase();
           const nameB = (b.ten_hd || '').toLowerCase();
-          return nameA.localeCompare(nameB);
+          return nameA.localeCompare(nameB, 'vi');
         }
         case 'name-za': {
           const nameA = (a.ten_hd || '').toLowerCase();
           const nameB = (b.ten_hd || '').toLowerCase();
-          return nameB.localeCompare(nameA);
+          return nameB.localeCompare(nameA, 'vi');
         }
         case 'newest':
         default:
-          return createdB - createdA;
+          return dateB - dateA;
       }
     });
 
-    return filtered;
+    return sorted;
   }, [allItems, scopeTab, query, filters, sortBy]);
 
   // Phân trang client-side: lấy items cho trang hiện tại

@@ -49,7 +49,9 @@ export default function MonitorMyActivitiesPage() {
     handleShowQR,
     handleCloseQRModal,
     sortBy,
-    setSortBy
+    setSortBy,
+    currentItems,
+    paginatedItems
   } = useMyActivities();
 
   // Map tab names to viewMode
@@ -62,7 +64,7 @@ export default function MonitorMyActivitiesPage() {
 
   const currentViewMode = viewModeMap[tab] || 'cho_duyet';
 
-  // Get registrations for current view
+  // Get all registrations for counting
   const myRegistrations = useMemo(() => {
     const allRegistrations = [...data.pending, ...data.approved, ...data.joined, ...data.rejected];
     return allRegistrations;
@@ -80,31 +82,8 @@ export default function MonitorMyActivitiesPage() {
     await cancelRegistration(hdId, activityName);
   };
 
-  function getFilteredRegistrations() {
-    let filtered = myRegistrations;
-    if (tab === 'pending') filtered = filtered.filter(r => r.trang_thai_dk === 'cho_duyet');
-    else if (tab === 'approved') filtered = filtered.filter(r => r.trang_thai_dk === 'da_duyet');
-    else if (tab === 'joined') filtered = filtered.filter(r => r.trang_thai_dk === 'da_tham_gia');
-    else if (tab === 'rejected') filtered = filtered.filter(r => r.trang_thai_dk === 'tu_choi');
-    if (query) filtered = filtered.filter(reg => reg.hoat_dong?.ten_hd?.toLowerCase().includes(query.toLowerCase()));
-    if (filters.type) {
-      filtered = filtered.filter(reg => {
-        const activity = reg.hoat_dong || {};
-        const filterValue = filters.type;
-        const activityTypeName = typeof activity.loai === 'string' ? activity.loai : (activity.loai?.name || activity.loai_hd?.ten_loai_hd || '');
-        const activityTypeId = activity.loai_hd_id || activity.loai_hd?.id;
-        if (activityTypeName && activityTypeName.toLowerCase() === filterValue.toLowerCase()) return true;
-        const filterId = parseInt(filterValue);
-        if (!isNaN(filterId) && activityTypeId) return parseInt(activityTypeId) === filterId;
-        return false;
-      });
-    }
-    if (filters.minPoints) { const minPoints = parseFloat(filters.minPoints); if (!isNaN(minPoints)) filtered = filtered.filter(reg => (parseFloat(reg.hoat_dong?.diem_rl) || 0) >= minPoints); }
-    if (filters.maxPoints) { const maxPoints = parseFloat(filters.maxPoints); if (!isNaN(maxPoints)) filtered = filtered.filter(reg => (parseFloat(reg.hoat_dong?.diem_rl) || 0) <= maxPoints); }
-    if (filters.from) { const fromDate = new Date(filters.from); fromDate.setHours(0, 0, 0, 0); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd).setHours(0, 0, 0, 0) >= fromDate.getTime()); }
-    if (filters.to) { const toDate = new Date(filters.to); toDate.setHours(23, 59, 59, 999); filtered = filtered.filter(reg => reg.hoat_dong?.ngay_bd && new Date(reg.hoat_dong.ngay_bd) <= toDate); }
-    return filtered;
-  }
+  // Sử dụng currentItems từ hook (đã được filter + sort)
+  // Không cần getFilteredRegistrations() nữa vì hook đã xử lý
 
   function parseDateSafe(dateStr) { if (!dateStr) return null; try { return new Date(dateStr); } catch { return null; } }
   function formatDate(dateStr) { const date = parseDateSafe(dateStr); return date ? date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'; }
@@ -127,7 +106,8 @@ export default function MonitorMyActivitiesPage() {
   }
 
   const totalActivities = myRegistrations.length;
-  const filteredRegs = getFilteredRegistrations();
+  // Sử dụng currentItems từ hook thay vì getFilteredRegistrations()
+  const filteredRegs = currentItems;
 
   return (
     <div className="space-y-6">

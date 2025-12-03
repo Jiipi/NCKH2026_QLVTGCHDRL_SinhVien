@@ -27,6 +27,8 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 20, status = 'cho_duyet', search, hoc_ky, nam_hoc, semester, activityId, classId } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+    logInfo('Admin registrations request', { semester, status, page, limit, classId });
+
     // Build semester filter
     let semesterWhere = {};
     if (semester) {
@@ -34,21 +36,24 @@ router.get('/', async (req, res) => {
       if (!parsed) {
         return sendResponse(res, 400, ApiResponse.error('Tham số học kỳ không hợp lệ'));
       }
+      logInfo('Parsed semester filter', { parsed });
+      // nam_hoc in DB can be '2025' or '2025-2026', use startsWith for flexibility
       semesterWhere = {
         hoat_dong: {
           hoc_ky: parsed.semester,
-          nam_hoc: parsed.year
+          ...(parsed.year ? { nam_hoc: { startsWith: parsed.year } } : {})
         }
       };
     } else if (hoc_ky || nam_hoc) {
       semesterWhere = {
         hoat_dong: {
           ...(hoc_ky ? { hoc_ky } : {}),
-          ...(nam_hoc ? { nam_hoc } : {})
+          ...(nam_hoc ? { nam_hoc: { startsWith: nam_hoc } } : {})
         }
       };
     }
 
+    // classId is UUID string, use directly (no parseInt needed)
     const where = {
       ...(status ? { trang_thai_dk: status } : {}),
       ...(activityId ? { hd_id: activityId } : {}),

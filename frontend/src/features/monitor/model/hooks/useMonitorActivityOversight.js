@@ -112,8 +112,10 @@ export function useMonitorActivityOversight() {
         const activitiesArray = responseData.items || [];
         const total = responseData.total || activitiesArray.length;
 
-        setAllActivities(activitiesArray);
-        setActivities(activitiesArray);
+        // Map activities để đảm bảo có đầy đủ các field cần thiết
+        const mappedActivities = activitiesArray.map(mapActivityToUI);
+        setAllActivities(mappedActivities);
+        setActivities(mappedActivities);
         setPagination(prev => ({ ...prev, page: 1, total }));
         setError('');
       } else {
@@ -147,7 +149,9 @@ export function useMonitorActivityOversight() {
         const activitiesArray = responseData.items || [];
         const total = responseData.total || activitiesArray.length;
 
-        setAvailableActivities(activitiesArray);
+        // Map activities để đảm bảo có đầy đủ các field cần thiết
+        const mappedActivities = activitiesArray.map(mapActivityToUI);
+        setAvailableActivities(mappedActivities);
         setAvailablePagination(prev => ({ ...prev, page: 1, total }));
       } else {
         setAvailableActivities([]);
@@ -488,12 +492,12 @@ export function useMonitorActivityOversight() {
         case 'name-az': {
           const na = (a.ten_hd || '').toLowerCase();
           const nb = (b.ten_hd || '').toLowerCase();
-          return na.localeCompare(nb);
+          return na.localeCompare(nb, 'vi');
         }
         case 'name-za': {
           const na = (a.ten_hd || '').toLowerCase();
           const nb = (b.ten_hd || '').toLowerCase();
-          return nb.localeCompare(na);
+          return nb.localeCompare(na, 'vi');
         }
         case 'newest':
         default:
@@ -602,6 +606,8 @@ export function useMonitorActivityOversight() {
     setEditMode,
     displayViewMode,
     setDisplayViewMode,
+    sortBy,
+    setSortBy,
     statusViewMode,
     setStatusViewMode,
     showFilters,

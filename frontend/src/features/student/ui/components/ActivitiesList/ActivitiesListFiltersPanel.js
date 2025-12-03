@@ -43,7 +43,7 @@ export default function ActivitiesListFiltersPanel({
             >
               <option value="">Tất cả loại</option>
               {safeTypes.map((type) => (
-                <option key={type.id || type.ten_loai_hd || type.name} value={String(type.id || type.ten_loai_hd || type.name || '')}>
+                <option key={type.id || type.ten_loai_hd} value={String(type.id || '')}>
                   {type.ten_loai_hd || type.name || 'Chưa có tên'}
                 </option>
               ))}

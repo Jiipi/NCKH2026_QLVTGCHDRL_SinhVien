@@ -26,8 +26,10 @@ export default function RegistrationCard({
 }) {
   const student = registration.sinh_vien?.nguoi_dung;
   const activity = registration.hoat_dong;
-  const approvedBy = registration.trang_thai_dk === 'da_duyet' ? roleLabel(registration.approvedByRole) : null;
-  const rejectedBy = registration.trang_thai_dk === 'tu_choi' ? roleLabel(registration.rejectedByRole) : null;
+  const approverRole = registration.trang_thai_dk === 'da_duyet' ? roleLabel(registration.approvedByRole) : null;
+  const rejectorRole = registration.trang_thai_dk === 'tu_choi' ? roleLabel(registration.rejectedByRole) : null;
+  const approvedBy = approverRole ? (registration.approvedByName ? `${registration.approvedByName} (${approverRole})` : approverRole) : null;
+  const rejectedBy = rejectorRole ? (registration.approvedByName ? `${registration.approvedByName} (${rejectorRole})` : rejectorRole) : null;
 
   // LIST MODE
   if (displayViewMode === 'list') {
