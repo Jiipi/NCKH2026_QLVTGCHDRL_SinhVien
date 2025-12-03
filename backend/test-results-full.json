@@ -1,0 +1,2520 @@
+{
+  "numFailedTestSuites": 0,
+  "numFailedTests": 0,
+  "numPassedTestSuites": 11,
+  "numPassedTests": 132,
+  "numPendingTestSuites": 0,
+  "numPendingTests": 0,
+  "numRuntimeErrorTestSuites": 0,
+  "numTodoTests": 0,
+  "numTotalTestSuites": 11,
+  "numTotalTests": 132,
+  "openHandles": [],
+  "snapshot": {
+    "added": 0,
+    "didUpdate": false,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0
+  },
+  "startTime": 1764701256081,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-001: Xem danh sách đăng ký chờ duyệt"
+          ],
+          "duration": 101,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-001: Xem danh sách đăng ký chờ duyệt should get pending registrations list (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260363,
+          "status": "passed",
+          "title": "should get pending registrations list (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-001: Xem danh sách đăng ký chờ duyệt"
+          ],
+          "duration": 23,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-001: Xem danh sách đăng ký chờ duyệt should get pending registrations list (Teacher)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260466,
+          "status": "passed",
+          "title": "should get pending registrations list (Teacher)"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-001: Xem danh sách đăng ký chờ duyệt"
+          ],
+          "duration": 20,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-001: Xem danh sách đăng ký chờ duyệt should deny student access to pending list",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260489,
+          "status": "passed",
+          "title": "should deny student access to pending list"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-002: Duyệt đăng ký hoạt động"
+          ],
+          "duration": 31,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-002: Duyệt đăng ký hoạt động should approve registration (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260521,
+          "status": "passed",
+          "title": "should approve registration (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-002: Duyệt đăng ký hoạt động"
+          ],
+          "duration": 13,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-002: Duyệt đăng ký hoạt động should deny student from approving",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260552,
+          "status": "passed",
+          "title": "should deny student from approving"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-003: Từ chối đăng ký hoạt động"
+          ],
+          "duration": 11,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-003: Từ chối đăng ký hoạt động should reject registration with reason (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260693,
+          "status": "passed",
+          "title": "should reject registration with reason (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-003: Từ chối đăng ký hoạt động"
+          ],
+          "duration": 136,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-003: Từ chối đăng ký hoạt động should reject registration by teacher",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260705,
+          "status": "passed",
+          "title": "should reject registration by teacher"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-004: Duyệt hàng loạt đăng ký"
+          ],
+          "duration": 240,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-004: Duyệt hàng loạt đăng ký should approve multiple registrations at once",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701260842,
+          "status": "passed",
+          "title": "should approve multiple registrations at once"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-005: Từ chối hàng loạt đăng ký"
+          ],
+          "duration": 250,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-005: Từ chối hàng loạt đăng ký should reject multiple registrations at once",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701261083,
+          "status": "passed",
+          "title": "should reject multiple registrations at once"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-006: Lớp trưởng duyệt sinh viên lớp"
+          ],
+          "duration": 126,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-006: Lớp trưởng duyệt sinh viên lớp should allow monitor to approve class member registration",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701261334,
+          "status": "passed",
+          "title": "should allow monitor to approve class member registration"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "TC-APP-006: Lớp trưởng duyệt sinh viên lớp"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests TC-APP-006: Lớp trưởng duyệt sinh viên lớp should get pending registrations for monitor class",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701261461,
+          "status": "passed",
+          "title": "should get pending registrations for monitor class"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 7,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701261471,
+          "status": "passed",
+          "title": "should deny access without token"
+        },
+        {
+          "ancestorTitles": [
+            "Approval Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Approval Module - Integration Tests Unauthorized Access Tests should deny approval without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701261479,
+          "status": "passed",
+          "title": "should deny approval without token"
+        }
+      ],
+      "endTime": 1764701261632,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\approval\\approval.test.js",
+      "startTime": 1764701256200,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-001: Lấy danh sách hoạt động thành công"
+          ],
+          "duration": 55,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-001: Lấy danh sách hoạt động thành công should return list of activities with pagination",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701263096,
+          "status": "passed",
+          "title": "should return list of activities with pagination"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-001: Lấy danh sách hoạt động thành công"
+          ],
+          "duration": 32,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-001: Lấy danh sách hoạt động thành công should work for teacher with different scope",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701263152,
+          "status": "passed",
+          "title": "should work for teacher with different scope"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-002: Lọc hoạt động theo trạng thái"
+          ],
+          "duration": 23,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-002: Lọc hoạt động theo trạng thái should filter activities by status",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263194,
+          "status": "passed",
+          "title": "should filter activities by status"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-003: Tìm kiếm hoạt động theo từ khóa"
+          ],
+          "duration": 22,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-003: Tìm kiếm hoạt động theo từ khóa should search activities by keyword",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263233,
+          "status": "passed",
+          "title": "should search activities by keyword"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-005: Lọc theo học kỳ và năm học"
+          ],
+          "duration": 22,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-005: Lọc theo học kỳ và năm học should filter by semester",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263256,
+          "status": "passed",
+          "title": "should filter by semester"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-006: Unauthorized - Không có token"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-006: Unauthorized - Không có token should return 401 without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263279,
+          "status": "passed",
+          "title": "should return 401 without token"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-007: Lấy chi tiết hoạt động thành công"
+          ],
+          "duration": 30,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-007: Lấy chi tiết hoạt động thành công should return activity details by ID",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263287,
+          "status": "passed",
+          "title": "should return activity details by ID"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-008: Hoạt động không tồn tại"
+          ],
+          "duration": 26,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-008: Hoạt động không tồn tại should return 404 for non-existent activity",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263318,
+          "status": "passed",
+          "title": "should return 404 for non-existent activity"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-008: Hoạt động không tồn tại"
+          ],
+          "duration": 16,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-008: Hoạt động không tồn tại should return 400 for invalid ID format",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701263345,
+          "status": "passed",
+          "title": "should return 400 for invalid ID format"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-010: Tạo hoạt động mới thành công (Lớp trưởng)"
+          ],
+          "duration": 27,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-010: Tạo hoạt động mới thành công (Lớp trưởng) should allow monitor to create activity",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701263364,
+          "status": "passed",
+          "title": "should allow monitor to create activity"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "TC-ACT-011: Tạo hoạt động thất bại - Thiếu field bắt buộc"
+          ],
+          "duration": 19,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests TC-ACT-011: Tạo hoạt động thất bại - Thiếu field bắt buộc should reject when missing required fields",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263392,
+          "status": "passed",
+          "title": "should reject when missing required fields"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "Pagination Tests"
+          ],
+          "duration": 19,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests Pagination Tests should respect limit parameter",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701263453,
+          "status": "passed",
+          "title": "should respect limit parameter"
+        },
+        {
+          "ancestorTitles": [
+            "Activities Module - Integration Tests",
+            "Pagination Tests"
+          ],
+          "duration": 33,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Activities Module - Integration Tests Pagination Tests should handle page parameter",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701263472,
+          "status": "passed",
+          "title": "should handle page parameter"
+        }
+      ],
+      "endTime": 1764701263661,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\activities\\activities.test.js",
+      "startTime": 1764701261651,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-001: Tạo mã QR điểm danh"
+          ],
+          "duration": 20,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-001: Tạo mã QR điểm danh should generate QR code for activity (Teacher)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265039,
+          "status": "passed",
+          "title": "should generate QR code for activity (Teacher)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-001: Tạo mã QR điểm danh"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-001: Tạo mã QR điểm danh should generate QR code for activity (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265060,
+          "status": "passed",
+          "title": "should generate QR code for activity (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-001: Tạo mã QR điểm danh"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-001: Tạo mã QR điểm danh should deny student from generating QR",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265070,
+          "status": "passed",
+          "title": "should deny student from generating QR"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-002: Điểm danh bằng mã QR"
+          ],
+          "duration": 16,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-002: Điểm danh bằng mã QR should allow student to check in with QR code endpoint",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265079,
+          "status": "passed",
+          "title": "should allow student to check in with QR code endpoint"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-002: Điểm danh bằng mã QR"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-002: Điểm danh bằng mã QR should reject expired/invalid QR code",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265096,
+          "status": "passed",
+          "title": "should reject expired/invalid QR code"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-003: Xem danh sách điểm danh của hoạt động"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-003: Xem danh sách điểm danh của hoạt động should get attendance list (Teacher)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265105,
+          "status": "passed",
+          "title": "should get attendance list (Teacher)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-003: Xem danh sách điểm danh của hoạt động"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-003: Xem danh sách điểm danh của hoạt động should get attendance list (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265116,
+          "status": "passed",
+          "title": "should get attendance list (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-004: Điểm danh thủ công"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-004: Điểm danh thủ công should allow manual attendance marking (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265126,
+          "status": "passed",
+          "title": "should allow manual attendance marking (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-004: Điểm danh thủ công"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-004: Điểm danh thủ công should allow teacher to mark attendance",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265135,
+          "status": "passed",
+          "title": "should allow teacher to mark attendance"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-004: Điểm danh thủ công"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-004: Điểm danh thủ công should deny student from manual marking",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265145,
+          "status": "passed",
+          "title": "should deny student from manual marking"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-005: Điểm danh hàng loạt"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-005: Điểm danh hàng loạt should allow bulk attendance marking (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265154,
+          "status": "passed",
+          "title": "should allow bulk attendance marking (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-006: Kiểm tra trạng thái điểm danh"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-006: Kiểm tra trạng thái điểm danh should return attendance status for student",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265163,
+          "status": "passed",
+          "title": "should return attendance status for student"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "TC-ATT-007: Lịch sử điểm danh cá nhân"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests TC-ATT-007: Lịch sử điểm danh cá nhân should return personal attendance history",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265172,
+          "status": "passed",
+          "title": "should return personal attendance history"
+        },
+        {
+          "ancestorTitles": [
+            "Attendance Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Attendance Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701265182,
+          "status": "passed",
+          "title": "should deny access without token"
+        }
+      ],
+      "endTime": 1764701265356,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\attendance\\attendance.test.js",
+      "startTime": 1764701263672,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "TC-SEM-001: Lấy danh sách học kỳ"
+          ],
+          "duration": 35,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests TC-SEM-001: Lấy danh sách học kỳ should get semester options (Authenticated)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701266250,
+          "status": "passed",
+          "title": "should get semester options (Authenticated)"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "TC-SEM-001: Lấy danh sách học kỳ"
+          ],
+          "duration": 13,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests TC-SEM-001: Lấy danh sách học kỳ should get semester list (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266285,
+          "status": "passed",
+          "title": "should get semester list (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "TC-SEM-001: Lấy danh sách học kỳ"
+          ],
+          "duration": 13,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests TC-SEM-001: Lấy danh sách học kỳ should get semester status",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266298,
+          "status": "passed",
+          "title": "should get semester status"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "TC-SEM-002: Lấy học kỳ hiện tại"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests TC-SEM-002: Lấy học kỳ hiện tại should get current semester",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701266311,
+          "status": "passed",
+          "title": "should get current semester"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "Additional Semester Tests"
+          ],
+          "duration": 22,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests Additional Semester Tests should get all classes",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266321,
+          "status": "passed",
+          "title": "should get all classes"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "Additional Semester Tests"
+          ],
+          "duration": 30,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests Additional Semester Tests should create next semester (Admin only)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266343,
+          "status": "passed",
+          "title": "should create next semester (Admin only)"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "Additional Semester Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests Additional Semester Tests should deny student from creating next semester",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266373,
+          "status": "passed",
+          "title": "should deny student from creating next semester"
+        },
+        {
+          "ancestorTitles": [
+            "Semesters Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 6,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Semesters Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701266382,
+          "status": "passed",
+          "title": "should deny access without token"
+        }
+      ],
+      "endTime": 1764701266709,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\semesters\\semesters.test.js",
+      "startTime": 1764701265372,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-001: Đăng nhập thành công với mã sinh viên"
+          ],
+          "duration": 130,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-001: Đăng nhập thành công với mã sinh viên should return 200 and token when credentials are valid",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 9,
+          "retryReasons": [],
+          "startAt": 1764701267893,
+          "status": "passed",
+          "title": "should return 200 and token when credentials are valid"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-001: Đăng nhập thành công với mã sinh viên"
+          ],
+          "duration": 115,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-001: Đăng nhập thành công với mã sinh viên should include redirect path in response",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701268024,
+          "status": "passed",
+          "title": "should include redirect path in response"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-002: Đăng nhập thất bại - Sai mật khẩu"
+          ],
+          "duration": 111,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-002: Đăng nhập thất bại - Sai mật khẩu should return 401 when password is incorrect",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701268140,
+          "status": "passed",
+          "title": "should return 401 when password is incorrect"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-003: Đăng nhập thất bại - Tài khoản không tồn tại"
+          ],
+          "duration": 14,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-003: Đăng nhập thất bại - Tài khoản không tồn tại should return 401 when account does not exist",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701268251,
+          "status": "passed",
+          "title": "should return 401 when account does not exist"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-004: Đăng nhập thất bại - Tài khoản bị khóa"
+          ],
+          "duration": 111,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-004: Đăng nhập thất bại - Tài khoản bị khóa should return 403 when account is locked",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701268266,
+          "status": "passed",
+          "title": "should return 403 when account is locked"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-005: Validation - Thiếu username"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-005: Validation - Thiếu username should return 400 when username is missing",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701268377,
+          "status": "passed",
+          "title": "should return 400 when username is missing"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "TC-AUTH-006: Validation - Thiếu password"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login TC-AUTH-006: Validation - Thiếu password should return 400 when password is missing",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701268386,
+          "status": "passed",
+          "title": "should return 400 when password is missing"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "Additional Login Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login Additional Login Tests should reject empty request body",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701268395,
+          "status": "passed",
+          "title": "should reject empty request body"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "Additional Login Tests"
+          ],
+          "duration": 12,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login Additional Login Tests should handle special characters in username",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701268403,
+          "status": "passed",
+          "title": "should handle special characters in username"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Login",
+            "Additional Login Tests"
+          ],
+          "duration": 69,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Login Additional Login Tests should handle very long input",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701268415,
+          "status": "passed",
+          "title": "should handle very long input"
+        }
+      ],
+      "endTime": 1764701268632,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\auth\\login.test.js",
+      "startTime": 1764701266718,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-001: Lấy danh sách thông báo"
+          ],
+          "duration": 47,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-001: Lấy danh sách thông báo should get notifications list for user",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701269826,
+          "status": "passed",
+          "title": "should get notifications list for user"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-001: Lấy danh sách thông báo"
+          ],
+          "duration": 14,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-001: Lấy danh sách thông báo should get unread notifications count",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701269874,
+          "status": "passed",
+          "title": "should get unread notifications count"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-001: Lấy danh sách thông báo"
+          ],
+          "duration": 18,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-001: Lấy danh sách thông báo should filter by read status",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701269888,
+          "status": "passed",
+          "title": "should filter by read status"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-001: Lấy danh sách thông báo"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-001: Lấy danh sách thông báo should paginate notifications",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701269906,
+          "status": "passed",
+          "title": "should paginate notifications"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-002: Đánh dấu đã đọc thông báo"
+          ],
+          "duration": 16,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-002: Đánh dấu đã đọc thông báo should mark single notification as read",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 0,
+          "retryReasons": [],
+          "startAt": 1764701269927,
+          "status": "passed",
+          "title": "should mark single notification as read"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-002: Đánh dấu đã đọc thông báo"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-002: Đánh dấu đã đọc thông báo should mark all notifications as read",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701269943,
+          "status": "passed",
+          "title": "should mark all notifications as read"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-003: Gửi thông báo (Admin)"
+          ],
+          "duration": 44,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-003: Gửi thông báo (Admin) should allow admin to send notification",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701269953,
+          "status": "passed",
+          "title": "should allow admin to send notification"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-003: Gửi thông báo (Admin)"
+          ],
+          "duration": 17,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-003: Gửi thông báo (Admin) should send broadcast notification",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701269998,
+          "status": "passed",
+          "title": "should send broadcast notification"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "TC-NTF-003: Gửi thông báo (Admin)"
+          ],
+          "duration": 12,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests TC-NTF-003: Gửi thông báo (Admin) should deny student from sending notifications",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701270016,
+          "status": "passed",
+          "title": "should deny student from sending notifications"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "Additional Notification Tests"
+          ],
+          "duration": 14,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests Additional Notification Tests should get notification detail",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 0,
+          "retryReasons": [],
+          "startAt": 1764701270029,
+          "status": "passed",
+          "title": "should get notification detail"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "Additional Notification Tests"
+          ],
+          "duration": 12,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests Additional Notification Tests should delete notification (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701270044,
+          "status": "passed",
+          "title": "should delete notification (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 7,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701270056,
+          "status": "passed",
+          "title": "should deny access without token"
+        },
+        {
+          "ancestorTitles": [
+            "Notifications Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 6,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Notifications Module - Integration Tests Unauthorized Access Tests should deny marking as read without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701270063,
+          "status": "passed",
+          "title": "should deny marking as read without token"
+        }
+      ],
+      "endTime": 1764701270291,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\notifications\\notifications.test.js",
+      "startTime": 1764701268645,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-001: Xem thông tin profile cá nhân"
+          ],
+          "duration": 40,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-001: Xem thông tin profile cá nhân should return user profile for student",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 6,
+          "retryReasons": [],
+          "startAt": 1764701271624,
+          "status": "passed",
+          "title": "should return user profile for student"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-001: Xem thông tin profile cá nhân"
+          ],
+          "duration": 17,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-001: Xem thông tin profile cá nhân should include sinh_vien info for student",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271664,
+          "status": "passed",
+          "title": "should include sinh_vien info for student"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-001: Xem thông tin profile cá nhân"
+          ],
+          "duration": 15,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-001: Xem thông tin profile cá nhân should work for teacher",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271682,
+          "status": "passed",
+          "title": "should work for teacher"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-002: Cập nhật thông tin profile"
+          ],
+          "duration": 34,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-002: Cập nhật thông tin profile should update user profile",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271697,
+          "status": "passed",
+          "title": "should update user profile"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-002: Cập nhật thông tin profile"
+          ],
+          "duration": 17,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-002: Cập nhật thông tin profile should reject invalid update data",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271732,
+          "status": "passed",
+          "title": "should reject invalid update data"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-004: Admin lấy danh sách người dùng"
+          ],
+          "duration": 26,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-004: Admin lấy danh sách người dùng should allow admin to get user list",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271750,
+          "status": "passed",
+          "title": "should allow admin to get user list"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-004: Admin lấy danh sách người dùng"
+          ],
+          "duration": 15,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-004: Admin lấy danh sách người dùng should filter by role",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271776,
+          "status": "passed",
+          "title": "should filter by role"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-007: Permission - Sinh viên không xem danh sách users"
+          ],
+          "duration": 6,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-007: Permission - Sinh viên không xem danh sách users should deny student access to admin users list",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271791,
+          "status": "passed",
+          "title": "should deny student access to admin users list"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-007: Permission - Sinh viên không xem danh sách users"
+          ],
+          "duration": 5,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-007: Permission - Sinh viên không xem danh sách users should deny teacher access to admin users list",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271797,
+          "status": "passed",
+          "title": "should deny teacher access to admin users list"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "TC-USR-008: Kiểm tra trạng thái lớp trưởng"
+          ],
+          "duration": 13,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests TC-USR-008: Kiểm tra trạng thái lớp trưởng should return monitor status",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271802,
+          "status": "passed",
+          "title": "should return monitor status"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 5,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271816,
+          "status": "passed",
+          "title": "should deny access without token"
+        },
+        {
+          "ancestorTitles": [
+            "User Profile Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 6,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "User Profile Module - Integration Tests Unauthorized Access Tests should deny profile update without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701271821,
+          "status": "passed",
+          "title": "should deny profile update without token"
+        }
+      ],
+      "endTime": 1764701272024,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\users\\profile.test.js",
+      "startTime": 1764701270300,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "TC-AUTH-011: Lấy thông tin user hiện tại (GET /me)"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) TC-AUTH-011: Lấy thông tin user hiện tại (GET /me) should return current user info for student",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 9,
+          "retryReasons": [],
+          "startAt": 1764701273715,
+          "status": "passed",
+          "title": "should return current user info for student"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "TC-AUTH-011: Lấy thông tin user hiện tại (GET /me)"
+          ],
+          "duration": 16,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) TC-AUTH-011: Lấy thông tin user hiện tại (GET /me) should return current user info for teacher",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 4,
+          "retryReasons": [],
+          "startAt": 1764701273737,
+          "status": "passed",
+          "title": "should return current user info for teacher"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "TC-AUTH-011: Lấy thông tin user hiện tại (GET /me)"
+          ],
+          "duration": 14,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) TC-AUTH-011: Lấy thông tin user hiện tại (GET /me) should return current user info for admin",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 4,
+          "retryReasons": [],
+          "startAt": 1764701273754,
+          "status": "passed",
+          "title": "should return current user info for admin"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "TC-AUTH-011: Lấy thông tin user hiện tại (GET /me)"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) TC-AUTH-011: Lấy thông tin user hiện tại (GET /me) should include student info for student role",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701273769,
+          "status": "passed",
+          "title": "should include student info for student role"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) Unauthorized Access Tests should return 401 without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701273790,
+          "status": "passed",
+          "title": "should return 401 without token"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 17,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) Unauthorized Access Tests should return 401 with invalid token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701273799,
+          "status": "passed",
+          "title": "should return 401 with invalid token"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 15,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) Unauthorized Access Tests should return 401 with expired token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701273817,
+          "status": "passed",
+          "title": "should return 401 with expired token"
+        },
+        {
+          "ancestorTitles": [
+            "Authentication - Get Current User (GET /me)",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Authentication - Get Current User (GET /me) Unauthorized Access Tests should return 401 with malformed Authorization header",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701273832,
+          "status": "passed",
+          "title": "should return 401 with malformed Authorization header"
+        }
+      ],
+      "endTime": 1764701274019,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\auth\\me.test.js",
+      "startTime": 1764701272039,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-001: Tìm kiếm hoạt động theo từ khóa"
+          ],
+          "duration": 57,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-001: Tìm kiếm hoạt động theo từ khóa should search activities by keyword",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701274995,
+          "status": "passed",
+          "title": "should search activities by keyword"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-001: Tìm kiếm hoạt động theo từ khóa"
+          ],
+          "duration": 23,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-001: Tìm kiếm hoạt động theo từ khóa should search activities by name",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275052,
+          "status": "passed",
+          "title": "should search activities by name"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-001: Tìm kiếm hoạt động theo từ khóa"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-001: Tìm kiếm hoạt động theo từ khóa should return empty array for non-matching search",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275075,
+          "status": "passed",
+          "title": "should return empty array for non-matching search"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-002: Tìm kiếm kết hợp nhiều bộ lọc"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-002: Tìm kiếm kết hợp nhiều bộ lọc should search with multiple filters",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275096,
+          "status": "passed",
+          "title": "should search with multiple filters"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-002: Tìm kiếm kết hợp nhiều bộ lọc"
+          ],
+          "duration": 21,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-002: Tìm kiếm kết hợp nhiều bộ lọc should combine date range with search",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275118,
+          "status": "passed",
+          "title": "should combine date range with search"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-003: Tìm kiếm người dùng (Admin)"
+          ],
+          "duration": 33,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-003: Tìm kiếm người dùng (Admin) should search users by name (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275139,
+          "status": "passed",
+          "title": "should search users by name (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-003: Tìm kiếm người dùng (Admin)"
+          ],
+          "duration": 29,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-003: Tìm kiếm người dùng (Admin) should search users by MSSV",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275172,
+          "status": "passed",
+          "title": "should search users by MSSV"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-003: Tìm kiếm người dùng (Admin)"
+          ],
+          "duration": 30,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-003: Tìm kiếm người dùng (Admin) should search users by email",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275202,
+          "status": "passed",
+          "title": "should search users by email"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "TC-SRC-003: Tìm kiếm người dùng (Admin)"
+          ],
+          "duration": 11,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests TC-SRC-003: Tìm kiếm người dùng (Admin) should deny student from searching users",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275233,
+          "status": "passed",
+          "title": "should deny student from searching users"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "Additional Search Tests"
+          ],
+          "duration": 24,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests Additional Search Tests should handle special characters in search",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275245,
+          "status": "passed",
+          "title": "should handle special characters in search"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "Additional Search Tests"
+          ],
+          "duration": 29,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests Additional Search Tests should handle empty search query",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275269,
+          "status": "passed",
+          "title": "should handle empty search query"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "Additional Search Tests"
+          ],
+          "duration": 32,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests Additional Search Tests should handle very long search query",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275299,
+          "status": "passed",
+          "title": "should handle very long search query"
+        },
+        {
+          "ancestorTitles": [
+            "Search Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Search Module - Integration Tests Unauthorized Access Tests should deny search without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701275332,
+          "status": "passed",
+          "title": "should deny search without token"
+        }
+      ],
+      "endTime": 1764701275785,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\search\\search.test.js",
+      "startTime": 1764701274031,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-001: Thống kê tổng quan dashboard"
+          ],
+          "duration": 14,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-001: Thống kê tổng quan dashboard should get dashboard statistics (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277364,
+          "status": "passed",
+          "title": "should get dashboard statistics (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-001: Thống kê tổng quan dashboard"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-001: Thống kê tổng quan dashboard should get teacher dashboard stats",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277379,
+          "status": "passed",
+          "title": "should get teacher dashboard stats"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-002: Thống kê điểm rèn luyện theo lớp"
+          ],
+          "duration": 11,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-002: Thống kê điểm rèn luyện theo lớp should get class statistics (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277389,
+          "status": "passed",
+          "title": "should get class statistics (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-002: Thống kê điểm rèn luyện theo lớp"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-002: Thống kê điểm rèn luyện theo lớp should filter by semester",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277400,
+          "status": "passed",
+          "title": "should filter by semester"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-002: Thống kê điểm rèn luyện theo lớp"
+          ],
+          "duration": 16,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-002: Thống kê điểm rèn luyện theo lớp should deny student access to class stats",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277410,
+          "status": "passed",
+          "title": "should deny student access to class stats"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-003: Thống kê điểm rèn luyện cá nhân"
+          ],
+          "duration": 17,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-003: Thống kê điểm rèn luyện cá nhân should get personal statistics for student",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277427,
+          "status": "passed",
+          "title": "should get personal statistics for student"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-003: Thống kê điểm rèn luyện cá nhân"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-003: Thống kê điểm rèn luyện cá nhân should include semester breakdown",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277444,
+          "status": "passed",
+          "title": "should include semester breakdown"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-004: Xuất báo cáo Excel"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-004: Xuất báo cáo Excel should export activities report (Admin)",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277454,
+          "status": "passed",
+          "title": "should export activities report (Admin)"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-004: Xuất báo cáo Excel"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-004: Xuất báo cáo Excel should export registrations report",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277464,
+          "status": "passed",
+          "title": "should export registrations report"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-004: Xuất báo cáo Excel"
+          ],
+          "duration": 12,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-004: Xuất báo cáo Excel should deny student from exporting admin reports",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277473,
+          "status": "passed",
+          "title": "should deny student from exporting admin reports"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-005: Thống kê hoạt động theo khoảng thời gian"
+          ],
+          "duration": 11,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-005: Thống kê hoạt động theo khoảng thời gian should get activity statistics by date range",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277486,
+          "status": "passed",
+          "title": "should get activity statistics by date range"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-005: Thống kê hoạt động theo khoảng thời gian"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-005: Thống kê hoạt động theo khoảng thời gian should filter by activity type",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277497,
+          "status": "passed",
+          "title": "should filter by activity type"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-006: Báo cáo đăng ký theo hoạt động"
+          ],
+          "duration": 68,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-006: Báo cáo đăng ký theo hoạt động should get registration report for specific activity",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 0,
+          "retryReasons": [],
+          "startAt": 1764701277508,
+          "status": "passed",
+          "title": "should get registration report for specific activity"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "TC-RPT-006: Báo cáo đăng ký theo hoạt động"
+          ],
+          "duration": 31,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests TC-RPT-006: Báo cáo đăng ký theo hoạt động should export registration report for activity",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 0,
+          "retryReasons": [],
+          "startAt": 1764701277576,
+          "status": "passed",
+          "title": "should export registration report for activity"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "Additional Statistics Tests"
+          ],
+          "duration": 8,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests Additional Statistics Tests should get training points summary",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277608,
+          "status": "passed",
+          "title": "should get training points summary"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "Additional Statistics Tests"
+          ],
+          "duration": 10,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests Additional Statistics Tests should get attendance statistics",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277617,
+          "status": "passed",
+          "title": "should get attendance statistics"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests Unauthorized Access Tests should deny access without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277627,
+          "status": "passed",
+          "title": "should deny access without token"
+        },
+        {
+          "ancestorTitles": [
+            "Reports/Statistics Module - Integration Tests",
+            "Unauthorized Access Tests"
+          ],
+          "duration": 9,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Reports/Statistics Module - Integration Tests Unauthorized Access Tests should deny export without token",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701277637,
+          "status": "passed",
+          "title": "should deny export without token"
+        }
+      ],
+      "endTime": 1764701277833,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\reports\\statistics.test.js",
+      "startTime": 1764701275799,
+      "status": "passed",
+      "summary": ""
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-001: Sinh viên đăng ký tham gia hoạt động thành công"
+          ],
+          "duration": 90,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-001: Sinh viên đăng ký tham gia hoạt động thành công should allow student to register for activity",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701279730,
+          "status": "passed",
+          "title": "should allow student to register for activity"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-002: Đăng ký thất bại - Hết hạn đăng ký"
+          ],
+          "duration": 39,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-002: Đăng ký thất bại - Hết hạn đăng ký should reject registration after deadline",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 3,
+          "retryReasons": [],
+          "startAt": 1764701279821,
+          "status": "passed",
+          "title": "should reject registration after deadline"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-003: Đăng ký thất bại - Đã đủ số lượng"
+          ],
+          "duration": 29,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-003: Đăng ký thất bại - Đã đủ số lượng should reject when activity is full",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701279861,
+          "status": "passed",
+          "title": "should reject when activity is full"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-004: Đăng ký thất bại - Đã đăng ký trước đó"
+          ],
+          "duration": 33,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-004: Đăng ký thất bại - Đã đăng ký trước đó should reject duplicate registration",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701279890,
+          "status": "passed",
+          "title": "should reject duplicate registration"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-007: Lấy danh sách đăng ký của sinh viên"
+          ],
+          "duration": 40,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-007: Lấy danh sách đăng ký của sinh viên should return my registrations",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701279925,
+          "status": "passed",
+          "title": "should return my registrations"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-007: Lấy danh sách đăng ký của sinh viên"
+          ],
+          "duration": 24,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-007: Lấy danh sách đăng ký của sinh viên should filter by status",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701279965,
+          "status": "passed",
+          "title": "should filter by status"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-008: Permission - Giảng viên không thể đăng ký"
+          ],
+          "duration": 29,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-008: Permission - Giảng viên không thể đăng ký should reject teacher from registering",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701279989,
+          "status": "passed",
+          "title": "should reject teacher from registering"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-009: Duyệt đăng ký thành công"
+          ],
+          "duration": 52,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-009: Duyệt đăng ký thành công should allow teacher to approve registration",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "startAt": 1764701280051,
+          "status": "passed",
+          "title": "should allow teacher to approve registration"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "TC-REG-010: Từ chối đăng ký với lý do"
+          ],
+          "duration": 44,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests TC-REG-010: Từ chối đăng ký với lý do should allow teacher to reject with reason",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701280131,
+          "status": "passed",
+          "title": "should allow teacher to reject with reason"
+        },
+        {
+          "ancestorTitles": [
+            "Registrations Module - Integration Tests",
+            "Registration Cancel Tests"
+          ],
+          "duration": 31,
+          "failing": false,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "Registrations Module - Integration Tests Registration Cancel Tests should allow student to cancel before deadline",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 1,
+          "retryReasons": [],
+          "startAt": 1764701280204,
+          "status": "passed",
+          "title": "should allow student to cancel before deadline"
+        }
+      ],
+      "endTime": 1764701280493,
+      "message": "",
+      "name": "D:\\DACN_Web_quanly_hoatdongrenluyen-master\\backend\\tests\\integration\\registrations\\registrations.test.js",
+      "startTime": 1764701277844,
+      "status": "passed",
+      "summary": ""
+    }
+  ],
+  "wasInterrupted": false
+}

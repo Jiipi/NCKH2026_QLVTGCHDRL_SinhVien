@@ -5,9 +5,14 @@ export default function AdminUsersHero({
   totalAccounts = 0,
   liveSessions = 0,
   lockedAccounts = 0,
-  roleCounts = { admin: 0, teacher: 0, classMonitor: 0, student: 0 },
+  roleCounts = {},
   onCreateClick
 }) {
+  // Normalize roleCounts - support both API format (adminCount) and legacy format (admin)
+  const adminNum = roleCounts.adminCount ?? roleCounts.admin ?? 0;
+  const teacherNum = roleCounts.teacherCount ?? roleCounts.teacher ?? 0;
+  const classMonitorNum = roleCounts.classMonitorCount ?? roleCounts.classMonitor ?? 0;
+  const studentNum = roleCounts.studentCount ?? roleCounts.student ?? 0;
   return (
     <div className="relative mb-8 overflow-hidden rounded-3xl">
       <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600" />
@@ -90,7 +95,7 @@ export default function AdminUsersHero({
           />
           <HeroCard
             icon={<LayoutGrid className="w-5 h-5 text-sky-700" />}
-            value={`${roleCounts.admin}/${roleCounts.teacher}/${roleCounts.classMonitor}/${roleCounts.student}`}
+            value={`${adminNum}/${teacherNum}/${classMonitorNum}/${studentNum}`}
             label="Admin • GV • LT • SV"
             gradient="from-sky-100 to-cyan-50"
             isCompact
