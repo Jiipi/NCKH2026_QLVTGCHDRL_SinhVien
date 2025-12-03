@@ -73,9 +73,15 @@ export default function SemesterManagement() {
   };
 
   const getSemesterLabel = (value) => {
-    const [hk, year] = value.split('-');
-    const hkNum = hk.replace('hoc_ky_', '');
-    return `HK${hkNum} (${year}-${parseInt(year) + 1})`;
+    if (!value) return 'N/A';
+    // Support both formats: hoc_ky_1_2025 (new) and hoc_ky_1-2025 (legacy)
+    const match = value.match(/^hoc_ky_([12])[_-](\d{4})$/);
+    if (match) {
+      const hkNum = match[1];
+      const year = parseInt(match[2]);
+      return `HK${hkNum}_${year} (${year}-${year + 1})`;
+    }
+    return value; // fallback to raw value
   };
 
   const getStatusBadge = (status, isActive) => {

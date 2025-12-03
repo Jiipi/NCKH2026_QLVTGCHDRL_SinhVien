@@ -168,8 +168,10 @@ function deriveYear(hoc_ky, nam_hoc) {
   }
   // Fallback: look at active semester metadata and prefer that year if present in the string
   const active = readActiveSemesterFromMetadata();
-  if (active && active.startsWith(`${hoc_ky}-`)) {
-    const activeYear = active.split('-')[1];
+  // Support both formats: hoc_ky_1_2025 (new) and hoc_ky_1-2025 (legacy)
+  const activeMatch = active ? active.match(/^hoc_ky_[12][_-](\d{4})$/) : null;
+  if (activeMatch && active.includes(hoc_ky)) {
+    const activeYear = activeMatch[1];
     if ((nam_hoc || '').includes(activeYear)) return activeYear;
   }
   // Final fallback: pick closer side consistent with hoc_ky
@@ -185,9 +187,10 @@ const SemesterClosureService = {
       semInfo = parseSemesterString(semesterStr) || getCurrentSemesterInfo();
     } else {
       const active = readActiveSemesterFromMetadata();
-      if (active && /^hoc_ky_[12]-\d{4}$/.test(active)) {
-        const [hk, y] = active.split('-');
-        semInfo = { semester: hk, year: y };
+      // Support both formats: hoc_ky_1_2025 (new) and hoc_ky_1-2025 (legacy)
+      const activeMatch = active ? active.match(/^hoc_ky_([12])[_-](\d{4})$/) : null;
+      if (activeMatch) {
+        semInfo = { semester: `hoc_ky_${activeMatch[1]}`, year: activeMatch[2] };
       } else {
         semInfo = getCurrentSemesterInfo();
       }
