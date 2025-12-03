@@ -21,6 +21,43 @@ const SCOPE_OPTIONS = [
   { value: 'class', label: 'Theo lớp' }
 ];
 
+/**
+ * Extract approver role and name from nguoi_duyet object
+ */
+function mapRegistrationWithApprover(registration) {
+  if (!registration) return registration;
+  
+  const nguoiDuyet = registration.nguoi_duyet;
+  let approvedByRole = registration.approvedByRole;
+  let approvedByName = registration.approvedByName;
+  
+  if (nguoiDuyet && !approvedByRole) {
+    // Extract role from vai_tro.ten_vt (Prisma field name)
+    const roleName = nguoiDuyet.vai_tro?.ten_vt;
+    if (roleName) {
+      const roleMap = {
+        'Giảng viên': 'GIANG_VIEN',
+        'GIANG_VIEN': 'GIANG_VIEN',
+        'Lớp trưởng': 'LOP_TRUONG',
+        'LOP_TRUONG': 'LOP_TRUONG',
+        'Admin': 'ADMIN',
+        'ADMIN': 'ADMIN',
+        'Sinh viên': 'SINH_VIEN',
+        'SINH_VIEN': 'SINH_VIEN'
+      };
+      approvedByRole = roleMap[roleName] || roleName;
+    }
+    approvedByName = nguoiDuyet.ho_ten || null;
+  }
+  
+  return {
+    ...registration,
+    approvedByRole: registration.trang_thai_dk === 'da_duyet' ? approvedByRole : null,
+    rejectedByRole: registration.trang_thai_dk === 'tu_choi' ? approvedByRole : null,
+    approvedByName
+  };
+}
+
 export function useAdminApprovals(initialSemester) {
   const { showSuccess, showError, showWarning, confirm } = useNotification();
 
@@ -48,7 +85,17 @@ export function useAdminApprovals(initialSemester) {
   });
 
   // UI and filter states
-  const [semester, setSemester] = useState(initialSemester || getCurrentSemesterValue());
+  // Scope 'all' (Toàn hệ thống) - mặc định semester rỗng để xem tất cả học kỳ
+  // Scope 'class' (Theo lớp) - cần semester cụ thể
+  const [semester, setSemester] = useState(() => {
+    // Khi scope là 'all' mặc định, bắt đầu với semester rỗng để xem tất cả
+    // User có thể filter theo học kỳ cụ thể sau
+    if (initialSemester && initialSemester.trim()) {
+      return initialSemester;
+    }
+    // Default to empty for 'all' scope - show all semesters initially
+    return '';
+  });
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'approved', 'rejected', 'participated'
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ 
@@ -87,10 +134,13 @@ export function useAdminApprovals(initialSemester) {
         }
       });
 
+      console.log('[AdminApprovals] Loading registrations with params:', params, 'semester:', semester);
       const res = await http.get('/admin/registrations', { params });
       const data = res?.data?.data || res?.data || {};
       
-      setRegistrations(Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []));
+      // Map registrations to include approvedByRole and approvedByName
+      const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+      setRegistrations(items.map(mapRegistrationWithApprover));
       setPagination(prev => ({
         ...prev,
         total: parseInt(data.total || 0)

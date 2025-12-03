@@ -237,7 +237,7 @@ export default function useMyActivities() {
 
   // Business logic: Filter, search & sort activities
   const currentItems = useMemo(() => {
-    let items = (data[tab] || []).filter(activity => activity.is_class_activity);
+    let items = data[tab] || [];
     
     // Search filter
     if (query.trim()) {
@@ -253,10 +253,11 @@ export default function useMyActivities() {
     if (filters.type) {
       items = items.filter(activity => {
         const activityData = activity.hoat_dong || activity;
-        const activityType = typeof activityData.loai === 'string'
-          ? activityData.loai
-          : (activityData.loai?.name || activityData.loai_hd?.ten_loai_hd || '');
-        return activityType === filters.type;
+        // Support both ID and name comparison
+        const activityTypeId = String(activityData.loai_hd_id || activityData.loai_hd?.id || '');
+        const activityTypeName = activityData.loai?.name || activityData.loai_hd?.ten_loai_hd || '';
+        const filterValue = String(filters.type);
+        return activityTypeId === filterValue || activityTypeName === filterValue;
       });
     }
     
@@ -279,34 +280,36 @@ export default function useMyActivities() {
       });
     }
 
-    // Sort theo sortBy
-    items.sort((a, b) => {
+    // Sort theo sortBy - dùng spread để tránh mutate array gốc
+    const sorted = [...items].sort((a, b) => {
       const aData = a.hoat_dong || a;
       const bData = b.hoat_dong || b;
-      const createdA = new Date(aData.ngay_tao || aData.ngay_cap_nhat || aData.ngay_bd || 0);
-      const createdB = new Date(bData.ngay_tao || bData.ngay_cap_nhat || bData.ngay_bd || 0);
+      
+      // Ưu tiên ngày đăng ký (cho "Hoạt động của tôi") hoặc ngày tạo/cập nhật
+      const dateA = new Date(a.ngay_dang_ky || aData.ngay_cap_nhat || aData.ngay_tao || aData.ngay_bd || 0).getTime();
+      const dateB = new Date(b.ngay_dang_ky || bData.ngay_cap_nhat || bData.ngay_tao || bData.ngay_bd || 0).getTime();
 
       switch (sortBy) {
         case 'oldest':
-          return createdA - createdB;
+          return dateA - dateB;
         case 'name-az': {
           const nameA = (aData.ten_hd || '').toLowerCase();
           const nameB = (bData.ten_hd || '').toLowerCase();
-          return nameA.localeCompare(nameB);
+          return nameA.localeCompare(nameB, 'vi');
         }
         case 'name-za': {
           const nameA = (aData.ten_hd || '').toLowerCase();
           const nameB = (bData.ten_hd || '').toLowerCase();
-          return nameB.localeCompare(nameA);
+          return nameB.localeCompare(nameA, 'vi');
         }
         case 'newest':
         default:
-          return createdB - createdA;
+          return dateB - dateA;
       }
     });
 
-    setPagination(prev => ({ ...prev, total: items.length }));
-    return items;
+    setPagination(prev => ({ ...prev, total: sorted.length }));
+    return sorted;
   }, [data, tab, query, filters, sortBy]);
 
   // Business logic: Pagination

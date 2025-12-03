@@ -414,7 +414,7 @@ class SessionStorageManager {
   }
 
   /**
-   * Emit sync event cho các tabs khác
+   * Emit sync event cho các tabs khác VÀ tab hiện tại
    */
   emitSyncEvent(type, data) {
     try {
@@ -424,6 +424,14 @@ class SessionStorageManager {
         timestamp: Date.now(),
         ...data
       };
+      
+      // Dispatch event trực tiếp trên tab hiện tại
+      // (storage event chỉ fire ở tabs KHÁC, không fire trên cùng tab)
+      if (type === 'session_saved' || type === 'session_cleared') {
+        window.dispatchEvent(new CustomEvent('tab_session_sync', { detail: event }));
+      } else if (type === 'logout_all') {
+        window.dispatchEvent(new CustomEvent('tab_logout_all', { detail: event }));
+      }
       
       // Lưu vào localStorage để trigger storage event ở tabs khác
       localStorage.setItem(this.SYNC_EVENT_KEY, JSON.stringify(event));

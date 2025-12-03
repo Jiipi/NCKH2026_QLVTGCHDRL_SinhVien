@@ -226,6 +226,10 @@ class RegistrationsRepository {
     if (data.ngay_tham_gia !== undefined) {
       updateData.ngay_tham_gia = data.ngay_tham_gia;
     }
+    // Lưu người duyệt khi approve/reject
+    if (data.nguoi_duyet_id !== undefined) {
+      updateData.nguoi_duyet_id = data.nguoi_duyet_id;
+    }
 
     // id là UUID (String), không parse
     const updated = await prisma.dangKyHoatDong.update({

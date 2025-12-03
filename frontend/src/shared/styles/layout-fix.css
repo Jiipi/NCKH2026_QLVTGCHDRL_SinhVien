@@ -56,3 +56,30 @@ div[className*="min-h-screen"] > div[className*="flex"] > main {
   }
 }
 */
+
+/* ============================================
+   Image Quality Enhancement for Activity Cards
+   ============================================ */
+
+/* Disable scale on hover to prevent blur from browser interpolation */
+.group:hover img.object-cover {
+  transform: none !important;
+}
+
+/* High quality image rendering */
+img.object-cover {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Smoother rendering for activity images */
+.activity-image,
+[class*="ActivityImageSlideshow"] img,
+[class*="ActivityCard"] img,
+[class*="MyActivityCard"] img {
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast;
+}

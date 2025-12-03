@@ -149,7 +149,9 @@ export function useMonitorApprovals() {
       if (result.success) {
         const items = result.data.items || [];
         const enriched = await enrichActivityTypes(items);
-        setRegistrations(enriched);
+        // Map to UI format with approver info
+        const mapped = enriched.map(item => mapRegistrationToUI(item));
+        setRegistrations(mapped);
         setError('');
       } else {
         setError(result.error || 'Không thể tải danh sách đăng ký');

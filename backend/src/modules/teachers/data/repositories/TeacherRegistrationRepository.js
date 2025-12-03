@@ -81,6 +81,13 @@ class TeacherRegistrationRepository {
               hinh_anh: true,
               loai_hd: { select: { id: true, ten_loai_hd: true } }
             } 
+          },
+          nguoi_duyet: {
+            select: {
+              id: true,
+              ho_ten: true,
+              vai_tro: { select: { ten_vt: true } }
+            }
           }
         },
         orderBy: { ngay_dang_ky: 'desc' },

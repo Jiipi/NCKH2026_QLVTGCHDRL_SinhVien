@@ -55,9 +55,7 @@ export default function MyActivitiesPage() {
   } = useMyActivities();
 
   const activeFilterCount = getActiveFilterCount();
-  const filteredTotal = Array.isArray(data[tab])
-    ? data[tab].filter((item) => item.is_class_activity).length
-    : 0;
+  const filteredTotal = Array.isArray(data[tab]) ? data[tab].length : 0;
 
   const tabsConfig = [
     { key: 'pending', title: 'Chờ duyệt', icon: Clock, count: data.pending.length, gradient: 'from-amber-500 to-orange-600' },

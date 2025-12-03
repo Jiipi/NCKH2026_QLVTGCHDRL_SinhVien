@@ -33,9 +33,9 @@ export default function MyActivitiesFiltersPanel({
           >
             <option value="">Tất cả loại</option>
             {safeTypes.map((type) => {
-              const typeName = typeof type === 'string' ? type : type?.name || type?.ten_loai_hd || '';
-              const typeValue = typeof type === 'string' ? type : type?.name || type?.ten_loai_hd || type?.id || '';
-              const typeKey = typeof type === 'string' ? type : type?.id || type?.name || type?.ten_loai_hd || '';
+              const typeName = typeof type === 'string' ? type : type?.ten_loai_hd || type?.name || '';
+              const typeValue = typeof type === 'string' ? type : type?.id || '';
+              const typeKey = typeof type === 'string' ? type : type?.id || typeName;
               return (
                 <option key={typeKey} value={typeValue}>
                   {typeName}

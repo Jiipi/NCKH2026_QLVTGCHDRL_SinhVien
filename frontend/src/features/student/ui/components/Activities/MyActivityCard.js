@@ -113,7 +113,7 @@ export default function MyActivityCard({
                 images={activityData.hinh_anh}
                 activityType={activityData.loai || activityData.loai_hd?.ten_loai_hd}
                 alt={activityData.ten_hd || activityData.name || 'Hoạt động'}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover"
                 showDots={true}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
@@ -216,7 +216,7 @@ export default function MyActivityCard({
             images={activityData.hinh_anh}
             activityType={activityData.loai || activityData.loai_hd?.ten_loai_hd}
             alt={activityData.ten_hd || activityData.name || 'Hoạt động'}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
             showDots={true}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
