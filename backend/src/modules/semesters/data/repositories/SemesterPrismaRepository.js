@@ -1,5 +1,6 @@
 const ISemesterRepository = require('../../business/interfaces/ISemesterRepository');
 const { prisma } = require('../../../../data/infrastructure/prisma/client');
+const { buildSemesterValue } = require('../../../../core/utils/semester');
 
 /**
  * SemesterPrismaRepository
@@ -20,7 +21,8 @@ class SemesterPrismaRepository extends ISemesterRepository {
         const semesterNum = r.hoc_ky === 'hoc_ky_1' ? '1' : r.hoc_ky === 'hoc_ky_2' ? '2' : r.hoc_ky;
         const yearMatch = r.nam_hoc.match(/(\d{4})/);
         const year = yearMatch ? yearMatch[1] : r.nam_hoc;
-        const value = `${r.hoc_ky}-${year}`;
+        // Use standardized format with underscore: hoc_ky_1_2025
+        const value = buildSemesterValue(r.hoc_ky, year);
         const label = `Học kỳ ${semesterNum} - ${year}`;
 
         if (seen.has(value)) return null;
