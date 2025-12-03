@@ -355,15 +355,7 @@ function TeacherSidebar(props) {
         active: getActiveState('/teacher/activities')
       });
     }
-    if (hasAnyPermission(['attendance.view', 'attendance.read', 'attendance.write', 'attendance.mark'])) {
-      activityItems.push({
-        key: 'attendance',
-        to: '/teacher/attendance',
-        label: 'Điểm danh',
-        icon: <QrCode className="w-4 h-4" />,
-        active: getActiveState('/teacher/attendance')
-      });
-    }
+    // Đã xóa mục Điểm danh theo yêu cầu - Giảng viên không cần chức năng này
     if (activityItems.length > 0) {
       menu.push({
         type: 'group',
