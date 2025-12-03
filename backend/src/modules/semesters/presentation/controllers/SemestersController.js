@@ -55,10 +55,11 @@ class SemestersController {
   async getCurrentSemesterStatus(req, res) {
     try {
       const classId = req.query?.classId || null;
+      const semester = req.query?.semester || null;
       const userId = req.user?.sub || null;
       const classMonitor = req.classMonitor || null;
       
-      const status = await this.useCases.getCurrentSemesterStatus.execute(classId, userId, classMonitor);
+      const status = await this.useCases.getCurrentSemesterStatus.execute(classId, userId, classMonitor, semester);
       return sendResponse(res, 200, ApiResponse.success(status, 'Current semester status'));
     } catch (error) {
       logError('Get current semester status error', error);

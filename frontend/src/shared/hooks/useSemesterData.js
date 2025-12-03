@@ -202,7 +202,12 @@ export default function useSemesterData(semesterValue, { autoFetchStatus = true 
 
   const fetchStatus = useCallback(async (value, { force = false } = {}) => {
     if (!value) return null;
+    // Check if we already have data (either success or error marker)
     if (!force && statusCache[value] !== undefined) {
+      // If it's an error marker, return null but don't retry
+      if (statusCache[value] === '__error__') {
+        return null;
+      }
       return statusCache[value];
     }
 
@@ -218,10 +223,10 @@ export default function useSemesterData(semesterValue, { autoFetchStatus = true 
     } catch (error) {
       const message = error?.response?.data?.message || 'Không tải được trạng thái học kỳ';
       setStatusError((prev) => ({ ...prev, [value]: message }));
-      const nextCache = { ...statusCache };
-      delete nextCache[value];
+      // Mark as error in cache to prevent infinite retry
+      const nextCache = { ...statusCache, [value]: '__error__' };
       persistStatusCache(nextCache);
-      throw error;
+      return null;
     } finally {
       setStatusLoading((prev) => ({ ...prev, [value]: false }));
     }
@@ -235,7 +240,9 @@ export default function useSemesterData(semesterValue, { autoFetchStatus = true 
     }
   }, [autoFetchStatus, semesterValue, fetchStatus, statusCache]);
 
-  const status = semesterValue ? statusCache[semesterValue] || null : null;
+  // Get status, handling error marker
+  const rawStatus = semesterValue ? statusCache[semesterValue] : null;
+  const status = rawStatus === '__error__' ? null : rawStatus;
   const isWritable = useMemo(() => computeWritable(semesterValue, currentSemester), [semesterValue, currentSemester]);
 
   // Filter options based on user role
