@@ -1,0 +1,9 @@
+SOURCE CODE CỦA ĐỒ ÁN
+=====================
+
+Toàn bộ mã nguồn của dự án nằm ở thư mục gốc "DACN_Web_quanly_hoatdongrenluyen-master" , bao gồm:
+
+1.  backend/ : Mã nguồn Server (Node.js, Express, Prisma)
+2.  frontend/ : Mã nguồn Trang web (ReactJS, TailwindCSS)
+3.  database/ : Dữ liệu và Backup
+4.  docs/ : Tài liệu kỹ thuật

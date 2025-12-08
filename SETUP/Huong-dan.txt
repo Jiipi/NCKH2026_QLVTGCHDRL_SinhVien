@@ -1,0 +1,6 @@
+1. file setup cho máy local
+- setup.bat           #File này dùng để cài node_modules và tự động setup dữ liệu thử cho máy local
+
+2. File setup cho server aws
+- deploy.sh           #File này dùng để setup các file dữ liệu mẫu, migration db cho server
+- setup-ec2.sh        #File này dùng để cài nginx, docker,... các dịch vụ cần có cho server

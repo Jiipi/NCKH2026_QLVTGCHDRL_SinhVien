@@ -417,10 +417,10 @@ export default function TeacherActivitiesPage() {
                     <option value="tu_choi">Từ chối ({allActivities.filter(a => a.trang_thai === 'tu_choi').length})</option>
                   </select>
                   <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${!statusFilter ? 'bg-gradient-to-r from-indigo-500 to-purple-600' :
-                      atusFilter === 'cho_duyet' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                        stusFilter === 'da_duyet' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                          statFilter === 'ket_thuc' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
-                            'bg-grient-to-r from-red-500 to-rose-500'
+                      statusFilter === 'cho_duyet' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                        statusFilter === 'da_duyet' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                          statusFilter === 'ket_thuc' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
+                            'bg-gradient-to-r from-red-500 to-rose-500'
                     } text-white`}>
                     {!statusFilter ? <Filter className="h-4 w-4" /> :
                       statusFilter === 'cho_duyet' ? <Clock className="h-4 w-4" /> :

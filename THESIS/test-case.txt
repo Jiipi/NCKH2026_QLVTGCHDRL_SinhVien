@@ -1,0 +1,2769 @@
+			BÀI KIỂM THỬ HỆ THỐNG WEBSITE QUẢN LÝ HOẠT ĐỘNG RÈN LUYỆN
+			
+=============================================================================================
+PROJECT INFO
+=============================================================================================
+Backend: Express.js + Prisma ORM + PostgreSQL
+Testing Framework: Jest v30.2.0 + Supertest v7.1.4
+Auth: JWT Token (Bearer)
+Base API: /api
+
+Test Environment Setup:
+- Database: PostgreSQL test database
+- Test timeout: 30000ms (30 seconds)
+- Setup file: tests/setup.js
+- Teardown file: tests/teardown.js
+
+=============================================================================================
+1. Module Authentication (Xác thực người dùng)
+=============================================================================================
+	* Mã test case: TC-AUTH-001
+	* Tên test case: Đăng nhập thành công với mã sinh viên
+	* Mô tả: Kiểm tra đăng nhập thành công khi nhập đúng mã sinh viên và mật khẩu
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Rate Limit: Áp dụng loginLimiter middleware
+	* Dữ liệu đầu vào: 
+		{
+			"ten_dn": "2212345",
+			"mat_khau": "MatKhau123!"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- token: "eyJhbGciOiJIUzI1NiIs..." (JWT)
+		- user: { id, ten_dn, email, ho_ten, vai_tro, sinh_vien: {...} }
+		- redirectTo: string (route path based on role)
+	* Status code: 200
+	* Sample test code:
+		```javascript
+		const response = await request(app)
+			.post('/api/auth/login')
+			.send({ ten_dn: '2212345', mat_khau: 'MatKhau123!' });
+		expect(response.status).toBe(200);
+		expect(response.body.success).toBe(true);
+		expect(response.body.token).toBeDefined();
+		expect(response.body.user).toHaveProperty('vai_tro');
+		```
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-002
+	* Tên test case: Đăng nhập thất bại - Sai mật khẩu
+	* Mô tả: Kiểm tra hệ thống xử lý khi nhập sai mật khẩu
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Dữ liệu đầu vào: { "ten_dn": "2212345", "mat_khau": "SaiMatKhau123" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Tên đăng nhập hoặc mật khẩu không chính xác"
+	* Status code: 401
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-003
+	* Tên test case: Đăng nhập thất bại - Tài khoản không tồn tại
+	* Mô tả: Kiểm tra khi tài khoản không có trong hệ thống
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Dữ liệu đầu vào: { "ten_dn": "9999999", "mat_khau": "Pass123!" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Tên đăng nhập hoặc mật khẩu không chính xác"
+	* Status code: 401
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-004
+	* Tên test case: Đăng nhập thất bại - Tài khoản bị khóa
+	* Mô tả: Kiểm tra hệ thống chặn đăng nhập với tài khoản có trang_thai = 'vo_hieu_hoa'
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Dữ liệu đầu vào: { "ten_dn": "locked_user", "mat_khau": "Pass123!" }
+		(Tài khoản có NguoiDung.trang_thai = 'vo_hieu_hoa')
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Tài khoản đã bị vô hiệu hóa"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-005
+	* Tên test case: Validation - Thiếu username
+	* Mô tả: Kiểm tra validator từ chối request khi thiếu ten_dn
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Validator: validateLogin (Zod schema)
+	* Dữ liệu đầu vào: { "mat_khau": "Pass123!" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- errors: [{ field: "ten_dn", message: "..." }]
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-006
+	* Tên test case: Validation - Thiếu password
+	* Mô tả: Kiểm tra validator từ chối request khi thiếu mat_khau
+	* Endpoint: POST /api/auth/login
+	* Method: POST
+	* Validator: validateLogin
+	* Dữ liệu đầu vào: { "ten_dn": "2212345" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- errors: [{ field: "mat_khau", message: "..." }]
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-007
+	* Tên test case: Đăng ký tài khoản sinh viên thành công
+	* Mô tả: Kiểm tra tạo tài khoản sinh viên mới với đầy đủ thông tin hợp lệ
+	* Endpoint: POST /api/auth/register
+	* Method: POST
+	* Validator: validateRegister
+	* Dữ liệu đầu vào: 
+		{
+			"ten_dn": "2212999",
+			"mat_khau": "Pass123!@#",
+			"xac_nhan_mat_khau": "Pass123!@#",
+			"email": "2212999@dlu.edu.vn",
+			"ho_ten": "Nguyễn Văn A",
+			"mssv": "2212999",
+			"ngay_sinh": "2003-01-15",
+			"gt": "nam",
+			"lop_id": "{valid-uuid}",
+			"sdt": "0912345678"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đăng ký tài khoản thành công"
+		- user: { id, ten_dn, email, vai_tro }
+		- Tạo record trong NguoiDung và SinhVien
+		- Default vai_tro_id = SINH_VIEN
+		- trang_thai = 'hoat_dong'
+	* Status code: 201
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-008
+	* Tên test case: Đăng ký thất bại - MSSV đã tồn tại
+	* Mô tả: Kiểm tra khi đăng ký với MSSV đã được sử dụng
+	* Endpoint: POST /api/auth/register
+	* Method: POST
+	* Dữ liệu đầu vào: { "mssv": "2212345", ... } (MSSV đã tồn tại trong SinhVien)
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "MSSV đã được đăng ký"
+	* Status code: 409
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-009
+	* Tên test case: Validation - Email không đúng định dạng @dlu.edu.vn
+	* Mô tả: Kiểm tra validator yêu cầu email có đuôi @dlu.edu.vn
+	* Endpoint: POST /api/auth/register
+	* Method: POST
+	* Validator: validateRegister (Zod schema)
+	* Dữ liệu đầu vào: { ..., "email": "user@gmail.com" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- errors: [{ field: "email", message: "Email phải có đuôi @dlu.edu.vn" }]
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-010
+	* Tên test case: Validation - Mật khẩu không khớp
+	* Mô tả: Kiểm tra validator xác thực mat_khau và xac_nhan_mat_khau giống nhau
+	* Endpoint: POST /api/auth/register
+	* Method: POST
+	* Validator: validateRegister
+	* Dữ liệu đầu vào: 
+		{
+			"mat_khau": "Pass123!@",
+			"xac_nhan_mat_khau": "Pass456!@",
+			...
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- errors: [{ message: "Mật khẩu xác nhận không khớp" }]
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-011
+	* Tên test case: Lấy thông tin user hiện tại (GET /me)
+	* Mô tả: Kiểm tra endpoint trả về thông tin user đang đăng nhập
+	* Endpoint: GET /api/auth/me
+	* Method: GET
+	* Middleware: auth (JWT verification)
+	* Headers: { "Authorization": "Bearer {valid-token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- user: { id, ten_dn, email, ho_ten, vai_tro, sinh_vien }
+		- KHÔNG trả về mat_khau
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-012
+	* Tên test case: Đổi mật khẩu thành công
+	* Mô tả: Kiểm tra user đổi mật khẩu với mật khẩu cũ đúng
+	* Endpoint: POST /api/auth/change-password
+	* Method: POST
+	* Middleware: auth
+	* Validator: validateChangePassword
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Dữ liệu đầu vào:
+		{
+			"mat_khau_cu": "OldPass123!",
+			"mat_khau_moi": "NewPass456@",
+			"xac_nhan_mat_khau_moi": "NewPass456@"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đổi mật khẩu thành công"
+		- Hash mật khẩu mới bằng bcrypt
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-013
+	* Tên test case: Đổi mật khẩu thất bại - Sai mật khẩu cũ
+	* Mô tả: Kiểm tra từ chối khi mat_khau_cu không đúng
+	* Endpoint: POST /api/auth/change-password
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Dữ liệu đầu vào: { "mat_khau_cu": "WrongPassword", ... }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Mật khẩu cũ không chính xác"
+	* Status code: 401
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-014
+	* Tên test case: Quên mật khẩu - Gửi OTP thành công
+	* Mô tả: Kiểm tra gửi mã OTP qua email khi quên mật khẩu
+	* Endpoint: POST /api/auth/forgot-password
+	* Method: POST
+	* Validator: validateForgotPassword
+	* Dữ liệu đầu vào: { "email": "2212345@dlu.edu.vn" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Mã OTP đã được gửi qua email"
+		- Lưu ma_xac_minh và tg_het_han_ma vào NguoiDung
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-015
+	* Tên test case: Xác thực OTP thành công
+	* Mô tả: Kiểm tra verify OTP code hợp lệ
+	* Endpoint: POST /api/auth/verify-otp
+	* Method: POST
+	* Validator: validateVerifyOtp
+	* Dữ liệu đầu vào: { "email": "2212345@dlu.edu.vn", "otp": "123456" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Xác thực OTP thành công"
+		- Trả về resetToken để dùng cho reset password
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-AUTH-016
+	* Tên test case: Reset mật khẩu bằng OTP
+	* Mô tả: Kiểm tra đặt lại mật khẩu mới sau khi verify OTP
+	* Endpoint: POST /api/auth/reset-password
+	* Method: POST
+	* Validator: validateResetWithOtp
+	* Dữ liệu đầu vào:
+		{
+			"email": "2212345@dlu.edu.vn",
+			"otp": "123456",
+			"mat_khau_moi": "NewPass789!",
+			"xac_nhan_mat_khau_moi": "NewPass789!"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đặt lại mật khẩu thành công"
+		- Xóa ma_xac_minh sau khi reset
+	* Status code: 200
+	
+=============================================================================================
+2. Module Activities (Quản lý hoạt động)
+=============================================================================================
+	* Mã test case: TC-ACT-001
+	* Tên test case: Lấy danh sách hoạt động thành công
+	* Mô tả: Kiểm tra API trả về danh sách hoạt động với pagination và class scope
+	* Endpoint: GET /api/core/activities
+	* Method: GET
+	* Middleware: auth, extractClassContext, applyClassScope
+	* Validator: validateGetAll
+	* Query params: { page: 1, limit: 20, sortBy: "ngay_bd", order: "desc" }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array<HoatDong>
+		- pagination: { page, limit, total, totalPages }
+		- Sinh viên chỉ thấy hoạt động của lớp mình
+		- Giảng viên thấy tất cả hoạt động
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-002
+	* Tên test case: Lọc hoạt động theo trạng thái
+	* Mô tả: Kiểm tra lọc theo HoatDong.trang_thai (cho_duyet, da_duyet, tu_choi, hoan_thanh)
+	* Endpoint: GET /api/core/activities?trang_thai=da_duyet
+	* Method: GET
+	* Query params: { trang_thai: "da_duyet" }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- Tất cả activities có trang_thai = "da_duyet"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-003
+	* Tên test case: Tìm kiếm hoạt động theo từ khóa
+	* Mô tả: Kiểm tra tìm kiếm theo ten_hd hoặc mo_ta
+	* Endpoint: GET /api/core/activities?search=hội thảo
+	* Method: GET
+	* Query params: { search: "hội thảo" }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- Các HoatDong có ten_hd hoặc mo_ta chứa "hội thảo"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-004
+	* Tên test case: Lọc theo loại hoạt động
+	* Mô tả: Kiểm tra lọc hoạt động theo loai_hd_id
+	* Endpoint: GET /api/core/activities?loai_hd_id={uuid}
+	* Method: GET
+	* Query params: { loai_hd_id: "valid-uuid" }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- Chỉ trả về HoatDong có loai_hd_id khớp
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-005
+	* Tên test case: Lọc theo học kỳ và năm học
+	* Mô tả: Kiểm tra lọc theo HoatDong.hoc_ky và nam_hoc
+	* Endpoint: GET /api/core/activities?hoc_ky=hoc_ky_1&nam_hoc=2024-2025
+	* Method: GET
+	* Query params: { hoc_ky: "hoc_ky_1", nam_hoc: "2024-2025" }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- Chỉ hoạt động thuộc học kỳ 1 năm 2024-2025
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-006
+	* Tên test case: Unauthorized - Không có token
+	* Mô tả: Kiểm tra middleware auth từ chối request không có token
+	* Endpoint: GET /api/core/activities
+	* Method: GET
+	* Headers: Không có Authorization
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Token không hợp lệ hoặc đã hết hạn"
+	* Status code: 401
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-007
+	* Tên test case: Lấy chi tiết hoạt động thành công
+	* Mô tả: Kiểm tra GET /api/core/activities/:id trả về đầy đủ thông tin
+	* Endpoint: GET /api/core/activities/{valid-uuid}
+	* Method: GET
+	* Validator: validateGetById
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: HoatDong với relations (loai_hd, nguoi_tao)
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-008
+	* Tên test case: Hoạt động không tồn tại
+	* Mô tả: Kiểm tra khi id không hợp lệ hoặc không tồn tại
+	* Endpoint: GET /api/core/activities/{invalid-uuid}
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Hoạt động không tồn tại"
+	* Status code: 404
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-009
+	* Tén test case: Lấy chi tiết hoạt động kèm danh sách đăng ký
+	* Mô tả: Kiểm tra endpoint GET /:id/details trả về activity + registrations
+	* Endpoint: GET /api/core/activities/{uuid}/details
+	* Method: GET
+	* Validator: validateGetById
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { activity, registrations: [], stats: { total, approved, pending } }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-010
+	* Tên test case: Tạo hoạt động mới thành công (Lớp trưởng)
+	* Mô tả: Kiểm tra lớp trưởng tạo hoạt động cho lớp
+	* Endpoint: POST /api/core/activities
+	* Method: POST
+	* Validator: validateCreate
+	* Headers: { "Authorization": "Bearer {monitorToken}" }
+	* Dữ liệu đầu vào:
+		{
+			"ma_hd": "HD2025001",
+			"ten_hd": "Hội thảo AI 2025",
+			"mo_ta": "Tìm hiểu về trí tuệ nhân tạo",
+			"loai_hd_id": "{valid-uuid}",
+			"diem_rl": 8,
+			"dia_diem": "Phòng E101",
+			"ngay_bd": "2025-12-15T08:00:00Z",
+			"ngay_kt": "2025-12-15T17:00:00Z",
+			"han_dk": "2025-12-10T23:59:59Z",
+			"sl_toi_da": 100,
+			"hoc_ky": "hoc_ky_1",
+			"nam_hoc": "2024-2025"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { id, ma_hd, ten_hd, trang_thai: "cho_duyet" }
+		- nguoi_tao_id = user.id
+	* Status code: 201
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-011
+	* Tên test case: Tạo hoạt động thất bại - Thiếu field bắt buộc
+	* Mô tả: Kiểm tra validator từ chối khi thiếu ten_hd hoặc loai_hd_id
+	* Endpoint: POST /api/core/activities
+	* Method: POST
+	* Dữ liệu đầu vào: { "ma_hd": "HD001" } (thiếu ten_hd)
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- errors: [{ field: "ten_hd", message: "..." }]
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-012
+	* Tên test case: Cập nhật hoạt động thành công
+	* Mô tả: Kiểm tra lớp trưởng/giảng viên cập nhật thông tin hoạt động
+	* Endpoint: PUT /api/core/activities/{uuid}
+	* Method: PUT
+	* Validator: validateUpdate
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Dữ liệu đầu vào: { "ten_hd": "Hội thảo AI 2025 - Updated", "sl_toi_da": 120 }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: HoatDong đã cập nhật
+		- ngay_cap_nhat được update
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ACT-013
+	* Tén test case: Xóa hoạt động thành công
+	* Mô tả: Kiểm tra xóa hoạt động (soft delete hoặc hard delete)
+	* Endpoint: DELETE /api/core/activities/{uuid}
+	* Method: DELETE
+	* Validator: validateGetById
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đã xóa hoạt động"
+	* Status code: 200
+
+=============================================================================================
+3. Module Registration (Đăng ký tham gia hoạt động)
+=============================================================================================
+	* Mã test case: TC-REG-001
+	* Tên test case: Sinh viên đăng ký tham gia hoạt động thành công
+	* Mô tả: Kiểm tra sinh viên đăng ký hoạt động hợp lệ
+	* Endpoint: POST /api/core/activities/{activity-id}/register
+	* Method: POST
+	* Validator: validateRegister
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Dữ liệu đầu vào: { "ly_do_dk": "Muốn tham gia để học hỏi kinh nghiệm" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { id, sv_id, hd_id, trang_thai_dk: "cho_duyet", ngay_dang_ky }
+		- Tạo record trong DangKyHoatDong
+	* Status code: 201
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-002
+	* Tên test case: Đăng ký thất bại - Hết hạn đăng ký
+	* Mô tả: Kiểm tra từ chối đăng ký khi HoatDong.han_dk < now()
+	* Endpoint: POST /api/core/activities/{activity-id}/register
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: Activity có han_dk < thời gian hiện tại
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Đã hết hạn đăng ký hoạt động này"
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-003
+	* Tên test case: Đăng ký thất bại - Đã đủ số lượng
+	* Mô tả: Kiểm tra khi COUNT(DangKyHoatDong) >= HoatDong.sl_toi_da
+	* Endpoint: POST /api/core/activities/{activity-id}/register
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: Activity đã đủ sl_toi_da người đăng ký
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Hoạt động đã đủ số lượng đăng ký"
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-004
+	* Tên test case: Đăng ký thất bại - Đã đăng ký trước đó
+	* Mô tả: Kiểm tra unique constraint [sv_id, hd_id] trong DangKyHoatDong
+	* Endpoint: POST /api/core/activities/{activity-id}/register
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: Sinh viên đã có đăng ký cho activity này
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Bạn đã đăng ký hoạt động này rồi"
+	* Status code: 409
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-005
+	* Tên test case: Hủy đăng ký thành công
+	* Mô tả: Kiểm tra sinh viên hủy đăng ký trước han_dk
+	* Endpoint: POST /api/core/registrations/{registration-id}/cancel
+	* Alternative: POST /api/core/activities/{activity-id}/cancel
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: Có DangKyHoatDong của sinh viên và now() < han_dk
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đã hủy đăng ký thành công"
+		- Xóa hoặc update trang_thai_dk record
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-006
+	* Tên test case: Hủy đăng ký thất bại - Quá hạn
+	* Mô tả: Kiểm tra từ chối hủy khi now() > han_dk
+	* Endpoint: POST /api/core/registrations/{registration-id}/cancel
+	* Alternative: POST /api/core/activities/{activity-id}/cancel
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: now() > HoatDong.han_dk
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Không thể hủy đăng ký sau hạn đăng ký"
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-007
+	* Tên test case: Lấy danh sách đăng ký của sinh viên
+	* Mô tả: Kiểm tra GET /my trả về danh sách đăng ký của user hiện tại
+	* Endpoint: GET /api/core/registrations/my
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Query params: { status: "cho_duyet" } (optional)
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array<DangKyHoatDong> kèm relations (hoat_dong, sinh_vien)
+		- Filter theo trang_thai_dk nếu có
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-008
+	* Tên test case: Permission - Giảng viên không thể đăng ký
+	* Mô tả: Kiểm tra phân quyền chỉ sinh viên mới đăng ký hoạt động
+	* Endpoint: POST /api/core/activities/{activity-id}/register
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Chỉ sinh viên mới có thể đăng ký hoạt động"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-009
+	* Tên test case: Lớp trưởng/Giảng viên duyệt đăng ký thành công
+	* Mô tả: Kiểm tra LỚP_TRƯỞNG/GIẢNG_VIÊN approve DangKyHoatDong
+	* Endpoint: POST /api/core/registrations/{registration-id}/approve
+	* Alternative: POST /api/core/teachers/registrations/{registration-id}/approve
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {monitorToken}" hoặc {teacherToken} }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { trang_thai_dk: "da_duyet", ngay_duyet }
+		- message: "Đã duyệt đăng ký thành công"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-010
+	* Tên test case: Từ chối đăng ký với lý do
+	* Mô tả: Kiểm tra reject registration kèm ly_do_tu_choi
+	* Endpoint: POST /api/core/registrations/{registration-id}/reject
+	* Alternative: POST /api/core/teachers/registrations/{registration-id}/reject
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {monitorToken}" hoặc {teacherToken} }
+	* Dữ liệu đầu vào: { "reason": "Không đủ điều kiện tham gia" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đã từ chối đăng ký"
+		- data: { trang_thai_dk: "tu_choi", ly_do_tu_choi }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-011
+	* Tên test case: Duyệt hàng loạt đăng ký
+	* Mô tả: Kiểm tra bulk approve nhiều registrations cùng lúc
+	* Endpoint: POST /api/core/registrations/bulk-approve
+	* Alternative: POST /api/core/teachers/registrations/bulk-approve
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {monitorToken}" hoặc {teacherToken} }
+	* Dữ liệu đầu vào: { "ids": ["uuid1", "uuid2", "uuid3"] }
+	* Validation: ids phải là array và không được rỗng
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { approved: 3, failed: 0 }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-REG-012
+	* Tên test case: Thống kê đăng ký của hoạt động
+	* Mô tả: Kiểm tra GET stats của activity
+	* Endpoint: GET /api/core/registrations/activity/{activity-id}/stats
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { 
+			total: 45, 
+			cho_duyet: 10, 
+			da_duyet: 30, 
+			tu_choi: 5,
+			sl_toi_da: 100
+		  }
+	* Status code: 200
+	
+=============================================================================================
+4. Module Approval (Phê duyệt hoạt động)
+=============================================================================================
+	* Mã test case: TC-APP-001
+	* Tên test case: Giảng viên phê duyệt hoạt động thành công
+	* Mô tả: Kiểm tra giảng viên approve HoatDong từ "cho_duyet" sang "da_duyet"
+	* Endpoint: POST /api/core/teachers/activities/{activity-id}/approve
+	* Alternative: POST /api/core/activities/{activity-id}/approve
+	* Method: POST
+	* Validator: validateApprove
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Điều kiện: Activity có trang_thai = "cho_duyet"
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { id, trang_thai: "da_duyet", ngay_cap_nhat }
+		- message: "Đã duyệt hoạt động thành công"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-APP-002
+	* Tên test case: Giảng viên từ chối hoạt động
+	* Mô tả: Kiểm tra reject activity kèm ly_do_tu_choi
+	* Endpoint: POST /api/core/teachers/activities/{activity-id}/reject
+	* Alternative: POST /api/core/activities/{activity-id}/reject
+	* Method: POST
+	* Validator: validateReject
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Dữ liệu đầu vào: { "ly_do_tu_choi": "Thông tin hoạt động chưa đầy đủ" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { trang_thai: "tu_choi", ly_do_tu_choi }
+		- Gửi thông báo cho người tạo hoạt động
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-APP-003
+	* Tên test case: Permission - Sinh viên không thể duyệt hoạt động
+	* Mô tả: Kiểm tra phân quyền chỉ GIANG_VIEN, ADMIN mới approve/reject
+	* Endpoint: POST /api/core/teachers/activities/{activity-id}/approve
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Bạn không có quyền duyệt hoạt động"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-APP-004
+	* Tên test case: Validation - Không thể duyệt lại hoạt động đã duyệt
+	* Mô tả: Kiểm tra business logic từ chối approve activity đã có trang_thai = "da_duyet"
+	* Endpoint: POST /api/core/teachers/activities/{activity-id}/approve
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Điều kiện: Activity đã có trang_thai = "da_duyet"
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Hoạt động đã được duyệt trước đó"
+	* Status code: 400
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-APP-005
+	* Tên test case: Admin duyệt đăng ký sinh viên
+	* Mô tả: Kiểm tra ADMIN có quyền approve DangKyHoatDong
+	* Endpoint: POST /api/core/registrations/{registration-id}/approve
+	* Alternative: POST /api/core/teachers/registrations/{registration-id}/approve
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đã duyệt đăng ký thành công"
+		- data: { trang_thai_dk: "da_duyet" }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-APP-006
+	* Tén test case: Giảng viên/Lớp trưởng điểm danh cho sinh viên (manual)
+	* Mô tả: Kiểm tra GV/LT check-in attendance thủ công cho sinh viên (khác với QR scan)
+	* Endpoint: POST /api/core/registrations/{registration-id}/checkin
+	* Alternative: POST /api/core/teachers/registrations/{registration-id}/checkin
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {teacherToken}" hoặc {monitorToken} }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đã điểm danh thành công"
+		- Tạo DiemDanh record
+	* Status code: 200
+	* Lưu ý: Khác với TC-ATT-001 (sinh viên tự scan QR)
+
+=============================================================================================
+5. Module Attendance (Điểm danh QR)
+=============================================================================================
+	* Mã test case: TC-ATT-001
+	* Tên test case: Sinh viên quét QR điểm danh thành công
+	* Mô tả: Kiểm tra sinh viên tự điểm danh bằng QR code
+	* Endpoint: POST /api/core/activities/{activity-id}/attendance/scan
+	* Method: POST
+	* Validator: validateGetById
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: 
+		- Sinh viên đã đăng ký hoạt động (DangKyHoatDong exists)
+		- Đăng ký đã được duyệt (trang_thai_dk = "da_duyet")
+		- Chưa điểm danh trước đó
+		- QR code hợp lệ (HoatDong.qr)
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { id, sv_id, hd_id, trang_thai: "co_mat", thoi_gian_dd }
+		- Tạo record DiemDanh
+		- message: "Điểm danh thành công"
+	* Status code: 201
+	* Sample code:
+		```javascript
+		const response = await request(app)
+			.post(`/api/core/activities/${activityId}/attendance/scan`)
+			.set('Authorization', `Bearer ${studentToken}`);
+		expect(response.status).toBe(201);
+		expect(response.body.data.trang_thai).toBe('co_mat');
+		```
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-002
+	* Tên test case: Điểm danh thất bại - Chưa đăng ký hoạt động
+	* Mô tả: Kiểm tra từ chối điểm danh khi sinh viên chưa đăng ký
+	* Endpoint: POST /api/core/activities/{activity-id}/attendance/scan
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: Không có DangKyHoatDong record cho sinh viên này
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Bạn chưa đăng ký hoạt động này"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-003
+	* Tên test case: Điểm danh thất bại - Đăng ký chưa được duyệt
+	* Mô tả: Kiểm tra từ chối khi trang_thai_dk != "da_duyet"
+	* Endpoint: POST /api/core/activities/{activity-id}/attendance/scan
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: DangKyHoatDong có trang_thai_dk = "cho_duyet" hoặc "tu_choi"
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Đăng ký của bạn chưa được duyệt"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-004
+	* Tên test case: Điểm danh thất bại - Đã điểm danh trước đó
+	* Mô tả: Kiểm tra từ chối khi DiemDanh record đã tồn tại
+	* Endpoint: POST /api/core/activities/{activity-id}/attendance/scan
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Điều kiện: DiemDanh exists với sv_id và hd_id
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Bạn đã điểm danh rồi"
+	* Status code: 409
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-005
+	* Tên test case: Lấy QR data của hoạt động
+	* Mô tả: Kiểm tra endpoint trả về QR code để hiển thị
+	* Endpoint: GET /api/core/activities/{activity-id}/qr-data
+	* Method: GET
+	* Validator: validateGetById
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { qr: "abc123xyz456", activity_id, ten_hd }
+		- QR code dạng string (32 chars)
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-006
+	* Tén test case: Lịch sử điểm danh cá nhân
+	* Mô tả: Kiểm tra sinh viên xem danh sách hoạt động đã điểm danh
+	* Endpoint: GET /api/core/points (filter by user)
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array<DiemDanh> với relations (hoat_dong, sinh_vien)
+		- Thông tin: ten_hd, thoi_gian_dd, trang_thai, diem_rl
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-ATT-007
+	* Tên test case: Giảng viên xem danh sách điểm danh của hoạt động
+	* Mô tả: Kiểm tra GV/LT xem ai đã điểm danh hoạt động
+	* Endpoint: GET /api/core/activities/{activity-id}/details
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { 
+			activity, 
+			registrations: [...],
+			attendance: Array<DiemDanh>,
+			stats: { total, attended, pending }
+		  }
+	* Status code: 200
+
+=============================================================================================
+6. Module User Management (Quản lý người dùng)
+=============================================================================================
+	* Mã test case: TC-USR-001
+	* Tên test case: Xem thông tin profile cá nhân
+	* Mô tả: Kiểm tra user lấy thông tin của mình
+	* Endpoint: GET /api/core/profile
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { 
+			id, ten_dn, email, ho_ten, vai_tro, 
+			sinh_vien: { mssv, lop, ngay_sinh, gt, sdt, dia_chi }
+		  }
+		- KHÔNG trả về mat_khau
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-002
+	* Tên test case: Cập nhật thông tin profile
+	* Mô tả: Kiểm tra user cập nhật thông tin cá nhân
+	* Endpoint: PUT /api/core/profile
+	* Method: PUT
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Dữ liệu đầu vào:
+		{
+			"ho_ten": "Nguyễn Văn B",
+			"sdt": "0912345678",
+			"dia_chi": "123 Đường ABC, TP.HCM"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: NguoiDung và SinhVien đã cập nhật
+		- message: "Cập nhật thông tin thành công"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-003
+	* Tên test case: Đổi mật khẩu từ profile
+	* Mô tả: Kiểm tra change password endpoint
+	* Endpoint: POST /api/core/profile/change-password
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Dữ liệu đầu vào:
+		{
+			"mat_khau_cu": "OldPass123!",
+			"mat_khau_moi": "NewPass456@",
+			"xac_nhan_mat_khau_moi": "NewPass456@"
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- message: "Đổi mật khẩu thành công"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-004
+	* Tên test case: Admin lấy danh sách người dùng
+	* Mô tả: Kiểm tra admin xem tất cả users với pagination
+	* Endpoint: GET /api/core/admin/users
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Query params: { page: 1, limit: 50, vai_tro: "SINH_VIEN" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array<NguoiDung>
+		- pagination: { page, limit, total, totalPages }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-005
+	* Tên test case: Admin vô hiệu hóa tài khoản
+	* Mô tả: Kiểm tra admin khóa tài khoản user
+	* Endpoint: PUT /api/core/admin/users/{user-id}/lock
+	* Method: PUT
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { trang_thai: "vo_hieu_hoa" }
+		- message: "Đã vô hiệu hóa tài khoản"
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-006
+	* Tên test case: Admin kích hoạt lại tài khoản
+	* Mô tả: Kiểm tra unlock user account
+	* Endpoint: PUT /api/core/admin/users/{user-id}/unlock
+	* Method: PUT
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { trang_thai: "hoat_dong" }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-007
+	* Tên test case: Permission - Sinh viên không xem danh sách users
+	* Mô tả: Kiểm tra phân quyền chỉ ADMIN xem tất cả users
+	* Endpoint: GET /api/core/admin/users
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: false
+		- message: "Bạn không có quyền truy cập"
+	* Status code: 403
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-USR-008
+	* Tên test case: Kiểm tra trạng thái lớp trưởng
+	* Mô tả: Kiểm tra endpoint monitor-status
+	* Endpoint: GET /api/core/profile/monitor-status
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { isMonitor: boolean, lop: {...} }
+		- Kiểm tra Lop.lop_truong = user.sinh_vien.id
+	* Status code: 200
+	
+=============================================================================================
+7. Module Reports & Statistics (Báo cáo thống kê)
+=============================================================================================
+	* Mã test case: TC-RPT-001
+	* Tên test case: Sinh viên xem điểm rèn luyện cá nhân
+	* Mô tả: Kiểm tra thống kê điểm của sinh viên
+	* Endpoint: GET /api/core/points
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {studentToken}" }
+	* Query params: { hoc_ky: "hoc_ky_1", nam_hoc: "2024-2025" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: {
+			tongDiem: 85,
+			xepLoai: "Giỏi",
+			chiTiet: [
+				{ loai_hd: "Văn hóa", diem: 25 },
+				{ loai_hd: "Học tập", diem: 30 },
+				...
+			]
+		  }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-RPT-002
+	* Tên test case: Dashboard - Thống kê tổng quan
+	* Mô tả: Kiểm tra endpoint dashboard cho admin/giảng viên
+	* Endpoint: GET /api/core/dashboard
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: {
+			totalActivities: 150,
+			totalStudents: 2500,
+			totalRegistrations: 5000,
+			upcomingActivities: [...],
+			recentActivities: [...]
+		  }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-RPT-003
+	* Tên test case: Xuất báo cáo Excel
+	* Mô tả: Kiểm tra export dữ liệu ra file Excel
+	* Endpoint: GET /api/core/exports?type=activities&hoc_ky=hoc_ky_1
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {teacherToken}" }
+	* Query params: { type: "activities", hoc_ky: "hoc_ky_1", nam_hoc: "2024-2025" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- Content-Type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		- File Excel hợp lệ (buffer)
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-RPT-004
+	* Tên test case: Lớp trưởng xem báo cáo lớp
+	* Mô tả: Kiểm tra monitor xem thống kê của lớp mình
+	* Endpoint: GET /api/core/monitor/stats
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {monitorToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: {
+			tenLop: "DHKTPM17A",
+			tongSoSV: 45,
+			diemTrungBinh: 75.5,
+			phanBoXepLoai: {
+				Giỏi: 10,
+				Khá: 20,
+				TrungBình: 12,
+				Yếu: 3
+			},
+			hoatDongDaTao: 8
+		  }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-RPT-005
+	* Tén test case: Admin xuất báo cáo đăng ký
+	* Mô tả: Kiểm tra export registration data
+	* Endpoint: GET /api/core/admin/registrations/export
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Query params: { hd_id: "{uuid}", format: "excel" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- Excel file với danh sách đăng ký
+		- Columns: MSSV, Họ tên, Lớp, Trạng thái, Ngày đăng ký
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-RPT-006
+	* Tên test case: Thống kê theo học kỳ
+	* Mô tả: Kiểm tra filter báo cáo theo semester
+	* Endpoint: GET /api/core/admin/reports?hoc_ky=hoc_ky_2&nam_hoc=2024-2025
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- Chỉ dữ liệu của học kỳ 2 năm 2024-2025
+	* Status code: 200
+	
+=============================================================================================
+8. MODULE SEARCH & FILTERS (Tìm kiếm và lọc)
+=============================================================================================
+	* Mã test case: TC-SRH-001
+	* Tên test case: Tìm kiếm global
+	* Mô tả: Kiểm tra search endpoint tìm kiếm đa module
+	* Endpoint: GET /api/core/search?q=hội thảo
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Query params: { q: "hội thảo", type: "activities" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: {
+			activities: [...],
+			users: [],
+			total: 15
+		  }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-SRH-002
+	* Tên test case: Lọc kết hợp nhiều tiêu chí
+	* Mô tả: Kiểm tra filter với multiple parameters
+	* Endpoint: GET /api/core/activities
+	* Method: GET
+	* Query params: { 
+		loai_hd_id: "{uuid}", 
+		trang_thai: "da_duyet", 
+		hoc_ky: "hoc_ky_1",
+		sortBy: "ngay_bd",
+		order: "asc"
+	  }
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data được filter và sort đúng
+	* Status code: 200
+
+=============================================================================================
+9. MODULE SEMESTERS (Quản lý học kỳ)
+=============================================================================================
+	* Mã test case: TC-SEM-001
+	* Tên test case: Lấy danh sách học kỳ
+	* Mô tả: Kiểm tra endpoint trả về semester options
+	* Endpoint: GET /api/semesters/options
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array học kỳ với format dropdown
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-SEM-002
+	* Tên test case: Lấy học kỳ hiện tại
+	* Mô tả: Kiểm tra endpoint current semester
+	* Endpoint: GET /api/semesters/current
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { hoc_ky, nam_hoc, ngay_bd, ngay_kt }
+	* Status code: 200
+
+=============================================================================================
+10. MODULE NOTIFICATIONS (Thông báo)
+=============================================================================================
+	* Mã test case: TC-NTF-001
+	* Tên test case: Lấy danh sách thông báo cá nhân
+	* Mô tả: Kiểm tra user xem thông báo của mình
+	* Endpoint: GET /api/core/notifications
+	* Method: GET
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Query params: { page: 1, limit: 20, trang_thai: "chua_doc" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: Array<ThongBao>
+		- pagination object
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-NTF-002
+	* Tên test case: Đánh dấu đã đọc thông báo
+	* Mô tả: Kiểm tra mark notification as read
+	* Endpoint: PUT /api/core/notifications/{id}/read
+	* Method: PUT
+	* Headers: { "Authorization": "Bearer {token}" }
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { trang_thai: "da_doc", thoi_gian_doc }
+	* Status code: 200
+---------------------------------------------------------------------------------------------
+	* Mã test case: TC-NTF-003
+	* Tén test case: Admin gửi broadcast notification
+	* Mô tả: Kiểm tra admin gửi thông báo hàng loạt
+	* Endpoint: POST /api/core/broadcast
+	* Method: POST
+	* Headers: { "Authorization": "Bearer {adminToken}" }
+	* Dữ liệu đầu vào:
+		{
+			"tieu_de": "Thông báo quan trọng",
+			"noi_dung": "Nội dung thông báo...",
+			"loai_tb": "quan_trong",
+			"nguoi_nhan": ["all"] hoặc ["SINH_VIEN", "GIANG_VIEN"]
+		}
+	* Công cụ: Jest + Supertest
+	* Kết quả mong muốn:
+		- success: true
+		- data: { sent: 2500, failed: 0 }
+	* Status code: 200
+
+=============================================================================================
+TỔNG KẾT TEST CASES
+=============================================================================================
+
+THỐNG KÊ:
+- Total Test Cases: 80+ test cases
+- Modules Covered: 10 modules chính
+  1. Authentication (16 TCs): TC-AUTH-001 đến TC-AUTH-016
+  2. Activities (13 TCs): TC-ACT-001 đến TC-ACT-013
+  3. Registrations (12 TCs): TC-REG-001 đến TC-REG-012
+  4. Approval (6 TCs): TC-APP-001 đến TC-APP-006
+  5. Attendance (7 TCs): TC-ATT-001 đến TC-ATT-007
+  6. User Management (8 TCs): TC-USR-001 đến TC-USR-008
+  7. Reports & Statistics (6 TCs): TC-RPT-001 đến TC-RPT-006
+  8. Search & Filters (2 TCs): TC-SRH-001 đến TC-SRH-002
+  9. Semesters (2 TCs): TC-SEM-001 đến TC-SEM-002
+  10. Notifications (3 TCs): TC-NTF-001 đến TC-NTF-003
+
+TESTING TOOLS:
+- Framework: Jest v30.2.0
+- HTTP Testing: Supertest v7.1.4
+- Database: PostgreSQL (test database)
+- Test Timeout: 30000ms
+
+COVERAGE TARGETS:
+- Unit Tests: Services, Repositories, Utilities
+- Integration Tests: API Endpoints, Business Logic
+- E2E Tests: User Workflows
+- Target Coverage: >80%
+
+KEY FEATURES TESTED:
+✓ Authentication & Authorization (JWT, Role-based)
+✓ CRUD Operations (Activities, Users, Registrations)
+✓ Business Logic (Approval workflows, Attendance)
+✓ Data Validation (Zod schemas)
+✓ Permission & Access Control (RBAC)
+✓ Pagination & Filtering
+✓ QR Code Attendance
+✓ Notifications & Broadcasts
+✓ Reports & Statistics
+✓ Class-based Scoping
+
+NEXT STEPS:
+1. Implement test helpers (authHelper, dbHelper)
+2. Set up test database and seed data
+3. Write tests theo từng module
+4. Run tests và fix failing cases
+5. Achieve >80% code coverage
+6. Integrate với CI/CD pipeline
+
+=============================================================================================
+=============================================================================================
+
+backend/tests/
+├── setup.js                     # Setup môi trường test (connect DB, seed data)
+├── teardown.js                  # Cleanup sau test (close connections)
+├── helpers/
+│   ├── authHelper.js            # Helpers: generateToken, createTestUser
+│   ├── dbHelper.js              # Database helpers: seedData, cleanupData
+│   └── testData.js              # Test data fixtures
+├── integration/                 # Integration tests
+│   ├── auth/
+│   │   ├── login.test.js        # TC-AUTH-001 đến TC-AUTH-006
+│   │   ├── register.test.js     # TC-AUTH-007 đến TC-AUTH-010
+│   │   ├── me.test.js           # TC-AUTH-011
+│   │   ├── changePassword.test.js  # TC-AUTH-012, TC-AUTH-013
+│   │   └── forgotPassword.test.js  # TC-AUTH-014, TC-AUTH-015, TC-AUTH-016
+│   ├── activities/
+│   │   ├── list.test.js         # TC-ACT-001 đến TC-ACT-009
+│   │   ├── crud.test.js         # TC-ACT-010 đến TC-ACT-013
+│   │   └── qr.test.js           # QR-related tests
+│   ├── registrations/
+│   │   ├── register.test.js     # TC-REG-001 đến TC-REG-006
+│   │   ├── my.test.js           # TC-REG-007
+│   │   ├── approve.test.js      # TC-REG-009, TC-REG-010
+│   │   └── bulk.test.js         # TC-REG-011, TC-REG-012
+│   ├── approval/
+│   │   └── approval.test.js     # TC-APP-001 đến TC-APP-006
+│   ├── attendance/
+│   │   ├── scan.test.js         # TC-ATT-001 đến TC-ATT-004
+│   │   └── history.test.js      # TC-ATT-005, TC-ATT-006, TC-ATT-007
+│   ├── users/
+│   │   ├── profile.test.js      # TC-USR-001 đến TC-USR-003, TC-USR-008
+│   │   └── admin.test.js        # TC-USR-004 đến TC-USR-007
+│   ├── reports/
+│   │   └── statistics.test.js   # TC-RPT-001 đến TC-RPT-006
+│   ├── search/
+│   │   └── search.test.js       # TC-SRH-001, TC-SRH-002
+│   ├── semesters/
+│   │   └── semesters.test.js    # TC-SEM-001, TC-SEM-002
+│   └── notifications/
+│       └── notifications.test.js # TC-NTF-001 đến TC-NTF-003
+└── unit/                        # Unit tests (services, repositories)
+    ├── services/
+    └── repositories/
+
+=============================================================================================
+SAMPLE TEST CODE STRUCTURE
+=============================================================================================
+
+// tests/integration/auth/login.test.js
+const request = require('supertest');
+const app = require('../../../src/app/server');
+const { createTestUser, generateToken } = require('../../helpers/authHelper');
+const { cleanupData } = require('../../helpers/dbHelper');
+
+describe('Authentication - Login', () => {
+  beforeAll(async () => {
+    // Setup: Create test users
+    await createTestUser({
+      ten_dn: '2212345',
+      mat_khau: 'MatKhau123!',
+      email: '2212345@dlu.edu.vn',
+      vai_tro: 'SINH_VIEN'
+    });
+  });
+
+  afterAll(async () => {
+    // Cleanup
+    await cleanupData();
+  });
+
+  describe('TC-AUTH-001: Đăng nhập thành công', () => {
+    test('should return 200 and token when credentials are valid', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          ten_dn: '2212345',
+          mat_khau: 'MatKhau123!'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.token).toBeDefined();
+      expect(response.body.user).toHaveProperty('vai_tro');
+      expect(response.body.redirectTo).toBeDefined();
+    });
+  });
+
+  describe('TC-AUTH-002: Đăng nhập thất bại - Sai mật khẩu', () => {
+    test('should return 401 when password is incorrect', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          ten_dn: '2212345',
+          mat_khau: 'SaiMatKhau123'
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('không chính xác');
+    });
+  });
+
+  // ... more tests
+});
+
+=============================================================================================
+RUNNING TESTS
+=============================================================================================
+
+# Chạy tất cả tests
+npm test
+
+# Chạy tests với watch mode
+npm run test:watch
+
+# Chạy integration tests
+npm run test:integration
+
+# Chạy với coverage report
+npm run test:coverage
+
+# Chạy một test file cụ thể
+npm test -- tests/integration/auth/login.test.js
+
+# Chạy tests theo pattern
+npm test -- --testNamePattern="TC-AUTH"
+
+=============================================================================================
+ENVIRONMENT VARIABLES FOR TESTING
+=============================================================================================
+
+# .env.test
+NODE_ENV=test
+DATABASE_URL=postgresql://user:pass@localhost:5432/test_db
+JWT_SECRET=test_secret_key_123
+PORT=4000
+
+=============================================================================================
+NOTES & BEST PRACTICES
+=============================================================================================
+
+1. Database:
+   - Sử dụng test database riêng biệt
+   - Cleanup data sau mỗi test suite
+   - Seed data trước khi chạy tests
+
+2. Authentication:
+   - Tạo helper functions để generate JWT tokens
+   - Mock user data cho các vai trò khác nhau
+   - Test cả valid và invalid tokens
+
+3. Assertions:
+   - Kiểm tra status code
+   - Kiểm tra response structure
+   - Kiểm tra database state sau operations
+   - Validate business logic constraints
+
+4. Test Isolation:
+   - Mỗi test độc lập, không phụ thuộc lẫn nhau
+   - beforeEach/afterEach cho cleanup
+   - Sử dụng transactions nếu cần
+
+5. Coverage:
+   - Aim for >80% code coverage
+   - Focus on critical business logic
+   - Test edge cases và error scenarios
+
+=============================================================================================
+END OF TEST CASES DOCUMENT
+=============================================================================================
+	├── approval/
+	│   └── approval.test.js     # TC-APP-001 đến TC-APP-006
+	├── attendance/
+	│   └── checkin.test.js      # TC-ATT-001 đến TC-ATT-006
+	├── users/
+	│   └── profile.test.js      # TC-USR-001 đến TC-USR-007
+	└── reports/
+		└── statistics.test.js   # TC-RPT-001 đến TC-RPT-004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
