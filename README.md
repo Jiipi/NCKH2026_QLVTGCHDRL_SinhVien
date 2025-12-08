@@ -1,370 +1,73 @@
-# 🎓 HỆ THỐNG QUẢN LÝ HOẠT ĐỘNG RÈN LUYỆN
+# HỆ THỐNG QUẢN LÝ ĐIỂM RÈN LUYỆN
 
-> **Web Application quản lý điểm rèn luyện sinh viên**  
-> Domain: [hoatdongrenluyen.io.vn](https://hoatdongrenluyen.io.vn)
-
----
-
-## 🚀 QUICK START
-
-```bash
-# 1. Clone repository
-git clone https://github.com/Jiipi/QL_DH_RenLuyen.git
-cd QL_DH_RenLuyen
-
-# 2. Deploy (ONE COMMAND!)
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-```
-
-**Website sẽ chạy ở**: `http://localhost:3000`
+Đây là mã nguồn của **Đồ án Chuyên ngành: Web Quản lý việc tham gia các hoạt động rèn luyện của sinh viên**.
+Hệ thống giúp quản lý toàn diện quy trình tổ chức hoạt động, sinh viên đăng ký, điểm danh và chấm điểm rèn luyện tự động.
 
 ---
 
-## 📋 YÊU CẦU HỆ THỐNG
+## 🚀 Yêu cầu hệ thống
 
-- **Docker** 24.x trở lên
-- **Docker Compose** v2.x trở lên
-- **OS**: Ubuntu 20.04+, Amazon Linux 2023, hoặc Windows với WSL2
-- **RAM**: Tối thiểu 4GB (Khuyến nghị 8GB)
-- **Disk**: 20GB trống
+Trước khi cài đặt, vui lòng đảm bảo máy tính đã cài đặt:
+1.  **Node.js** (v18 trở lên): [Tải tại đây](https://nodejs.org/)
+2.  **Docker Desktop** (để chạy Database & Backend): [Tải tại đây](https://www.docker.com/products/docker-desktop/)
 
 ---
 
-## 🏗️ KIẾN TRÚC HỆ THỐNG
+## 📦 Hướng dẫn cài đặt & Chạy dự án
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Nginx Reverse Proxy                  │
-│              (SSL, Load Balancing, Caching)             │
-└─────────────────────────────────────────────────────────┘
-                          │
-        ┌─────────────────┴─────────────────┐
-        │                                   │
-┌───────▼────────┐                 ┌────────▼───────┐
-│   Frontend     │                 │    Backend     │
-│  (React + MUI) │◄────────────────┤  (Node.js +    │
-│   Nginx:80     │    REST API     │   Express)     │
-└────────────────┘                 └────────┬───────┘
-                                            │
-                                  ┌─────────▼─────────┐
-                                  │   PostgreSQL 15   │
-                                  │   (Database)      │
-                                  └───────────────────┘
-```
+Dự án đã được tích hợp script tự động hóa hoàn toàn. Chỉ cần thực hiện:
+
+1.  **Clone source code** về máy. "git clone https://github.com/Jiipi/QL_DH_RenLuyen.git"
+2.  Mở thư mục dự án trong Visual Studio Code. Chọn menu Terminal > New Terminal.
+3.  Chạy file **`setup.bat`** bằng cách nhập lệnh sau vào terminal:
+    ```
+    .\setup.bat
+    ```
+    (Hoặc có thể click đúp chuột vào file `setup.bat` trong thư mục)
+
+Script sẽ tự động thực hiện:
+*   Kiểm tra môi trường (Node, Docker, npm).
+*   Cài đặt các thư viện cần thiết.
+*   Khởi động Docker containers (Database, Redis, Backend, Frontend).
+*   **(Tùy chọn)** Khởi tạo dữ liệu mẫu (Seeding) để bạn có ngay dữ liệu để test.
 
 ---
 
-## 🎯 TÍNH NĂNG CHÍNH
+## 🔑 Thông tin đăng nhập (Môi trường Dev/Test)
 
-### 👨‍🎓 Sinh Viên
-- ✅ Đăng ký hoạt động rèn luyện
-- ✅ Theo dõi điểm tích lũy theo kỳ
-- ✅ Xem lịch sử tham gia hoạt động
-- ✅ Upload minh chứng tham gia
-- ✅ Xuất PDF bảng điểm
+Sau khi chạy Setup và chọn "Khởi tạo dữ liệu mẫu", bạn có thể sử dụng các tài khoản sau:
 
-### 👨‍🏫 Giảng Viên
-- ✅ Tạo và quản lý hoạt động
-- ✅ Duyệt đăng ký sinh viên
-- ✅ Điểm danh và chấm điểm
-- ✅ Thống kê báo cáo theo lớp
-- ✅ Khóa điểm cuối kỳ
-
-### 👨‍💼 Lớp Trưởng
-- ✅ Tạo hoạt động nội bộ lớp
-- ✅ Quản lý đăng ký lớp
-- ✅ Xem điểm toàn lớp
-
-### 🔐 Admin
-- ✅ Quản lý người dùng (CRUD)
-- ✅ Phân quyền vai trò
-- ✅ Quản lý loại hoạt động
-- ✅ Cấu hình học kỳ và khóa điểm
-- ✅ Thống kê tổng quan hệ thống
+| Vai trò | Tài khoản (Username) | Mật khẩu | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **Quản trị viên (Admin)** | `Admin` | `123456` | Quản lý toàn bộ hệ thống |
+| **Giảng viên** | `gv0404` | `123456` | Quản lý lớp, duyệt điểm |
+| **Lớp trưởng** | `2140401` | `123456` | Điểm danh, quản lý lớp |
+| **Sinh viên** | `2140402` | `123456` | Đăng ký, xem điểm |
 
 ---
 
-## 🔐 CREDENTIALS
+## 🌐 Truy cập dịch vụ
 
-### Database (Docker)
-```
-Host:     db (internal) / localhost:5432 (external)
-Database: Web_QuanLyDiemRenLuyen
-User:     admin
-Password: hungloveakiha13
-```
-
-### Default Accounts
-```
-Admin:    admin / 123456
-Teacher:  gv001 / 123456
-Student:  2021001 / 123456
-```
-
-**⚠️ ĐỔI PASSWORD NGAY SAU KHI DEPLOY!**
+*   **Frontend (Web App):** [http://localhost:3000](http://localhost:3000)
+*   **Backend API:** [http://localhost:3001](http://localhost:3001)
+*   **Quản lý Database (Prisma Studio):** [http://localhost:5555](http://localhost:5555)
+*   **Xem Logs hệ thống:** [http://localhost:9999](http://localhost:9999)
 
 ---
 
-## 📦 DEPLOYMENT OPTIONS
-
-### Option 1: Development (Recommended for testing)
-
-```bash
-# Start dev environment
-docker compose --profile dev up -d
-
-# Access:
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:3001
-# Prisma Studio: http://localhost:5555
-```
-
-### Option 2: Production (One-command)
-
-```bash
-# Deploy to production
-./scripts/deploy.sh
-
-# Access:
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:3001
-```
-
-### Option 3: Production (EC2/VPS Auto Setup)
-
-```bash
-# On EC2 instance, run:
-curl -fsSL https://raw.githubusercontent.com/Jiipi/QL_DH_RenLuyen/main/scripts/setup-ec2.sh | bash
-
-# Logout and login again
-exit
-
-# Deploy
-cd ~/dacn-web/app
-./scripts/deploy.sh
-```
-
----
-
-## 🔄 UPDATE & REDEPLOY
-
-```bash
-# Pull latest code and redeploy
-./scripts/deploy.sh
-
-# Options:
-./scripts/deploy.sh --skip-pull      # Skip git pull
-./scripts/deploy.sh --skip-build     # Only restart containers
-./scripts/deploy.sh --no-cache       # Clean rebuild
-```
-
----
-
-## 🧪 TESTING
-
-### Run Tests
-
-```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd frontend
-npm test
-
-# E2E tests (Playwright)
-cd frontend
-npm run e2e
-```
-
-### Reset Database với Data Mẫu
-
-```bash
-# Development
-docker exec dacn_backend_dev node scripts/quick_reset_passwords.js
-
-# Production
-docker exec student_app_backend_prod node scripts/quick_reset_passwords.js
-```
-
----
-
-## 💾 BACKUP & RESTORE
-
-### Backup Database
-
-```bash
-# Quick backup
-docker exec student_app_db_prod pg_dump -U admin -d Web_QuanLyDiemRenLuyen > backup_$(date +%Y%m%d).sql
-
-# Auto backup (cron job)
-./scripts/setup-auto-backup.sh
-```
-
-### Restore Database
-
-```bash
-# Restore from backup
-docker exec -i student_app_db_prod psql -U admin -d Web_QuanLyDiemRenLuyen < backup.sql
-```
-
----
-
-## 📊 MONITORING
-
-### Health Checks
-
-```bash
-curl http://localhost:3001/api/health     # Backend
-curl http://localhost:3000/health         # Frontend
-docker ps                                 # All containers
-```
-
-### View Logs
-
-```bash
-# All services
-docker compose -f docker-compose.prod.yml logs -f
-
-# Specific service
-docker logs -f student_app_backend_prod
-```
-
-### Resource Usage
-
-```bash
-docker stats
-```
-
----
-
-## 🤖 CI/CD
-
-GitHub Actions tự động:
-- ✅ Run tests trên mỗi push
-- ✅ Build Docker images
-- ✅ Security scan (Trivy)
-- ✅ Push images lên GitHub Container Registry
-
-**View build status**: [GitHub Actions](https://github.com/Jiipi/QL_DH_RenLuyen/actions)
-
----
-
-## 📚 DOCUMENTATION
-
-### Main Documentation
-- **[DOCS_INDEX.md](docs/DOCS_INDEX.md)** - 📚 Documentation index & navigation
-- **[MIGRATION_COMPLETE.md](docs/MIGRATION_COMPLETE.md)** - ✅ Backend migration report
-- **[backend/BACKEND_STRUCTURE.md](docs/backend/BACKEND_STRUCTURE.md)** - 📖 Backend architecture
-- **[backend/QUICK_REFERENCE.md](docs/backend/QUICK_REFERENCE.md)** - 🔍 API quick reference
-
-### Additional Documentation
-- **[API_FLOW_DOCUMENTATION.md](docs/API_FLOW_DOCUMENTATION.md)** - API flow & integration
-- **[BAO_CAO_LUONG_API.md](docs/BAO_CAO_LUONG_API.md)** - API flow report (Vietnamese)
-- **[SUMMARY_VI.md](docs/SUMMARY_VI.md)** - System overview (Vietnamese)
-
-### Fixes & Patches
-- **[RBAC_PERMISSIONS_FIX.md](docs/RBAC_PERMISSIONS_FIX.md)** - RBAC permissions fix
-- **[SEMESTER_MANAGEMENT_FIX.md](docs/SEMESTER_MANAGEMENT_FIX.md)** - Semester management fix
-- **[SORTING_FIX_SUMMARY.md](docs/SORTING_FIX_SUMMARY.md)** - Sorting issues fix
-
----
-
-## 🛠️ TECH STACK
-
-### Frontend
-- **React 18** - UI library
-- **Material-UI (MUI)** - Component library
-- **TailwindCSS** - Utility-first CSS
-- **React Router** - Client-side routing
-- **Axios** - HTTP client
-
-### Backend
-- **Node.js 18** - Runtime environment
-- **Express.js** - Web framework
-- **Prisma ORM** - Database ORM
-- **bcryptjs** - Password hashing
-- **jsonwebtoken** - JWT authentication
-
-### Database
-- **PostgreSQL 15** - Relational database
-- **Prisma Client** - Type-safe database client
-
-### DevOps
-- **Docker & Docker Compose** - Containerization
-- **GitHub Actions** - CI/CD pipeline
-- **Nginx** - Reverse proxy & load balancer
-- **Let's Encrypt** - SSL certificates
-
----
-
-## 🔒 SECURITY
-
-- ✅ JWT Authentication
-- ✅ Role-based Access Control (RBAC)
-- ✅ Password hashing (bcrypt)
-- ✅ SQL Injection protection (Prisma)
-- ✅ XSS protection
-- ✅ CORS configured
-- ✅ Rate limiting
-- ✅ Security headers
-
----
-
-## 🐛 KNOWN ISSUES & FIXES
-
-See `docs/` for:
-- Role permissions bug fix (PostgreSQL JSON array issue)
-- Profile caching issue fix
-
----
-
-## 🤝 CONTRIBUTING
-
-```bash
-# Fork repository
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Commit changes
-git commit -m "Add amazing feature"
-
-# Push to branch
-git push origin feature/amazing-feature
-
-# Open Pull Request
-```
-
----
-
-## 📄 LICENSE
-
-This project is licensed under the MIT License.
-
----
-
-## 👥 TEAM
-
-- **Frontend**: React + MUI + TailwindCSS
-- **Backend**: Node.js + Express + Prisma
-- **DevOps**: Docker + GitHub Actions + AWS EC2
-- **Database**: PostgreSQL 15
-
----
-
-## 📞 SUPPORT
-
-- **Issues**: [GitHub Issues](https://github.com/Jiipi/QL_DH_RenLuyen/issues)
-- **Documentation**: Check `docs/` folder
-- **Email**: support@hoatdongrenluyen.io.vn
-
----
-
-**⭐ If you find this project helpful, please star it!**
-
-**Last Updated**: November 13, 2025  
-**Version**: 2.0.0 (Post-Migration)  
-**Backend Architecture**: Clean Architecture + Modular Design  
-**Status**: ✅ Production Ready & Fully Migrated
+## 📞 Thông tin liên hệ nhóm tác giả
+
+Mọi thắc mắc về cài đặt, vận hành hoặc báo lỗi, vui lòng liên hệ nhóm phát triển:
+
+**Nhóm thực hiện:**
+1. 2212377 - Trần Ngọc Hưng
+	- Email: 2212377@dlu.edu.vn
+	- Số điện thoại: 0387892787
+
+2. 2212391 - Nguyễn Hoàng Nam Khánh
+	- Email: 2212391@dlu.edu.vn
+	- Số điện thoại: 0328405706
+	
+3. 2212391 - Trần Vũ Thành Luân
+	- Email: 2212410@dlu.edu.vn
+	- Số điện thoại: 0325535167

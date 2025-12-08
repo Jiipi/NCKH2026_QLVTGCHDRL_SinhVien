@@ -154,7 +154,7 @@ services:
 
   # Lightweight real-time log viewer (development only)
   dozzle:
-    image: amir20/dozzle:v7
+    image: amir20/dozzle:latest
     container_name: dacn_dozzle
     ports:
       - "9999:8080"
