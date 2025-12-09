@@ -198,7 +198,7 @@ class SessionStorageManager {
             });
 
             this.sendSessionPing('heartbeat');
-            this.emitSyncEvent('session_saved', sessionData);
+            this.emitSyncEvent('session_saved', { ...sessionData });
 
             return true;
         } catch (error) {
