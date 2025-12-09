@@ -30,7 +30,11 @@ class GetCurrentSemesterStatusUseCase {
         } else {
           // Try to find class where user is class monitor (LOP_TRUONG)
           const classAsMonitor = await prisma.lop.findFirst({
-            where: { lop_truong_id: userId },
+            where: {
+              lop_truong_rel: {
+                nguoi_dung_id: userId
+              }
+            },
             select: { id: true }
           });
           if (classAsMonitor?.id) {

@@ -200,6 +200,31 @@ class DashboardRepository {
       newUsersThisMonth
     };
   }
+
+  async getClassRegistrations(lopId, activityFilter = {}) {
+    return prisma.dangKyHoatDong.findMany({
+      where: {
+        sinh_vien: {
+          lop_id: lopId
+        },
+        hoat_dong: activityFilter,
+        trang_thai_dk: 'da_tham_gia' // Only fetch attended registrations for ranking
+      },
+      select: {
+        sv_id: true,
+        hoat_dong: {
+          include: {
+            loai_hd: {
+              select: {
+                diem_mac_dinh: true,
+                diem_toi_da: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 }
 
 module.exports = new DashboardRepository();

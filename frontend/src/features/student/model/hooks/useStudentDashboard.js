@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { studentDashboardApi } from '../../services/studentDashboardApi';
-import { studentActivitiesApi } from '../../services/studentActivitiesApi';
 import { studentProfileApi } from '../../services/studentProfileApi';
 import { mapDashboardToUI, groupActivitiesByStatus } from '../mappers/student.mappers';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
@@ -81,9 +80,8 @@ export default function useStudentDashboard() {
       setError(null);
 
       // Fetch all data in parallel
-      const [dashboardResult, activitiesResult, profileResult] = await Promise.all([
+      const [dashboardResult, profileResult] = await Promise.all([
         studentDashboardApi.getDashboard(semester),
-        studentActivitiesApi.getMyActivities(semester),
         studentProfileApi.getProfile()
       ]);
 
@@ -98,16 +96,10 @@ export default function useStudentDashboard() {
         });
         
         setDashboardData(dashboardResult.data);
+        setMyActivitiesData(dashboardResult.data?.activities || []);
       } else {
         console.error('[useStudentDashboard] Dashboard error:', dashboardResult.error);
         setDashboardData(null);
-      }
-
-      // Set my activities data
-      if (activitiesResult.success) {
-        setMyActivitiesData(activitiesResult.data || []);
-      } else {
-        console.error('[useStudentDashboard] Activities error:', activitiesResult.error);
         setMyActivitiesData([]);
       }
 
