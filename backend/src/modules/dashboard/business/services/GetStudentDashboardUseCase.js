@@ -2,6 +2,7 @@ const { NotFoundError } = require('../../../../core/errors/AppError');
 const { parseSemesterString } = require('../../../../core/utils/semester');
 const { prisma } = require('../../../../data/infrastructure/prisma/client');
 const { countClassActivities } = require('../../../../core/utils/classActivityCounter');
+const { calculateActivityPoints } = require('../utils/activityPoints');
 
 /**
  * GetStudentDashboardUseCase
@@ -12,51 +13,7 @@ class GetStudentDashboardUseCase {
     this.repository = dashboardRepository;
   }
 
-  /**
-   * Tính điểm cho hoạt động
-   * Ưu tiên diem_rl của hoạt động, nếu null/undefined hoặc = 0 thì dùng diem_mac_dinh của loại hoạt động
-   */
-  _calculateActivityPoints(activity) {
-    if (!activity) return 0;
-    
-    // Xử lý diem_rl (có thể là Decimal, Number, hoặc String)
-    let diemRl = null;
-    if (activity.diem_rl != null && activity.diem_rl !== undefined) {
-      // Xử lý Decimal type từ Prisma
-      if (typeof activity.diem_rl === 'object' && activity.diem_rl.toNumber) {
-        diemRl = activity.diem_rl.toNumber();
-      } else {
-        diemRl = parseFloat(activity.diem_rl);
-      }
-      
-      // Nếu parseFloat trả về NaN hoặc không phải số hợp lệ, coi như null
-      if (isNaN(diemRl) || !isFinite(diemRl)) {
-        diemRl = null;
-      }
-    }
-    
-    // Nếu hoạt động có điểm được set và > 0, dùng điểm đó
-    if (diemRl != null && diemRl > 0) {
-      return diemRl;
-    }
-    
-    // Nếu không có điểm hoặc = 0, dùng điểm mặc định của loại hoạt động
-    if (activity.loai_hd && activity.loai_hd.diem_mac_dinh != null) {
-      let diemMacDinh = 0;
-      
-      // Xử lý Decimal type từ Prisma
-      if (typeof activity.loai_hd.diem_mac_dinh === 'object' && activity.loai_hd.diem_mac_dinh.toNumber) {
-        diemMacDinh = activity.loai_hd.diem_mac_dinh.toNumber();
-      } else {
-        diemMacDinh = parseFloat(activity.loai_hd.diem_mac_dinh) || 0;
-      }
-      
-      // Nếu parseFloat trả về NaN, trả về 0
-      return isNaN(diemMacDinh) || !isFinite(diemMacDinh) ? 0 : diemMacDinh;
-    }
-    
-    return 0;
-  }
+
 
   /**
    * Lấy danh sách class creators (sinh viên trong lớp + GVCN)
@@ -141,7 +98,7 @@ class GetStudentDashboardUseCase {
     
     let totalPoints = 0;
     attendedRegistrations.forEach(reg => {
-      const points = this._calculateActivityPoints(reg.hoat_dong);
+      const points = calculateActivityPoints(reg.hoat_dong);
       totalPoints += points;
     });
     
@@ -155,27 +112,25 @@ class GetStudentDashboardUseCase {
 
     let myRankInClass = null;
     if (studentInfo.lop_id && totalStudentsInClass > 0) {
-      const classScores = await Promise.all(
-        classStudents.map(async (classmate) => {
-          const classmateRegistrations = await this.repository.getStudentRegistrations(
-            classmate.id,
-            activityFilter
-          );
-
-          const classmateAttended = classmateRegistrations.filter(reg =>
-            reg.trang_thai_dk === 'da_tham_gia' && reg.hoat_dong
-          );
-
-          const totalClassmatePoints = classmateAttended.reduce((sum, reg) => {
-            return sum + this._calculateActivityPoints(reg.hoat_dong);
-          }, 0);
-
-          return {
-            sv_id: classmate.id,
-            tong_diem: totalClassmatePoints
-          };
-        })
+      // Optimized: Fetch all class registrations in one query instead of N+1
+      const allClassRegistrations = await this.repository.getClassRegistrations(
+        studentInfo.lop_id, 
+        activityFilter
       );
+      
+      // Group by student and calculate points
+      const studentPointsMap = {};
+      allClassRegistrations.forEach(reg => {
+        if (reg.hoat_dong) {
+          const points = calculateActivityPoints(reg.hoat_dong);
+          studentPointsMap[reg.sv_id] = (studentPointsMap[reg.sv_id] || 0) + points;
+        }
+      });
+
+      const classScores = classStudents.map(classmate => ({
+        sv_id: classmate.id,
+        tong_diem: studentPointsMap[classmate.id] || 0
+      }));
 
       classScores.sort((a, b) => b.tong_diem - a.tong_diem);
 
@@ -193,30 +148,54 @@ class GetStudentDashboardUseCase {
       });
     }
     
-    // Map recent activities với điểm đã được tính đúng
-    const hoatDongGanDay = registrations.slice(0, 5).map(reg => ({
-      id: reg.id,
-      hoat_dong: reg.hoat_dong ? {
-        id: reg.hoat_dong.id,
+    // Map registrations to activities (full list)
+    const activities = registrations.map(reg => {
+      if (!reg.hoat_dong) {
+        return {
+          ...reg,
+          is_class_activity: false,
+          diem_rl: 0
+        };
+      }
+      
+      const calculatedPoints = calculateActivityPoints(reg.hoat_dong);
+      
+      return {
+        id: reg.id,
+        hoat_dong: {
+          id: reg.hoat_dong.id,
+          ten_hd: reg.hoat_dong.ten_hd,
+          mo_ta: reg.hoat_dong.mo_ta,
+          hinh_anh: reg.hoat_dong.hinh_anh || [],
+          loai_hd: reg.hoat_dong.loai_hd ? {
+            ten_loai_hd: reg.hoat_dong.loai_hd.ten_loai_hd || 'Khác',
+            diem_mac_dinh: reg.hoat_dong.loai_hd.diem_mac_dinh,
+            diem_toi_da: reg.hoat_dong.loai_hd.diem_toi_da
+          } : { ten_loai_hd: 'Khác' },
+          diem_rl: calculatedPoints,
+          ngay_bd: reg.hoat_dong.ngay_bd,
+          ngay_kt: reg.hoat_dong.ngay_kt,
+          dia_diem: reg.hoat_dong.dia_diem,
+          hoc_ky: reg.hoat_dong.hoc_ky,
+          nam_hoc: reg.hoat_dong.nam_hoc
+        },
+        diem_rl: calculatedPoints,
+        hinh_anh: reg.hoat_dong.hinh_anh || [],
         ten_hd: reg.hoat_dong.ten_hd,
-        mo_ta: reg.hoat_dong.mo_ta,
-        loai_hd: reg.hoat_dong.loai_hd?.ten_loai_hd || 'Khác',
-        diem_rl: this._calculateActivityPoints(reg.hoat_dong), // Tính điểm đúng với fallback
         ngay_bd: reg.hoat_dong.ngay_bd,
-        ngay_kt: reg.hoat_dong.ngay_kt,
         dia_diem: reg.hoat_dong.dia_diem,
-        hoc_ky: reg.hoat_dong.hoc_ky,
-        nam_hoc: reg.hoat_dong.nam_hoc
-      } : null,
-      ngay_dang_ky: reg.ngay_dang_ky,
-      trang_thai_dk: reg.trang_thai_dk,
-      ngay_duyet: reg.ngay_duyet,
-      ly_do_tu_choi: reg.ly_do_tu_choi
-    }));
+        ngay_dang_ky: reg.ngay_dang_ky,
+        trang_thai_dk: reg.trang_thai_dk,
+        trang_thai: reg.trang_thai_dk,
+        ngay_duyet: reg.ngay_duyet,
+        ly_do_tu_choi: reg.ly_do_tu_choi,
+        is_class_activity: true
+      };
+    });
     
     return {
       sinh_vien: studentInfo,
-      hoat_dong_gan_day: hoatDongGanDay,
+      activities: activities,
       hoat_dong_sap_toi: upcomingActivities,
       thong_bao_chua_doc: unreadCount,
       tong_quan: {

@@ -218,7 +218,7 @@ class SessionTrackingService {
     try {
       if (!tabId) return false;
 
-      await prisma.phienDangNhap.delete({
+      await prisma.phienDangNhap.deleteMany({
         where: { ma_tab: tabId }
       });
 
