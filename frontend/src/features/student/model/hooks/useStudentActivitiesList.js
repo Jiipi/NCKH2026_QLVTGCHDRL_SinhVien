@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import activitiesApi from '../../../activities/services/activitiesApi';
+import { activityApi, activityTypeApi } from '../../../../shared/api/repositories';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
@@ -31,7 +31,7 @@ function loadInitialSemester() {
  */
 export default function useStudentActivitiesList() {
   const { showSuccess, showError, confirm } = useNotification();
-  
+
   // UI State
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState({ type: '', status: '', from: '', to: '' });
@@ -71,8 +71,7 @@ export default function useStudentActivitiesList() {
     setError('');
 
     const params = {
-      limit: 'all', // Lấy tất cả, không phân trang từ API
-      // Mặc định lấy theo thời gian tạo mới nhất (để trạng thái "Mới nhất" đúng nghĩa)
+      limit: 'all',
       sort: 'ngay_tao',
       order: 'desc',
       semester: semester || undefined,
@@ -85,14 +84,14 @@ export default function useStudentActivitiesList() {
       }
     });
 
-    const result = await activitiesApi.listActivities(params);
-
-    if (result.success) {
-      setAllItems(result.data || []);
-      setPagination(prev => ({ ...prev, page: 1, total: result.data?.length || 0 }));
-    } else {
+    try {
+      const result = await activityApi.getActivities(params);
+      const items = result.items || result || [];
+      setAllItems(items);
+      setPagination(prev => ({ ...prev, page: 1, total: items.length || 0 }));
+    } catch (err) {
       setAllItems([]);
-      setError(result.error || 'Lỗi tải dữ liệu hoạt động.');
+      setError(err?.message || 'Lỗi tải dữ liệu hoạt động.');
       setPagination(prev => ({ ...prev, total: 0 }));
     }
 
@@ -101,9 +100,11 @@ export default function useStudentActivitiesList() {
 
   // Business logic: Load activity types
   const loadActivityTypes = useCallback(async () => {
-    const result = await activitiesApi.getActivityTypes();
-    if (result.success) {
-      setActivityTypes(result.data);
+    try {
+      const types = await activityTypeApi.getActivityTypes();
+      setActivityTypes(types || []);
+    } catch (err) {
+      console.warn('Could not load activity types:', err);
     }
   }, []);
 
@@ -130,11 +131,11 @@ export default function useStudentActivitiesList() {
 
   // Auto-refresh for cross-user sync (when teacher approves activities)
   // Polls every 30 seconds and on window focus/visibility
-  useAutoRefresh(loadActivities, { 
-    intervalMs: 30000, 
+  useAutoRefresh(loadActivities, {
+    intervalMs: 30000,
     enabled: true,
     refreshOnFocus: true,
-    refreshOnVisible: true 
+    refreshOnVisible: true
   });
 
   // Business logic: Handle register
@@ -146,13 +147,12 @@ export default function useStudentActivitiesList() {
 
     if (!isConfirmed) return;
 
-    const result = await activitiesApi.registerForActivity(activityId);
-
-    if (result.success) {
+    try {
+      await activityApi.registerActivity(activityId);
       showSuccess('Đăng ký thành công!');
       loadActivities();
-    } else {
-      showError(result.error || 'Đăng ký thất bại.');
+    } catch (err) {
+      showError(err?.message || 'Đăng ký thất bại.');
     }
   }, [confirm, showSuccess, showError, loadActivities]);
 
@@ -195,9 +195,9 @@ export default function useStudentActivitiesList() {
 
         switch (filters.status) {
           case 'open':
-            return item.trang_thai === 'da_duyet' && 
-                   (!deadline || deadline > now) && 
-                   (!startDate || startDate > now);
+            return item.trang_thai === 'da_duyet' &&
+              (!deadline || deadline > now) &&
+              (!startDate || startDate > now);
           case 'soon':
             return startDate && endDate && startDate <= now && endDate >= now;
           case 'closed':

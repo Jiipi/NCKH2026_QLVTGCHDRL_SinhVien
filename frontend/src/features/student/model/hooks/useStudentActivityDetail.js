@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import activitiesApi from '../../../activities/services/activitiesApi';
+import { activityApi } from '../../../../shared/api/repositories';
 
 /**
  * Hook quản lý chi tiết hoạt động
@@ -24,15 +24,10 @@ export default function useStudentActivityDetail(id) {
     setLoading(true);
     setError('');
 
-    activitiesApi.getActivityDetails(id)
+    activityApi.getActivityById(id)
       .then((result) => {
         if (!mounted) return;
-        
-        if (result.success) {
-          setData(result.data);
-        } else {
-          setError(result.error || 'Không tải được hoạt động');
-        }
+        setData(result);
       })
       .catch((err) => {
         if (!mounted) return;

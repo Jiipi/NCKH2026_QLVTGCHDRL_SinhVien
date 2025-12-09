@@ -10,7 +10,7 @@ import { useNotification } from '../../../../shared/contexts/NotificationContext
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import sessionStorageManager from '../../../../shared/api/sessionStorageManager';
 import { normalizeRole } from '../../../../shared/lib/role';
-import activitiesApi from '../../../activities/services/activitiesApi';
+import { activityTypeApi } from '../../../../shared/api/repositories';
 import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /**
@@ -18,7 +18,7 @@ import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/da
  */
 export default function useMyActivities() {
   const { showSuccess, showError, confirm } = useNotification();
-  
+
   // UI State
   const [tab, setTab] = useState('joined');
   const [selectedActivityId, setSelectedActivityId] = useState(null);
@@ -48,7 +48,7 @@ export default function useMyActivities() {
       return '';
     }
   });
-  
+
   const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
 
   // Business logic: Check permissions
@@ -56,12 +56,12 @@ export default function useMyActivities() {
     const r = sessionStorageManager.getRole() || '';
     return String(normalizeRole(r) || r).toUpperCase();
   }, []);
-  
+
   const canShowQR = useMemo(() => {
-    return normalizedRole === 'SINH_VIEN' || 
-           normalizedRole === 'LOP_TRUONG' || 
-           normalizedRole === 'GIANG_VIEN' || 
-           normalizedRole === 'ADMIN';
+    return normalizedRole === 'SINH_VIEN' ||
+      normalizedRole === 'LOP_TRUONG' ||
+      normalizedRole === 'GIANG_VIEN' ||
+      normalizedRole === 'ADMIN';
   }, [normalizedRole]);
 
   // Initialize semester when options are loaded
@@ -84,7 +84,7 @@ export default function useMyActivities() {
     if (semester) {
       try {
         sessionStorage.setItem('current_semester', semester);
-      } catch {}
+      } catch { }
     }
   }, [semester]);
 
@@ -93,9 +93,9 @@ export default function useMyActivities() {
     try {
       setLoading(true);
       setError('');
-      
+
       const result = await studentActivitiesApi.getMyActivities(semester);
-      
+
       if (result.success) {
         // Group activities by status
         const grouped = groupActivitiesByStatus(result.data);
@@ -113,16 +113,11 @@ export default function useMyActivities() {
     }
   }, [semester]);
 
-  // Load activity types (sử dụng API service layer)
+  // Load activity types (sử dụng shared API repository)
   const loadActivityTypes = useCallback(async () => {
     try {
-      const result = await activitiesApi.getActivityTypes();
-      if (result.success) {
-        setActivityTypes(result.data || []);
-      } else {
-        console.warn('Could not load activity types:', result.error);
-        setActivityTypes([]);
-      }
+      const types = await activityTypeApi.getActivityTypes();
+      setActivityTypes(types || []);
     } catch (err) {
       console.warn('Could not load activity types:', err);
       setActivityTypes([]);
@@ -139,11 +134,11 @@ export default function useMyActivities() {
 
   // Auto-refresh for cross-user sync (when teacher/monitor approves)
   // Polls every 30 seconds and on window focus/visibility
-  useAutoRefresh(loadMyActivities, { 
-    intervalMs: 30000, 
+  useAutoRefresh(loadMyActivities, {
+    intervalMs: 30000,
     enabled: true,
     refreshOnFocus: true,
-    refreshOnVisible: true 
+    refreshOnVisible: true
   });
 
   // Auto-refresh when attendance is updated
@@ -156,17 +151,17 @@ export default function useMyActivities() {
         loadMyActivities();
       }
     };
-    
+
     try {
       window.addEventListener('attendance:updated', onUpdated);
       window.addEventListener('storage', onStorage);
-    } catch (_) {}
-    
+    } catch (_) { }
+
     return () => {
       try {
         window.removeEventListener('attendance:updated', onUpdated);
         window.removeEventListener('storage', onStorage);
-      } catch (_) {}
+      } catch (_) { }
     };
   }, [loadMyActivities]);
 
@@ -178,12 +173,12 @@ export default function useMyActivities() {
       confirmText: 'Hủy đăng ký',
       cancelText: 'Không'
     });
-    
+
     if (!confirmed) return;
-    
+
     try {
       const result = await studentActivitiesApi.cancelRegistration(activityId);
-      
+
       if (result.success) {
         showSuccess('Hủy đăng ký thành công');
         loadMyActivities(); // Immediate local refresh
@@ -238,7 +233,7 @@ export default function useMyActivities() {
   // Business logic: Filter, search & sort activities
   const currentItems = useMemo(() => {
     let items = data[tab] || [];
-    
+
     // Search filter
     if (query.trim()) {
       const lowerQuery = query.toLowerCase();
@@ -248,7 +243,7 @@ export default function useMyActivities() {
         return name.includes(lowerQuery);
       });
     }
-    
+
     // Type filter
     if (filters.type) {
       items = items.filter(activity => {
@@ -260,7 +255,7 @@ export default function useMyActivities() {
         return activityTypeId === filterValue || activityTypeName === filterValue;
       });
     }
-    
+
     // Date filters
     if (filters.from) {
       const fromDate = new Date(filters.from);
@@ -270,7 +265,7 @@ export default function useMyActivities() {
         return startDate && startDate >= fromDate;
       });
     }
-    
+
     if (filters.to) {
       const toDate = new Date(filters.to);
       items = items.filter(activity => {
@@ -284,7 +279,7 @@ export default function useMyActivities() {
     const sorted = [...items].sort((a, b) => {
       const aData = a.hoat_dong || a;
       const bData = b.hoat_dong || b;
-      
+
       // Ưu tiên ngày đăng ký (cho "Hoạt động của tôi") hoặc ngày tạo/cập nhật
       const dateA = new Date(a.ngay_dang_ky || aData.ngay_cap_nhat || aData.ngay_tao || aData.ngay_bd || 0).getTime();
       const dateB = new Date(b.ngay_dang_ky || bData.ngay_cap_nhat || bData.ngay_tao || bData.ngay_bd || 0).getTime();
