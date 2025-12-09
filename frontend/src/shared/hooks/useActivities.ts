@@ -64,7 +64,7 @@ export function useActivities(options: UseActivitiesOptions = {}): UseActivities
     const deleteActivity = useCallback(async (id: string) => {
         await activityApi.deleteActivity(id);
         // Remove from local state
-        setActivities(prev => prev.filter(a => a.id !== id));
+        setActivities((prev: Activity[]) => prev.filter((a: Activity) => a.id !== id));
     }, []);
 
     // Auto fetch on mount if enabled
