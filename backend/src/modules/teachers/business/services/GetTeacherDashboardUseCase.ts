@@ -6,9 +6,7 @@
 
 import { ForbiddenError } from '../../../../core/errors/AppError';
 import type { ITeacherRepository } from '../interfaces/ITeacherRepository';
-
-// Import DTO from registrations module
-const ListRegistrationsDto = require('../../../registrations/business/dto/ListRegistrationsDto');
+import { ListRegistrationsDto } from '../../../registrations/business/dto/ListRegistrationsDto';
 
 /**
  * User object from JWT token

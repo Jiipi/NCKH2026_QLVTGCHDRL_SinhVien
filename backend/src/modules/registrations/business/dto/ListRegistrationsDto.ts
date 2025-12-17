@@ -53,4 +53,3 @@ export class ListRegistrationsDto {
 }
 
 export default ListRegistrationsDto;
-module.exports = ListRegistrationsDto;

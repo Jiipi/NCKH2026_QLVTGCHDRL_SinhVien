@@ -4,18 +4,17 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-const SemesterClosure = require('../../../../business/services/semesterClosure.service');
+import { SemesterClosureService } from '../../../../business/services/semesterClosure.service';
 
 export interface SemesterInfo {
   semester: string;
-  year: number;
+  year: string;
 }
 
 class GetCurrentSemesterUseCase {
   async execute(): Promise<SemesterInfo> {
-    return SemesterClosure.getCurrentSemesterInfo() as SemesterInfo;
+    return SemesterClosureService.getCurrentSemesterInfo();
   }
 }
 
 export default GetCurrentSemesterUseCase;
-module.exports = GetCurrentSemesterUseCase;

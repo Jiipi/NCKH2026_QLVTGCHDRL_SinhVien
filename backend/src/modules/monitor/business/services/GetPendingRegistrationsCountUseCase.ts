@@ -44,4 +44,3 @@ class GetPendingRegistrationsCountUseCase {
 }
 
 export default GetPendingRegistrationsCountUseCase;
-module.exports = GetPendingRegistrationsCountUseCase;
