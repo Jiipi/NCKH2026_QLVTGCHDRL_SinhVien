@@ -76,8 +76,8 @@ const getAllActivitiesSchema = z.object({
       })
       .refine((val) => {
         if (val === 'all') return true;
-        return typeof val === 'number' && val > 0 && val <= 200;
-      }, { message: 'Limit phải từ 1-200 hoặc "all"' }),
+        return typeof val === 'number' && val > 0 && val <= 1000;
+      }, { message: 'Limit phải từ 1-1000 hoặc "all"' }),
     search: z.string().optional(),
     q: z.string().optional(), // Alias for search
     // Allow both activity status enum AND time-based status (open, soon, closed)
