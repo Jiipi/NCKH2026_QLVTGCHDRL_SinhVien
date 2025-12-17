@@ -46,8 +46,9 @@ export type {
 import { createActivitiesController } from './presentation/activities.factory';
 export { createActivitiesController };
 
-// Export routes (CommonJS compatibility)
-const routes = require('./presentation/routes/activities.routes');
+// Export routes - get the router instance, not the factory function
+const routesModule = require('./presentation/routes/activities.routes');
+const routes = routesModule.router || routesModule.default?.router || routesModule;
 
 export { routes };
 
