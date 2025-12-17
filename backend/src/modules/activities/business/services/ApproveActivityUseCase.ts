@@ -56,4 +56,3 @@ class ApproveActivityUseCase {
 }
 
 export default ApproveActivityUseCase;
-module.exports = ApproveActivityUseCase;

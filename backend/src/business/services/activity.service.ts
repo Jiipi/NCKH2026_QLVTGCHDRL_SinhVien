@@ -12,14 +12,14 @@ import type {
     IActivityService
 } from '../../core/types';
 
-// Import existing UseCases (JS files still work with allowJs: true)
-const GetActivitiesUseCase = require('../../modules/activities/business/services/GetActivitiesUseCase');
-const CreateActivityUseCase = require('../../modules/activities/business/services/CreateActivityUseCase');
-const UpdateActivityUseCase = require('../../modules/activities/business/services/UpdateActivityUseCase');
-const DeleteActivityUseCase = require('../../modules/activities/business/services/DeleteActivityUseCase');
-const ApproveActivityUseCase = require('../../modules/activities/business/services/ApproveActivityUseCase');
-const RejectActivityUseCase = require('../../modules/activities/business/services/RejectActivityUseCase');
-const GetActivityByIdUseCase = require('../../modules/activities/business/services/GetActivityByIdUseCase');
+// Import existing UseCases with ES6 imports
+import GetActivitiesUseCase from '../../modules/activities/business/services/GetActivitiesUseCase';
+import CreateActivityUseCase from '../../modules/activities/business/services/CreateActivityUseCase';
+import UpdateActivityUseCase from '../../modules/activities/business/services/UpdateActivityUseCase';
+import DeleteActivityUseCase from '../../modules/activities/business/services/DeleteActivityUseCase';
+import ApproveActivityUseCase from '../../modules/activities/business/services/ApproveActivityUseCase';
+import RejectActivityUseCase from '../../modules/activities/business/services/RejectActivityUseCase';
+import GetActivityByIdUseCase from '../../modules/activities/business/services/GetActivityByIdUseCase';
 
 // Import repository instance (already instantiated in JS file)
 const activityRepository = require('../../modules/activities/data/repositories/activities.repository');

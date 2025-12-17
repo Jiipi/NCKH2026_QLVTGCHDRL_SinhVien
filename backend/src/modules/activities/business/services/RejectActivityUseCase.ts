@@ -52,4 +52,3 @@ class RejectActivityUseCase {
 }
 
 export default RejectActivityUseCase;
-module.exports = RejectActivityUseCase;

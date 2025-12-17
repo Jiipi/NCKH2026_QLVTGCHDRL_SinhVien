@@ -3,42 +3,20 @@
  * Export tất cả Use Cases để dễ dàng import
  */
 
-const ApproveActivityUseCase = require('./ApproveActivityUseCase');
-const CancelActivityRegistrationUseCase = require('./CancelActivityRegistrationUseCase');
-const CreateActivityUseCase = require('./CreateActivityUseCase');
-const DeleteActivityUseCase = require('./DeleteActivityUseCase');
-const GetActivitiesUseCase = require('./GetActivitiesUseCase');
-const GetActivityByIdUseCase = require('./GetActivityByIdUseCase');
-const GetActivityDetailsUseCase = require('./GetActivityDetailsUseCase');
-const GetActivityQRDataUseCase = require('./GetActivityQRDataUseCase');
-const RegisterActivityUseCase = require('./RegisterActivityUseCase');
-const RejectActivityUseCase = require('./RejectActivityUseCase');
-const ScanAttendanceUseCase = require('./ScanAttendanceUseCase');
-const UpdateActivityUseCase = require('./UpdateActivityUseCase');
+import ApproveActivityUseCase from './ApproveActivityUseCase';
+import CancelActivityRegistrationUseCase from './CancelActivityRegistrationUseCase';
+import CreateActivityUseCase from './CreateActivityUseCase';
+import DeleteActivityUseCase from './DeleteActivityUseCase';
+import GetActivitiesUseCase from './GetActivitiesUseCase';
+import GetActivityByIdUseCase from './GetActivityByIdUseCase';
+import GetActivityDetailsUseCase from './GetActivityDetailsUseCase';
+import GetActivityQRDataUseCase from './GetActivityQRDataUseCase';
+import RegisterActivityUseCase from './RegisterActivityUseCase';
+import RejectActivityUseCase from './RejectActivityUseCase';
+import ScanAttendanceUseCase from './ScanAttendanceUseCase';
+import UpdateActivityUseCase from './UpdateActivityUseCase';
 
 export {
-  // CRUD Use Cases
-  CreateActivityUseCase,
-  GetActivitiesUseCase,
-  GetActivityByIdUseCase,
-  GetActivityDetailsUseCase,
-  UpdateActivityUseCase,
-  DeleteActivityUseCase,
-  
-  // Approval Use Cases
-  ApproveActivityUseCase,
-  RejectActivityUseCase,
-  
-  // Registration Use Cases
-  RegisterActivityUseCase,
-  CancelActivityRegistrationUseCase,
-  
-  // Attendance Use Cases
-  GetActivityQRDataUseCase,
-  ScanAttendanceUseCase,
-};
-
-module.exports = {
   // CRUD Use Cases
   CreateActivityUseCase,
   GetActivitiesUseCase,

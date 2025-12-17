@@ -165,4 +165,3 @@ class UpdateActivityUseCase {
 }
 
 export default UpdateActivityUseCase;
-module.exports = UpdateActivityUseCase;

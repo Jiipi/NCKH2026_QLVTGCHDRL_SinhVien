@@ -7,7 +7,7 @@
 import type { Lop, SinhVien } from '@prisma/client';
 import type GetCurrentSemesterUseCase from './GetCurrentSemesterUseCase';
 
-const SemesterClosure = require('../../../../business/services/semesterClosure.service');
+import { SemesterClosureService } from '../../../../business/services/semesterClosure.service';
 const { prisma } = require('../../../../data/infrastructure/prisma/client');
 const { parseSemesterString, normalizeSemesterFormat } = require('../../../../core/utils/semester');
 
@@ -115,7 +115,7 @@ class GetCurrentSemesterStatusUseCase {
         // Wrap getStatus in try-catch to handle file system errors
         let statusResult: StatusResult;
         try {
-          statusResult = SemesterClosure.getStatus(classId, semesterStr) as StatusResult;
+          statusResult = SemesterClosureService.getStatus(classId, semesterStr) as StatusResult;
         } catch (statusError) {
           console.error('[GetCurrentSemesterStatus] Error getting status:', (statusError as Error).message);
           statusResult = { semInfo: semesterInfo ?? undefined, state: undefined };
@@ -176,4 +176,3 @@ class GetCurrentSemesterStatusUseCase {
 }
 
 export default GetCurrentSemesterStatusUseCase;
-module.exports = GetCurrentSemesterStatusUseCase;

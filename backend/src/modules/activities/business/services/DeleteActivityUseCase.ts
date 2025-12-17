@@ -54,4 +54,3 @@ class DeleteActivityUseCase {
 }
 
 export default DeleteActivityUseCase;
-module.exports = DeleteActivityUseCase;

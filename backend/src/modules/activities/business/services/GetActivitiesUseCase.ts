@@ -307,4 +307,3 @@ class GetActivitiesUseCase {
 }
 
 export default GetActivitiesUseCase;
-module.exports = GetActivitiesUseCase;

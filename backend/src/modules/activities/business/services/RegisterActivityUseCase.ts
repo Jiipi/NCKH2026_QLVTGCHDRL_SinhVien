@@ -79,4 +79,3 @@ class RegisterActivityUseCase {
 }
 
 export default RegisterActivityUseCase;
-module.exports = RegisterActivityUseCase;

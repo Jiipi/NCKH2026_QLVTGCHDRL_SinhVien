@@ -4,7 +4,7 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-const SemesterClosure = require('../../../../business/services/semesterClosure.service');
+import { SemesterClosureService } from '../../../../business/services/semesterClosure.service';
 
 interface SemesterState {
   state: string;
@@ -36,9 +36,8 @@ class GetSemesterStatusUseCase {
    * @returns Semester status
    */
   execute(classId: string, semester: string): SemesterStatusResult {
-    return SemesterClosure.getStatus(classId, semester) as SemesterStatusResult;
+    return SemesterClosureService.getStatus(classId, semester) as SemesterStatusResult;
   }
 }
 
 export default GetSemesterStatusUseCase;
-module.exports = GetSemesterStatusUseCase;

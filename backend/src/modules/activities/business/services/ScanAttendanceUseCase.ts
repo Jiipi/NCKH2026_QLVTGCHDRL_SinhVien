@@ -193,4 +193,3 @@ class ScanAttendanceUseCase {
 }
 
 export default ScanAttendanceUseCase;
-module.exports = ScanAttendanceUseCase;

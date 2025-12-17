@@ -156,4 +156,3 @@ class GetActivityByIdUseCase {
 }
 
 export default GetActivityByIdUseCase;
-module.exports = GetActivityByIdUseCase;

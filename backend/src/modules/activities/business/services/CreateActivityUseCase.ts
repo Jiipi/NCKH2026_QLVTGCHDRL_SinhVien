@@ -196,4 +196,3 @@ class CreateActivityUseCase {
 }
 
 export default CreateActivityUseCase;
-module.exports = CreateActivityUseCase;

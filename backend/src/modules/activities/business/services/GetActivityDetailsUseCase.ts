@@ -72,4 +72,3 @@ class GetActivityDetailsUseCase {
 }
 
 export default GetActivityDetailsUseCase;
-module.exports = GetActivityDetailsUseCase;

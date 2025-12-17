@@ -58,4 +58,3 @@ class CancelActivityRegistrationUseCase {
 }
 
 export default CancelActivityRegistrationUseCase;
-module.exports = CancelActivityRegistrationUseCase;

@@ -135,4 +135,3 @@ class GetActivityQRDataUseCase {
 }
 
 export default GetActivityQRDataUseCase;
-module.exports = GetActivityQRDataUseCase;
