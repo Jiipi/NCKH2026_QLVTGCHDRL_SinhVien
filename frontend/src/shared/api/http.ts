@@ -4,7 +4,7 @@
  * TypeScript version with proper typing
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosError, AxiosResponse, AxiosRequestHeaders } from 'axios';
 import sessionStorageManager from './sessionStorageManager';
 import { computeBaseURL } from './baseUrl';
 
@@ -197,12 +197,12 @@ http.interceptors.request.use(
             }
 
             if (token) {
-                config.headers = config.headers || {};
+                config.headers = (config.headers || {}) as AxiosRequestHeaders;
                 config.headers.Authorization = 'Bearer ' + token;
             }
 
             if (tabId) {
-                config.headers = config.headers || {};
+                config.headers = (config.headers || {}) as AxiosRequestHeaders;
                 config.headers['X-Tab-Id'] = tabId;
             }
         } catch (_) { /* ignore */ }

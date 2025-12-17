@@ -52,7 +52,7 @@ services:
 
   # Backend in watch mode for development.
   backend-dev:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: dacn_backend_dev
     working_dir: /app
     environment:
@@ -88,7 +88,7 @@ services:
         echo 'Waiting for DB...'; sleep 3; 
       done && 
       npx prisma generate || true && 
-      npm run dev"
+      npx ts-node --transpile-only src/index.ts"
     profiles:
       - dev
     logging:
@@ -99,7 +99,7 @@ services:
 
   # Prisma Studio service
   prisma-studio:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: dacn_prisma_studio
     working_dir: /app
     environment:
@@ -124,7 +124,7 @@ services:
 
   # Frontend dev server (React)
   frontend-dev:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: dacn_frontend_dev
     working_dir: /app
     environment:

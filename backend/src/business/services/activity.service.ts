@@ -21,15 +21,15 @@ const ApproveActivityUseCase = require('../../modules/activities/business/servic
 const RejectActivityUseCase = require('../../modules/activities/business/services/RejectActivityUseCase');
 const GetActivityByIdUseCase = require('../../modules/activities/business/services/GetActivityByIdUseCase');
 
-// Import repository
-const ActivityRepository = require('../../modules/activities/data/ActivityRepository');
+// Import repository instance (already instantiated in JS file)
+const activityRepository = require('../../modules/activities/data/repositories/activities.repository');
 
 /**
  * ActivityService - Wrapper around existing UseCases
  * Provides TypeScript interface for activity operations
  */
 export class ActivityService implements IActivityService {
-    private repository: InstanceType<typeof ActivityRepository>;
+    private repository: unknown;
     private getActivitiesUseCase: InstanceType<typeof GetActivitiesUseCase>;
     private getActivityByIdUseCase: InstanceType<typeof GetActivityByIdUseCase>;
     private createActivityUseCase: InstanceType<typeof CreateActivityUseCase>;
@@ -39,7 +39,7 @@ export class ActivityService implements IActivityService {
     private rejectActivityUseCase: InstanceType<typeof RejectActivityUseCase>;
 
     constructor() {
-        this.repository = new ActivityRepository();
+        this.repository = activityRepository;
         this.getActivitiesUseCase = new GetActivitiesUseCase(this.repository);
         this.getActivityByIdUseCase = new GetActivityByIdUseCase(this.repository);
         this.createActivityUseCase = new CreateActivityUseCase(this.repository);

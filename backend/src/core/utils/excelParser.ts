@@ -1,0 +1,356 @@
+import XLSX from 'xlsx';
+import fs from 'fs';
+import { prisma } from '../../data/infrastructure/prisma/client';
+import bcrypt from 'bcryptjs';
+import { GioiTinh } from '@prisma/client';
+
+interface ExcelRow {
+  [key: string]: string | number | undefined;
+}
+
+interface ExistingData {
+  mssvs: Set<string>;
+  emails: Set<string>;
+  usernames: Set<string>;
+  classes: Map<string, { id: string; ten_lop: string }>;
+}
+
+interface StudentData {
+  mssv: string;
+  ho_ten: string;
+  email: string;
+  ngay_sinh: string;
+  gt: string;
+  lop: string;
+  lop_id?: string;
+  sdt: string | null;
+  dia_chi: string | null;
+  ten_dn: string;
+  mat_khau: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
+  data: StudentData | Partial<StudentData>;
+}
+
+interface ValidatedStudents {
+  valid: StudentData[];
+  invalid: Array<Partial<StudentData> & { errors: string[] }>;
+}
+
+interface ImportResult {
+  imported: number;
+  failed: number;
+}
+
+/**
+ * Parse Excel or CSV file
+ * @param filePath - Path to uploaded file
+ * @returns Array of parsed rows
+ */
+export function parseExcelFile(filePath: string): ExcelRow[] {
+  try {
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // Convert to JSON with header row
+    const data = XLSX.utils.sheet_to_json<ExcelRow>(worksheet, { 
+      raw: false, // Keep dates as strings
+      defval: '' // Default value for empty cells
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Parse Excel error:', error);
+    throw new Error('Không thể đọc file Excel. Vui lòng kiểm tra định dạng file.');
+  }
+}
+
+/**
+ * Flexible date parser (Studio-like): accepts Date, Excel serial, and many string formats
+ */
+function parseDateFlexible(value: unknown): Date | null {
+  if (!value && value !== 0) return null;
+  // If it's already a Date
+  if (value instanceof Date) return value;
+  // If it's a number or numeric string, assume Excel serial
+  if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim()))) {
+    const serial = typeof value === 'number' ? value : parseInt(value.trim(), 10);
+    if (!Number.isNaN(serial)) {
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      return new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
+    }
+  }
+  if (typeof value === 'string') {
+    let s = value.trim().replace(/^"|"$/g, ''); // strip outer quotes
+    // Normalize multiple spaces
+    s = s.replace(/\s+/g, ' ');
+    // ISO yyyy-mm-dd
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+      const [yyyy, mm, dd] = s.split('-').map(n => parseInt(n, 10));
+      return new Date(Date.UTC(yyyy, mm - 1, dd));
+    }
+    // yyyy/mm/dd or yyyy.mm.dd
+    if (/^\d{4}[\/.]\d{1,2}[\/.]\d{1,2}$/.test(s)) {
+      const parts = s.split(/[\/.]/).map(n => parseInt(n, 10));
+      return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    }
+    // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+    if (/^\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}$/.test(s)) {
+      const parts = s.split(/[\/.\-]/).map(n => parseInt(n, 10));
+      // disambiguate if first part is day
+      return new Date(Date.UTC(parts[2], parts[1] - 1, parts[0]));
+    }
+    // Last resort: Date.parse
+    const tryDate = new Date(s);
+    if (!isNaN(tryDate.getTime())) return tryDate;
+  }
+  return null;
+}
+
+/**
+ * Validate a single student row
+ * @param row - Student data
+ * @param existingData - { mssvs: Set, emails: Set, classes: Map }
+ * @returns { valid: boolean, errors: Array, data: Object }
+ */
+export async function validateStudentRow(
+  row: ExcelRow,
+  existingData: ExistingData
+): Promise<ValidationResult> {
+  const errors: string[] = [];
+  
+  // Map CSV columns to expected format
+  const mssv = (row['MSSV'] || row['mssv'] || '').toString().trim();
+  const ho_ten = (row['Họ và tên'] || row['ho_ten'] || row['Họ tên'] || '').toString().trim();
+  const email = (row['Email'] || row['email'] || '').toString().trim().toLowerCase();
+  const ngay_sinh_raw = row['Ngày sinh (YYYY-MM-DD)'] ?? row['Ngày sinh'] ?? row['ngay_sinh'] ?? '';
+  const ngay_sinh = (typeof ngay_sinh_raw === 'string') ? ngay_sinh_raw.trim() : ngay_sinh_raw;
+  let gioi_tinh = (row['Giới tính (nam/nu/khac)'] || row['Giới tính'] || row['gioi_tinh'] || row['gt'] || '').toString().trim().toLowerCase();
+  const lop = (row['Lớp'] || row['lop'] || row['Lop'] || '').toString().trim();
+  const sdt = (row['Số điện thoại'] || row['SĐT'] || row['sdt'] || '').toString().trim();
+  const dia_chi = (row['Địa chỉ'] || row['dia_chi'] || '').toString().trim();
+  const ten_dang_nhap = (row['Tên đăng nhập'] || row['ten_dang_nhap'] || row['ten_dn'] || mssv).toString().trim();
+  const mat_khau = (row['Mật khẩu'] || row['mat_khau'] || '').toString().trim();
+  
+  // Required fields validation
+  if (!mssv) errors.push('MSSV không được để trống');
+  if (!ho_ten) errors.push('Họ tên không được để trống');
+  if (!email) errors.push('Email không được để trống');
+  if (!ngay_sinh) errors.push('Ngày sinh không được để trống');
+  if (!gioi_tinh) errors.push('Giới tính không được để trống');
+  if (!lop) errors.push('Lớp không được để trống');
+  if (!ten_dang_nhap) errors.push('Tên đăng nhập không được để trống');
+  if (!mat_khau) errors.push('Mật khẩu không được để trống');
+  
+  // If missing required fields, return early
+  if (errors.length > 0) {
+    return { valid: false, errors, data: { mssv, ho_ten, email, lop } as Partial<StudentData> };
+  }
+  
+  // MSSV validation
+  if (existingData.mssvs.has(mssv)) {
+    errors.push('MSSV đã tồn tại trong hệ thống');
+  }
+  
+  // Email validation
+  if (!email.endsWith('@dlu.edu.vn')) {
+    errors.push('Email phải có đuôi @dlu.edu.vn');
+  }
+  if (existingData.emails.has(email)) {
+    errors.push('Email đã tồn tại trong hệ thống');
+  }
+  // Username validation
+  if (existingData.usernames.has(ten_dang_nhap)) {
+    errors.push('Tên đăng nhập đã tồn tại trong hệ thống');
+  }
+  
+  // Date validation
+  const parsedDate = parseDateFlexible(ngay_sinh);
+  if (!parsedDate || isNaN(parsedDate.getTime())) {
+    try {
+      // Debug log to backend console to inspect problematic input
+      console.warn('[Import] Invalid ngay_sinh value:', {
+        raw: ngay_sinh,
+        type: typeof ngay_sinh
+      });
+    } catch (_) {}
+    errors.push('Ngày sinh phải có định dạng hợp lệ. Chấp nhận: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, hoặc định dạng ngày của Excel.');
+  }
+  
+  // Gender validation - Normalize gender accents/variants
+  const genderMap = new Map<string, string>([
+    ['nam', 'nam'], ['nàm', 'nam'], ['male', 'nam'],
+    ['nu', 'nu'], ['nữ', 'nu'], ['female', 'nu'],
+    ['khac', 'khac'], ['khác', 'khac'], ['other', 'khac']
+  ]);
+  gioi_tinh = genderMap.get(gioi_tinh) || gioi_tinh;
+  const validGenders = ['nam', 'nu', 'khac'];
+  if (!validGenders.includes(gioi_tinh)) {
+    errors.push('Giới tính phải là: nam, nu, hoặc khac');
+  }
+  
+  // Class validation
+  const lopObj = existingData.classes.get(lop);
+  if (!lopObj) {
+    errors.push(`Lớp "${lop}" không tồn tại trong hệ thống`);
+  }
+  
+  const isValid = errors.length === 0;
+  
+  return {
+    valid: isValid,
+    errors: isValid ? undefined : errors,
+    data: {
+      mssv,
+      ho_ten,
+      email,
+      ngay_sinh: parsedDate ? parsedDate.toISOString().slice(0, 10) : (typeof ngay_sinh === 'string' ? ngay_sinh : ''),
+      gt: gioi_tinh,
+      lop,
+      lop_id: lopObj?.id,
+      sdt: sdt || null,
+      dia_chi: dia_chi || null,
+      ten_dn: ten_dang_nhap,
+      mat_khau
+    }
+  };
+}
+
+/**
+ * Validate all students from parsed Excel
+ * @param rows - Parsed Excel rows
+ * @returns { valid: Array, invalid: Array }
+ */
+export async function validateStudents(rows: ExcelRow[]): Promise<ValidatedStudents> {
+  // Load existing data from database
+  const [existingStudents, existingUsers, classes] = await Promise.all([
+    prisma.sinhVien.findMany({ select: { mssv: true, email: true } }),
+    prisma.nguoiDung.findMany({ select: { email: true, ten_dn: true } }),
+    prisma.lop.findMany({ select: { id: true, ten_lop: true } })
+  ]);
+  
+  const existingData: ExistingData = {
+    mssvs: new Set(existingStudents.map(s => s.mssv)),
+    emails: new Set([
+      ...existingStudents.map(s => s.email).filter((e): e is string => e !== null),
+      ...existingUsers.map(u => u.email).filter((e): e is string => e !== null)
+    ]),
+    usernames: new Set(existingUsers.map(u => u.ten_dn)),
+    classes: new Map(classes.map(c => [c.ten_lop, c]))
+  };
+
+  const valid: StudentData[] = [];
+  const invalid: Array<Partial<StudentData> & { errors: string[] }> = [];
+  
+  for (const row of rows) {
+    const result = await validateStudentRow(row, existingData);
+    
+    if (result.valid && result.data) {
+      const studentData = result.data as StudentData;
+      valid.push(studentData);
+      // Add to existing data to prevent duplicates within the same file
+      existingData.mssvs.add(studentData.mssv);
+      existingData.emails.add(studentData.email);
+      existingData.usernames.add(studentData.ten_dn);
+    } else {
+      invalid.push({
+        ...result.data,
+        errors: result.errors || []
+      });
+    }
+  }
+  
+  return { valid, invalid };
+}
+
+/**
+ * Import students into database
+ * @param students - Valid students array
+ * @returns { imported: number, failed: number }
+ */
+export async function importStudents(students: StudentData[]): Promise<ImportResult> {
+  let imported = 0;
+  let failed = 0;
+  
+  // Get student role once before loop
+  let studentRole = await prisma.vaiTro.findFirst({ 
+    where: { ten_vt: { in: ['SINH_VIEN', 'SINH_VIÊN'] } } 
+  });
+  if (!studentRole) {
+    // Create if not exists (fallback)
+    studentRole = await prisma.vaiTro.create({ 
+      data: { ten_vt: 'SINH_VIEN', mo_ta: 'Vai trò Sinh viên' } 
+    });
+  }
+  
+  for (const student of students) {
+    try {
+      // Hash password
+      const hashedPassword = await bcrypt.hash(student.mat_khau, 10);
+      
+      // Create account and student in transaction
+      await prisma.$transaction(async (tx) => {
+        // 1. Create nguoi_dung (account)
+        const user = await tx.nguoiDung.create({
+          data: {
+            ten_dn: student.ten_dn,
+            mat_khau: hashedPassword,
+            email: student.email,
+            ho_ten: student.ho_ten,
+            vai_tro_id: studentRole!.id,
+            trang_thai: 'hoat_dong'
+          }
+        });
+        
+        // 2. Create sinh_vien
+        await tx.sinhVien.create({
+          data: {
+            nguoi_dung_id: user.id,
+            mssv: student.mssv,
+            ngay_sinh: new Date(student.ngay_sinh),
+            gt: student.gt as GioiTinh,
+            lop_id: student.lop_id!,
+            dia_chi: student.dia_chi,
+            sdt: student.sdt,
+            email: student.email
+          }
+        });
+      });
+      
+      imported++;
+      console.log(`✓ Imported student: ${student.mssv} - ${student.ho_ten}`);
+    } catch (error) {
+      console.error(`✗ Failed to import student ${student.mssv}:`, (error as Error).message);
+      failed++;
+    }
+  }
+  
+  return { imported, failed };
+}
+
+/**
+ * Clean up temporary file
+ * @param filePath - Path to file
+ */
+export function cleanupFile(filePath: string): void {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error('Cleanup error:', error);
+  }
+}
+
+// CommonJS compatibility
+module.exports = {
+  parseExcelFile,
+  validateStudentRow,
+  validateStudents,
+  importStudents,
+  cleanupFile
+};

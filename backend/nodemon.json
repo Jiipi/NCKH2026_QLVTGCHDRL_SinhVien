@@ -1,9 +1,13 @@
 {
   "watch": ["src"],
-  "ext": "js,json",
+  "ext": "ts,js,json",
   "ignore": [
     "logs/*",
     "uploads/*",
-    "node_modules/*"
-  ]
+    "node_modules/*",
+    "dist/*"
+  ],
+  "execMap": {
+    "ts": "ts-node --transpile-only"
+  }
 }
