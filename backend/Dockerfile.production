@@ -43,6 +43,12 @@ RUN rm -rf /var/cache/apk/*
 
 ENV TZ=Asia/Ho_Chi_Minh
 
+# Build metadata for /api/health
+ARG APP_VERSION=dev
+ARG GIT_SHA=local
+ENV APP_VERSION=$APP_VERSION
+ENV GIT_SHA=$GIT_SHA
+
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 COPY --from=deps --chown=nodejs:nodejs /app/backend/node_modules ./node_modules
