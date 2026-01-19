@@ -107,6 +107,8 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NODE_ENV=production
+            APP_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
 
       - name: 📋 Extract metadata for frontend
         id: meta-frontend
@@ -133,6 +135,8 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL || 'https://hoatdongrenluyen.io.vn/api' }}
+            APP_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
 
   # Job 3: Security Scan
   security:
@@ -175,6 +179,10 @@ jobs:
             echo "Docker images are available at:"
             echo "  - Backend:  ghcr.io/${{ github.repository }}-backend:latest"
             echo "  - Frontend: ghcr.io/${{ github.repository }}-frontend:latest"
+            echo ""
+            echo "Build metadata:"
+            echo "  - ref: ${{ github.ref_name }}"
+            echo "  - sha: ${{ github.sha }}"
           else
             echo "❌ Build failed or was cancelled"
           fi
