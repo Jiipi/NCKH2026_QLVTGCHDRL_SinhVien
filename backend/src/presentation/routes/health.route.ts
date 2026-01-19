@@ -19,8 +19,7 @@ router.get('/', (req: Request, res: Response) => {
     service: 'dacn-backend',
     version: process.env.APP_VERSION || 'dev',
     commit: process.env.GIT_SHA || 'local',
-    timestamp: new Date().toISOString()
-    // SYNTAX ERROR: thiếu dấu phẩy và dấu ngoặc
+    timestamp: new Date().toISOString(),
   });
 });
 
