@@ -58,12 +58,13 @@ export function createTeachersController(): TeachersController {
 
   // Business layer (Use Cases)
   const getAllRegistrationsUseCase = new GetAllRegistrationsUseCase(teacherRepository);
+  const pendingActivitiesUseCase = new GetPendingActivitiesUseCase(getActivitiesUseCase);
   
   const useCases = {
-    getDashboard: new GetTeacherDashboardUseCase(teacherRepository, listRegistrationsUseCase),
+    getDashboard: new GetTeacherDashboardUseCase(teacherRepository, listRegistrationsUseCase, pendingActivitiesUseCase),
     getClasses: new GetTeacherClassesUseCase(teacherRepository),
     getStudents: new GetTeacherStudentsUseCase(teacherRepository),
-    getPendingActivities: new GetPendingActivitiesUseCase(getActivitiesUseCase),
+    getPendingActivities: pendingActivitiesUseCase,
     getActivityHistory: new GetActivityHistoryUseCase(getActivitiesUseCase),
     approveActivity: new ApproveActivityUseCase(approveActivityUseCaseFromActivities),
     rejectActivity: new RejectActivityUseCase(rejectActivityUseCaseFromActivities),

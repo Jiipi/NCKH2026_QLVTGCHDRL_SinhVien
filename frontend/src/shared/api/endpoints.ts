@@ -107,7 +107,7 @@ export const API_ENDPOINTS = {
 
     // Semester endpoints
     semesters: {
-        list: API_BASE.SEMESTERS,
+        list: `${API_BASE.SEMESTERS}/options`,
         active: `${API_BASE.SEMESTERS}/active`,
         activate: (id: string) => `${API_BASE.SEMESTERS}/${id}/activate`,
         lock: (id: string) => `${API_BASE.SEMESTERS}/${id}/lock`,

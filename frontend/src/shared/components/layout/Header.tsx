@@ -25,7 +25,16 @@ export default function Header() {
 
   // Láº¥y role tá»« store
   const { user } = useAppStore();
-  const computedRole = (profile?.vai_tro?.ten_vt) || (profile?.vai_tro) || user?.vai_tro || user?.role || '';
+  // Ensure role is extracted as string, not object
+  const extractRole = (vaiTro: any): string => {
+    if (!vaiTro) return '';
+    if (typeof vaiTro === 'string') return vaiTro;
+    if (typeof vaiTro === 'object') {
+      return vaiTro.ten_vt || vaiTro.ma_vt || vaiTro.name || vaiTro.role || '';
+    }
+    return String(vaiTro);
+  };
+  const computedRole = extractRole(profile?.vai_tro) || extractRole(user?.vai_tro) || user?.role || '';
   const normalizedRole = String(computedRole).toUpperCase();
   // Há»— trá»£ nhiá»u tĂªn admin tá»« database: Admin, ADMIN, Quáº£n trá»‹ viĂªn, admin
   const isAdminContext = normalizedRole === 'ADMIN' ||

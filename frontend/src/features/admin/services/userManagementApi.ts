@@ -303,7 +303,23 @@ export const userManagementApi = {
    */
   async updateUserStatus(userId: string, status: string): Promise<ApiResult> {
     try {
-      const response = await http.patch(`${ADMIN_USERS_BASE}/${userId}/status`, { status });
+      // Backend supports explicit lock/unlock endpoints
+      const normalized = String(status || '').toLowerCase();
+      const endpoint =
+        normalized === 'khoa' || normalized === 'locked' || normalized === 'lock'
+          ? `${ADMIN_USERS_BASE}/${userId}/lock`
+          : normalized === 'hoat_dong' || normalized === 'khong_hoat_dong' || normalized === 'unlock'
+            ? `${ADMIN_USERS_BASE}/${userId}/unlock`
+            : null;
+
+      if (!endpoint) {
+        return {
+          success: false,
+          error: `Trạng thái không hợp lệ: ${status}`
+        };
+      }
+
+      const response = await http.patch(endpoint);
       return {
         success: true,
         data: response?.data?.data || response?.data || {}

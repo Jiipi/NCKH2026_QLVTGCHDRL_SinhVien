@@ -79,13 +79,14 @@ export function mapRegistrationToUITeacher(registration: any): MappedRegistratio
     return registration;
   }
   
-  // Map từ cấu trúc cũ
+  // Map từ cấu trúc cũ hoặc flat response
   const registrationData = registration.dang_ky || registration;
   const activityData = registration.hoat_dong || registration.activity || {};
   const studentData = registration.sinh_vien || registration.student || {};
   const userData = studentData.nguoi_dung || studentData.user || {};
   
   // Determine approvedByRole/rejectedByRole based on status
+  // Hỗ trợ cả trang_thai_dk và status (flat API từ /teacher/registrations)
   const status = registration.trang_thai_dk || registration.status || registrationData.trang_thai_dk;
   let finalApprovedByRole = registration.approvedByRole || registrationData.approvedByRole;
   let finalRejectedByRole = registration.rejectedByRole || registrationData.rejectedByRole;
@@ -97,28 +98,43 @@ export function mapRegistrationToUITeacher(registration: any): MappedRegistratio
     finalRejectedByRole = approverRole;
   }
   
+  // Fallback cho flat response từ /teacher/registrations API
+  // API trả về: { studentName, mssv, activityName, status, registrationDate, studentId }
+  const flatStudentName = registration.studentName;
+  const flatMssv = registration.mssv;
+  const flatActivityName = registration.activityName;
+  const flatRegistrationDate = registration.registrationDate;
+  const flatStudentId = registration.studentId;
+  
   return {
     id: registration.id || registration.dk_id || registrationData.id,
     dk_id: registration.dk_id || registration.id || registrationData.id,
     hoat_dong_id: registration.hoat_dong_id || registration.activity_id || registrationData.hoat_dong_id,
-    sinh_vien_id: registration.sinh_vien_id || registration.student_id || registrationData.sinh_vien_id,
+    sinh_vien_id: registration.sinh_vien_id || registration.student_id || flatStudentId || registrationData.sinh_vien_id,
     trang_thai_dk: status,
     status: mapRegistrationStatusStudent(status),
-    ngay_dang_ky: registration.ngay_dang_ky || registrationData.ngay_dang_ky,
+    ngay_dang_ky: registration.ngay_dang_ky || registrationData.ngay_dang_ky || flatRegistrationDate,
     ngay_duyet: registration.ngay_duyet || registrationData.ngay_duyet,
     ly_do_tu_choi: registration.ly_do_tu_choi || registrationData.ly_do_tu_choi,
     approvedByRole: finalApprovedByRole,
     rejectedByRole: finalRejectedByRole,
     approvedByName: registration.nguoi_duyet?.ho_ten || null,
     canProcess: registration.canProcess !== false,
-    hoat_dong: mapActivityToUI(activityData),
+    // Nếu có flat activityName thì tạo hoat_dong object, ngược lại map từ activityData
+    hoat_dong: flatActivityName 
+      ? { ...mapActivityToUI(activityData), ten_hd: flatActivityName, id: activityData.id || registration.hoat_dong_id }
+      : mapActivityToUI(activityData),
     sinh_vien: {
-      id: studentData.id || studentData.sinh_vien_id,
-      mssv: studentData.mssv || studentData.student_code,
-      ho_ten: userData.ho_ten || userData.name || studentData.ho_ten || studentData.name,
+      id: studentData.id || studentData.sinh_vien_id || flatStudentId,
+      mssv: studentData.mssv || studentData.student_code || flatMssv,
+      ho_ten: userData.ho_ten || userData.name || studentData.ho_ten || studentData.name || flatStudentName,
       email: userData.email || studentData.email,
       ten_lop: studentData.lop?.ten_lop || studentData.ten_lop || studentData.class_name,
-      nguoi_dung: userData.ho_ten ? userData : (studentData.ho_ten ? { ho_ten: studentData.ho_ten, email: studentData.email } : null)
+      nguoi_dung: userData.ho_ten 
+        ? userData 
+        : (studentData.ho_ten 
+          ? { ho_ten: studentData.ho_ten, email: studentData.email } 
+          : (flatStudentName ? { ho_ten: flatStudentName } : null))
     }
   };
 }

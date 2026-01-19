@@ -121,6 +121,14 @@ import sessionsV2 from '../presentation/routes/sessions.route';
 router.use('/core/sessions', sessionsV2);
 router.use('/sessions', sessionsV2); // legacy/non-core prefix fallback
 
+// Departments V2 - Get unique department list from classes
+import departmentsRoute from '../presentation/routes/departments.route';
+router.use('/core/departments', departmentsRoute);
+
+// Face Recognition V2 - Face detection and attendance
+import { faceRoutes } from '../modules/face-recognition/presentation/routes';
+router.use('/face', faceRoutes);
+
 // ==================== ADDITIONAL ROUTES ====================
 // Legacy routes removed - all routes now use modules
 

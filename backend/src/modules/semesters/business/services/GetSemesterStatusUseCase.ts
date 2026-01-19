@@ -20,12 +20,12 @@ interface SemesterState {
 
 interface SemesterInfo {
   semester: string;
-  year: number;
+  year: string;
 }
 
 export interface SemesterStatusResult {
   semInfo: SemesterInfo;
-  state: SemesterState;
+  state: SemesterState | { error: string };
 }
 
 class GetSemesterStatusUseCase {

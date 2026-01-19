@@ -202,11 +202,9 @@ const createActivitySchema = z.object({
       path: ['khoa_id'],
     }
   ).refine(
-    (data) => {
-      // If scope is lop, lop_id is required
-      if (data.pham_vi === 'lop') {
-        return !!data.lop_id;
-      }
+    (_data) => {
+      // lop_id is auto-inferred by CreateActivityUseCase for LOP_TRUONG/GIANG_VIEN
+      // So we skip validation here; use case will throw if unresolvable
       return true;
     },
     {

@@ -69,19 +69,25 @@ const normalizeStudent = (student) => {
   const user = student.nguoi_dung || {};
   const sv = student.sinh_vien || student;
   
+  // API may return name/className instead of ho_ten/lop.ten_lop
+  const ho_ten = user.ho_ten || student.ho_ten || student.name || '';
+  const mssv = sv.mssv || student.mssv || '';
+  const className = (sv?.lop?.ten_lop) || (student.lop?.ten_lop) || student.className || '';
+  
   return {
     ...student,
     id: user.id || student.id,
-    ho_ten: user.ho_ten || student.ho_ten,
+    ho_ten,
     email: user.email || student.email,
     anh_dai_dien: user.anh_dai_dien || student.anh_dai_dien || student.avatar || student.profile_image || student.image,
     sinh_vien: {
       ...(sv && typeof sv === 'object' ? sv : {}),
-      mssv: sv.mssv || student.mssv,
+      id: sv?.id || student.id,
+      mssv,
       sdt: sv.sdt || student.sdt,
       lop: {
         ...(sv?.lop || student.lop || {}),
-        ten_lop: (sv?.lop?.ten_lop) || (student.lop?.ten_lop) || ''
+        ten_lop: className
       }
     }
   };

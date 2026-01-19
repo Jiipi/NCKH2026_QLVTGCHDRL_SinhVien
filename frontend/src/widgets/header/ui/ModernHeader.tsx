@@ -40,6 +40,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   const [searchResults, setSearchResults] = React.useState(null);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const [avatarError, setAvatarError] = React.useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [theme, setTheme] = React.useState(() => {
     // Mỗi tab có theme riêng, không đồng bộ giữa các tab
@@ -140,6 +141,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       if (event.detail?.profile) {
         console.log('🔄 Updating ModernHeader profile from:', profile?.ho_ten, 'to:', event.detail.profile.ho_ten);
         setProfile(event.detail.profile);
+        setAvatarError(false); // Reset avatar error when profile updates
         // Also update session storage
         const currentSession = sessionStorageManager.getSession();
         if (currentSession) {
@@ -813,12 +815,13 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                       avatar_hasValid: avatar.hasValidAvatar,
                       avatar_fallback: avatar.fallback
                     });
-                    return avatar.hasValidAvatar ? (
+                    return (avatar.hasValidAvatar && !avatarError) ? (
                       <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all duration-200 group-hover:scale-105">
                         <img
                           src={avatar.src}
                           alt={avatar.alt}
                           className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
                         />
                         <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white dark:border-slate-900 rounded-full"></div>
                       </div>
@@ -850,12 +853,13 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                       <div className="flex items-center gap-3">
                         {(() => {
                           const avatar = getUserAvatar(profile);
-                          return avatar.hasValidAvatar ? (
+                          return (avatar.hasValidAvatar && !avatarError) ? (
                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 backdrop-blur-sm">
                               <img
                                 src={avatar.src}
                                 alt={avatar.alt}
                                 className="w-full h-full object-cover"
+                                onError={() => setAvatarError(true)}
                               />
                             </div>
                           ) : (

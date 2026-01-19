@@ -380,6 +380,17 @@ function StudentSidebar(props) {
         active: getActiveState('/student/qr-scanner')
       });
     }
+
+    // Đăng ký khuôn mặt - cần profile.read hoặc attendance.write
+    if (hasAnyPermission(['profile.read', 'profile.view', 'attendance.write'])) {
+      baseMenu.push({
+        key: 'face-registration',
+        to: '/student/face-registration',
+        label: 'Điểm danh khuôn mặt',
+        icon: <Users className="w-5 h-5" />,
+        active: getActiveState('/student/face-registration')
+      });
+    }
     
     return baseMenu;
   }, [path, hasAnyPermission]); // Include path and hasAnyPermission

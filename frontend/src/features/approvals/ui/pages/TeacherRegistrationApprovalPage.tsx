@@ -252,10 +252,32 @@ export default function TeacherRegistrationApprovals() {
 
   // Filter registrations
   const filteredRegistrations = registrations.filter(registration => {
+    const q = searchTerm.toLowerCase();
+
+    const studentName = (
+      registration.sinh_vien?.nguoi_dung?.ho_ten ||
+      registration.student?.nguoi_dung?.ho_ten ||
+      registration.user?.ho_ten ||
+      ''
+    ).toLowerCase();
+
+    const studentCode = String(
+      registration.sinh_vien?.mssv ||
+      registration.student?.mssv ||
+      registration.user?.ten_dn ||
+      ''
+    );
+
+    const activityName = (
+      registration.hoat_dong?.ten_hd ||
+      registration.activity?.ten_hd ||
+      ''
+    ).toLowerCase();
+
     const matchesSearch =
-      registration.sinh_vien?.nguoi_dung?.ho_ten?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      registration.sinh_vien?.mssv?.includes(searchTerm) ||
-      registration.hoat_dong?.ten_hd?.toLowerCase().includes(searchTerm.toLowerCase());
+      studentName.includes(q) ||
+      studentCode.toLowerCase().includes(q) ||
+      activityName.includes(q);
 
     const matchesStatus = statusFilter === 'all' || registration.trang_thai_dk === statusFilter;
     return matchesSearch && matchesStatus;
@@ -280,11 +302,13 @@ export default function TeacherRegistrationApprovals() {
           />
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {registration.sinh_vien?.nguoi_dung?.ho_ten}
+              {registration.sinh_vien?.nguoi_dung?.ho_ten ||
+                registration.student?.nguoi_dung?.ho_ten ||
+                registration.user?.ho_ten}
             </h3>
             <div className="text-sm text-gray-600 space-y-1">
-              <p>MSSV: {registration.sinh_vien?.mssv}</p>
-              <p>Lớp: {registration.sinh_vien?.lop?.ten_lop}</p>
+              <p>MSSV: {registration.sinh_vien?.mssv || registration.student?.mssv || registration.user?.ten_dn}</p>
+              <p>Lớp: {registration.sinh_vien?.lop?.ten_lop || registration.student?.lop?.ten_lop}</p>
             </div>
           </div>
         </div>
@@ -295,15 +319,15 @@ export default function TeacherRegistrationApprovals() {
 
       {/* Activity Info */}
       <div className="bg-blue-50 rounded-lg p-4 mb-4">
-        <h4 className="font-medium text-gray-900 mb-2">{registration.hoat_dong?.ten_hd}</h4>
+        <h4 className="font-medium text-gray-900 mb-2">{registration.hoat_dong?.ten_hd || registration.activity?.ten_hd}</h4>
         <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2" />
-            <span>{new Date(registration.hoat_dong?.ngay_bd).toLocaleDateString('vi-VN')}</span>
+            <span>{new Date(registration.hoat_dong?.ngay_bd || registration.activity?.ngay_bd).toLocaleDateString('vi-VN')}</span>
           </div>
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-2" />
-            <span>{new Date(registration.hoat_dong?.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{new Date(registration.hoat_dong?.ngay_bd || registration.activity?.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         </div>
       </div>
@@ -317,8 +341,8 @@ export default function TeacherRegistrationApprovals() {
 
       {/* Registration Info */}
       <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-        <span>Ngày đăng ký: {new Date(registration.ngay_dk).toLocaleDateString('vi-VN')}</span>
-        <span className="font-semibold text-blue-600">Điểm RL: {registration.hoat_dong?.diem_rl} điểm</span>
+        <span>Ngày đăng ký: {new Date(registration.ngay_dang_ky || registration.ngay_dk).toLocaleDateString('vi-VN')}</span>
+        <span className="font-semibold text-blue-600">Điểm RL: {registration.hoat_dong?.diem_rl || registration.activity?.diem_rl} điểm</span>
       </div>
 
       {/* Actions */}

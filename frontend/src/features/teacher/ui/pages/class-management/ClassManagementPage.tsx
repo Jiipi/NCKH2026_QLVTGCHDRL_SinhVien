@@ -62,7 +62,22 @@ export default function ClassManagementPage() {
     try {
       const response = await http.get(`/teacher/students`, { params: { classFilter: classId, classId } });
       console.log('[ClassManagement] Students API response:', response.data);
-      const studentsData = response.data?.data?.students || [];
+      const rawStudents = response.data?.data?.students || response.data?.data || [];
+      // Normalize students: API may return {name, className} vs {ho_ten, sinh_vien.lop.ten_lop}
+      const studentsData = rawStudents.map((s) => ({
+        ...s,
+        ho_ten: s.ho_ten || s.name || '',
+        sinh_vien: {
+          ...(s.sinh_vien || {}),
+          id: s.sinh_vien?.id || s.id,
+          mssv: s.sinh_vien?.mssv || s.mssv || '',
+          sdt: s.sinh_vien?.sdt || s.sdt || '',
+          lop: {
+            ...(s.sinh_vien?.lop || s.lop || {}),
+            ten_lop: s.sinh_vien?.lop?.ten_lop || s.lop?.ten_lop || s.className || ''
+          }
+        }
+      }));
       console.log('[ClassManagement] Students data:', studentsData);
       setStudents(studentsData);
       

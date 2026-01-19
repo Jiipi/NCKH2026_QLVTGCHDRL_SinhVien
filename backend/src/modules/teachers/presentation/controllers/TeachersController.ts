@@ -16,6 +16,7 @@ import type GetTeacherDashboardUseCase from '../../business/services/GetTeacherD
 import type GetTeacherClassesUseCase from '../../business/services/GetTeacherClassesUseCase';
 import type GetTeacherStudentsUseCase from '../../business/services/GetTeacherStudentsUseCase';
 import type GetPendingActivitiesUseCase from '../../business/services/GetPendingActivitiesUseCase';
+import type GetActivityHistoryUseCase from '../../business/services/GetActivityHistoryUseCase';
 import type ApproveActivityUseCase from '../../business/services/ApproveActivityUseCase';
 import type RejectActivityUseCase from '../../business/services/RejectActivityUseCase';
 import type GetAllRegistrationsUseCase from '../../business/services/GetAllRegistrationsUseCase';
@@ -44,6 +45,7 @@ export interface TeachersUseCases {
   getClasses: GetTeacherClassesUseCase;
   getStudents: GetTeacherStudentsUseCase;
   getPendingActivities: GetPendingActivitiesUseCase;
+  getActivityHistory: GetActivityHistoryUseCase;
   approveActivity: ApproveActivityUseCase;
   rejectActivity: RejectActivityUseCase;
   getAllRegistrations: GetAllRegistrationsUseCase;
@@ -135,6 +137,32 @@ class TeachersController {
         return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
       }
       return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy hoạt động chờ duyệt'));
+    }
+  }
+
+  async getActivityHistory(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const { page, limit, semester } = req.query;
+      const pageNum = page ? Number(page) : undefined;
+      const limitNum = limit ? Number(limit) : undefined;
+
+      const result = await this.useCases.getActivityHistory.execute(
+        req.user!,
+        {
+          semester: semester as string | undefined
+        },
+        {
+          page: pageNum,
+          limit: limitNum
+        }
+      );
+      return sendResponse(res, 200, ApiResponse.success(result));
+    } catch (error) {
+      logError('Get activity history error', error);
+      if (error instanceof AppError) {
+        return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+      }
+      return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy lịch sử hoạt động'));
     }
   }
 

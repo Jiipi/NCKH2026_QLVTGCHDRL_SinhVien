@@ -349,8 +349,14 @@ export function useMonitorActivityOversight() {
   }, [isWritable, navigate]);
 
   // Business logic: View details
-  const handleViewDetails = useCallback((activity: MappedActivity) => {
-    setSelectedActivity(activity as any);
+  const handleViewDetails = useCallback((activityOrId: MappedActivity | string | null | undefined) => {
+    const activityId = typeof activityOrId === 'string'
+      ? activityOrId
+      : (activityOrId as any)?.id;
+
+    if (!activityId) return;
+
+    setSelectedActivity(activityId as any);
     setShowDetailModal(true);
   }, []);
 

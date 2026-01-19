@@ -13,7 +13,7 @@ const { parseSemesterString, normalizeSemesterFormat } = require('../../../../co
 
 interface SemesterInfo {
   semester: string;
-  year: number;
+  year: string;
 }
 
 interface SemesterState {
@@ -30,7 +30,7 @@ interface SemesterState {
 
 interface StatusResult {
   semInfo?: SemesterInfo;
-  state?: SemesterState;
+  state?: SemesterState | { error: string };
 }
 
 interface ClassMonitor {
@@ -41,7 +41,7 @@ interface ClassMonitor {
 export interface CurrentSemesterStatusResponse {
   classId: string | null;
   semester: SemesterInfo | null;
-  state: SemesterState;
+  state: SemesterState | { error: string };
 }
 
 class GetCurrentSemesterStatusUseCase {

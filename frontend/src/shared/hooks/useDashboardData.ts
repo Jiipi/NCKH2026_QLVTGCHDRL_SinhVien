@@ -489,6 +489,7 @@ export const useTeacherDashboard = ({ semester }: { semester?: string } = {}) =>
   const [recentActivities, setRecentActivities] = useState([]);
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -506,18 +507,35 @@ export const useTeacherDashboard = ({ semester }: { semester?: string } = {}) =>
       const dashboardData = response.data?.data || {};
       const summary = dashboardData.summary || {};
 
+      // Backend returns: totalClasses, totalStudents, pendingRegistrations, upcomingActivities, classStats
+      // Map to frontend stats structure
       setStats({
-        totalActivities: summary.totalActivities || 0,
-        pendingApprovals: summary.pendingApprovals || 0,
+        totalActivities: summary.upcomingActivities || 0,
+        pendingApprovals: summary.pendingRegistrations || 0,
         totalStudents: summary.totalStudents || 0,
-        avgClassScore: summary.avgClassScore || 0,
-        participationRate: summary.participationRate || 0,
-        approvedThisWeek: summary.approvedThisWeek || 0
+        avgClassScore: summary.classStats?.[0]?.avgScore || 0,
+        participationRate: summary.classStats?.[0]?.participationRate || 0,
+        approvedThisWeek: 0 // Not provided by backend
       });
 
-      setRecentActivities(dashboardData.pendingActivities || []);
+      // pendingActivities from backend - prefer pendingRegistrations if pendingActivities is empty
+      const activities = dashboardData.pendingActivities?.length > 0 
+        ? dashboardData.pendingActivities 
+        : (dashboardData.pendingRegistrations || []);
+      setRecentActivities(activities);
       setRecentNotifications(dashboardData.recentNotifications || []);
       setClasses(dashboardData.classes || []);
+      
+      // Also expose students data if available - normalize API shape
+      if (dashboardData.students) {
+        const normalizedStudents = dashboardData.students.map((s: Record<string, unknown>) => ({
+          ...s,
+          ho_ten: s.ho_ten || s.name || '',
+          mssv: s.mssv || '',
+          lop: s.lop || s.className || '',
+        }));
+        setStudents(normalizedStudents);
+      }
 
       console.log('[useTeacherDashboard] Loaded:', {
         stats,
@@ -541,6 +559,7 @@ export const useTeacherDashboard = ({ semester }: { semester?: string } = {}) =>
     recentActivities,
     recentNotifications,
     classes,
+    students,
     loading,
     error,
     refresh: fetchTeacherData

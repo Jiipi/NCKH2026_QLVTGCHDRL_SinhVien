@@ -69,6 +69,8 @@ services:
       SEMESTER_DATA_DIR: /app/data/semesters
       # Enable detailed semester lock debug logs
       DEBUG_SEMESTER: "1"
+      # Face Recognition Service URL
+      FACE_RECOGNITION_URL: http://face-recognition:5000
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -173,10 +175,46 @@ services:
         max-size: "5m"
         max-file: "3"
 
+  # Face Recognition Service (Python FastAPI + RetinaFace + ArcFace)
+  face-recognition:
+    build:
+      context: ./face-recognition-service
+      dockerfile: Dockerfile
+    container_name: dacn_face_recognition
+    restart: unless-stopped
+    environment:
+      # Cấu hình model
+      MODEL_BACKEND: "retinaface"
+      EMBEDDING_MODEL: "ArcFace"
+      # Ngưỡng nhận diện mặc định
+      FACE_THRESHOLD: "0.68"
+    ports:
+      - "5000:5000"
+    volumes:
+      # Cache models để không phải tải lại mỗi lần khởi động
+      - face_models:/root/.deepface/weights
+    networks:
+      - dacn_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    profiles:
+      - dev
+      - prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
 volumes:
   pgdata:
   backend_node_modules:
   frontend_node_modules:
+  face_models:
 
 networks:
   dacn_network:

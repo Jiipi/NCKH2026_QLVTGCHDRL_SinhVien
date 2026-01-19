@@ -39,7 +39,11 @@ interface BroadcastBody {
  */
 router.post('/', async (req: Request<{}, {}, BroadcastBody>, res: Response) => {
   try {
-    const senderId = (req as any).user?.sub || (req as any).user?.id;
+    const senderId = String((req as any).user?.sub || (req as any).user?.id || '');
+
+    if (!senderId || senderId === 'undefined' || senderId === 'null') {
+      return sendResponse(res, 401, ApiResponse.error('Không xác định được người gửi'));
+    }
 
     const result = await broadcastService.broadcastNotification({
       title: req.body.tieu_de,
@@ -49,7 +53,7 @@ router.post('/', async (req: Request<{}, {}, BroadcastBody>, res: Response) => {
       targetClass: req.body.targetClass,
       targetDepartment: req.body.targetDepartment,
       activityId: req.body.activityId,
-      senderId: Number(senderId) || 0
+      senderId // UUID string, not number
     });
 
     const statusCode = result.sentCount === 0 ? 200 : 201;

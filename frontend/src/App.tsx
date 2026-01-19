@@ -40,6 +40,7 @@ import MyActivitiesPage from './features/student/ui/MyActivitiesPage';
 import StudentProfilePage from './features/student/ui/StudentProfilePage';
 import StudentScoresPage from './features/student/ui/StudentScoresPage';
 import QRScannerPage from './features/qr-attendance/ui/QRScannerModernPage';
+import { FaceRegistrationPage } from './features/face-recognition';
 import {
   ClassManagementPage,
   ImportStudentsPage,
@@ -385,6 +386,8 @@ function App() {
                 React.createElement(Route, { key: 'student-profile', path: 'profile', element: React.createElement(PermissionRouteGuard, { anyOf: ['profile.read', 'profile.view'], element: React.createElement(StudentProfilePage) }) }),
                 // QR Scanner - cần permission attendance.write hoặc attendance.view
                 React.createElement(Route, { key: 'student-qr-scanner', path: 'qr-scanner', element: React.createElement(PermissionRouteGuard, { anyOf: ['attendance.write', 'attendance.view', 'attendance.mark'], element: React.createElement(QRScannerPage) }) }),
+                // Face Registration - đăng ký khuôn mặt để điểm danh
+                React.createElement(Route, { key: 'student-face-registration', path: 'face-registration', element: React.createElement(PermissionRouteGuard, { anyOf: ['profile.read', 'profile.view', 'attendance.write'], element: React.createElement(FaceRegistrationPage) }) }),
               ]),
 
               // Common routes

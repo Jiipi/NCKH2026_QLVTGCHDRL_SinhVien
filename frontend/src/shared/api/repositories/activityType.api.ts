@@ -19,8 +19,19 @@ export interface UpdateActivityTypeDto extends Partial<CreateActivityTypeDto> {
 
 class ActivityTypeApi {
     async getActivityTypes(): Promise<ActivityType[]> {
-        const response = await http.get(API_ENDPOINTS.activityTypes.list);
-        return response.data?.data || response.data;
+            const response = await http.get(API_ENDPOINTS.activityTypes.list);
+            const payload = response.data?.data ?? response.data ?? [];
+
+            if (Array.isArray((payload as any)?.items)) {
+                return (payload as any).items;
+            }
+            if (Array.isArray((payload as any)?.data)) {
+                return (payload as any).data;
+            }
+            if (Array.isArray(payload)) {
+                return payload as ActivityType[];
+            }
+            return [];
     }
 
     async getActivityTypeById(id: string): Promise<ActivityType> {

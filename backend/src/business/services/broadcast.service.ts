@@ -17,7 +17,7 @@ interface BroadcastParams {
   targetClass?: string | number;
   targetDepartment?: string;
   activityId?: string | number;
-  senderId: number;
+  senderId: string; // UUID string
 }
 
 interface RecipientInfo {
@@ -80,7 +80,16 @@ class BroadcastService {
    * @param params - Broadcast parameters including scope and targeting
    * @returns Promise with count of notifications sent
    */
-  async broadcastNotification(params: BroadcastParams): Promise<{ sentCount: number; recipientIds: string[] }> {
+  async broadcastNotification(params: BroadcastParams): Promise<{
+    sentCount: number;
+    recipientIds: string[];
+    scopeLabel?: string;
+    totalRecipients?: number;
+    filteredOutSelf?: boolean;
+    selectedRecipients?: number;
+    skippedSelf?: number;
+    createdNotifications?: number;
+  }> {
     const { title, message, scope, targetRole, targetClass, targetDepartment, activityId, senderId } = params;
 
     try {
@@ -95,11 +104,21 @@ class BroadcastService {
 
       if (recipientIds.length === 0) {
         logInfo('Broadcast: No recipients found', { scope: scopeLabel, senderId });
-        return { sentCount: 0, recipientIds: [] };
+        return {
+          sentCount: 0,
+          recipientIds: [],
+          scopeLabel,
+          totalRecipients: 0,
+          selectedRecipients: 0,
+          skippedSelf: 0,
+          createdNotifications: 0
+        };
       }
 
       // Filter out sender from recipients (don't notify yourself)
       const filteredRecipients = recipientIds.filter((id: string) => id !== String(senderId));
+      const filteredOutSelf = filteredRecipients.length !== recipientIds.length;
+      const skippedSelf = recipientIds.length - filteredRecipients.length;
 
       // Create notification content with scope info
       const fullMessage = `${message}\n\n[Phạm vi: ${scopeLabel}]`;
@@ -122,6 +141,14 @@ class BroadcastService {
         tieu_de: title,
         noi_dung: fullMessage,
         da_doc: false,
+        // Lưu metadata broadcast (để thống kê/lịch sử chính xác)
+        pham_vi_gui: String(scope || '').toLowerCase(),
+        vai_tro_nhan: targetRole || null,
+        lop_nhan_id: (targetClass ? String(targetClass) : null) as any,
+        khoa_nhan: targetDepartment || null,
+        hoat_dong_nhan_id: (activityId ? String(activityId) : null) as any,
+        so_nguoi_duoc_chon: recipientIds.length,
+        so_nguoi_da_gui: filteredRecipients.length,
         ngay_gui: new Date()
       }));
 
@@ -136,7 +163,16 @@ class BroadcastService {
         recipientCount: result.count
       });
 
-      return { sentCount: result.count, recipientIds: filteredRecipients };
+      return {
+        sentCount: result.count,
+        recipientIds: filteredRecipients,
+        scopeLabel,
+        totalRecipients: recipientIds.length,
+        filteredOutSelf,
+        selectedRecipients: recipientIds.length,
+        skippedSelf,
+        createdNotifications: result.count
+      };
     } catch (error: any) {
       logError('Broadcast failed', { error: error.message, params });
       throw error;
@@ -199,23 +235,34 @@ class BroadcastService {
     // Filter broadcasts (sent to multiple recipients at once)
     const broadcasts = Object.values(grouped).filter(g => g.recipients.length > 1);
 
-    // Count by scope
+    // Prefer persisted metadata if present on the first row in each group
     let systemCount = 0;
     let roleCount = 0;
     let classCount = 0;
 
-    broadcasts.forEach((broadcast: GroupedNotification) => {
-      const recipientCount = broadcast.recipients.length;
-      const roles = [...new Set((broadcast.recipients as RecipientInfo[]).map(r => r.vai_tro))];
-      const classes = [...new Set((broadcast.recipients as RecipientInfo[]).map(r => r.lop).filter(Boolean))] as string[];
+    // Build a quick lookup for metadata from raw rows (keyed the same way)
+    const metaByKey: Record<string, any> = {};
+    allNotifications.forEach((tb: any) => {
+      const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
+      if (!metaByKey[key]) metaByKey[key] = tb;
+    });
 
-      // Detect scope based on patterns
-      if (recipientCount > 50 && roles.length >= 2) {
-        systemCount++;
-      } else if (roles.length === 1 && (classes.length > 1 || classes.length === 0)) {
-        roleCount++;
-      } else if (classes.length === 1) {
-        classCount++;
+    broadcasts.forEach((broadcast: GroupedNotification) => {
+      const key = `${broadcast.title}_${broadcast.nguoi_gui_id}_${broadcast.date.toISOString()}`;
+      const meta = metaByKey[key];
+      const metaScope = String(meta?.pham_vi_gui || '').toLowerCase();
+
+      if (metaScope === 'system') systemCount++;
+      else if (metaScope === 'role') roleCount++;
+      else if (metaScope === 'class') classCount++;
+      else {
+        // Legacy fallback: infer scope based on patterns
+        const recipientCount = broadcast.recipients.length;
+        const roles = [...new Set((broadcast.recipients as RecipientInfo[]).map(r => r.vai_tro))];
+        const classes = [...new Set((broadcast.recipients as RecipientInfo[]).map(r => r.lop).filter(Boolean))] as string[];
+        if (recipientCount > 50 && roles.length >= 2) systemCount++;
+        else if (roles.length === 1 && (classes.length > 1 || classes.length === 0)) roleCount++;
+        else if (classes.length === 1) classCount++;
       }
     });
 
@@ -294,32 +341,50 @@ class BroadcastService {
     });
 
     // Filter broadcasts (sent to multiple recipients at once)
-    const broadcasts: BroadcastHistoryItem[] = Object.values(grouped)
-      .filter(g => g.recipients.length > 1)
-      .map((broadcast: GroupedNotification) => {
+    // Metadata lookup per group
+    const metaByKey: Record<string, any> = {};
+    allNotifications.forEach((tb: any) => {
+      const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
+      if (!metaByKey[key]) metaByKey[key] = tb;
+    });
+
+    const broadcasts: BroadcastHistoryItem[] = Object.entries(grouped)
+      .filter(([, g]) => g.recipients.length > 1)
+      .map(([key, broadcast]: [string, GroupedNotification]) => {
         const recipientCount = broadcast.recipients.length;
         const recipients = broadcast.recipients as RecipientDetail[];
         const roles = [...new Set(recipients.map(r => r.vai_tro))];
         const classes = [...new Set(recipients.map(r => r.lop).filter(Boolean))] as string[];
 
+        const meta = metaByKey[key];
+        const metaScope = String(meta?.pham_vi_gui || '').toLowerCase();
+        const metaTargetRole = meta?.vai_tro_nhan;
+        const metaTargetClass = meta?.lop_nhan_id;
+        const metaTargetDept = meta?.khoa_nhan;
+        const metaActivityId = meta?.hoat_dong_nhan_id;
+
         // Detect scope based on patterns
-        let scope = 'unknown';
-        if (recipientCount > 50 && roles.length >= 2) {
-          scope = 'system';
-        } else if (roles.length === 1 && (classes.length > 1 || classes.length === 0)) {
-          scope = 'role';
-        } else if (classes.length === 1) {
-          scope = 'class';
-        } else if (classes.length > 1 && classes.length <= 3) {
-          scope = 'department'; // Approximation
+        let scope = metaScope || 'unknown';
+        if (!metaScope) {
+          if (recipientCount > 50 && roles.length >= 2) scope = 'system';
+          else if (roles.length === 1 && (classes.length > 1 || classes.length === 0)) scope = 'role';
+          else if (classes.length === 1) scope = 'class';
+          else if (classes.length > 1 && classes.length <= 3) scope = 'department';
         }
+
+        // Prefer metadata-based scopes in the output when available
+        if (metaScope === 'role' && metaTargetRole) scope = `role:${metaTargetRole}`;
+        if (metaScope === 'class' && metaTargetClass) scope = `class:${metaTargetClass}`;
+        if (metaScope === 'department' && metaTargetDept) scope = `department:${metaTargetDept}`;
+        if (metaScope === 'activity' && metaActivityId) scope = `activity:${metaActivityId}`;
 
         return {
           id: broadcast.id,
           title: broadcast.title,
           message: broadcast.message.split('[Phạm vi:')[0]?.trim() || broadcast.message,
           date: broadcast.date,
-          recipients: recipientCount,
+          // Ưu tiên số người đã gửi lưu trong DB (nếu có)
+          recipients: Number(meta?.so_nguoi_da_gui ?? recipientCount),
           recipientsList: recipients.slice(0, 20), // Limit for detail view
           scope: scope,
           roles: roles,
@@ -350,9 +415,8 @@ class BroadcastService {
 
     switch (String(scope || '').toLowerCase()) {
       case 'system':
-        // All active users in system
+        // All users in system (include inactive/locked accounts; they can still receive in-app notifications)
         const allUsers = await prisma.nguoiDung.findMany({
-          where: { trang_thai: 'hoat_dong' },
           select: { id: true }
         });
         recipientIds = allUsers.map(u => u.id);
@@ -371,7 +435,8 @@ class BroadcastService {
           throw new Error('Không tìm thấy vai trò');
         }
         const roleUsers = await prisma.nguoiDung.findMany({
-          where: { vai_tro_id: vaiTro.id, trang_thai: 'hoat_dong' },
+          // Include inactive/locked accounts too; they can still receive in-app notifications
+          where: { vai_tro_id: vaiTro.id },
           select: { id: true }
         });
         recipientIds = roleUsers.map(u => u.id);

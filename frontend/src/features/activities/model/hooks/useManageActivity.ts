@@ -219,16 +219,20 @@ export function useManageActivity(): UseManageActivityReturn {
 
         setStatus(s => ({ ...s, submitting: true }));
 
-        const payload: CreateActivityDto = {
-            ten_hd: form.ten_hd,
-            loai_hd_id: form.loai_hd_id,
+        const payload: any = {
+            // Backend validators expect legacy field names
+            ten_hoat_dong: form.ten_hd,
+            loai_hoat_dong_id: form.loai_hd_id,
             mo_ta: form.mo_ta || undefined,
-            ngay_bd: form.ngay_bd,
-            ngay_kt: form.ngay_kt,
+            ngay_bat_dau: form.ngay_bd,
+            ngay_ket_thuc: form.ngay_kt,
             han_dk: form.han_dk || undefined,
-            diem_cong: form.diem_rl === '' ? 0 : Number(form.diem_rl),
+            diem_ren_luyen: form.diem_rl === '' ? 0 : Number(form.diem_rl),
             dia_diem: form.dia_diem || undefined,
             so_luong_toi_da: form.sl_toi_da === '' ? undefined : Number(form.sl_toi_da),
+            pham_vi: 'lop',
+            hoc_ky: form.hoc_ky,
+            nam_hoc: form.nam_hoc,
         };
 
         try {

@@ -223,8 +223,10 @@ export default function useAdminNotifications() {
         showError(result.error || 'Không thể gửi thông báo');
         return;
       }
-      const count = result.data?.count || 0;
-      const successMsg = `Đã gửi thông báo tới ${count} người nhận`;
+      const created = (result.data as any)?.createdNotifications ?? (result.data as any)?.sentCount ?? result.data?.count ?? 0;
+      const selected = (result.data as any)?.totalRecipients ?? (result.data as any)?.selectedRecipients;
+      const extra = typeof selected === 'number' ? ` (chọn ${selected})` : '';
+      const successMsg = `Đã gửi thông báo tới ${created} người nhận${extra}`;
       setFeedback({ error: '', success: successMsg });
       showSuccess(`${successMsg}!`);
       resetForm();

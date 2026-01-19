@@ -38,12 +38,17 @@ interface RegistrationWithActivity {
  * Student with registrations
  */
 interface StudentData {
+  id?: string;
+  nguoi_dung_id?: string;
   nguoi_dung?: {
     id: string;
     ho_ten: string | null;
     anh_dai_dien: string | null;
   };
   mssv: string;
+  name?: string | null;
+  email?: string | null;
+  className?: string | null;
   lop?: {
     ten_lop: string;
   };
@@ -80,16 +85,39 @@ interface IListRegistrationsUseCase {
 }
 
 /**
+ * Interface for GetPendingActivitiesUseCase (activities with trang_thai = 'cho_duyet')
+ */
+interface IGetPendingActivitiesUseCase {
+  execute(user: AuthUser, pagination?: { semester?: string; page?: number; limit?: number }): Promise<{ items?: ActivityData[]; total?: number }>;
+}
+
+/**
+ * Activity data from pending activities use case
+ */
+interface ActivityData {
+  id: string;
+  ten_hd: string;
+  trang_thai: string;
+  [key: string]: unknown;
+}
+
+/**
  * GetTeacherDashboardUseCase
  * Use case for getting teacher dashboard data
  */
 class GetTeacherDashboardUseCase {
   private teacherRepository: ITeacherRepository;
   private listRegistrationsUseCase: IListRegistrationsUseCase;
+  private getPendingActivitiesUseCase: IGetPendingActivitiesUseCase | null;
 
-  constructor(teacherRepository: ITeacherRepository, listRegistrationsUseCase: IListRegistrationsUseCase) {
+  constructor(
+    teacherRepository: ITeacherRepository, 
+    listRegistrationsUseCase: IListRegistrationsUseCase,
+    getPendingActivitiesUseCase?: IGetPendingActivitiesUseCase
+  ) {
     this.teacherRepository = teacherRepository;
     this.listRegistrationsUseCase = listRegistrationsUseCase;
+    this.getPendingActivitiesUseCase = getPendingActivitiesUseCase || null;
   }
 
   async execute(user: AuthUser, semester: string | null = null, classId: string | null = null) {
@@ -108,29 +136,25 @@ class GetTeacherDashboardUseCase {
       status: 'cho_duyet',
       page: 1,
       limit: null,
+      includeApprover: false,
       semester
     });
 
-    const [stats, classes, pendingRegistrationsResult, students] = await Promise.all([
+    const [stats, classes, pendingRegistrationsResult, students, pendingActivitiesResult] = await Promise.all([
       this.teacherRepository.getDashboardStats(userId, semester, classId),
       this.teacherRepository.getTeacherClasses(userId),
       this.listRegistrationsUseCase.execute(registrationsDto, user),
-      this.teacherRepository.getTeacherStudents(userId, { classId: classId || undefined, semester: semester || undefined })
+      this.teacherRepository.getTeacherStudents(userId, { classId: classId || undefined, semester: semester || undefined }),
+      // Get actual pending activities (trang_thai = 'cho_duyet') if use case is available
+      this.getPendingActivitiesUseCase 
+        ? this.getPendingActivitiesUseCase.execute(user, { semester: semester || undefined, limit: 10 })
+        : Promise.resolve({ items: [] })
     ]);
 
     const pendingRegistrations = pendingRegistrationsResult?.data || [];
-    const pendingActivities = pendingRegistrations
-      .map((registration: PendingRegistration) => {
-        if (!registration?.hoat_dong) {
-          return null;
-        }
-        return {
-          ...registration.hoat_dong,
-          registrationId: registration.id,
-          registration
-        };
-      })
-      .filter(Boolean);
+    
+    // Use actual pending activities from GetPendingActivitiesUseCase
+    const pendingActivities = (pendingActivitiesResult as { items?: ActivityData[] })?.items || [];
 
     return {
       summary: stats,
@@ -184,12 +208,13 @@ class GetTeacherDashboardUseCase {
           return sum + points;
         }, 0) || 0;
         
+        // Repository returns mapped fields: name, email, className instead of nested objects
         return {
-          id: s.nguoi_dung?.id,
-          ho_ten: s.nguoi_dung?.ho_ten,
+          id: s.id || s.nguoi_dung_id || s.nguoi_dung?.id,
+          ho_ten: s.name || s.nguoi_dung?.ho_ten,
           avatar: s.nguoi_dung?.anh_dai_dien,
           mssv: s.mssv,
-          lop: s.lop?.ten_lop,
+          lop: s.className || s.lop?.ten_lop,
           diem_rl: totalPoints
         };
       })

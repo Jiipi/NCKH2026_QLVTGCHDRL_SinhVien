@@ -191,6 +191,86 @@ function ActivityCard({ activity, onSelect, onApprove, onReject }: { activity: a
   );
 }
 
+// Registration Card Component - hiển thị đăng ký chờ duyệt
+function RegistrationCard({ registration, onApprove, onReject }: { registration: any; onApprove: any; onReject: any }) {
+  const activity = registration.activity || {};
+  const student = registration.student || {};
+  const user = registration.user || student?.nguoi_dung || {};
+  
+  const statusColors = {
+    'cho_duyet': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    'da_duyet': 'bg-green-100 text-green-800 border-green-200', 
+    'tu_choi': 'bg-red-100 text-red-800 border-red-200',
+    'PENDING': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    'APPROVED': 'bg-green-100 text-green-800 border-green-200',
+    'REJECTED': 'bg-red-100 text-red-800 border-red-200'
+  };
+
+  const statusLabels = {
+    'cho_duyet': 'Chờ duyệt',
+    'da_duyet': 'Đã duyệt',
+    'tu_choi': 'Từ chối',
+    'PENDING': 'Chờ duyệt',
+    'APPROVED': 'Đã duyệt',
+    'REJECTED': 'Từ chối'
+  };
+
+  const status = registration.status || registration.trang_thai_dk;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1 line-clamp-1">{activity.ten_hd || 'Hoạt động'}</h3>
+          <p className="text-sm text-blue-600 font-medium">{user.ho_ten || student.mssv}</p>
+          {student.mssv && <p className="text-xs text-gray-500">MSSV: {student.mssv}</p>}
+        </div>
+        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${statusColors[status] || statusColors['cho_duyet']}`}>
+          {statusLabels[status] || 'Chờ duyệt'}
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm mb-3">
+        <div className="flex items-center gap-2">
+          <Award className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+          <span className="text-gray-600">Điểm:</span>
+          <span className="font-medium">{activity.diem_rl || 0}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-blue-500 flex-shrink-0" />
+          <span className="text-gray-600">Đăng ký:</span>
+          <span className="font-medium">{registration.ngay_dang_ky ? new Date(registration.ngay_dang_ky).toLocaleDateString('vi-VN') : '-'}</span>
+        </div>
+      </div>
+
+      {registration.ly_do_dk && (
+        <p className="text-xs text-gray-500 mb-3 line-clamp-2">Lý do: {registration.ly_do_dk}</p>
+      )}
+
+      {(status === 'cho_duyet' || status === 'PENDING') && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => onApprove(registration.id)}
+            className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1 text-sm"
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Phê duyệt</span>
+            <span className="sm:hidden">Duyệt</span>
+          </button>
+          <button
+            onClick={() => onReject(registration.id)}
+            className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-1 text-sm"
+          >
+            <AlertCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Từ chối</span>
+            <span className="sm:hidden">Từ chối</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ModernTeacherDashboard() {
   const navigate = useNavigate();
   
@@ -288,6 +368,28 @@ export default function ModernTeacherDashboard() {
     } catch (err) {
       console.error('Error rejecting activity:', err);
       // Show error notification
+    }
+  };
+
+  // Registration handlers
+  const handleApproveRegistration = async (registrationId) => {
+    try {
+      await http.post(`/teacher/registrations/${registrationId}/approve`);
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Error approving registration:', err);
+    }
+  };
+
+  const handleRejectRegistration = async (registrationId) => {
+    const reason = window.prompt('Nhập lý do từ chối:');
+    if (!reason) return;
+    
+    try {
+      await http.post(`/teacher/registrations/${registrationId}/reject`, { ly_do_tu_choi: reason });
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Error rejecting registration:', err);
     }
   };
 
@@ -452,13 +554,23 @@ export default function ModernTeacherDashboard() {
               </div>
               {recentActivities.length > 0 ? (
                 <div className="space-y-3 sm:space-y-4">
-                  {recentActivities.map(activity => (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={activity}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                    />
+                  {recentActivities.slice(0, 5).map(item => (
+                    // Check if this is a registration (has nested activity) or direct activity
+                    item.activity ? (
+                      <RegistrationCard
+                        key={item.id}
+                        registration={item}
+                        onApprove={handleApproveRegistration}
+                        onReject={handleRejectRegistration}
+                      />
+                    ) : (
+                      <ActivityCard
+                        key={item.id}
+                        activity={item}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                      />
+                    )
                   ))}
                 </div>
               ) : (

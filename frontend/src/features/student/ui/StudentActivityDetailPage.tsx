@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, Image as ImageIcon, File } from 'lucide-react';
+import { Download, Image as ImageIcon, File, CheckCircle, UserCheck } from 'lucide-react';
 import useStudentActivityDetail from '../model/hooks/useStudentActivityDetail';
 import { getActivityImages } from '../../../shared/lib/activityImages';
+import { FaceAttendanceCard } from '../../face-recognition/ui/components';
 
 export default function StudentActivityDetailPage() {
   const { id } = useParams();
-  const { data, loading, error } = useStudentActivityDetail(id);
+  const { data, loading, error, refetch } = useStudentActivityDetail(id);
+  const [attendanceSuccess, setAttendanceSuccess] = useState(false);
+  const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null);
 
   if (loading) {
     return <div>Đang tải...</div>;
@@ -25,6 +28,33 @@ export default function StudentActivityDetailPage() {
   const now = new Date();
   const withinTime = start && end ? (start <= now && end >= now) || start > now : true;
   const canRegister = data?.trang_thai === 'da_duyet' && withinTime && !data?.is_registered;
+
+  // Điều kiện điểm danh:
+  // 1. Đã đăng ký và được duyệt
+  // 2. Hoạt động đang diễn ra (ngay_bd <= now <= ngay_kt)
+  // 3. Chưa điểm danh
+  const isActivityOngoing = start && end ? (start <= now && end >= now) : false;
+  const canAttendWithFace =
+    data?.is_registered &&
+    data?.registration_status === 'da_duyet' &&
+    isActivityOngoing &&
+    !data?.is_attended &&
+    !attendanceSuccess;
+
+  // Handler khi điểm danh thành công
+  const handleAttendanceSuccess = (result: { diemDanhId: string; doTinCay: number }) => {
+    setAttendanceSuccess(true);
+    setAttendanceMessage(`Điểm danh thành công! Độ tin cậy: ${(result.doTinCay * 100).toFixed(1)}%`);
+    // Refresh data sau 2 giây
+    setTimeout(() => {
+      refetch?.();
+    }, 2000);
+  };
+
+  // Handler khi điểm danh thất bại
+  const handleAttendanceError = (errorMsg: string) => {
+    setAttendanceMessage(`Lỗi: ${errorMsg}`);
+  };
 
   const activityImages = getActivityImages(data.hinh_anh, data.loai_hd?.ten_loai_hd || data.loai);
   const metadata = [
@@ -116,22 +146,70 @@ export default function StudentActivityDetailPage() {
         </section>
       )}
 
+      {/* Trạng thái đăng ký và điểm danh */}
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        {data?.is_registered ? (
-          <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-            {data.registration_status === 'da_duyet' ? 'Đã đăng ký (Đã duyệt)' : 'Đã đăng ký (Chờ duyệt)'}
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-            {canRegister ? 'Chưa đăng ký' : 'Không thể đăng ký'}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Trạng thái đăng ký */}
+          {data?.is_registered ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+              <CheckCircle size={14} />
+              {data.registration_status === 'da_duyet' ? 'Đã đăng ký (Đã duyệt)' : 'Đã đăng ký (Chờ duyệt)'}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+              {canRegister ? 'Chưa đăng ký' : 'Không thể đăng ký'}
+            </span>
+          )}
+
+          {/* Trạng thái điểm danh */}
+          {data?.is_attended && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              <UserCheck size={14} />
+              Đã điểm danh
+            </span>
+          )}
+
+          {/* Thông báo điểm danh */}
+          {attendanceMessage && (
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${attendanceSuccess
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border border-red-200 bg-red-50 text-red-700'
+              }`}>
+              {attendanceMessage}
+            </span>
+          )}
+        </div>
       </section>
+
+      {/* Điểm danh bằng khuôn mặt */}
+      {canAttendWithFace && id && (
+        <FaceAttendanceCard
+          hoatDongId={id}
+          onSuccess={handleAttendanceSuccess}
+          onError={handleAttendanceError}
+          className="shadow-lg"
+        />
+      )}
+
+      {/* Thông báo khi đã điểm danh thành công */}
+      {attendanceSuccess && (
+        <section className="rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-emerald-100 p-2">
+              <CheckCircle size={24} className="text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-emerald-800">Điểm danh thành công!</h3>
+              <p className="text-sm text-emerald-600">Bạn đã điểm danh hoạt động này bằng nhận diện khuôn mặt.</p>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function MetaItem({ label, value }) {
+function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-gray-50 p-3">
       <div className="text-xs text-gray-500">{label}</div>
@@ -139,3 +217,4 @@ function MetaItem({ label, value }) {
     </div>
   );
 }
+

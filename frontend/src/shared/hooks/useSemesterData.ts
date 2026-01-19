@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useContext } from 'react';
 import http from '../api/http';
-import { normalizeSemesterFormat, isSameSemester, getCurrentSemesterValue } from '../lib/semester';
+import { normalizeSemesterFormat, isSameSemester, getCurrentSemesterValue, buildSemesterValue } from '../lib/semester';
 import sessionStorageManager from '../api/sessionStorageManager';
 
 // Type definitions
@@ -155,9 +155,16 @@ export default function useSemesterData(semesterValue?: string | null, options: 
       try {
         const currentRes = await http.get('/semesters/current');
         const current = currentRes.data?.data;
-        if (current?.value) {
-          saveCurrentSemester(current.value);
-          console.log('[useSemesterData] Loaded currentSemester:', current.value);
+
+        // Backend can return { semester, year } without `value`
+        let currentValue = current?.value;
+        if (!currentValue && current?.semester && current?.year) {
+          currentValue = buildSemesterValue(current.semester, current.year);
+        }
+
+        if (currentValue) {
+          saveCurrentSemester(currentValue);
+          console.log('[useSemesterData] Loaded currentSemester:', currentValue);
         }
       } catch (err) {
         console.warn('[useSemesterData] Failed to load current semester:', err);

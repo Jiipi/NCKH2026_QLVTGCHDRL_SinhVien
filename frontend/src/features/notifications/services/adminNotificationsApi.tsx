@@ -75,11 +75,31 @@ const adminNotificationsApi = {
   async sendBroadcast(payload: BroadcastPayload) {
     try {
       const response = await http.post('/admin/notifications/broadcast', payload);
-      const data = extractData<{ count?: number }>(response) || {};
+      const data = extractData<{
+        count?: number;
+        sentCount?: number;
+        createdNotifications?: number;
+        totalRecipients?: number;
+        selectedRecipients?: number;
+        skippedSelf?: number;
+        scopeLabel?: string;
+      }>(response) || {};
+
+      const count =
+        data.count ??
+        data.sentCount ??
+        data.createdNotifications ??
+        0;
       return {
         success: true as const,
         data: {
-          count: data.count || 0,
+          count,
+          sentCount: data.sentCount,
+          createdNotifications: data.createdNotifications,
+          totalRecipients: data.totalRecipients,
+          selectedRecipients: data.selectedRecipients,
+          skippedSelf: data.skippedSelf,
+          scopeLabel: data.scopeLabel,
         },
       };
     } catch (error) {

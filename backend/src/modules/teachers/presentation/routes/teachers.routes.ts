@@ -44,7 +44,7 @@ router.get('/activities/pending', auth, asyncHandler((req: Request, res: Respons
  * GET /teachers/activities/history
  * Get approved/rejected activities history
  */
-router.get('/activities/history', auth, asyncHandler((req: Request, res: Response) => (teachersController as any).getActivityHistory(req as AuthenticatedRequest, res)));
+router.get('/activities/history', auth, asyncHandler((req: Request, res: Response) => teachersController.getActivityHistory(req as AuthenticatedRequest, res)));
 
 /**
  * POST /teachers/activities/:id/approve

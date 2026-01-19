@@ -74,9 +74,10 @@ type ViewMode = 'grid' | 'table';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
-  { value: 'active', label: '🟢 Hoạt động' },
-  { value: 'inactive', label: '🔴 Không hoạt động' },
-  { value: 'locked', label: '🔒 Bị khóa' }
+  // Backend status codes
+  { value: 'hoat_dong', label: '🟢 Phiên hoạt động' },
+  { value: 'khong_hoat_dong', label: '🔴 Không hoạt động' },
+  { value: 'khoa', label: '🔒 Bị khóa' }
 ];
 
 const ROLE_DISPLAY_MAP: Record<string, string> = {
@@ -134,6 +135,11 @@ export function useUserManagement() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [userPoints, setUserPoints] = useState<Record<string, number>>({});
 
+  // Session tracking state
+  const [activeIds, setActiveIds] = useState<string[]>([]);
+  const [activeCodes, setActiveCodes] = useState<string[]>([]);
+  const [activeSessionCount, setActiveSessionCount] = useState<number>(0);
+
   // ============= DATA LOADING =============
 
   const loadUsers = useCallback(async () => {
@@ -165,10 +171,15 @@ export function useUserManagement() {
 
       if (result.success && result.data) {
         const data = result.data as UsersListData;
-        setUsers((data.items as User[]) || []);
+        // Backend commonly returns { users, pagination }, while older code expected { items, total }
+        const items = (data.items as User[] | undefined) || ((data as any)?.users as User[] | undefined) || [];
+        setUsers(Array.isArray(items) ? items : []);
         setPagination(prev => ({
           ...prev,
-          total: data?.total || 0
+          total:
+            (typeof data?.total === 'number' ? data.total : undefined) ??
+            ((data as any)?.pagination?.total as number | undefined) ??
+            0
         }));
       } else {
         setError(result.error || 'Không thể tải danh sách người dùng');
@@ -216,12 +227,44 @@ export function useUserManagement() {
     }
   }, []);
 
+  const loadActiveSessions = useCallback(async () => {
+    try {
+      const result = await userManagementApi.fetchActiveSessions({ minutes: 5 });
+      if (!result.success || !result.data) {
+        setActiveIds([]);
+        setActiveCodes([]);
+        setActiveSessionCount(0);
+        return;
+      }
+      const payload: any = result.data;
+      const userIds = Array.isArray(payload.userIds) ? payload.userIds.map(String) : [];
+      const userCodes = Array.isArray(payload.userCodes) ? payload.userCodes.map(String) : [];
+      const sessionCount = typeof payload.sessionCount === 'number' ? payload.sessionCount : userIds.length;
+      setActiveIds(userIds);
+      setActiveCodes(userCodes);
+      setActiveSessionCount(sessionCount);
+    } catch {
+      setActiveIds([]);
+      setActiveCodes([]);
+      setActiveSessionCount(0);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     loadRoles();
     loadClasses();
     loadDepartments();
+    loadActiveSessions();
   }, [loadRoles, loadClasses, loadDepartments]);
+
+  // Refresh active sessions periodically (lightweight)
+  useEffect(() => {
+    const t = setInterval(() => {
+      loadActiveSessions();
+    }, 30_000);
+    return () => clearInterval(t);
+  }, [loadActiveSessions]);
 
 
   // Load users when filters/pagination change
@@ -293,8 +336,11 @@ export function useUserManagement() {
   }, [confirm, showSuccess, showError, loadUsers]);
 
   const handleToggleStatus = useCallback(async (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    const action = newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa';
+    // Normalize legacy values to backend status codes
+    const normalizedCurrent = String(currentStatus || '').toLowerCase();
+    const isCurrentlyActive = normalizedCurrent === 'hoat_dong' || normalizedCurrent === 'active';
+    const newStatus = isCurrentlyActive ? 'khong_hoat_dong' : 'hoat_dong';
+    const action = newStatus === 'hoat_dong' ? 'kích hoạt' : 'vô hiệu hóa';
 
     try {
       const result = await userManagementApi.updateUserStatus(userId, newStatus);
@@ -338,7 +384,7 @@ export function useUserManagement() {
   // Lock/Unlock user actions (wrappers for handleToggleStatus)
   const lockUser = useCallback(async (userId: string) => {
     try {
-      const result = await userManagementApi.updateUserStatus(userId, 'locked');
+      const result = await userManagementApi.updateUserStatus(userId, 'khoa');
       if (result.success) {
         showSuccess('Đã khóa tài khoản!');
         loadUsers();
@@ -355,7 +401,8 @@ export function useUserManagement() {
 
   const unlockUser = useCallback(async (userId: string) => {
     try {
-      const result = await userManagementApi.updateUserStatus(userId, 'active');
+      // Backend has explicit /unlock endpoint
+      const result = await userManagementApi.updateUserStatus(userId, 'unlock');
       if (result.success) {
         showSuccess('Đã mở khóa tài khoản!');
         loadUsers();
@@ -552,15 +599,10 @@ export function useUserManagement() {
     setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
-  // Placeholder values for session tracking (not implemented server-side yet)
-  const activeIds = useMemo<string[]>(() => [], []);
-  const activeCodes = useMemo<string[]>(() => [], []);
-  const activeSessionCount = 0;
-
   // Stats computed from current data
   const stats = useMemo(() => {
     const total = pagination.total || users.length;
-    const locked = users.filter(u => u.trang_thai === 'locked' || u.status === 'locked').length;
+    const locked = users.filter(u => u.trang_thai === 'khoa' || u.status === 'khoa' || u.trang_thai === 'locked' || u.status === 'locked').length;
     const roleCounts = {
       adminCount: users.filter(u => {
         const role = typeof u.vai_tro === 'string' ? u.vai_tro : (u.vai_tro as { ten_vai_tro?: string })?.ten_vai_tro || u.role;
@@ -598,7 +640,11 @@ export function useUserManagement() {
 
   const getStatusDisplay = useCallback((status: string | undefined): { label: string; color: string } => {
     const statusMap: Record<string, { label: string; color: string }> = {
-      active: { label: 'Hoạt động', color: 'green' },
+      hoat_dong: { label: 'Phiên hoạt động', color: 'green' },
+      khong_hoat_dong: { label: 'Không hoạt động', color: 'red' },
+      khoa: { label: 'Bị khóa', color: 'gray' },
+      // Legacy fallbacks
+      active: { label: 'Phiên hoạt động', color: 'green' },
       inactive: { label: 'Không hoạt động', color: 'red' },
       locked: { label: 'Bị khóa', color: 'gray' }
     };

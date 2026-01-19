@@ -185,7 +185,7 @@ export default function ActivityCard({
                 </button>
               )}
               <button
-                onClick={() => onViewDetails(activity)}
+                onClick={() => onViewDetails(activity?.id)}
                 className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px]"
               >
                 <Eye className="h-4 w-4" />
@@ -364,7 +364,7 @@ export default function ActivityCard({
               </button>
             )}
             <button
-              onClick={() => onViewDetails(activity)}
+              onClick={() => onViewDetails(activity?.id)}
               className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 ${canRegister ? '' : 'flex-1'}`}
             >
               <Eye className="h-3.5 w-3.5" />
@@ -508,7 +508,7 @@ export default function ActivityCard({
         {/* Compact Actions */}
         <div className="p-3 pt-0 mt-auto flex gap-2">
           <button
-            onClick={() => onViewDetails(activity)}
+            onClick={() => onViewDetails(activity?.id)}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
           >
             <Eye className="h-3.5 w-3.5" />

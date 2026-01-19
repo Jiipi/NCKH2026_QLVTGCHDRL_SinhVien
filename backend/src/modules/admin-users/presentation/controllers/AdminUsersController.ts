@@ -133,7 +133,7 @@ class AdminUsersController {
   async getUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const dto = GetUsersDto.fromQuery(req.query);
-      const SessionTrackingService = require('../../../../business/services/session-tracking.service');
+      const SessionTrackingService = require('../../../../business/services/session-tracking.service').default;
       
       // Xử lý filter theo trạng thái session
       if (dto.status === 'hoat_dong') {
@@ -151,7 +151,6 @@ class AdminUsersController {
         }
       } else if (dto.status === 'khong_hoat_dong') {
         // Filter user offline (không có session active và không bị khóa)
-        const SessionTrackingService = require('../../../../business/services/session-tracking.service');
         const activeData = await SessionTrackingService.getActiveUsers(5);
         dto.excludeUserIds = activeData.userIds || [];
         dto.excludeStatus = 'khoa'; // Loại bỏ user bị khóa
@@ -174,7 +173,7 @@ class AdminUsersController {
    */
   async getOnlineUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const SessionTrackingService = require('../../../../business/services/session-tracking.service');
+      const SessionTrackingService = require('../../../../business/services/session-tracking.service').default;
       const minutesThreshold = parseInt(req.query.minutes as string) || 5;
       const activeData = await SessionTrackingService.getActiveUsers(minutesThreshold);
       

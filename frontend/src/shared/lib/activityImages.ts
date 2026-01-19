@@ -135,7 +135,16 @@ export const getActivityImages = (images: string | Array<string | { url?: string
       const trimmed = images.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+            .map((item: any) => {
+              if (!item) return null;
+              if (typeof item === 'string') return prefixUploadsIfNeeded(item);
+              if (typeof item === 'object') return prefixUploadsIfNeeded(item.url || item.path || item.src || null);
+              return null;
+            })
+            .filter(Boolean);
+        }
       }
       const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
       if (parts.length > 0) return parts.map(prefixUploadsIfNeeded);
@@ -143,7 +152,7 @@ export const getActivityImages = (images: string | Array<string | { url?: string
     if (images && typeof images === 'object' && !Array.isArray(images)) {
       const imgObj = images as { url?: string; path?: string; src?: string };
       const url = imgObj.url || imgObj.path || imgObj.src;
-      if (url) return [url];
+      if (url) return [prefixUploadsIfNeeded(url) as string];
     }
   } catch (_) { }
   return [getDefaultActivityImage(activityType)];
