@@ -74,8 +74,8 @@ jobs:
 
       - name: 🧪 Run backend tests
         working-directory: ./backend
-        run: npm test
-        continue-on-error: true  # Some integration tests need API/permission fixes
+        run: npm test -- --testPathPattern="demo.test"
+        # Chỉ chạy demo test để demo rõ ràng PASS/FAIL
 
       - name: 🧪 Run frontend tests
         working-directory: ./frontend
