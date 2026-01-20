@@ -14,7 +14,7 @@ const router = Router();
  * @access  Public
  */
 router.get('/', (req: Request, res: Response) => {
-  throw new Error('Demo CI Fail');
+  //throw new Error('Demo CI Fail');
   res.json({
     status: 'ok',
     service: 'dacn-backend',
