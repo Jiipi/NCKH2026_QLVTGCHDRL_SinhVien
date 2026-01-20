@@ -74,8 +74,8 @@ jobs:
 
       - name: 🧪 Run backend tests
         working-directory: ./backend
-        run: npm test -- --testPathPatterns=demo.test
-        # Chỉ chạy demo test để demo rõ ràng PASS/FAIL
+        run: npm test -- --testPathPatterns=health.test
+        # Chạy health test để kiểm tra endpoint /api/health
 
       - name: 🧪 Run frontend tests
         working-directory: ./frontend
