@@ -32,11 +32,7 @@
             "@business/*": ["business/*"],
             "@data/*": ["data/*"],
             "@app/*": ["app/*"]
-        },
-        "types": [
-            "node",
-            "jest"
-        ]
+        }
     },
     "ts-node": {
         "transpileOnly": true,

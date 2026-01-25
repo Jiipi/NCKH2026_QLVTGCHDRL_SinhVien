@@ -3,7 +3,7 @@
     "dev": "nodemon --exec ts-node --transpile-only src/index.ts",
     "dev:js": "nodemon src/index.js",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc --watch",
     "test": "jest --runInBand",
     "test:watch": "jest --watch --runInBand",
