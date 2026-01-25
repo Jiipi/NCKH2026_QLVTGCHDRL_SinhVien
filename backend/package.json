@@ -21,6 +21,8 @@
     "add-demo": "node scripts/add_demo_users.js"
   },
   "dependencies": {
+    "@types/node": "^24.10.9",
+    "typescript": "^5.9.3",
     "@prisma/client": "^6.15.0",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
@@ -42,7 +44,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^24.10.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
@@ -57,7 +58,6 @@
     "prisma": "^6.15.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "ts-node": "^10.9.2"
   }
 }
