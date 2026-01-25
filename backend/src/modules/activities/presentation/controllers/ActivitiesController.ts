@@ -37,18 +37,18 @@ interface AuthenticatedRequest extends Request {
  * Use cases interface for dependency injection
  */
 interface ActivitiesUseCases {
-  getAll: typeof GetActivitiesUseCase;
-  getById: typeof GetActivityByIdUseCase;
-  getDetails: typeof GetActivityDetailsUseCase;
-  create: typeof CreateActivityUseCase;
-  update: typeof UpdateActivityUseCase;
-  delete: typeof DeleteActivityUseCase;
-  approve: typeof ApproveActivityUseCase;
-  reject: typeof RejectActivityUseCase;
-  register: typeof RegisterActivityUseCase;
-  cancelRegistration: typeof CancelActivityRegistrationUseCase;
-  getQRData: typeof GetActivityQRDataUseCase;
-  scanAttendance: typeof ScanAttendanceUseCase;
+  getAll: GetActivitiesUseCase;
+  getById: GetActivityByIdUseCase;
+  getDetails: GetActivityDetailsUseCase;
+  create: CreateActivityUseCase;
+  update: UpdateActivityUseCase;
+  delete: DeleteActivityUseCase;
+  approve: ApproveActivityUseCase;
+  reject: RejectActivityUseCase;
+  register: RegisterActivityUseCase;
+  cancelRegistration: CancelActivityRegistrationUseCase;
+  getQRData: GetActivityQRDataUseCase;
+  scanAttendance: ScanAttendanceUseCase;
 }
 
 /**
