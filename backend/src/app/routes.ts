@@ -16,6 +16,11 @@ const router: IRouter = Router();
 import healthRoute from '../presentation/routes/health.route';
 router.use('/health', healthRoute);
 
+// TEMPORARY: Setup Admin Route (remove after use)
+import { SetupController } from '../presentation/controllers/setup.controller';
+const setupController = new SetupController();
+router.get('/setup-admin', (req, res) => setupController.setupAdmin(req, res));
+
 // Authentication (V2 - New Module Architecture - Refactored to 3 tiers)
 import * as authModule from '../modules/auth';
 router.use('/auth', authModule.routes);
