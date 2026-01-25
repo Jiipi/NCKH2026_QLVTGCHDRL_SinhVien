@@ -53,7 +53,7 @@ export interface AuthPayload {
 }
 
 // ============ ACTIVITY TYPES ============
-export type ActivityStatus = 'cho_duyet' | 'da_duyet' | 'tu_choi' | 'ket_thuc';
+export type ActivityStatus = 'cho_duyet' | 'da_duyet' | 'tu_choi' | 'ket_thuc' | 'da_huy';
 export type RegistrationStatus = 'cho_duyet' | 'da_duyet' | 'tu_choi' | 'da_tham_gia' | 'vang';
 
 export interface Activity {
@@ -70,7 +70,7 @@ export interface Activity {
     loai_hd_id?: string;
     nguoi_tao_id?: string;
     lop_id?: string;
-    hoc_ky?: number;
+    hoc_ky?: string;
     nam_hoc?: string;
     ngay_tao?: Date;
     ngay_cap_nhat?: Date;
@@ -133,10 +133,10 @@ export interface RequestWithUser extends Request {
 // ============ SERVICE INTERFACES ============
 export interface IActivityService {
     getActivities(params: PaginationParams, user?: AuthPayload): Promise<PaginatedResponse<Activity>>;
-    getActivityById(id: string): Promise<Activity | null>;
-    createActivity(data: Partial<Activity>, userId: string): Promise<Activity>;
-    updateActivity(id: string, data: Partial<Activity>): Promise<Activity>;
-    deleteActivity(id: string): Promise<void>;
+    getActivityById(id: string, user?: AuthPayload): Promise<Activity | null>;
+    createActivity(data: Partial<Activity>, user: AuthPayload): Promise<Activity>;
+    updateActivity(id: string, data: Partial<Activity>, user: AuthPayload): Promise<Activity>;
+    deleteActivity(id: string, user: AuthPayload): Promise<void>;
     approveActivity(id: string, note?: string): Promise<Activity>;
     rejectActivity(id: string, reason: string): Promise<Activity>;
 }

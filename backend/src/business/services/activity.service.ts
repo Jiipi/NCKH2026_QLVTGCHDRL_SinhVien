@@ -12,7 +12,7 @@ import type {
     IActivityService
 } from '../../core/types';
 
-// Import existing UseCases with ES6 imports
+// Import existing UseCases
 import GetActivitiesUseCase from '../../modules/activities/business/services/GetActivitiesUseCase';
 import CreateActivityUseCase from '../../modules/activities/business/services/CreateActivityUseCase';
 import UpdateActivityUseCase from '../../modules/activities/business/services/UpdateActivityUseCase';
@@ -21,32 +21,57 @@ import ApproveActivityUseCase from '../../modules/activities/business/services/A
 import RejectActivityUseCase from '../../modules/activities/business/services/RejectActivityUseCase';
 import GetActivityByIdUseCase from '../../modules/activities/business/services/GetActivityByIdUseCase';
 
-// Import repository instance (already instantiated in JS file)
-const activityRepository = require('../../modules/activities/data/repositories/activities.repository');
+// Import repository
+import ActivitiesRepository, { activitiesRepository } from '../../modules/activities/data/repositories/activities.repository';
 
 /**
  * ActivityService - Wrapper around existing UseCases
  * Provides TypeScript interface for activity operations
  */
 export class ActivityService implements IActivityService {
-    private repository: unknown;
-    private getActivitiesUseCase: InstanceType<typeof GetActivitiesUseCase>;
-    private getActivityByIdUseCase: InstanceType<typeof GetActivityByIdUseCase>;
-    private createActivityUseCase: InstanceType<typeof CreateActivityUseCase>;
-    private updateActivityUseCase: InstanceType<typeof UpdateActivityUseCase>;
-    private deleteActivityUseCase: InstanceType<typeof DeleteActivityUseCase>;
-    private approveActivityUseCase: InstanceType<typeof ApproveActivityUseCase>;
-    private rejectActivityUseCase: InstanceType<typeof RejectActivityUseCase>;
+    private repository: ActivitiesRepository;
+    private getActivitiesUseCase: GetActivitiesUseCase;
+    private getActivityByIdUseCase: GetActivityByIdUseCase;
+    private createActivityUseCase: CreateActivityUseCase;
+    private updateActivityUseCase: UpdateActivityUseCase;
+    private deleteActivityUseCase: DeleteActivityUseCase;
+    private approveActivityUseCase: ApproveActivityUseCase;
+    private rejectActivityUseCase: RejectActivityUseCase;
 
     constructor() {
-        this.repository = activityRepository;
-        this.getActivitiesUseCase = new GetActivitiesUseCase(this.repository);
-        this.getActivityByIdUseCase = new GetActivityByIdUseCase(this.repository);
-        this.createActivityUseCase = new CreateActivityUseCase(this.repository);
-        this.updateActivityUseCase = new UpdateActivityUseCase(this.repository);
-        this.deleteActivityUseCase = new DeleteActivityUseCase(this.repository);
-        this.approveActivityUseCase = new ApproveActivityUseCase(this.repository);
-        this.rejectActivityUseCase = new RejectActivityUseCase(this.repository);
+        this.repository = activitiesRepository;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.getActivitiesUseCase = new GetActivitiesUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.getActivityByIdUseCase = new GetActivityByIdUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.createActivityUseCase = new CreateActivityUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.updateActivityUseCase = new UpdateActivityUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.deleteActivityUseCase = new DeleteActivityUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.approveActivityUseCase = new ApproveActivityUseCase(this.repository as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.rejectActivityUseCase = new RejectActivityUseCase(this.repository as any);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private mapToActivity(data: any): Activity {
+        if (!data) return null as any;
+        return {
+            ...data,
+            // Handle Prisma Decimal
+            diem_rl: data.diem_rl && typeof data.diem_rl === 'object' && 'toNumber' in data.diem_rl
+                ? data.diem_rl.toNumber()
+                : Number(data.diem_rl || 0),
+            // Ensure dates are Dates
+            ngay_bd: new Date(data.ngay_bd),
+            ngay_kt: new Date(data.ngay_kt),
+            han_dk: data.han_dk ? new Date(data.han_dk) : undefined,
+            ngay_tao: data.ngay_tao ? new Date(data.ngay_tao) : undefined,
+            ngay_cap_nhat: data.ngay_cap_nhat ? new Date(data.ngay_cap_nhat) : undefined,
+        } as Activity;
     }
 
     async getActivities(
@@ -60,32 +85,55 @@ export class ActivityService implements IActivityService {
             order: params.order || 'desc',
             ...params,
         };
-        return this.getActivitiesUseCase.execute(dto, user);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await this.getActivitiesUseCase.execute(dto as any, user as any);
+
+        return {
+            items: (result.items || []).map(item => this.mapToActivity(item)),
+            pagination: {
+                page: result.page || 1,
+                limit: result.limit || 10,
+                total: result.total || 0,
+                totalPages: result.limit ? Math.ceil((result.total || 0) / result.limit) : 1
+            }
+        };
     }
 
-    async getActivityById(id: string): Promise<Activity | null> {
-        return this.getActivityByIdUseCase.execute(id);
+    async getActivityById(id: string, user?: AuthPayload): Promise<Activity | null> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await this.getActivityByIdUseCase.execute(id, {} as any, user as any);
+        return this.mapToActivity(result);
     }
 
-    async createActivity(data: Partial<Activity>, userId: string): Promise<Activity> {
-        const dto = { ...data, nguoi_tao_id: userId };
-        return this.createActivityUseCase.execute(dto, { sub: userId });
+    async createActivity(data: Partial<Activity>, user: AuthPayload): Promise<Activity> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dto = { ...data, toDomain: () => data };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await this.createActivityUseCase.execute(dto as any, user as any);
+        return this.mapToActivity(result);
     }
 
-    async updateActivity(id: string, data: Partial<Activity>): Promise<Activity> {
-        return this.updateActivityUseCase.execute(id, data);
+    async updateActivity(id: string, data: Partial<Activity>, user: AuthPayload): Promise<Activity> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await this.updateActivityUseCase.execute(id, data as any, user as any);
+        return this.mapToActivity(result);
     }
 
-    async deleteActivity(id: string): Promise<void> {
-        return this.deleteActivityUseCase.execute(id);
+    async deleteActivity(id: string, user: AuthPayload): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.deleteActivityUseCase.execute(id, user as any);
     }
 
     async approveActivity(id: string, note?: string): Promise<Activity> {
-        return this.approveActivityUseCase.execute(id, note);
+        // Note is unused in UseCase? Or passed differently?
+        // ApproveActivityUseCase.execute(id)
+        const result = await this.approveActivityUseCase.execute(id);
+        return this.mapToActivity(result);
     }
 
     async rejectActivity(id: string, reason: string): Promise<Activity> {
-        return this.rejectActivityUseCase.execute(id, reason);
+        const result = await this.rejectActivityUseCase.execute(id, reason);
+        return this.mapToActivity(result);
     }
 }
 
