@@ -16,7 +16,13 @@ type AllowedOrigins = boolean | string | string[];
  * Supports: single origin, comma-separated list, or wildcard
  */
 function getAllowedOrigins(): AllowedOrigins {
-  const envOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://www.hoatdongrenluyen.io.vn',
+    'https://hoatdongrenluyen.io.vn'
+  ];
+  const envOrigin = process.env.CORS_ORIGIN || defaultOrigins.join(',');
 
   // Wildcard: allow all origins (use carefully!)
   if (envOrigin === '*' || envOrigin === 'true') {
@@ -42,9 +48,9 @@ const corsOptions: CorsOptions = {
     // Development: verify against configured origins for security
     if (process.env.NODE_ENV === 'development') {
       // Even in dev mode, validate against CORS_ORIGIN config
-      if (!origin || allowedOrigins === true || 
-          (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) ||
-          (typeof allowedOrigins === 'string' && allowedOrigins === origin)) {
+      if (!origin || allowedOrigins === true ||
+        (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) ||
+        (typeof allowedOrigins === 'string' && allowedOrigins === origin)) {
         console.log(`[CORS] Dev mode - allowing origin: ${origin || '(no origin)'}`);
         return callback(null, true);
       } else {
