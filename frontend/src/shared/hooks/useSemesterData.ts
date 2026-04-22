@@ -184,9 +184,13 @@ export default function useSemesterData(semesterValue?: string | null, options: 
       // Use labels directly from backend (already formatted as "Học kỳ X - YYYY")
       const fetched = Array.isArray(fetchedRaw) ? fetchedRaw : [];
       saveOptionsCache(fetched);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể tải danh sách học kỳ')
+          : 'Không thể tải danh sách học kỳ';
       if (force || semesterOptions.length === 0) {
-        setOptionsError(error?.response?.data?.message || 'Không thể tải danh sách học kỳ');
+        setOptionsError(message);
       }
     } finally {
       setLoadingOptions(false);

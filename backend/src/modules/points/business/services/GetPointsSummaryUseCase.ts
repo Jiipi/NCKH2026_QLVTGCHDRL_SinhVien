@@ -142,13 +142,26 @@ class GetPointsSummaryUseCase {
     return statusSummary;
   }
 
-  async execute(userId: string, filters: PointsFilters = {}): Promise<unknown> {
+  async execute(
+    userId: string, 
+    filters: PointsFilters = {},
+    scope?: { where: any; permissions: any },
+    semester?: { hoc_ky: string; nam_hoc: string }
+  ): Promise<unknown> {
     const sinhVien = await this.pointsRepository.findStudentByUserId(userId);
     if (!sinhVien) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');
     }
 
-    const registrations = await this.pointsRepository.findAttendedRegistrations(sinhVien.id, filters);
+    // Merge filters with scope - prioritize semester from middleware
+    const finalFilters = {
+      ...filters,
+      ...(semester && { 
+        semester: `${semester.hoc_ky}_${semester.nam_hoc.split('-')[0]}` 
+      })
+    };
+
+    const registrations = await this.pointsRepository.findAttendedRegistrations(sinhVien.id, finalFilters);
     const { pointsByType, totalPoints, totalActivities } = this._calculatePointsByType(registrations);
     const recentActivities = await this.pointsRepository.findAllRegistrations(sinhVien.id);
     const statusCounts = await this.pointsRepository.getRegistrationStatusCounts(sinhVien.id);

@@ -58,6 +58,18 @@ export interface StudentData {
   dia_chi?: string;
 }
 
+export interface StudentRecord {
+  id: string;
+  nguoi_dung_id: string;
+  mssv: string;
+  lop_id: string | null;
+  nguoi_dung?: {
+    id: string;
+    vai_tro: { id: string; ten_vt: string; mo_ta: string | null } | null;
+  };
+  lop?: { id: string; ten_lop: string; khoa: string | null } | null;
+}
+
 export interface IAuthRepository {
   findByEmailOrMaso(emailOrMaso: string): Promise<UserWithRole | null>;
   findUserByMaso(maso: string): Promise<UserWithRole | null>;
@@ -67,7 +79,7 @@ export interface IAuthRepository {
   updateUser(id: string, updateData: Partial<UserData>): Promise<UserWithRole>;
   findRoleByName(roleName: string): Promise<RoleData | null>;
   createRole(roleData: RoleData): Promise<RoleData>;
-  createStudent(studentData: StudentData): Promise<any>;
+  createStudent(studentData: StudentData): Promise<StudentRecord>;
   countUsers(): Promise<number>;
 }
 
@@ -83,7 +95,7 @@ export abstract class AuthRepositoryBase implements IAuthRepository {
   abstract updateUser(id: string, updateData: Partial<UserData>): Promise<UserWithRole>;
   abstract findRoleByName(roleName: string): Promise<RoleData | null>;
   abstract createRole(roleData: RoleData): Promise<RoleData>;
-  abstract createStudent(studentData: StudentData): Promise<any>;
+  abstract createStudent(studentData: StudentData): Promise<StudentRecord>;
   abstract countUsers(): Promise<number>;
 }
 

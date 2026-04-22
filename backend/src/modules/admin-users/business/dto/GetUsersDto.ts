@@ -35,16 +35,16 @@ class GetUsersDto implements GetUsersDtoData {
     this.excludeStatus = data.excludeStatus;
   }
 
-  static fromQuery(query: Record<string, any>): GetUsersDto {
+  static fromQuery(query: Record<string, unknown>): GetUsersDto {
     return new GetUsersDto({
-      page: query.page ? parseInt(query.page, 10) : undefined,
-      limit: query.limit ? parseInt(query.limit, 10) : undefined,
-      search: query.search,
-      role: query.role,
-      status: query.status,
-      userIds: query.userIds,
-      excludeUserIds: query.excludeUserIds,
-      excludeStatus: query.excludeStatus
+      page: query.page ? parseInt(String(query.page), 10) : undefined,
+      limit: query.limit ? parseInt(String(query.limit), 10) : undefined,
+      search: query.search as string | undefined,
+      role: query.role as string | undefined,
+      status: query.status as string | undefined,
+      userIds: query.userIds as string[] | undefined,
+      excludeUserIds: query.excludeUserIds as string[] | undefined,
+      excludeStatus: query.excludeStatus as string | undefined
     });
   }
 }

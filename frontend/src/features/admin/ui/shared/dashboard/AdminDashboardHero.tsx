@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { getUserAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 
@@ -6,6 +6,8 @@ export default function AdminDashboardHero({ userProfile }) {
   const adminName = userProfile?.ho_ten || userProfile?.name || 'Quản trị viên';
   const avatar = getUserAvatar(userProfile);
   const adminInitials = avatar.fallback || 'QT';
+  const [avatarError, setAvatarError] = useState(false);
+  const showAvatar = avatar.hasValidAvatar && !avatarError;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -23,22 +25,18 @@ export default function AdminDashboardHero({ userProfile }) {
             </defs>
           </svg>
           <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarGradient(adminName)} border-4 border-white flex items-center justify-center shadow-lg overflow-hidden`}>
-            {avatar.hasValidAvatar ? (
+            {showAvatar ? (
               <img
-                src={avatar.src}
+                src={avatar.src!}
                 alt={avatar.alt}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const next = target.nextSibling as HTMLElement | null;
-                  if (next) next.style.display = 'flex';
-                }}
+                onError={() => setAvatarError(true)}
               />
-            ) : null}
-            <span className={`text-2xl font-black text-white ${avatar.hasValidAvatar ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
-              {adminInitials}
-            </span>
+            ) : (
+              <span className="text-2xl font-black text-white flex w-full h-full items-center justify-center">
+                {adminInitials}
+              </span>
+            )}
           </div>
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
         </div>

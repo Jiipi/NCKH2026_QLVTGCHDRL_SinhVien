@@ -7,6 +7,7 @@
 
 import crypto from 'crypto';
 import { IOtpService, OtpResult, OtpServiceBase } from '../interfaces/IOtpService';
+import { logInfo, logWarn } from '../../../../core/logger';
 
 interface OtpRecord {
   hash: string;
@@ -44,7 +45,7 @@ class MemoryOtpService extends OtpServiceBase {
   verifyOtp(email: string, otp: string, markAsUsed: boolean = false): boolean {
     const record = this.otpMemory.get(email);
     if (!record) {
-      console.log('[MemoryOtpService] No OTP record found for:', email);
+      logWarn('OTP verify failed: no record found');
       return false;
     }
 
@@ -52,20 +53,20 @@ class MemoryOtpService extends OtpServiceBase {
     const now = new Date();
     const age = (now.getTime() - record.created_at.getTime()) / 1000 / 60;
     if (age > 10) {
-      console.log('[MemoryOtpService] OTP expired:', { email, age: age.toFixed(2) });
+      logWarn('OTP verify failed: expired', { ageMinutes: Number(age.toFixed(2)) });
       this.otpMemory.delete(email);
       return false;
     }
 
     // Check if already used
     if (record.used_at) {
-      console.log('[MemoryOtpService] OTP already used:', { email, used_at: record.used_at });
+      logWarn('OTP verify failed: already used');
       return false;
     }
 
     // Check attempts
     if (record.attempts >= 3) {
-      console.log('[MemoryOtpService] Too many attempts:', { email, attempts: record.attempts });
+      logWarn('OTP verify failed: too many attempts', { attempts: record.attempts });
       this.otpMemory.delete(email);
       return false;
     }
@@ -77,14 +78,14 @@ class MemoryOtpService extends OtpServiceBase {
     if (isValid) {
       if (markAsUsed) {
         record.used_at = now;
-        console.log('[MemoryOtpService] OTP marked as used:', { email });
+        logInfo('OTP marked as used');
       } else {
         record.verified_at = now;
-        console.log('[MemoryOtpService] OTP verified (not marked as used):', { email });
+        logInfo('OTP verified');
       }
     } else {
       record.attempts++;
-      console.log('[MemoryOtpService] OTP invalid, attempts:', { email, attempts: record.attempts });
+      logWarn('OTP verify failed: invalid code', { attempts: record.attempts });
     }
 
     return isValid;

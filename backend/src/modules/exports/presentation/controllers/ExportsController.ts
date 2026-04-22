@@ -25,6 +25,10 @@ class ExportsController {
     this.useCases = useCases;
   }
 
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'UNKNOWN';
+  }
+
   async getOverview(req: Request, res: Response): Promise<Response> {
     try {
       const { semester, hoc_ky, nam_hoc } = (req.query || {}) as { 
@@ -34,7 +38,7 @@ class ExportsController {
       };
       const data = await this.useCases.getOverview.execute({ semester, hoc_ky, nam_hoc });
       return sendResponse(res, 200, ApiResponse.success(data));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Get overview error', error);
       if (error instanceof AppError) {
         return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
@@ -55,13 +59,13 @@ class ExportsController {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="activities.csv"');
       res.status(200).send(csv);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Export activities error', error);
       if (error instanceof AppError) {
         sendResponse(res, error.statusCode, ApiResponse.error(error.message));
         return;
       }
-      sendResponse(res, 500, ApiResponse.error(`Lỗi xuất hoạt động: ${error?.message || 'UNKNOWN'}`));
+      sendResponse(res, 500, ApiResponse.error(`Lỗi xuất hoạt động: ${this.getErrorMessage(error)}`));
     }
   }
 
@@ -77,13 +81,13 @@ class ExportsController {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
       res.status(200).send(csv);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Export registrations error', error);
       if (error instanceof AppError) {
         sendResponse(res, error.statusCode, ApiResponse.error(error.message));
         return;
       }
-      sendResponse(res, 500, ApiResponse.error(`Lỗi xuất đăng ký: ${error?.message || 'UNKNOWN'}`));
+      sendResponse(res, 500, ApiResponse.error(`Lỗi xuất đăng ký: ${this.getErrorMessage(error)}`));
     }
   }
 }

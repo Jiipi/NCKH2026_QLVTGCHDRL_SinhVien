@@ -1,5 +1,5 @@
 import type INotificationRepository from '../interfaces/INotificationRepository';
-const { NotFoundError } = require('../../../../core/errors/AppError');
+import { NotFoundError } from '../../../../core/errors/AppError';
 
 interface MarkAsReadResult {
   message: string;

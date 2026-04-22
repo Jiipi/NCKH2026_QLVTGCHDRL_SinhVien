@@ -16,6 +16,6 @@ export type {
   IToggleUserStatusUseCase
 } from './admin-users.types';
 
-const routes = require('./presentation/routes/admin-users.routes');
+import routes from './presentation/routes/admin-users.routes';
 export { routes };
 module.exports = { routes };

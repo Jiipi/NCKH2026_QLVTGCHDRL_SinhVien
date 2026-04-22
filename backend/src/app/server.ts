@@ -6,6 +6,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -25,6 +26,7 @@ interface AuthenticatedRequest extends Request {
     sub?: string;
     [key: string]: unknown;
   };
+  requestId?: string;
 }
 
 /**
@@ -87,8 +89,11 @@ export function createServer(): Express {
   // Apply password reset rate limiter
   app.use('/api/auth/forgot-password', passwordResetLimiter);
   app.use('/api/auth/reset-password', passwordResetLimiter);
+  app.use('/api/v1/auth/forgot-password', passwordResetLimiter);
+  app.use('/api/v1/auth/reset-password', passwordResetLimiter);
   
   app.use('/api/', limiter);
+  app.use('/api/v1/', limiter);
 
   // ===================== BODY PARSING =====================
 
@@ -101,8 +106,17 @@ export function createServer(): Express {
 
   // ===================== REQUEST LOGGING =====================
 
-  app.use((req: Request, _res: Response, next: NextFunction) => {
+  app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const incomingRequestId = req.header('x-request-id');
+    const requestId = (incomingRequestId && incomingRequestId.trim()) || randomUUID();
+    req.requestId = requestId;
+    res.setHeader('X-Request-Id', requestId);
+    next();
+  });
+
+  app.use((req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     logInfo(`${req.method} ${req.path}`, {
+      requestId: req.requestId,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
@@ -127,6 +141,7 @@ export function createServer(): Express {
 
   // ===================== API ROUTES =====================
 
+  app.use('/api/v1', routes);
   app.use('/api', routes);
 
   // ===================== HEALTH CHECK =====================

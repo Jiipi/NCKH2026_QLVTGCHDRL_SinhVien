@@ -4,17 +4,27 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { parseSemesterString } from '../../../../core/utils/semester';
 import { ValidationError } from '../../../../core/errors/AppError';
 import type { HocKy, TrangThaiDangKy } from '@prisma/client';
+import type { IRegistrationRepository, RegistrationExportItem } from '../interfaces/IRegistrationRepository';
+
+interface ExcelWorksheet {
+  columns: Array<{ header: string; key: string; width: number }>;
+  getRow(index: number): {
+    font?: { bold?: boolean };
+    fill?: { type: string; pattern: string; fgColor: { argb: string } };
+    alignment?: { vertical: string; horizontal: string };
+  };
+  addRow(data: Record<string, string | number>): void;
+}
 
 // ExcelJS is required dynamically, so we define a minimal type
 export interface ExcelWorkbook {
-  addWorksheet(name: string): any;
+  addWorksheet(name: string): ExcelWorksheet;
   xlsx: {
     writeBuffer(): Promise<Buffer>;
-    write(stream: any): Promise<void>;
+    write(stream: NodeJS.WritableStream): Promise<void>;
   };
 }
 
@@ -30,93 +40,36 @@ export interface ExportFilters {
 }
 
 /**
- * Where clause for export query
- */
-interface ExportWhereClause {
-  trang_thai_dk?: TrangThaiDangKy;
-  hoat_dong?: {
-    hoc_ky?: HocKy;
-    nam_hoc?: string;
-  };
-  sinh_vien?: {
-    lop_id?: string;
-  };
-}
-
-/**
- * Registration export item
- */
-interface RegistrationExportItem {
-  sinh_vien?: {
-    mssv?: string;
-    nguoi_dung?: {
-      ho_ten?: string;
-    };
-    lop?: {
-      ten_lop?: string;
-    };
-  };
-  hoat_dong?: {
-    ma_hd?: string;
-    ten_hd?: string;
-    loai_hd?: {
-      ten_loai_hd?: string;
-    };
-  };
-  ngay_dang_ky: Date;
-  trang_thai_dk: TrangThaiDangKy;
-  ngay_duyet?: Date | null;
-  ly_do_dk?: string | null;
-  ly_do_tu_choi?: string | null;
-}
-
-/**
  * RegistrationExportService
  */
 export class RegistrationExportService {
+  constructor(private readonly registrationRepository: IRegistrationRepository) {}
+
   /**
    * Export registrations to Excel
    */
   async exportRegistrations(filters: ExportFilters = {}): Promise<ExcelWorkbook> {
-    const ExcelJS = require('exceljs');
+    const ExcelJS = await import('exceljs');
 
     const { status, hoc_ky, nam_hoc, semester, classId } = filters;
 
-    let semesterWhere: { hoat_dong?: { hoc_ky?: HocKy; nam_hoc?: string } } = {};
+    let resolvedHocKy: HocKy | undefined = hoc_ky;
+    let resolvedNamHoc: string | undefined = nam_hoc;
     if (semester) {
       const parsed = parseSemesterString(semester);
       if (!parsed) {
         throw new ValidationError('Tham số học kỳ không hợp lệ');
       }
-      semesterWhere = {
-        hoat_dong: {
-          hoc_ky: parsed.semester as HocKy,
-          nam_hoc: parsed.year
-        }
-      };
-    } else if (hoc_ky || nam_hoc) {
-      semesterWhere = {
-        hoat_dong: {
-          ...(hoc_ky ? { hoc_ky } : {}),
-          ...(nam_hoc ? { nam_hoc } : {})
-        }
-      };
+      resolvedHocKy = parsed.semester as HocKy;
+      resolvedNamHoc = parsed.year;
     }
 
-    const where: ExportWhereClause = {
-      ...(status ? { trang_thai_dk: status } : {}),
-      ...semesterWhere,
-      ...(classId ? { sinh_vien: { lop_id: classId } } : {})
-    };
-
-    const items = await prisma.dangKyHoatDong.findMany({
-      where,
-      include: {
-        sinh_vien: { include: { nguoi_dung: true, lop: true } },
-        hoat_dong: { include: { loai_hd: true } }
-      },
-      orderBy: { ngay_dang_ky: 'desc' }
-    }) as RegistrationExportItem[];
+    const items = await this.registrationRepository.findRegistrationsForExport({
+      ...(status ? { status } : {}),
+      ...(resolvedHocKy ? { hoc_ky: resolvedHocKy } : {}),
+      ...(resolvedNamHoc ? { nam_hoc: resolvedNamHoc } : {}),
+      ...(classId ? { classId } : {})
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Đăng ký hoạt động');

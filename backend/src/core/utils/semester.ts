@@ -56,12 +56,12 @@ export function normalizeSemesterFormat(semesterStr: string | null | undefined):
   const correctMatch = semesterStr.match(/^hoc_ky_([12])_(\d{4})$/);
   if (correctMatch) return semesterStr;
 
-  // Legacy dash format: hoc_ky_1-2025 -> hoc_ky_1_2025
-  const dashMatch = semesterStr.match(/^hoc_ky_([12])-(\d{4})$/);
+  // Legacy dash format or '1-2025' format
+  const dashMatch = semesterStr.match(/^(?:hoc_ky_)?([12])[-_](\d{4})$/);
   if (dashMatch) return `hoc_ky_${dashMatch[1]}_${dashMatch[2]}`;
 
   // Compact format without separator: hoc_ky_12025 -> hoc_ky_1_2025
-  const compactMatch = semesterStr.match(/^hoc_ky_([12])(\d{4})$/);
+  const compactMatch = semesterStr.match(/^(?:hoc_ky_)?([12])(\d{4})$/);
   if (compactMatch) return `hoc_ky_${compactMatch[1]}_${compactMatch[2]}`;
 
   return null;

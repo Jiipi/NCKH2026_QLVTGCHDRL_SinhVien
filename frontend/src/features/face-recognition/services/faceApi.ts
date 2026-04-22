@@ -100,31 +100,38 @@ export async function getFaceStatus(): Promise<FaceStatusResponse | null> {
 
 /**
  * Đăng ký khuôn mặt
- * @param imageFile - File ảnh hoặc Blob
+ * @param imageFiles - File ảnh hoặc Blob (1 hoặc nhiều ảnh)
  * @param updateIfExists - Cho phép cập nhật nếu đã đăng ký
  */
 export async function registerFace(
-  imageFile: File | Blob,
+  imageFiles: (File | Blob)[] | File | Blob,
   updateIfExists: boolean = false
 ): Promise<FaceRegisterResponse> {
   try {
-    // Validate image before upload
-    const validation = validateImageFile(imageFile);
-    if (!validation.valid) {
-      const errorMsg = validation.error?.message || 'File ảnh không hợp lệ';
-      return {
-        success: false,
-        message: errorMsg
-      };
+    // Normalize to array
+    const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
+
+    if (files.length === 0) {
+      return { success: false, message: 'Cần ít nhất 1 ảnh để đăng ký' };
+    }
+
+    // Validate all images before upload
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        const errorMsg = validation.error?.message || 'File ảnh không hợp lệ';
+        return { success: false, message: errorMsg };
+      }
     }
 
     const formData = new FormData();
-    formData.append('file', imageFile, 'face.jpg');
+    // Append all files with field name 'files' for multi-image registration
+    files.forEach((file, index) => {
+      formData.append('files', file, `face_${index + 1}.jpg`);
+    });
     formData.append('updateIfExists', String(updateIfExists));
 
     // Don't retry registration - it's not idempotent
-    // Note: Don't set Content-Type manually when using FormData
-    // Browser will automatically set it with the correct boundary
     const response = await http.post('/face/register', formData, {
       timeout: FACE_CONFIG.api.timeoutMs
     });
@@ -180,7 +187,7 @@ export async function faceAttendance(
     console.error('[FaceAPI] Attendance failed:', error);
     return {
       success: false,
-      message: error.response?.data?.error || error.message || 'Điểm danh thất bại'
+      message: error.response?.data?.message || error.response?.data?.error || error.message || 'Điểm danh thất bại'
     };
   }
 }

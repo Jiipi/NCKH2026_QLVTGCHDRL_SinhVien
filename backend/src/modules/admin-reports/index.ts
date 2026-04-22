@@ -20,6 +20,6 @@ export type {
   IAdminReportsController
 } from './admin-reports.types';
 
-const routes = require('./presentation/routes/admin-reports.routes');
+import routes from './presentation/routes/admin-reports.routes';
 export { routes };
 module.exports = { routes };

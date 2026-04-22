@@ -7,6 +7,56 @@
 import type { DangKyHoatDong } from '@prisma/client';
 import type { RegistrationStatusVN, RegistrationStatusEN } from '../../registrations.types';
 
+export interface StudentIdentity {
+  id: string;
+  nguoi_dung_id: string;
+  lop_id?: string | null;
+}
+
+export interface ActivityForRegistrationValidation {
+  id: string;
+  ten_hd: string;
+  nguoi_tao_id: string;
+  trang_thai: string;
+  sl_toi_da: number;
+  han_dk: Date | null;
+  ngay_bd: Date;
+  _count: {
+    dang_ky_hd: number;
+  };
+}
+
+export interface RegistrationExportItem {
+  sinh_vien?: {
+    mssv?: string;
+    nguoi_dung?: {
+      ho_ten?: string;
+    };
+    lop?: {
+      ten_lop?: string;
+    };
+  };
+  hoat_dong?: {
+    ma_hd?: string;
+    ten_hd?: string;
+    loai_hd?: {
+      ten_loai_hd?: string;
+    };
+  };
+  ngay_dang_ky: Date;
+  trang_thai_dk: string;
+  ngay_duyet?: Date | null;
+  ly_do_dk?: string | null;
+  ly_do_tu_choi?: string | null;
+}
+
+export interface RegistrationExportFilters {
+  status?: string;
+  hoc_ky?: string;
+  nam_hoc?: string;
+  classId?: string;
+}
+
 /**
  * Include options for repository queries
  */
@@ -105,6 +155,9 @@ export interface IRegistrationRepository {
   checkIn<T = unknown>(id: string, checkInTime?: Date): Promise<T>;
   findByUser(userId: string, filters?: UserRegistrationFilters): Promise<DangKyHoatDong[]>;
   getActivityStats(activityId: string): Promise<ActivityStats>;
+  findStudentByUserId(userId: string): Promise<StudentIdentity | null>;
+  findActivityForRegistrationValidation(activityId: string): Promise<ActivityForRegistrationValidation | null>;
+  findRegistrationsForExport(filters?: RegistrationExportFilters): Promise<RegistrationExportItem[]>;
 }
 
 /**
@@ -154,6 +207,18 @@ export abstract class BaseRegistrationRepository implements IRegistrationReposit
 
   async getActivityStats(_activityId: string): Promise<ActivityStats> {
     throw new Error('Must implement getActivityStats()');
+  }
+
+  async findStudentByUserId(_userId: string): Promise<StudentIdentity | null> {
+    throw new Error('Must implement findStudentByUserId()');
+  }
+
+  async findActivityForRegistrationValidation(_activityId: string): Promise<ActivityForRegistrationValidation | null> {
+    throw new Error('Must implement findActivityForRegistrationValidation()');
+  }
+
+  async findRegistrationsForExport(_filters: RegistrationExportFilters = {}): Promise<RegistrationExportItem[]> {
+    throw new Error('Must implement findRegistrationsForExport()');
   }
 }
 

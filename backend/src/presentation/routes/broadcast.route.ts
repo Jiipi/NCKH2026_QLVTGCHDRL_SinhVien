@@ -10,6 +10,10 @@ import { ApiResponse, sendResponse } from '../../core/http/response/apiResponse'
 import { logError } from '../../core/logger';
 import { auth as authenticateJWT, requireAdmin } from '../../core/http/middleware/authJwt';
 
+interface AuthRequest extends Request {
+  user?: { sub?: string; id?: string };
+}
+
 const router = Router();
 
 // Apply authentication and admin authorization to all routes
@@ -39,7 +43,7 @@ interface BroadcastBody {
  */
 router.post('/', async (req: Request<{}, {}, BroadcastBody>, res: Response) => {
   try {
-    const senderId = String((req as any).user?.sub || (req as any).user?.id || '');
+    const senderId = String((req as AuthRequest).user?.sub || (req as AuthRequest).user?.id || '');
 
     if (!senderId || senderId === 'undefined' || senderId === 'null') {
       return sendResponse(res, 401, ApiResponse.error('Không xác định được người gửi'));
@@ -61,7 +65,7 @@ router.post('/', async (req: Request<{}, {}, BroadcastBody>, res: Response) => {
 
   } catch (error) {
     const err = error as Error;
-    logError('Error broadcasting notification', err, { userId: (req as any).user?.id });
+    logError('Error broadcasting notification', err, { userId: (req as AuthRequest).user?.id });
     const statusCode = err.message.includes('Thiếu') || err.message.includes('không hợp lệ') ? 400 : 500;
     return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi khi gửi thông báo'));
   }
@@ -74,14 +78,14 @@ router.post('/', async (req: Request<{}, {}, BroadcastBody>, res: Response) => {
  */
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const adminId = (req as any).user?.sub || (req as any).user?.id;
-    const stats = await broadcastService.getBroadcastStats(adminId);
+    const adminId = (req as AuthRequest).user?.sub || (req as AuthRequest).user?.id;
+    const stats = await broadcastService.getBroadcastStats(adminId as unknown as number);
 
     return sendResponse(res, 200, ApiResponse.success(stats, 'Lấy thống kê broadcast thành công'));
 
   } catch (error) {
     const err = error as Error;
-    logError('Error fetching broadcast stats', { error: err.message, userId: (req as any).user?.id });
+    logError('Error fetching broadcast stats', { error: err.message, userId: (req as AuthRequest).user?.id });
     return sendResponse(res, 500, ApiResponse.error('Lỗi lấy thống kê broadcast'));
   }
 });
@@ -94,16 +98,16 @@ router.get('/stats', async (req: Request, res: Response) => {
  */
 router.get('/history', async (req: Request, res: Response) => {
   try {
-    const adminId = (req as any).user?.sub || (req as any).user?.id;
+    const adminId = (req as AuthRequest).user?.sub || (req as AuthRequest).user?.id;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
 
-    const result = await broadcastService.getBroadcastHistory(adminId, limit);
+    const result = await broadcastService.getBroadcastHistory(adminId as unknown as number, limit);
 
     return sendResponse(res, 200, ApiResponse.success(result, 'Lấy lịch sử broadcast thành công'));
 
   } catch (error) {
     const err = error as Error;
-    logError('Error fetching broadcast history', { error: err.message, userId: (req as any).user?.id });
+    logError('Error fetching broadcast history', { error: err.message, userId: (req as AuthRequest).user?.id });
     return sendResponse(res, 500, ApiResponse.error('Lỗi lấy lịch sử broadcast'));
   }
 });

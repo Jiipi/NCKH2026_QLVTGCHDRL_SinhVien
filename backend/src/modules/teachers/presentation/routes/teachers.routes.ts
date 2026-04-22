@@ -5,7 +5,7 @@
 
 import express, { type Router, type Request, type Response } from 'express';
 import { createTeachersController } from '../teachers.factory';
-import { auth } from '../../../../core/http/middleware/authJwt';
+import { auth, requireTeacher } from '../../../../core/http/middleware/authJwt';
 import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
 import { uploadExcel } from '../../../../core/http/middleware/uploadExcel';
 import { parseExcelFile, validateStudents, importStudents, cleanupFile } from '../../../../core/utils/excelParser';
@@ -14,7 +14,8 @@ import type { AuthenticatedRequest } from '../controllers/TeachersController';
 const router: Router = express.Router();
 const teachersController = createTeachersController();
 
-// All routes require GIANG_VIEN role (handled in use cases)
+// All routes require GIANG_VIEN role — enforced at middleware level (defense-in-depth)
+router.use(requireTeacher);
 
 /**
  * GET /teachers/dashboard

@@ -7,9 +7,9 @@
  */
 
 import http from '../../../shared/api/http';
-import { 
-  handleApiError, 
-  createSuccessResponse, 
+import {
+  handleApiError,
+  createSuccessResponse,
   createValidationError,
   extractApiData,
   extractArrayItems
@@ -38,11 +38,11 @@ export const teacherApprovalApi = {
       const params: Record<string, unknown> = { page: 1, limit: 'all' };
       if (semester) params.semester = semester;
       if (search) params.search = search;
-      
+
       const response = await http.get('/teacher/activities/pending', { params });
       const data = extractApiData<Record<string, unknown>>(response, {});
       const items = extractArrayItems(data);
-      
+
       return createSuccessResponse({
         items,
         stats: (data.stats as Record<string, number>) || { total: 0, pending: 0, approved: 0, rejected: 0 }
@@ -65,11 +65,11 @@ export const teacherApprovalApi = {
       if (semester) params.semester = semester;
       if (search) params.search = search;
       if (status && status !== 'all') params.status = status;
-      
+
       const response = await http.get('/teacher/activities/history', { params });
       const data = extractApiData<Record<string, unknown>>(response, {});
       const items = extractArrayItems(data);
-      
+
       return createSuccessResponse(items);
     } catch (error) {
       return handleApiError(error, 'Approval.getHistory');
@@ -79,14 +79,16 @@ export const teacherApprovalApi = {
   /**
    * Phê duyệt hoạt động
    * @param {string|number} id - ID hoạt động
+   * @param {string} [semester] - Học kỳ
    */
-  async approve(id) {
+  async approve(id: string | number, semester?: string) {
     if (!id) {
       return createValidationError('id là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${id}/approve`);
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${id}/approve`, undefined, config);
       // Emit both APPROVALS and ACTIVITIES events for cross-component sync
       emitApprovalsChange({ action: 'approve', id });
       emitActivitiesChange({ action: 'approve', id });
@@ -100,17 +102,19 @@ export const teacherApprovalApi = {
    * Từ chối hoạt động
    * @param {string|number} id - ID hoạt động
    * @param {string} reason - Lý do từ chối
+   * @param {string} [semester] - Học kỳ
    */
-  async reject(id, reason) {
+  async reject(id: string | number, reason: string, semester?: string) {
     if (!id) {
       return createValidationError('id là bắt buộc');
     }
     if (!reason) {
       return createValidationError('Lý do từ chối là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${id}/reject`, { reason }, config);
       // Emit both APPROVALS and ACTIVITIES events for cross-component sync
       emitApprovalsChange({ action: 'reject', id });
       emitActivitiesChange({ action: 'reject', id });

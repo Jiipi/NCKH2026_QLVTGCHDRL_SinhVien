@@ -182,7 +182,8 @@ export function useMonitorApprovals() {
   const handleApprove = useCallback(async (registration) => {
     try {
       setProcessing(true);
-      if (!isWritable) return;
+      // Lớp trưởng được phép phê duyệt đăng ký bất kể học kỳ
+      // vì đăng ký có thể từ học kỳ trước và cần xử lý tồn đọng
       
       const result = await monitorApprovalsApi.approve(registration.id);
       if (result.success) {
@@ -198,13 +199,13 @@ export function useMonitorApprovals() {
     } finally {
       setProcessing(false);
     }
-  }, [isWritable, loadRegistrations, showSuccess, showError]);
+  }, [loadRegistrations, showSuccess, showError]);
 
   // Business logic: Reject registration
   const handleReject = useCallback(async (registration, reason) => {
     try {
       setProcessing(true);
-      if (!isWritable) return;
+      // Lớp trưởng được phép từ chối đăng ký bất kể học kỳ
       
       const result = await monitorApprovalsApi.reject(registration.id, reason);
       if (result.success) {
@@ -220,12 +221,12 @@ export function useMonitorApprovals() {
     } finally {
       setProcessing(false);
     }
-  }, [isWritable, loadRegistrations, showSuccess, showError]);
+  }, [loadRegistrations, showSuccess, showError]);
 
   // Business logic: Bulk approve
   const handleBulkApprove = useCallback(async () => {
     if (selectedIds.length === 0) return;
-    if (!isWritable) return;
+    // Lớp trưởng được phê duyệt hàng loạt bất kể học kỳ
     
     const confirmed = await confirm({
       title: 'Phê duyệt hàng loạt',
@@ -261,7 +262,7 @@ export function useMonitorApprovals() {
     } finally {
       setProcessing(false);
     }
-  }, [selectedIds, isWritable, loadRegistrations, showSuccess, showError, confirm]);
+  }, [selectedIds, loadRegistrations, showSuccess, showError, confirm]);
 
   // Business logic: Format date
   const formatDate = useCallback((dateStr) => {

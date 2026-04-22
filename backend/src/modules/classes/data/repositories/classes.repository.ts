@@ -5,8 +5,7 @@
 import type { Lop, HoatDong } from '@prisma/client';
 import type { FindManyOptions, FindManyResult, ClassIncludeOptions, ClassStats, StudentWithUser } from '../../business/interfaces/IClassRepository';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
+import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 /**
  * Class item with student count

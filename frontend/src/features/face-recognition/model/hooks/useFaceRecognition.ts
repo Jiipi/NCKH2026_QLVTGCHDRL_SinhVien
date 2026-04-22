@@ -27,31 +27,31 @@ interface UseFaceRecognitionReturn {
   // Service status
   serviceHealth: FaceHealthResponse | null;
   isServiceReady: boolean;
-  
+
   // Face registration status
   faceStatus: FaceStatusResponse | null;
   isRegistered: boolean;
-  
+
   // Loading states
   isLoading: boolean;
   isRegistering: boolean;
   isAttending: boolean;
   isDeleting: boolean;
-  
+
   // Error
   error: string | null;
-  
+
   // Camera
   videoRef: React.RefObject<HTMLVideoElement>;
   isStreaming: boolean;
   startCamera: () => Promise<boolean>;
   stopCamera: () => void;
   captureFrame: () => Promise<Blob | null>;
-  
+
   // Actions
   checkHealth: () => Promise<FaceHealthResponse>;
   checkStatus: () => Promise<FaceStatusResponse | null>;
-  register: (imageBlob: Blob, update?: boolean) => Promise<FaceRegisterResponse>;
+  register: (imageBlobs: Blob | Blob[], update?: boolean) => Promise<FaceRegisterResponse>;
   registerFromCamera: (update?: boolean) => Promise<FaceRegisterResponse>;
   attend: (activityId: string, imageBlob: Blob) => Promise<FaceAttendanceResponse>;
   attendFromCamera: (activityId: string) => Promise<FaceAttendanceResponse>;
@@ -63,7 +63,7 @@ export function useFaceRecognition(
   options: UseFaceRecognitionOptions = {}
 ): UseFaceRecognitionReturn {
   const { autoCheckStatus = true, autoCheckHealth = true } = options;
-  
+
   // State
   const [serviceHealth, setServiceHealth] = useState<FaceHealthResponse | null>(null);
   const [faceStatus, setFaceStatus] = useState<FaceStatusResponse | null>(null);
@@ -73,22 +73,22 @@ export function useFaceRecognition(
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  
+
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  
+
   // Derived state
   const isServiceReady = serviceHealth?.status === 'healthy' && serviceHealth?.models_loaded === true;
   const isRegistered = faceStatus?.registered === true;
-  
+
   // Check service health
   const checkHealth = useCallback(async (): Promise<FaceHealthResponse> => {
     const health = await checkFaceServiceHealth();
     setServiceHealth(health);
     return health;
   }, []);
-  
+
   // Check face registration status
   const checkStatus = useCallback(async (): Promise<FaceStatusResponse | null> => {
     setIsLoading(true);
@@ -103,14 +103,14 @@ export function useFaceRecognition(
       setIsLoading(false);
     }
   }, []);
-  
+
   // Start camera
   const startCamera = useCallback(async (): Promise<boolean> => {
     try {
       if (streamRef.current) {
         return true; // Already streaming
       }
-      
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
@@ -119,14 +119,14 @@ export function useFaceRecognition(
         },
         audio: false
       });
-      
+
       streamRef.current = stream;
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      
+
       setIsStreaming(true);
       return true;
     } catch (err: any) {
@@ -135,7 +135,7 @@ export function useFaceRecognition(
       return false;
     }
   }, []);
-  
+
   // Stop camera
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -147,14 +147,14 @@ export function useFaceRecognition(
     }
     setIsStreaming(false);
   }, []);
-  
+
   // Capture frame from camera
   const captureFrame = useCallback(async (): Promise<Blob | null> => {
     if (!videoRef.current || !isStreaming) {
       setError('Camera chưa được bật');
       return null;
     }
-    
+
     try {
       const blob = await captureVideoFrame(videoRef.current);
       return blob;
@@ -163,25 +163,26 @@ export function useFaceRecognition(
       return null;
     }
   }, [isStreaming]);
-  
+
   // Register face
   const register = useCallback(async (
-    imageBlob: Blob,
+    imageBlobs: Blob | Blob[],
     update: boolean = false
   ): Promise<FaceRegisterResponse> => {
     setIsRegistering(true);
     setError(null);
-    
+
     try {
-      const result = await registerFace(imageBlob, update);
-      
+      // registerFace now accepts both single and array
+      const result = await registerFace(imageBlobs, update);
+
       if (result.success) {
         // Refresh status after successful registration
         await checkStatus();
       } else {
         setError(result.message);
       }
-      
+
       return result;
     } catch (err: any) {
       const message = err.message || 'Đăng ký khuôn mặt thất bại';
@@ -191,7 +192,7 @@ export function useFaceRecognition(
       setIsRegistering(false);
     }
   }, [checkStatus]);
-  
+
   // Register from camera (capture + register)
   const registerFromCamera = useCallback(async (
     update: boolean = false
@@ -202,7 +203,7 @@ export function useFaceRecognition(
     }
     return register(blob, update);
   }, [captureFrame, register]);
-  
+
   // Face attendance
   const attend = useCallback(async (
     activityId: string,
@@ -210,14 +211,14 @@ export function useFaceRecognition(
   ): Promise<FaceAttendanceResponse> => {
     setIsAttending(true);
     setError(null);
-    
+
     try {
       const result = await faceAttendance(activityId, imageBlob);
-      
+
       if (!result.success) {
         setError(result.message);
       }
-      
+
       return result;
     } catch (err: any) {
       const message = err.message || 'Điểm danh thất bại';
@@ -227,7 +228,7 @@ export function useFaceRecognition(
       setIsAttending(false);
     }
   }, []);
-  
+
   // Attend from camera (capture + attend)
   const attendFromCamera = useCallback(async (
     activityId: string
@@ -238,21 +239,21 @@ export function useFaceRecognition(
     }
     return attend(activityId, blob);
   }, [captureFrame, attend]);
-  
+
   // Delete registration
   const deleteRegistration = useCallback(async () => {
     setIsDeleting(true);
     setError(null);
-    
+
     try {
       const result = await deleteFaceData();
-      
+
       if (result.success) {
         setFaceStatus(prev => prev ? { ...prev, registered: false } : null);
       } else {
         setError(result.message);
       }
-      
+
       return result;
     } catch (err: any) {
       const message = err.message || 'Xóa dữ liệu thất bại';
@@ -262,12 +263,12 @@ export function useFaceRecognition(
       setIsDeleting(false);
     }
   }, []);
-  
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
   }, []);
-  
+
   // Auto check on mount
   useEffect(() => {
     if (autoCheckHealth) {
@@ -277,39 +278,39 @@ export function useFaceRecognition(
       checkStatus();
     }
   }, [autoCheckHealth, autoCheckStatus, checkHealth, checkStatus]);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, [stopCamera]);
-  
+
   return {
     // Service status
     serviceHealth,
     isServiceReady,
-    
+
     // Face registration status
     faceStatus,
     isRegistered,
-    
+
     // Loading states
     isLoading,
     isRegistering,
     isAttending,
     isDeleting,
-    
+
     // Error
     error,
-    
+
     // Camera
     videoRef,
     isStreaming,
     startCamera,
     stopCamera,
     captureFrame,
-    
+
     // Actions
     checkHealth,
     checkStatus,

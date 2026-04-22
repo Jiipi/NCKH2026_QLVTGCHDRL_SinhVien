@@ -4,12 +4,11 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-import type { Lop, SinhVien } from '@prisma/client';
 import type GetCurrentSemesterUseCase from './GetCurrentSemesterUseCase';
+import type ISemesterRepository from '../interfaces/ISemesterRepository';
 
 import { SemesterClosureService } from '../../../../business/services/semesterClosure.service';
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
-const { parseSemesterString, normalizeSemesterFormat } = require('../../../../core/utils/semester');
+import { parseSemesterString, normalizeSemesterFormat } from '../../../../core/utils/semester';
 
 interface SemesterInfo {
   semester: string;
@@ -46,9 +45,11 @@ export interface CurrentSemesterStatusResponse {
 
 class GetCurrentSemesterStatusUseCase {
   private getCurrentSemesterUseCase: GetCurrentSemesterUseCase;
+  private semesterRepository: ISemesterRepository;
 
-  constructor(getCurrentSemesterUseCase: GetCurrentSemesterUseCase) {
+  constructor(getCurrentSemesterUseCase: GetCurrentSemesterUseCase, semesterRepository: ISemesterRepository) {
     this.getCurrentSemesterUseCase = getCurrentSemesterUseCase;
+    this.semesterRepository = semesterRepository;
   }
 
   /**
@@ -72,22 +73,12 @@ class GetCurrentSemesterStatusUseCase {
           classId = classMonitor.lop_id;
         } else {
           // Try to find class where user is class monitor (LOP_TRUONG)
-          const classAsMonitor = await prisma.lop.findFirst({
-            where: {
-              lop_truong_rel: {
-                nguoi_dung_id: userId
-              }
-            },
-            select: { id: true }
-          }) as Pick<Lop, 'id'> | null;
+          const classAsMonitor = await this.semesterRepository.findClassByMonitorUserId(userId);
           if (classAsMonitor?.id) {
             classId = classAsMonitor.id;
           } else {
             // Fallback: find class from sinh_vien table
-            const student = await prisma.sinhVien.findFirst({
-              where: { nguoi_dung_id: userId },
-              select: { lop_id: true }
-            }) as Pick<SinhVien, 'lop_id'> | null;
+            const student = await this.semesterRepository.findStudentClassByUserId(userId);
             if (student?.lop_id) {
               classId = student.lop_id;
             }

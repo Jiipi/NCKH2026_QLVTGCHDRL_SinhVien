@@ -1,9 +1,9 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
 import type { UserCreateInput } from '../interfaces/IUserRepository';
-const CreateUserDto = require('../dto/CreateUserDto');
-const { ForbiddenError, ValidationError } = require('../../../../core/errors/AppError');
-const bcrypt = require('bcryptjs');
+import CreateUserDto from '../dto/CreateUserDto';
+import { ForbiddenError, ValidationError } from '../../../../core/errors/AppError';
+import bcrypt from 'bcryptjs';
 
 interface AuthUser {
   id: string | number;

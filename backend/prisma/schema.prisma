@@ -22,6 +22,7 @@ model Lop {
   sinh_viens     SinhVien[] @relation("SinhVienLop")
   hoat_dongs     HoatDong[] @relation("LopHoatDong")
 
+  @@index([chu_nhiem])
   @@map("lop")
 }
 
@@ -98,6 +99,7 @@ model SinhVien {
   // Dữ liệu nhận diện khuôn mặt (1-1 relation)
   du_lieu_khuon_mat DuLieuKhuonMat?
 
+  @@index([lop_id])
   @@map("sinh_vien")
 }
 
@@ -168,6 +170,10 @@ model HoatDong {
   nguoi_tao        NguoiDung         @relation("NguoiTaoHoatDong", fields: [nguoi_tao_id], references: [id])
   lop              Lop?              @relation("LopHoatDong", fields: [lop_id], references: [id])
 
+  @@index([hoc_ky, nam_hoc])
+  @@index([lop_id, hoc_ky, nam_hoc])
+  @@index([nguoi_tao_id, hoc_ky, nam_hoc])
+  @@index([trang_thai, hoc_ky, nam_hoc])
   @@map("hoat_dong")
 }
 
@@ -187,6 +193,8 @@ model DangKyHoatDong {
   nguoi_duyet    NguoiDung?      @relation("NguoiDuyetDangKy", fields: [nguoi_duyet_id], references: [id])
 
   @@unique([sv_id, hd_id])
+  @@index([sv_id, trang_thai_dk])
+  @@index([hd_id, trang_thai_dk])
   @@map("dang_ky_hoat_dong")
 }
 

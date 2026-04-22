@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '../../data/infrastructure/prisma/client';
+import type { Lop } from '@prisma/client';
 
 // Types
 interface ClassInfo {
@@ -111,7 +112,7 @@ class ReferenceDataService {
   /**
    * Get class information by ID
    */
-  static async getClassById(lopId: string): Promise<any> {
+  static async getClassById(lopId: string): Promise<Lop | null> {
     try {
       return await prisma.lop.findUnique({ 
         where: { id: lopId } 
@@ -221,7 +222,7 @@ class ReferenceDataService {
     return this.getClassesByFaculty(faculty);
   }
 
-  static layThongTinLopTheoId(lopId: string): Promise<any> {
+  static layThongTinLopTheoId(lopId: string): Promise<Lop | null> {
     return this.getClassById(lopId);
   }
 

@@ -3,6 +3,7 @@
  * Data access layer for admin reports
  */
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type {
   IAdminReportsRepository,
   AttendanceRecord,
@@ -23,16 +24,18 @@ import type {
 
 class AdminReportsRepository implements IAdminReportsRepository {
   async groupActivitiesByStatus(where: ActivityReportFilter): Promise<unknown[]> {
+    const activityWhere = where as Prisma.HoatDongWhereInput;
     return prisma.hoatDong.groupBy({
       by: ['trang_thai'],
-      where: where as any,
+      where: activityWhere,
       _count: { _all: true },
     }) as unknown as Promise<unknown[]>;
   }
 
   async findTopActivities(where: ActivityReportFilter): Promise<unknown[]> {
+    const activityWhere = where as Prisma.HoatDongWhereInput;
     const results = await prisma.hoatDong.findMany({
-      where: where as any,
+      where: activityWhere,
       select: { id: true, ten_hd: true, ngay_bd: true, dang_ky_hd: { select: { id: true } } },
       orderBy: { ngay_bd: 'desc' },
       take: 20,
@@ -41,17 +44,19 @@ class AdminReportsRepository implements IAdminReportsRepository {
   }
 
   async groupRegistrationsByDate(where: ActivityReportFilter): Promise<unknown[]> {
+    const activityWhere = where as Prisma.HoatDongWhereInput;
     return prisma.dangKyHoatDong.groupBy({
       by: ['ngay_dang_ky'],
-      where: { hoat_dong: where as any },
+      where: { hoat_dong: activityWhere },
       _count: { _all: true },
     }) as unknown as Promise<unknown[]>;
   }
 
   async findActivitiesForExport(where: ActivityReportFilter): Promise<unknown[]> {
+    const activityWhere = where as Prisma.HoatDongWhereInput;
     try {
       const results = await prisma.hoatDong.findMany({
-        where: where as any,
+        where: activityWhere,
         select: {
           id: true,
           ma_hd: true,
@@ -69,7 +74,7 @@ class AdminReportsRepository implements IAdminReportsRepository {
       const errorMessage = qErr instanceof Error ? qErr.message : String(qErr);
       console.warn('findActivitiesForExport query failed, retrying without orderBy', errorMessage);
       const results = await prisma.hoatDong.findMany({
-        where: where as any,
+        where: activityWhere,
         select: {
           id: true,
           ma_hd: true,
@@ -86,8 +91,9 @@ class AdminReportsRepository implements IAdminReportsRepository {
   }
 
   async findRegistrationsForExport(where: ActivityReportFilter): Promise<unknown[]> {
+    const activityWhere = where as Prisma.HoatDongWhereInput;
     const results = await prisma.dangKyHoatDong.findMany({
-      where: { hoat_dong: where as any },
+      where: { hoat_dong: activityWhere },
       include: { sinh_vien: { include: { nguoi_dung: true } }, hoat_dong: true },
       orderBy: { ngay_dang_ky: 'desc' },
       take: 5000,
@@ -145,9 +151,10 @@ class AdminReportsRepository implements IAdminReportsRepository {
     skip: number,
     take: number
   ): Promise<{ attendanceList: AttendanceRecord[]; total: number }> {
+    const attendanceWhere = whereCondition as Prisma.DiemDanhWhereInput;
     const [attendanceList, total] = await Promise.all([
       prisma.diemDanh.findMany({
-        where: whereCondition as any,
+        where: attendanceWhere,
         include: {
           sinh_vien: {
             include: {
@@ -166,7 +173,7 @@ class AdminReportsRepository implements IAdminReportsRepository {
         take,
         orderBy: { tg_diem_danh: 'desc' },
       }),
-      prisma.diemDanh.count({ where: whereCondition as any }),
+      prisma.diemDanh.count({ where: attendanceWhere }),
     ]);
 
     return { attendanceList: attendanceList as unknown as AttendanceRecord[], total };

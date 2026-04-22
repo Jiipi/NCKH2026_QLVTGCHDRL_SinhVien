@@ -28,11 +28,11 @@ async function cleanupSessions(): Promise<CleanupResult> {
       deletedCount,
       timestamp: new Date()
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logError('Session cleanup job failed', error);
     return {
       success: false,
-      error: error.message,
+      error: (error as Error).message,
       timestamp: new Date()
     };
   }

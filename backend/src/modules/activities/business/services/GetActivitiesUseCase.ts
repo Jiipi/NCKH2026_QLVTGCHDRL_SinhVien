@@ -1,8 +1,8 @@
 import type { HoatDong, Prisma, TrangThaiHoatDong, HocKy, DangKyHoatDong } from '@prisma/client';
 import type IActivityRepository from '../interfaces/IActivityRepository';
 import type { FindManyOptions } from '../interfaces/IActivityRepository';
-const GetActivitiesDto = require('../dto/GetActivitiesDto');
-const { parseSemesterString } = require('../../../../core/utils/semester');
+import GetActivitiesDto from '../dto/GetActivitiesDto';
+import { parseSemesterString } from '../../../../core/utils/semester';
 
 /**
  * User type for authorization
@@ -191,16 +191,12 @@ class GetActivitiesUseCase {
      * - Định nghĩa mới: hoạt động thuộc lớp = hoat_dong.lop_id = classId,
      *   không quan tâm người tạo hay đăng ký.
      * - Luôn filter theo lop_id, cộng thêm hoc_ky/nam_hoc nếu có.
-     * - Nếu admin không chọn status cụ thể, auto lọc da_duyet + ket_thuc.
+     * - Admin có thể thấy tất cả các trạng thái khi filter theo lớp.
      */
     if (dto.classId && user && user.role === 'ADMIN') {
       // Lọc theo lớp trực tiếp trên bảng HoatDong
       where.lop_id = String(dto.classId);
-
-      // Nếu admin không chọn status cụ thể, tự động giới hạn về da_duyet + ket_thuc
-      if (!dto.status && !where.trang_thai) {
-        where.trang_thai = { in: ['da_duyet', 'ket_thuc'] as TrangThaiHoatDong[] };
-      }
+      // Don't auto-add status filter - let admin see all statuses
     }
 
     return where;
@@ -215,7 +211,7 @@ class GetActivitiesUseCase {
       const parsed = parseInt(String(dto.limit));
       effectiveLimit = isNaN(parsed) ? 10 : parsed;
     }
-    
+
     const effectivePage = effectiveLimit === undefined ? 1 : (dto.page || 1);
 
     return {

@@ -4,10 +4,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-const { createUsersController } = require('../users.factory');
-const validators = require('../../business/validators/users.validators');
-const { auth } = require('../../../../core/http/middleware/authJwt');
-const { asyncHandler } = require('../../../../core/http/middleware/asyncHandler');
+import { createUsersController } from '../users.factory';
+import * as validators from '../../business/validators/users.validators';
+import { auth } from '../../../../core/http/middleware/authJwt';
+import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
 
 const router: Router = Router();
 const usersController = createUsersController();

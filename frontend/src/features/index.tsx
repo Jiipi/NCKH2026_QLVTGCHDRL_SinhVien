@@ -17,7 +17,6 @@ export * as Activities from './activities';
 export * as Admin from './admin';
 export * as Approvals from './approvals';
 export * as Auth from './auth';
-export * as Dashboard from './dashboard';
 export * as Monitor from './monitor';
 export * as Notifications from './notifications';
 export * as QRAttendance from './qr-attendance';

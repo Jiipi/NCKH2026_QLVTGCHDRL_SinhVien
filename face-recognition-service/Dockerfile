@@ -24,10 +24,8 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download models during build (optional, makes startup faster)
-# Uncomment the following lines to pre-download models
-# RUN python -c "from deepface import DeepFace; DeepFace.build_model('ArcFace')"
-# RUN python -c "from retinaface import RetinaFace; RetinaFace.detect_faces('https://raw.githubusercontent.com/serengil/deepface/master/tests/dataset/img1.jpg')"
+# Pre-download InsightFace models during build for faster startup
+RUN python -c "import insightface; insightface.app.FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); print('InsightFace buffalo_l model downloaded')"
 
 # Copy application code
 COPY app/ ./app/

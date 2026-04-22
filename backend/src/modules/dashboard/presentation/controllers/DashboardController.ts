@@ -12,6 +12,8 @@ import type GetActivityStatsUseCase from '../../business/services/GetActivitySta
 import type GetAdminDashboardUseCase from '../../business/services/GetAdminDashboardUseCase';
 import type GetMyActivitiesUseCase from '../../business/services/GetMyActivitiesUseCase';
 import type GetDetailedScoresUseCase from '../../business/services/GetDetailedScoresUseCase';
+import type { StudentDashboardQuery } from '../../business/services/GetStudentDashboardUseCase';
+import type { DetailedScoresQuery } from '../../business/services/GetDetailedScoresUseCase';
 
 export interface DashboardUseCases {
   getStudentDashboard: GetStudentDashboardUseCase;
@@ -24,7 +26,21 @@ export interface DashboardUseCases {
 interface AuthenticatedRequest extends Request {
   user: {
     sub: string;
-    [key: string]: any;
+    role: string;
+    [key: string]: string;
+  };
+  scope?: {
+    where: any;
+    permissions: {
+      canCreate: boolean;
+      canUpdate: boolean;
+      canDelete: boolean;
+      canApprove: boolean;
+    };
+  };
+  semester?: {
+    hoc_ky: string;
+    nam_hoc: string;
   };
 }
 
@@ -38,8 +54,24 @@ class DashboardController {
   async getStudentDashboard(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
       const userId = req.user.sub;
-      const data = await this.useCases.getStudentDashboard.execute(userId, req.query as any);
-      return sendResponse(res, 200, ApiResponse.success(data, 'Dữ liệu dashboard sinh viên'));
+      const scope = req.scope;
+      const semester = req.semester;
+      
+      const data = await this.useCases.getStudentDashboard.execute(
+        userId, 
+        req.query as unknown as StudentDashboardQuery,
+        scope,
+        semester
+      );
+      
+      return sendResponse(res, 200, ApiResponse.success({
+        ...data,
+        meta: {
+          role: req.user.role,
+          semester,
+          permissions: scope?.permissions
+        }
+      }, 'Dữ liệu dashboard sinh viên'));
     } catch (error) {
       logError('Get student dashboard error', error);
       if (error instanceof AppError) {
@@ -60,10 +92,21 @@ class DashboardController {
     }
   }
 
-  async getAdminDashboard(req: Request, res: Response): Promise<Response> {
+  async getAdminDashboard(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
-      const data = await this.useCases.getAdminDashboard.execute();
-      return sendResponse(res, 200, ApiResponse.success(data, 'Lấy dashboard thành công'));
+      const scope = req.scope;
+      const semester = req.semester;
+      
+      const data = await this.useCases.getAdminDashboard.execute(scope, semester);
+      
+      return sendResponse(res, 200, ApiResponse.success({
+        ...data,
+        meta: {
+          role: req.user.role,
+          semester,
+          permissions: scope?.permissions
+        }
+      }, 'Lấy dashboard thành công'));
     } catch (error) {
       logError('Get admin dashboard error', error);
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy dữ liệu dashboard'));
@@ -91,7 +134,7 @@ class DashboardController {
     try {
       const userId = req.user.sub;
       // Pass full query to ensure semester parsing is consistent with getStudentDashboard
-      const data = await this.useCases.getDetailedScores.execute(userId, req.query as any);
+      const data = await this.useCases.getDetailedScores.execute(userId, req.query as unknown as DetailedScoresQuery);
       return sendResponse(res, 200, ApiResponse.success(data, 'Chi tiết điểm rèn luyện'));
     } catch (error) {
       logError('Get detailed scores error', error);

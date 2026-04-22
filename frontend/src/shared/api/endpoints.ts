@@ -79,9 +79,12 @@ export const API_ENDPOINTS = {
     // Dashboard endpoints
     dashboard: {
         student: `${API_BASE.CORE}/dashboard/student`,
-        teacher: `${API_BASE.CORE}/dashboard/teacher`,
-        monitor: `${API_BASE.CORE}/dashboard/monitor`,
+        teacher: '/teacher/dashboard',
+        monitor: `${API_BASE.CORE}/monitor/dashboard`,
         admin: `${API_BASE.CORE}/dashboard/admin`,
+        activitiesMe: `${API_BASE.CORE}/dashboard/activities/me`,
+        activityStats: `${API_BASE.CORE}/dashboard/activity-stats`,
+        detailedScores: `${API_BASE.CORE}/dashboard/scores/detailed`,
     },
 
     // Reports endpoints

@@ -24,7 +24,7 @@ interface FileError extends Error {
 /**
  * Upload single image
  */
-export async function uploadImage(req: Request, res: Response): Promise<any> {
+export async function uploadImage(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     if (!authReq.file) {
@@ -49,7 +49,7 @@ export async function uploadImage(req: Request, res: Response): Promise<any> {
 /**
  * Upload multiple images
  */
-export async function uploadImages(req: Request, res: Response): Promise<any> {
+export async function uploadImages(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     const files = authReq.files as Express.Multer.File[] | undefined;
@@ -76,7 +76,7 @@ export async function uploadImages(req: Request, res: Response): Promise<any> {
 /**
  * Upload single attachment
  */
-export async function uploadAttachment(req: Request, res: Response): Promise<any> {
+export async function uploadAttachment(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     if (!authReq.file) {
@@ -102,7 +102,7 @@ export async function uploadAttachment(req: Request, res: Response): Promise<any
 /**
  * Upload multiple attachments
  */
-export async function uploadAttachments(req: Request, res: Response): Promise<any> {
+export async function uploadAttachments(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     const files = authReq.files as Express.Multer.File[] | undefined;
@@ -130,7 +130,7 @@ export async function uploadAttachments(req: Request, res: Response): Promise<an
 /**
  * Upload avatar
  */
-export async function uploadAvatar(req: Request, res: Response): Promise<any> {
+export async function uploadAvatar(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     if (!authReq.file) {
@@ -155,7 +155,7 @@ export async function uploadAvatar(req: Request, res: Response): Promise<any> {
 /**
  * Delete avatar
  */
-export async function deleteAvatar(req: Request, res: Response): Promise<any> {
+export async function deleteAvatar(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     const { filename } = req.params;
@@ -178,7 +178,7 @@ export async function deleteAvatar(req: Request, res: Response): Promise<any> {
 /**
  * Delete file
  */
-export async function deleteFile(req: Request, res: Response): Promise<any> {
+export async function deleteFile(req: Request, res: Response): Promise<Response> {
   try {
     const authReq = req as AuthRequest;
     const { type, filename } = req.params;
@@ -207,7 +207,7 @@ export async function deleteFile(req: Request, res: Response): Promise<any> {
 /**
  * Get file info
  */
-export async function getFileInfo(req: Request, res: Response): Promise<any> {
+export async function getFileInfo(req: Request, res: Response): Promise<Response> {
   try {
     const { type, filename } = req.params;
     const allowedTypes = ['images', 'attachments', 'avatars'];

@@ -96,7 +96,7 @@ class UpdateUserUseCase {
           lop: true
         }
       }
-    }) as any;
+    }) as UserRecord;
 
     logInfo('User updated successfully', {
       adminId,
@@ -131,8 +131,8 @@ class UpdateUserUseCase {
     };
   }
 
-  private async buildUserUpdateData(existingUser: UserRecord, dto: UpdateUserDto): Promise<Record<string, any>> {
-    const updateData: Record<string, any> = {};
+  private async buildUserUpdateData(existingUser: UserRecord, dto: UpdateUserDto): Promise<Record<string, unknown>> {
+    const updateData: Record<string, unknown> = {};
 
     if (dto.maso && dto.maso !== existingUser.ten_dn) {
       const masoExists = await this.adminUserRepository.findUserByTenDn(dto.maso);
@@ -201,7 +201,7 @@ class UpdateUserUseCase {
   }
 
   private async updateStudentProfile(studentId: string, studentData: StudentUpdateData): Promise<void> {
-    const updatePayload: Record<string, any> = {};
+    const updatePayload: Record<string, unknown> = {};
     if (studentData.mssv) updatePayload.mssv = studentData.mssv;
     if (studentData.ngay_sinh) {
       updatePayload.ngay_sinh = studentData.ngay_sinh instanceof Date 

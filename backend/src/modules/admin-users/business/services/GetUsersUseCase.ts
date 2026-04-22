@@ -9,6 +9,7 @@ import { validatePaginationParams, createQueryOptions, createPaginationResponse 
 import { mapUserToListItem, UserListItem } from '../utils/admin-users.mappers';
 import type GetUsersDto from '../dto/GetUsersDto';
 import { ROLE_ALIASES } from '../utils/admin-users.constants';
+import { logDebug } from '../../../../core/logger';
 
 const ADMIN_USERS_MAX_LIMIT = 1000;
 
@@ -63,12 +64,19 @@ class GetUsersUseCase {
     const { search, role, status, userIds, excludeUserIds, excludeStatus } = params;
     const whereCondition: UserWhereInput = {};
 
-    console.log('[GetUsersUseCase.buildFilterConditions] params:', { status, userIds, excludeUserIds, excludeStatus, role, search });
+    logDebug('[GetUsersUseCase.buildFilterConditions] params', {
+      status,
+      userIdsCount: Array.isArray(userIds) ? userIds.length : 0,
+      excludeUserIdsCount: Array.isArray(excludeUserIds) ? excludeUserIds.length : 0,
+      excludeStatus,
+      role,
+      search
+    });
 
     // Filter by specific user IDs (for online users filter)
     if (userIds && Array.isArray(userIds) && userIds.length > 0) {
       whereCondition.id = { in: userIds };
-      console.log('[GetUsersUseCase.buildFilterConditions] Filtering by userIds:', userIds.length);
+      logDebug('[GetUsersUseCase.buildFilterConditions] filtering by userIds', { count: userIds.length });
     }
 
     // Exclude specific user IDs (for offline users filter)
@@ -77,13 +85,13 @@ class GetUsersUseCase {
         ...(typeof whereCondition.id === 'object' ? whereCondition.id : {}),
         notIn: excludeUserIds 
       };
-      console.log('[GetUsersUseCase.buildFilterConditions] Excluding userIds:', excludeUserIds.length);
+      logDebug('[GetUsersUseCase.buildFilterConditions] excluding userIds', { count: excludeUserIds.length });
     }
 
     // Exclude specific status (for offline users - exclude locked)
     if (excludeStatus) {
       whereCondition.trang_thai = { not: excludeStatus };
-      console.log('[GetUsersUseCase.buildFilterConditions] Excluding status:', excludeStatus);
+      logDebug('[GetUsersUseCase.buildFilterConditions] excluding status', { excludeStatus });
     }
 
     if (search) {
@@ -106,10 +114,10 @@ class GetUsersUseCase {
     // Note: 'hoat_dong' and 'khong_hoat_dong' are handled via userIds from sessions
     if (status && status === 'khoa') {
       whereCondition.trang_thai = status;
-      console.log('[GetUsersUseCase.buildFilterConditions] Filtering by status=khoa');
+      logDebug('[GetUsersUseCase.buildFilterConditions] filtering by locked status');
     }
 
-    console.log('[GetUsersUseCase.buildFilterConditions] Final whereCondition:', JSON.stringify(whereCondition, null, 2));
+    logDebug('[GetUsersUseCase.buildFilterConditions] final where condition prepared');
     return whereCondition;
   }
 

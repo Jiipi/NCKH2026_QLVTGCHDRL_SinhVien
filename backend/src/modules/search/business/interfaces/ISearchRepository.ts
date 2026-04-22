@@ -4,6 +4,8 @@
  * Follows Dependency Inversion Principle (DIP)
  */
 
+import type { Prisma } from '@prisma/client';
+
 export interface SearchOptions {
   take?: number;
   orderBy?: Record<string, 'asc' | 'desc'>;
@@ -71,10 +73,10 @@ export interface TeacherClass {
 }
 
 export interface ISearchRepository {
-  searchActivities(filters: object, options?: SearchOptions): Promise<ActivityResult[]>;
-  searchStudents(filters: object, options?: SearchOptions): Promise<StudentResult[]>;
-  searchClasses(filters: object, options?: SearchOptions): Promise<ClassResult[]>;
-  searchTeachers(filters: object, options?: SearchOptions): Promise<TeacherResult[]>;
+  searchActivities(filters: Prisma.HoatDongWhereInput, options?: SearchOptions): Promise<ActivityResult[]>;
+  searchStudents(filters: Prisma.SinhVienWhereInput, options?: SearchOptions): Promise<StudentResult[]>;
+  searchClasses(filters: Prisma.LopWhereInput, options?: SearchOptions): Promise<ClassResult[]>;
+  searchTeachers(filters: Prisma.NguoiDungWhereInput, options?: SearchOptions): Promise<TeacherResult[]>;
   getStudentByUserId(userId: string): Promise<StudentRecord | null>;
   getClassCreators(classId: string): Promise<ClassCreator[]>;
   getClassHomeroom(classId: string): Promise<ClassHomeroom | null>;
@@ -85,10 +87,10 @@ export interface ISearchRepository {
  * Abstract base class for search repository implementations
  */
 abstract class SearchRepositoryBase implements ISearchRepository {
-  abstract searchActivities(filters: object, options?: SearchOptions): Promise<ActivityResult[]>;
-  abstract searchStudents(filters: object, options?: SearchOptions): Promise<StudentResult[]>;
-  abstract searchClasses(filters: object, options?: SearchOptions): Promise<ClassResult[]>;
-  abstract searchTeachers(filters: object, options?: SearchOptions): Promise<TeacherResult[]>;
+  abstract searchActivities(filters: Prisma.HoatDongWhereInput, options?: SearchOptions): Promise<ActivityResult[]>;
+  abstract searchStudents(filters: Prisma.SinhVienWhereInput, options?: SearchOptions): Promise<StudentResult[]>;
+  abstract searchClasses(filters: Prisma.LopWhereInput, options?: SearchOptions): Promise<ClassResult[]>;
+  abstract searchTeachers(filters: Prisma.NguoiDungWhereInput, options?: SearchOptions): Promise<TeacherResult[]>;
   abstract getStudentByUserId(userId: string): Promise<StudentRecord | null>;
   abstract getClassCreators(classId: string): Promise<ClassCreator[]>;
   abstract getClassHomeroom(classId: string): Promise<ClassHomeroom | null>;

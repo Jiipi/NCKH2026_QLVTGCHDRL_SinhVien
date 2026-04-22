@@ -2,7 +2,7 @@
  * FaceAttendanceCard - Thẻ điểm danh bằng khuôn mặt
  * Hiển thị trong trang điểm danh hoạt động
  */
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FaceCamera, { FaceCameraRef } from './FaceCamera';
 import { useFaceRecognition } from '../../model/hooks/useFaceRecognition';
 
@@ -24,7 +24,7 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
   const cameraRef = useRef<FaceCameraRef>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; confidence?: number } | null>(null);
-  
+
   const {
     attend,
     faceStatus,
@@ -51,9 +51,9 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
       // Chuyển base64 thành Blob
       const response = await fetch(imageData);
       const blob = await response.blob();
-      
+
       const attendResult = await attend(hoatDongId, blob);
-      
+
       if (attendResult.success) {
         setResult({
           success: true,
@@ -64,7 +64,7 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
           diemDanhId: attendResult.attendanceId || '',
           doTinCay: attendResult.similarity || 0
         });
-        
+
         // Tắt camera sau khi thành công
         setTimeout(() => {
           cameraRef.current?.stopStream();
@@ -94,25 +94,54 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
     }
   }, [handleCapture]);
 
+  // Tự động quét khuôn mặt
+  const isAttendingRef = useRef(isAttending);
+  useEffect(() => {
+    isAttendingRef.current = isAttending;
+  }, [isAttending]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (isExpanded && isRegistered && !result?.success) {
+      // Đợi 1.5s để camera khởi động xong trước khi bắt đầu vòng lặp quét
+      const timeoutId = setTimeout(() => {
+        intervalId = setInterval(() => {
+          if (!isAttendingRef.current && cameraRef.current?.isStreaming) {
+            handleTakePhoto();
+          }
+        }, 2500); // Quét mỗi 2.5 giây
+      }, 1500);
+
+      return () => {
+        clearTimeout(timeoutId);
+        if (intervalId) clearInterval(intervalId);
+      };
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isExpanded, isRegistered, result?.success, handleTakePhoto]);
+
   // Nếu chưa đăng ký khuôn mặt
   const notRegistered = !isRegistered;
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${className}`}>
       {/* Header */}
-      <div 
-        className={`p-4 cursor-pointer transition ${
-          disabled ? 'bg-gray-100 dark:bg-gray-700' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700'
-        }`}
+      <div
+        className={`p-4 cursor-pointer transition ${disabled ? 'bg-gray-100 dark:bg-gray-700' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700'
+          }`}
         onClick={!disabled ? toggleCamera : undefined}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-white/20'}`}>
-              <svg 
-                className={`w-6 h-6 ${disabled ? 'text-gray-500' : 'text-white'}`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-6 h-6 ${disabled ? 'text-gray-500' : 'text-white'}`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -127,12 +156,12 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
               </p>
             </div>
           </div>
-          
+
           {!disabled && (
-            <svg 
-              className={`w-5 h-5 text-white transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className={`w-5 h-5 text-white transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -140,7 +169,7 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
           )}
         </div>
       </div>
-      
+
       {/* Expandable content */}
       {isExpanded && (
         <div className="p-4 border-t dark:border-gray-700">
@@ -169,17 +198,16 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
               </a>
             </div>
           )}
-          
+
           {/* Đã đăng ký - hiển thị camera */}
           {!notRegistered && (
             <>
               {/* Result message */}
               {result && (
-                <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 ${
-                  result.success 
-                    ? 'bg-emerald-100 text-emerald-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 ${result.success
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-red-100 text-red-800'
+                  }`}>
                   {result.success ? (
                     <svg className="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -199,7 +227,7 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Camera - responsive sizing */}
               {!result?.success && (
                 <>
@@ -216,41 +244,38 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
                       processingMessage="Đang nhận dạng..."
                     />
                   </div>
-                  
+
                   {/* Action buttons - responsive */}
-                  <div className="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3 mt-4">
+                  <div className="flex flex-col-reverse sm:flex-row justify-center items-center gap-4 mt-6">
                     <button
                       onClick={() => setIsExpanded(false)}
-                      className="px-4 py-2.5 sm:py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm sm:text-base"
+                      className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition font-medium"
                     >
-                      Đóng
+                      Đóng Camera
                     </button>
-                    <button
-                      onClick={handleTakePhoto}
-                      disabled={isAttending}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 text-sm sm:text-base font-medium"
-                    >
+
+                    <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-5 py-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
                       {isAttending ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                          Đang xử lý...
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-600 border-t-transparent" />
+                          <span className="font-medium text-sm sm:text-base">Đang xử lý ảnh...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          Điểm danh
+                          <div className="w-5 h-5 relative flex items-center justify-center">
+                            <div className="absolute w-full h-full border-2 border-emerald-600 rounded-full animate-ping opacity-75"></div>
+                            <div className="relative w-2.5 h-2.5 bg-emerald-600 rounded-full"></div>
+                          </div>
+                          <span className="font-medium text-sm sm:text-base">Đang tự động quét khuôn mặt...</span>
                         </>
                       )}
-                    </button>
+                    </div>
                   </div>
                 </>
               )}
             </>
           )}
-          
+
           {/* Loading check face status */}
           {isLoading && !isRegistered && (
             <div className="text-center py-8">

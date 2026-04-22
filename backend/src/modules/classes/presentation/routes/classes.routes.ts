@@ -6,18 +6,13 @@
 import type { Router, Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../controllers/ClassesController';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const express = require('express');
+import express from 'express';
 const router: Router = express.Router();
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { createClassesController } = require('../classes.factory');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const validators = require('../../business/validators/classes.validators');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { auth } = require('../../../../core/http/middleware/authJwt');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { asyncHandler } = require('../../../../core/http/middleware/asyncHandler');
+import { createClassesController } from '../classes.factory';
+import * as validators from '../../business/validators/classes.validators';
+import { auth } from '../../../../core/http/middleware/authJwt';
+import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
 
 const classesController = createClassesController();
 

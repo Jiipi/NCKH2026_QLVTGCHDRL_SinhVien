@@ -3,6 +3,7 @@
  * Data access layer for points operations
  */
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma, HocKy } from '@prisma/client';
 import { parseSemesterString } from '../../../../core/utils/semester';
 import type {
   IPointsRepository,
@@ -40,7 +41,7 @@ class PointsRepository implements IPointsRepository {
   async findAttendedRegistrations(studentId: string, filters: PointsFilters = {}): Promise<RegistrationWithActivity[]> {
     const { semester } = filters;
 
-    const where: Record<string, unknown> = {
+    const where: Prisma.DangKyHoatDongWhereInput = {
       sv_id: studentId,
       trang_thai_dk: 'da_tham_gia',
     };
@@ -56,7 +57,7 @@ class PointsRepository implements IPointsRepository {
     }
 
     const results = await prisma.dangKyHoatDong.findMany({
-      where: where as any,
+      where,
       include: {
         hoat_dong: {
           include: {
@@ -113,9 +114,9 @@ class PointsRepository implements IPointsRepository {
     const { page = 1, limit = 10 } = pagination;
     const offset = (parseInt(String(page)) - 1) * parseInt(String(limit));
 
-    const whereCondition: Record<string, unknown> = { sv_id: studentId };
+    const whereCondition: Prisma.DangKyHoatDongWhereInput = { sv_id: studentId };
 
-    let where = whereCondition;
+    let where: Prisma.DangKyHoatDongWhereInput = whereCondition;
     if (semester) {
       const parsed = parseSemesterString(semester);
       if (parsed && parsed.year) {
@@ -131,7 +132,7 @@ class PointsRepository implements IPointsRepository {
 
     const [registrations, total] = await Promise.all([
       prisma.dangKyHoatDong.findMany({
-        where: where as any,
+        where,
         include: {
           hoat_dong: { include: { loai_hd: true } },
         },
@@ -141,7 +142,7 @@ class PointsRepository implements IPointsRepository {
         skip: offset,
         take: parseInt(String(limit)),
       }),
-      prisma.dangKyHoatDong.count({ where: where as any }),
+      prisma.dangKyHoatDong.count({ where }),
     ]);
 
     return { registrations: registrations as unknown as RegistrationWithActivity[], total };
@@ -234,18 +235,18 @@ class PointsRepository implements IPointsRepository {
     hocKy: string,
     namHoc: string | null = null
   ): Promise<RegistrationWithActivity[]> {
-    const whereCondition: Record<string, unknown> = {
+    const whereCondition: Prisma.DangKyHoatDongWhereInput = {
       sv_id: studentId,
       trang_thai_dk: 'da_tham_gia',
       hoat_dong: {
         trang_thai: 'ket_thuc',
-        hoc_ky: hocKy,
+        hoc_ky: hocKy as HocKy,
         ...(namHoc ? { nam_hoc: namHoc } : {}),
       },
     };
 
     const results = await prisma.dangKyHoatDong.findMany({
-      where: whereCondition as any,
+      where: whereCondition,
       include: {
         hoat_dong: {
           include: {

@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
-import { IAuthRepository, UserWithRole, UserData, RoleData, StudentData } from '../../business/interfaces/IAuthRepository';
+import { IAuthRepository, UserWithRole, UserData, RoleData, StudentData, StudentRecord } from '../../business/interfaces/IAuthRepository';
 
 // Extended interface for student lookup
 interface StudentWithRelations {
@@ -112,7 +112,7 @@ class AuthRepository implements IAuthRepository {
 
   async createUser(userData: UserData): Promise<UserWithRole> {
     return prisma.nguoiDung.create({
-      data: userData as any,
+      data: userData as unknown as import('@prisma/client').Prisma.NguoiDungCreateInput,
       include: {
         vai_tro: true,
         sinh_vien: {
@@ -127,7 +127,7 @@ class AuthRepository implements IAuthRepository {
   async updateUser(userId: string, updateData: Partial<UserData>): Promise<UserWithRole> {
     return prisma.nguoiDung.update({
       where: { id: userId },
-      data: updateData as any,
+      data: updateData as unknown as import('@prisma/client').Prisma.NguoiDungUpdateInput,
       include: {
         vai_tro: true,
         sinh_vien: {
@@ -139,9 +139,9 @@ class AuthRepository implements IAuthRepository {
     }) as Promise<UserWithRole>;
   }
 
-  async createStudent(studentData: StudentData): Promise<any> {
+  async createStudent(studentData: StudentData): Promise<StudentRecord> {
     return prisma.sinhVien.create({
-      data: studentData as any,
+      data: studentData as unknown as import('@prisma/client').Prisma.SinhVienCreateInput,
       include: {
         nguoi_dung: {
           include: {
@@ -166,7 +166,7 @@ class AuthRepository implements IAuthRepository {
 
   async createRole(roleData: RoleData): Promise<RoleData> {
     return prisma.vaiTro.create({
-      data: roleData as any
+      data: roleData as unknown as import('@prisma/client').Prisma.VaiTroCreateInput
     }) as Promise<RoleData>;
   }
 

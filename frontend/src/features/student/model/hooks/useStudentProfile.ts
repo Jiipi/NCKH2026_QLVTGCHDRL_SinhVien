@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { studentProfileApi } from '../../services/studentProfileApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../../shared/lib/date';
+import { resolveAssetUrl } from '../../../../shared/lib/assetUrl';
 
 /**
  * Hook quản lý profile của sinh viên
@@ -45,9 +46,9 @@ export default function useStudentProfile() {
     try {
       setLoading(true);
       const timestamp = new Date().getTime();
-      
+
       const result = await studentProfileApi.getProfile();
-      
+
       if (!result.success || !('data' in result)) {
         showError('Không thể tải thông tin profile');
         return;
@@ -116,7 +117,7 @@ export default function useStudentProfile() {
       };
 
       const result = await studentProfileApi.updateProfile(updateData);
-      
+
       if (result.success) {
         setEditing(false);
         const updatedProfile = { ...profile, ...updateData };
@@ -145,7 +146,7 @@ export default function useStudentProfile() {
       // Note: Change password endpoint might be different
       // Sử dụng API service layer
       const result = await studentProfileApi.changePassword(passwordData);
-      
+
       if (!result.success) {
         showError(result.error || 'Lỗi đổi mật khẩu');
         return;
@@ -172,9 +173,12 @@ export default function useStudentProfile() {
 
   const isValidImageUrl = useCallback((url) => {
     if (!url) return false;
-    if (url.startsWith('data:image/') || url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) || 
-        url.includes('i.pinimg.com') || url.includes('images.unsplash.com') || 
-        url.includes('cdn') || url.includes('imgur.com') || url.includes('googleusercontent.com')) {
+    if (url.startsWith('data:image/') ||
+      url.startsWith('/') ||
+      url.startsWith('http') ||
+      url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
+      url.includes('i.pinimg.com') || url.includes('images.unsplash.com') ||
+      url.includes('cdn') || url.includes('imgur.com') || url.includes('googleusercontent.com')) {
       return true;
     }
     return false;
@@ -187,7 +191,8 @@ export default function useStudentProfile() {
       const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
     }
-    return url;
+    // Resolve relative paths to full backend URL
+    return resolveAssetUrl(url);
   }, []);
 
   const canDisplayImage = profile?.anh_dai_dien && isValidImageUrl(profile.anh_dai_dien);

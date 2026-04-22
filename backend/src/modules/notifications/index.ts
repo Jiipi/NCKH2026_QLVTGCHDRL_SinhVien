@@ -18,6 +18,6 @@ export type {
   INotificationsController
 } from './notifications.types';
 
-const routes = require('./presentation/routes/notifications.routes');
+import routes from './presentation/routes/notifications.routes';
 export { routes };
 module.exports = { routes };

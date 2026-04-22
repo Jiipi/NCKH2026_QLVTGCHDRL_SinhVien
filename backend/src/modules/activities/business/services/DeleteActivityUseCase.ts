@@ -2,7 +2,6 @@ import type { HoatDong, Prisma } from '@prisma/client';
 import type IActivityRepository from '../interfaces/IActivityRepository';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../core/errors/AppError';
 import { canAccessItem } from '../../../../app/scopes/scopeBuilder';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 interface User {
   sub: string;
@@ -26,9 +25,9 @@ class DeleteActivityUseCase {
     this.activityRepository = activityRepository;
   }
 
-  async execute(id: string, user: User, scope?: Scope): Promise<HoatDong> {
-    // Check if activity exists in scope
-    const existing = await this.activityRepository.findById(id, scope?.activityFilter || {});
+  async execute(id: string, user: User, scope?: Scope, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<HoatDong> {
+    // Check if activity exists in scope and validate semester
+    const existing = await this.activityRepository.findById(id, scope?.activityFilter || {}, null, semesterInfo);
 
     if (!existing) {
       throw new NotFoundError('Không tìm thấy hoạt động');
@@ -41,9 +40,7 @@ class DeleteActivityUseCase {
     }
 
     // Check if activity has registrations
-    const registrationCount = await prisma.dangKyHoatDong.count({
-      where: { hd_id: id }
-    });
+    const registrationCount = await this.activityRepository.countRegistrationsByActivity(id);
 
     if (registrationCount > 0) {
       throw new ValidationError('Không thể xóa hoạt động đã có người đăng ký');

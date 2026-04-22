@@ -10,8 +10,8 @@ import IMonitorRepository, {
   ClassWithRelations 
 } from '../../business/interfaces/IMonitorRepository';
 
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
-const { logInfo } = require('../../../../core/logger');
+import { prisma } from '../../../../data/infrastructure/prisma/client';
+import { logInfo } from '../../../../core/logger';
 
 /**
  * MonitorPrismaRepository
@@ -44,7 +44,7 @@ class MonitorPrismaRepository extends IMonitorRepository {
     return await prisma.dangKyHoatDong.findMany({
       where: {
         sv_id: studentId,
-        trang_thai_dk: 'da_tham_gia',
+        trang_thai_dk: 'da_tham_gia', // Only count if student actually attended (QR scanned)
         hoat_dong: activityFilter && Object.keys(activityFilter).length ? { is: activityFilter } : undefined
       },
       include: {
@@ -64,7 +64,7 @@ class MonitorPrismaRepository extends IMonitorRepository {
     return await prisma.dangKyHoatDong.findMany({
       where: {
         sinh_vien: { lop_id: classId },
-        trang_thai_dk: 'da_tham_gia',
+        trang_thai_dk: 'da_tham_gia', // Only count if student actually attended (QR scanned)
         hoat_dong: activityFilter && Object.keys(activityFilter).length ? { is: activityFilter } : undefined
       },
       select: {

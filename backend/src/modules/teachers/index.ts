@@ -19,6 +19,6 @@ export type {
   ITeachersController
 } from './teachers.types';
 
-const routes = require('./presentation/routes/teachers.routes');
+import routes from './presentation/routes/teachers.routes';
 export { routes };
 module.exports = { routes };

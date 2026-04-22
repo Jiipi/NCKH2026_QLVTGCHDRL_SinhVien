@@ -4,7 +4,22 @@
  * Follows Dependency Inversion Principle (DIP)
  */
 
-import type { HoatDong, Prisma } from '@prisma/client';
+import type { HoatDong, Prisma, DangKyHoatDong, DiemDanh } from '@prisma/client';
+
+export interface ActivityStudentIdentity {
+  id: string;
+  lop_id?: string | null;
+}
+
+export interface ActivityTeacherClassIdentity {
+  id: string;
+}
+
+export interface ActivityAttendanceCreateData {
+  nguoi_diem_danh_id: string;
+  sv_id: string;
+  hd_id: string;
+}
 
 /**
  * Options for findMany queries
@@ -43,7 +58,8 @@ abstract class IActivityRepository {
   abstract findById(
     id: string,
     where?: Prisma.HoatDongWhereInput,
-    include?: Prisma.HoatDongInclude
+    include?: Prisma.HoatDongInclude | null,
+    semesterInfo?: { hoc_ky: string; nam_hoc: string }
   ): Promise<HoatDong | null>;
 
   abstract create(data: Prisma.HoatDongCreateInput): Promise<HoatDong>;
@@ -53,6 +69,20 @@ abstract class IActivityRepository {
   abstract delete(id: string): Promise<HoatDong>;
 
   abstract count(where?: Prisma.HoatDongWhereInput): Promise<number>;
+
+  abstract findStudentByUserId(userId: string): Promise<ActivityStudentIdentity | null>;
+
+  abstract findUserRegistration(activityId: string, studentId: string): Promise<DangKyHoatDong | null>;
+
+  abstract findFirstClassByTeacherId(teacherId: string): Promise<ActivityTeacherClassIdentity | null>;
+
+  abstract countRegistrationsByActivity(activityId: string): Promise<number>;
+
+  abstract findAttendanceByStudentAndActivity(studentId: string, activityId: string): Promise<DiemDanh | null>;
+
+  abstract createAttendance(data: ActivityAttendanceCreateData): Promise<DiemDanh>;
+
+  abstract markRegistrationAsAttended(studentId: string, activityId: string): Promise<void>;
 }
 
 export default IActivityRepository;

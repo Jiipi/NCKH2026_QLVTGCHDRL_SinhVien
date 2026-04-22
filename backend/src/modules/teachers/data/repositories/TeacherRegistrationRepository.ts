@@ -66,10 +66,7 @@ class TeacherRegistrationRepository {
   async getClassRegistrations(classIds: string[], filters: ClassRegistrationFilters = {}) {
     try {
       const { status, semester } = filters;
-      
-      console.log('[getClassRegistrations] classIds:', classIds);
-      console.log('[getClassRegistrations] filters:', filters);
-      
+
       // Build where clause - filter by students in teacher's classes
       const where: Prisma.DangKyHoatDongWhereInput = {
         sinh_vien: {
@@ -96,8 +93,6 @@ class TeacherRegistrationRepository {
       if (Object.keys(activityFilter).length > 0) {
         where.hoat_dong = { is: activityFilter };
       }
-      
-      console.log('[getClassRegistrations] where clause:', JSON.stringify(where, null, 2));
       
       // Get registrations with full relations
       const registrations = await prisma.dangKyHoatDong.findMany({
@@ -142,9 +137,10 @@ class TeacherRegistrationRepository {
         take: 500
       });
       
-      console.log('[getClassRegistrations] Found registrations:', registrations.length);
-      
-      // Deduplicate by ID (in case of data issues)
+      // TODO: Deduplication safety net - keep at application layer as defense-in-depth.
+      // The database already has a @@unique([sv_id, hd_id]) constraint on DangKyHoatDong
+      // (see prisma/schema.prisma line 195), so duplicates should not occur.
+      // This filter is a safety net for edge cases (e.g., race conditions, data migration).
       const seen = new Set<string>();
       const deduplicatedRegistrations = registrations.filter(reg => {
         if (seen.has(reg.id)) {

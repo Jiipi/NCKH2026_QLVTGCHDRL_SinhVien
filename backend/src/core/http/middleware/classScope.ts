@@ -12,6 +12,7 @@
  */
 
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../data/infrastructure/prisma/client';
 import { logInfo, logError } from '../../logger';
 
@@ -30,9 +31,9 @@ interface ClassScope {
   className?: string;
   lopTruongOf?: string[];
   teacherOf?: string[];
-  activityFilter?: any;
-  registrationFilter?: any;
-  classFilter?: any;
+  activityFilter?: Prisma.HoatDongWhereInput;
+  registrationFilter?: Prisma.DangKyHoatDongWhereInput;
+  classFilter?: Prisma.LopWhereInput;
 }
 
 interface AuthRequest extends Request {
@@ -153,13 +154,16 @@ export function applyClassScope(options: ApplyScopeOptions = {}): RequestHandler
       // Initialize scope object
       authReq.scope = {};
 
-      // SINH_VIEN: Chỉ thấy hoạt động đã duyệt/kết thúc của lớp
+      // SINH_VIEN: Thấy hoạt động đã duyệt/kết thúc của lớp + hoạt động toàn trường
       if (role === 'SINH_VIEN' && context.classId) {
         authReq.scope.classId = context.classId;
         authReq.scope.className = context.className;
-        
+
         authReq.scope.activityFilter = {
-          lop_id: context.classId,
+          OR: [
+            { lop_id: context.classId },
+            { lop_id: null }
+          ],
           trang_thai: { in: ['da_duyet', 'ket_thuc'] }
         };
 
@@ -177,10 +181,13 @@ export function applyClassScope(options: ApplyScopeOptions = {}): RequestHandler
         authReq.scope.classId = context.classId;
         authReq.scope.className = context.className;
         authReq.scope.lopTruongOf = context.lopTruongOf;
-        
+
         // LT cần thấy cả cho_duyet để theo dõi hoạt động đã tạo
         authReq.scope.activityFilter = {
-          lop_id: context.classId
+          OR: [
+            { lop_id: context.classId },
+            { lop_id: null }
+          ]
           // Không filter trang_thai - LT thấy tất cả hoạt động của lớp
         };
 
@@ -193,14 +200,15 @@ export function applyClassScope(options: ApplyScopeOptions = {}): RequestHandler
         }
       }
 
-      // GIANG_VIEN: Thấy TẤT CẢ hoạt động của lớp phụ trách (bao gồm cho_duyet để duyệt)
+      // GIANG_VIEN: Thấy hoạt động đã duyệt/kết thúc của lớp phụ trách
       if (role === 'GIANG_VIEN' && context.teacherOf && context.teacherOf.length > 0) {
         authReq.scope.teacherOf = context.teacherOf;
-        
-        // GV cần thấy cả hoạt động cho_duyet để duyệt
+
+        // GV thấy hoạt động đã duyệt/kết thúc (giống SV/LT)
+        // Hoạt động cho_duyet được đếm riêng ở mục "Chờ phê duyệt"
         authReq.scope.activityFilter = {
-          lop_id: { in: context.teacherOf }
-          // Không filter trang_thai - GV thấy tất cả
+          lop_id: { in: context.teacherOf },
+          trang_thai: { in: ['da_duyet', 'ket_thuc'] }
         };
 
         authReq.scope.classFilter = {
@@ -225,7 +233,7 @@ export const requireClass: RequestHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-): any => {
+): void | Response => {
   const authReq = req as AuthRequest;
   const role = authReq.user?.role;
   const context = authReq.context || {};
@@ -248,7 +256,7 @@ export const requireClass: RequestHandler = (
  * Check if user can access specific class data
  */
 export function canAccessClass(classId: string): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): any => {
+  return (req: Request, res: Response, next: NextFunction): void | Response => {
     const authReq = req as AuthRequest;
     const role = authReq.user?.role;
     const context = authReq.context || {};

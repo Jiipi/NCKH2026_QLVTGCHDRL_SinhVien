@@ -63,3 +63,24 @@ export const strictLimiter = rateLimit({
     message: 'Quá nhiều yêu cầu cho thao tác này, vui lòng thử lại sau'
   }
 });
+
+/**
+ * Face recognition rate limiter
+ * Stricter limits because face operations are CPU-intensive (45s/image)
+ * Prevents DoS via expensive ML inference
+ */
+export const faceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 10 : 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => {
+    // Rate limit per user (authenticated) or per IP
+    const userId = (req as any).user?.id || req.ip;
+    return `face:${userId}`;
+  },
+  message: {
+    success: false,
+    message: 'Quá nhiều yêu cầu nhận diện khuôn mặt. Vui lòng thử lại sau 15 phút.'
+  }
+});

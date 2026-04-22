@@ -84,6 +84,14 @@ export interface TeacherStudent {
   email: string | null;
   className: string | null;
   totalPoints?: number;
+  dang_ky_hd?: Array<{
+    hoat_dong?: {
+      diem_rl?: number | { toNumber(): number } | string | null;
+      loai_hd?: {
+        diem_mac_dinh?: number | { toNumber(): number } | string | null;
+      };
+    };
+  }>;
 }
 
 // ============== Activity Types ==============

@@ -4,6 +4,8 @@
  * Follows Dependency Inversion Principle (DIP)
  */
 
+import type { Prisma } from '@prisma/client';
+
 export interface StatusGroupResult {
   trang_thai: string;
   _count: { _all: number };
@@ -47,10 +49,7 @@ export interface RegistrationExportRow {
   } | null;
 }
 
-export interface ActivityWhereInput {
-  hoc_ky?: string;
-  nam_hoc?: string;
-}
+export type ActivityWhereInput = Prisma.HoatDongWhereInput;
 
 export interface IExportRepository {
   groupActivitiesByStatus(activityWhere: ActivityWhereInput): Promise<StatusGroupResult[]>;

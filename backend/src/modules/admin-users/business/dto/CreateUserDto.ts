@@ -6,6 +6,7 @@
 
 import { createAdminUserSchema, CreateAdminUserData, GenderType } from '../validators/admin-users.validators';
 import { ValidationError } from '../../../../core/errors/AppError';
+import { ZodError } from 'zod';
 
 export interface CreateUserDtoData {
   maso: string;
@@ -55,8 +56,8 @@ class CreateUserDto implements CreateUserDtoData {
     try {
       const validatedData = createAdminUserSchema.parse(body);
       return new CreateUserDto(validatedData);
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         throw new ValidationError('Dữ liệu không hợp lệ', error.errors);
       }
       throw error;

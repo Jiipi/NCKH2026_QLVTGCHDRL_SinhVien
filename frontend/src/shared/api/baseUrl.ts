@@ -24,7 +24,7 @@ export function computeBaseURL(): string {
                     window.localStorage.removeItem('API_BASE_URL');
                 }
             } catch (_) { /* ignore */ }
-            return 'http://localhost:3001/api';
+            return 'http://localhost:3001/api/v1';
         }
 
         const apiFromQuery = getQueryParam('api');
@@ -49,17 +49,17 @@ export function computeBaseURL(): string {
         }
 
         if (process.env.NODE_ENV === 'development') {
-            return 'http://localhost:3001/api';
+            return 'http://localhost:3001/api/v1';
         }
 
-        return `${protocol}//${hostname}:3001/api`;
+        return `${protocol}//${hostname}:3001/api/v1`;
     }
 
     if (process.env.REACT_APP_API_URL) {
         return String(process.env.REACT_APP_API_URL).replace(/\/$/, '');
     }
 
-    return 'http://dacn_backend_dev:3001/api';
+    return 'http://dacn_backend_dev:3001/api/v1';
 }
 
 export default computeBaseURL;

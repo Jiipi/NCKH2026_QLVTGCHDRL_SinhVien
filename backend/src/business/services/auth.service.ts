@@ -9,8 +9,12 @@ import { prisma } from '../../data/infrastructure/prisma/client';
 import { normalizeRoleCode } from '../../core/utils/roleHelper';
 import { NguoiDung, SinhVien, VaiTro, Lop, Prisma, GioiTinh, TrangThaiTaiKhoan } from '@prisma/client';
 
-// Types - using 'any' for complex nested relations to avoid strict typing issues
-type UserWithRelations = any;
+// Types - user with related entities matching includeForUser() select shape
+type UserWithRelations = NguoiDung & {
+  vai_tro: VaiTro | null;
+  sinh_vien: (SinhVien & { lop?: Lop | null }) | null;
+  dang_ky_duyet?: unknown[];
+};
 
 interface UserDTO {
   id: string;
@@ -89,7 +93,7 @@ class AuthService {
   /**
    * Convert user database object to DTO format
    */
-  static toUserDTO(user: UserWithRelations | null): UserDTO | null {
+  static async toUserDTO(user: UserWithRelations | null): Promise<UserDTO | null> {
     if (!user) return null;
     const rawRoleLabel = user.vai_tro?.ten_vt || 'sinh viên';
     const roleCode = normalizeRoleCode(rawRoleLabel);
@@ -377,7 +381,7 @@ class AuthService {
     return Promise.resolve();
   }
 
-  static async createNonEmailContacts(userId: string, contacts: any[]): Promise<void> {
+  static async createNonEmailContacts(userId: string, contacts: Record<string, unknown>[]): Promise<void> {
     return Promise.resolve();
   }
 
@@ -411,7 +415,7 @@ class AuthService {
     if (typeof name !== 'undefined') dataUser.ho_ten = name;
     if (typeof trangthai !== 'undefined') dataUser.trang_thai = trangthai as TrangThaiTaiKhoan;
 
-    const ops: Prisma.PrismaPromise<any>[] = [];
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
     ops.push(prisma.nguoiDung.update({ where: { id }, data: dataUser }));
 
     const updateSV = (typeof ngaysinh !== 'undefined') || (typeof gt !== 'undefined') || (typeof sdt !== 'undefined');

@@ -5,7 +5,7 @@
  */
 
 import type { HocKy, LoaiHoatDong } from '@prisma/client';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type ISemesterRepository from '../interfaces/ISemesterRepository';
 
 interface User {
   sub?: string;
@@ -34,6 +34,12 @@ interface SemesterWithIndex extends SemesterRow {
 }
 
 class CreateNextSemesterUseCase {
+  private semesterRepository: ISemesterRepository;
+
+  constructor(semesterRepository: ISemesterRepository) {
+    this.semesterRepository = semesterRepository;
+  }
+
   /**
    * Execute use case
    * @param user - User object with sub/id
@@ -41,30 +47,14 @@ class CreateNextSemesterUseCase {
    */
   async execute(user: User): Promise<CreateSemesterResult> {
     // Get or create system activity type for semester management
-    let systemActivityType: LoaiHoatDong | null = await prisma.loaiHoatDong.findFirst({
-      where: { ten_loai_hd: 'Hệ thống' },
-    });
+    let systemActivityType: LoaiHoatDong | null = await this.semesterRepository.findSystemActivityType();
     
     if (!systemActivityType) {
-      systemActivityType = await prisma.loaiHoatDong.create({
-        data: {
-          ten_loai_hd: 'Hệ thống',
-          mo_ta: 'Loại hoạt động hệ thống để quản lý học kỳ',
-          diem_mac_dinh: 0,
-          diem_toi_da: 0,
-          mau_sac: '#94a3b8',
-        },
-      });
+      systemActivityType = await this.semesterRepository.createSystemActivityType();
     }
     
     // Get latest semester from database
-    const rows: SemesterRow[] = await prisma.hoatDong.findMany({
-      select: { hoc_ky: true, nam_hoc: true },
-      distinct: ['hoc_ky', 'nam_hoc'],
-      where: {
-        nam_hoc: { not: null },
-      },
-    });
+    const rows: SemesterRow[] = await this.semesterRepository.getDistinctSemesters();
 
     // Filter valid semesters (format: YYYY - single year)
     const valid = rows.filter((r): r is SemesterRow & { nam_hoc: string } => 
@@ -89,19 +79,13 @@ class CreateNextSemesterUseCase {
       const newHocKy: HocKy = 'hoc_ky_1';
       const newNamHoc = String(currentYear);
       
-      await prisma.hoatDong.create({
-        data: {
-          ten_hd: `[SYSTEM] Học kỳ 1 năm học ${newNamHoc}`,
-          mo_ta: 'Hoạt động hệ thống để đánh dấu học kỳ mới',
-          hoc_ky: newHocKy,
-          nam_hoc: newNamHoc,
-          ngay_bd: new Date(`${currentYear}-09-01`),
-          ngay_kt: new Date(`${currentYear + 1}-01-01`),
-          ngay_tao: new Date(),
-          loai_hd_id: systemActivityType.id,
-          nguoi_tao_id: user?.sub || 'admin',
-          trang_thai: 'da_duyet',
-        },
+      await this.semesterRepository.createSemesterSystemActivity({
+        hoc_ky: newHocKy,
+        nam_hoc: newNamHoc,
+        ngay_bd: new Date(`${currentYear}-09-01`),
+        ngay_kt: new Date(`${currentYear + 1}-01-01`),
+        loai_hd_id: systemActivityType.id,
+        nguoi_tao_id: user?.sub || 'admin'
       });
       
       return {
@@ -142,12 +126,7 @@ class CreateNextSemesterUseCase {
     }
     
     // Check if semester already exists
-    const existing = await prisma.hoatDong.findFirst({
-      where: {
-        hoc_ky: newHocKy,
-        nam_hoc: newNamHoc,
-      },
-    });
+    const existing = await this.semesterRepository.existsSemesterActivity(newHocKy, newNamHoc);
     
     if (existing) {
       return {
@@ -157,19 +136,13 @@ class CreateNextSemesterUseCase {
     }
     
     // Create placeholder activity for new semester
-    await prisma.hoatDong.create({
-      data: {
-        ten_hd: `[SYSTEM] Học kỳ ${newHocKy === 'hoc_ky_1' ? '1' : '2'} năm học ${newNamHoc}`,
-        mo_ta: 'Hoạt động hệ thống để đánh dấu học kỳ mới',
-        hoc_ky: newHocKy,
-        nam_hoc: newNamHoc,
-        ngay_bd: startDate,
-        ngay_kt: endDate,
-        ngay_tao: new Date(),
-        loai_hd_id: systemActivityType.id,
-        nguoi_tao_id: user?.sub || 'admin',
-        trang_thai: 'da_duyet',
-      },
+    await this.semesterRepository.createSemesterSystemActivity({
+      hoc_ky: newHocKy,
+      nam_hoc: newNamHoc,
+      ngay_bd: startDate,
+      ngay_kt: endDate,
+      loai_hd_id: systemActivityType.id,
+      nguoi_tao_id: user?.sub || 'admin'
     });
     
     const displaySemester = newHocKy === 'hoc_ky_1' ? 'HK1' : 'HK2';

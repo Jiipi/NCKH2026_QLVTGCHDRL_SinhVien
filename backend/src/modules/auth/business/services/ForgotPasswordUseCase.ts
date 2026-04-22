@@ -24,25 +24,23 @@ class ForgotPasswordUseCase {
 
   async execute(email: string): Promise<ForgotPasswordResult> {
     const trimmedEmail = email?.trim();
-    console.log('[ForgotPasswordUseCase] Starting forgot password for:', trimmedEmail);
+    logInfo('Forgot password flow started');
     
     const user = await this.authRepository.findUserByEmail(trimmedEmail);
-    console.log('[ForgotPasswordUseCase] User found:', !!user, user ? { id: user.id, email: user.email } : null);
     
     // Return success even if email doesn't exist (security best practice)
     if (!user) {
-      console.log('[ForgotPasswordUseCase] User not found, returning sent: false');
+      logInfo('Forgot password requested for non-existing account');
       return { sent: false };
     }
 
     const otpResult = await this.otpService.generateOtp(trimmedEmail);
     const otp = typeof otpResult === 'string' ? otpResult : otpResult.otp;
-    console.log('[ForgotPasswordUseCase] OTP generated:', otp);
 
     // Send OTP via email
     let mailSent = false;
     try {
-      const { sendMail } = require('../../../../core/utils/mailer');
+      const { sendMail } = await import('../../../../core/utils/mailer');
       const subject = 'Mã xác minh đặt lại mật khẩu';
       const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6">
         <p>Xin chào ${user.ho_ten || ''},</p>
@@ -53,27 +51,20 @@ class ForgotPasswordUseCase {
       </div>`;
       const text = `Ma xac minh dat lai mat khau: ${otp} (hieu luc 10 phut)`;
       
-      console.log('[ForgotPasswordUseCase] Attempting to send email to:', trimmedEmail);
       const mailResult = await sendMail({ to: trimmedEmail, subject, html, text });
-      console.log('[ForgotPasswordUseCase] Email sent successfully:', {
-        messageId: mailResult?.messageId,
-        accepted: mailResult?.accepted,
-        rejected: mailResult?.rejected
-      });
       mailSent = true;
-      logInfo('FORGOT_MAIL_SENT', { email: trimmedEmail, messageId: mailResult?.messageId });
-    } catch (mailErr: any) {
-      console.error('[ForgotPasswordUseCase] Email send failed:', mailErr.message);
-      console.error('[ForgotPasswordUseCase] Error stack:', mailErr.stack);
-      logError('FORGOT_MAIL_SEND_FAILED', mailErr, { email: trimmedEmail });
-      throw mailErr;
+      logInfo('FORGOT_MAIL_SENT', { messageId: mailResult?.messageId });
+    } catch (mailErr: unknown) {
+      const error = mailErr instanceof Error ? mailErr : new Error(String(mailErr));
+      logError('FORGOT_MAIL_SEND_FAILED', error);
+      throw error;
     }
 
     const result: ForgotPasswordResult = {
       sent: mailSent,
       otp: process.env.NODE_ENV === 'development' ? otp : undefined
     };
-    console.log('[ForgotPasswordUseCase] Request processed');
+    logInfo('Forgot password flow completed', { sent: mailSent });
     return result;
   }
 }

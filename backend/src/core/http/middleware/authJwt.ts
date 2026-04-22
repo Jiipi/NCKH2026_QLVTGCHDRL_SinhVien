@@ -31,12 +31,17 @@ export interface AuthenticatedRequest extends Request {
 
 /**
  * Normalize role name to uppercase standard
+ * Returns empty string for unknown roles (will be rejected by middleware)
  */
 export function normalizeRole(role: string | undefined | null): string {
-  if (!role) return 'SINH_VIEN';
+  if (!role) return '';
   const normalized = String(role).toUpperCase().trim();
   const validRoles = ['ADMIN', 'GIANG_VIEN', 'LOP_TRUONG', 'SINH_VIEN'];
-  return validRoles.includes(normalized) ? normalized : 'SINH_VIEN';
+  if (!validRoles.includes(normalized)) {
+    logError('Unknown role detected, rejecting', new Error(`Invalid role: ${role}`));
+    return '';
+  }
+  return normalized;
 }
 
 /**
@@ -82,8 +87,11 @@ export async function authJwt(
       }
     }
 
-    // Normalize and attach to request
+    // Normalize and validate role
     decoded.role = normalizeRole(role);
+    if (!decoded.role) {
+      return sendResponse(res, 403, ApiResponse.forbidden('Vai trò không hợp lệ'));
+    }
     req.user = decoded;
 
     return next();

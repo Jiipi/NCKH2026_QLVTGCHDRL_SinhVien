@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { User, Edit3, Shield, Key } from 'lucide-react';
 import { useAppStore } from '../../../shared/store';
 import useStudentProfile from '../../student/model/hooks/useStudentProfile';
-import { studentActivitiesApi } from '../../student/services/studentActivitiesApi';
+import { dashboardApi } from '../../../shared/api/dashboardApi';
 import ProfileHeader from './components/Profile/ProfileHeader';
 import ProfileInfoSection from './components/Profile/ProfileInfoSection';
 import ProfileEditForm from './components/Profile/ProfileEditForm';
 import PasswordChangeForm from './components/Profile/PasswordChangeForm';
+import { FaceRegistrationPageContent } from '../../face-recognition/ui/pages/FaceRegistrationPage';
 
 export default function MonitorMyProfilePage() {
   const { user } = useAppStore();
@@ -37,7 +38,7 @@ export default function MonitorMyProfilePage() {
 
   const loadStats = async () => {
     try {
-      const result = await studentActivitiesApi.getMyActivities('');
+      const result = await dashboardApi.getMyActivities('');
       if (result.success && 'data' in result) {
         const registrations = result.data || [];
         const totalActivities = registrations.length;
@@ -56,7 +57,7 @@ export default function MonitorMyProfilePage() {
     return genderMap[gt?.toLowerCase()] || gt;
   };
   const getStatusText = (status) => ({ 'hoat_dong': '✅ Hoạt động', 'khoa': '🔒 Đã khóa', 'cho_duyet': '⏳ Chờ duyệt' }[status] || status);
-  const isValidImageUrl = (url) => !!url && (url.startsWith('data:image/') || url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) || ['i.pinimg.com','images.unsplash.com','cdn','imgur.com','googleusercontent.com'].some(d => url.includes(d)));
+  const isValidImageUrl = (url) => !!url && (url.startsWith('data:image/') || url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) || ['i.pinimg.com', 'images.unsplash.com', 'cdn', 'imgur.com', 'googleusercontent.com'].some(d => url.includes(d)));
   const getDirectImageUrl = (url) => { if (!url) return null; if (url.startsWith('data:image/')) return url; if (url.includes('drive.google.com')) { const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/); if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`; } return url; };
 
   if (loading) return (<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>);
@@ -81,6 +82,9 @@ export default function MonitorMyProfilePage() {
           <button onClick={() => setActiveTab('security')} className={`flex-1 px-6 py-4 font-semibold transition-all ${activeTab === 'security' ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'}`}>
             <div className="flex items-center justify-center gap-2"><Shield className="h-5 w-5" />Bảo mật</div>
           </button>
+          <button onClick={() => setActiveTab('face')} className={`flex-1 px-6 py-4 font-semibold transition-all ${activeTab === 'face' ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'}`}>
+            <div className="flex items-center justify-center gap-2"><span className="text-xl">📷</span>Nhận diện khuôn mặt</div>
+          </button>
         </div>
         <div className="p-6">
           {activeTab === 'info' && (
@@ -100,8 +104,8 @@ export default function MonitorMyProfilePage() {
                     getGenderDisplay={getGenderDisplay}
                     getStatusText={getStatusText}
                   />
-                  <button 
-                    onClick={() => setEditing(true)} 
+                  <button
+                    onClick={() => setEditing(true)}
                     className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-all"
                   >
                     <Edit3 className="h-4 w-4" />Chỉnh sửa thông tin
@@ -132,8 +136,8 @@ export default function MonitorMyProfilePage() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-800 mb-1">Mật khẩu</h4>
                         <p className="text-sm text-gray-600 mb-4">Đổi mật khẩu thường xuyên để bảo vệ tài khoản của bạn</p>
-                        <button 
-                          onClick={() => setChangingPassword(true)} 
+                        <button
+                          onClick={() => setChangingPassword(true)}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-all"
                         >
                           <Key className="h-4 w-4" />Đổi mật khẩu
@@ -143,6 +147,12 @@ export default function MonitorMyProfilePage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'face' && (
+            <div className="py-2">
+              <FaceRegistrationPageContent />
             </div>
           )}
         </div>

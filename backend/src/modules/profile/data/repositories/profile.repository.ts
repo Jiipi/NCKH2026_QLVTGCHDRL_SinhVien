@@ -86,7 +86,7 @@ class ProfileRepository extends IProfileRepository {
         sinh_viens: {
           where: {
             id: {
-              equals: (prisma.lop.fields as any).lop_truong
+              equals: (prisma.lop.fields as unknown as { lop_truong: string }).lop_truong
             }
           },
           include: {

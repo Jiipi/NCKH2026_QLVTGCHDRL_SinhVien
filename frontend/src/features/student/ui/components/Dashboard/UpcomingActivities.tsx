@@ -24,8 +24,8 @@ interface UpcomingActivitiesProps {
 
 export default function UpcomingActivities({
   upcoming = [],
-  onViewAll = () => {},
-  onSelectActivity = () => {},
+  onViewAll = () => { },
+  onSelectActivity = () => { },
   formatNumber = (value) => value
 }: UpcomingActivitiesProps) {
   return (
@@ -63,7 +63,7 @@ export default function UpcomingActivities({
                     {activityData.ten_hd || activityData.name || 'Hoạt động'}
                   </h3>
                   <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold ml-2 whitespace-nowrap">
-                    {daysUntil !== null ? `+${daysUntil}d` : `+${formatNumber(activityData.diem_rl || 0)}đ`}
+                    +{formatNumber(activityData.diem_rl || 0)}đ
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-700 font-medium">

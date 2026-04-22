@@ -24,6 +24,6 @@ export type {
   RoleWithPermissions
 } from './roles.types';
 
-const routes = require('./presentation/routes/roles.routes');
+import routes from './presentation/routes/roles.routes';
 export { routes };
 module.exports = { routes };

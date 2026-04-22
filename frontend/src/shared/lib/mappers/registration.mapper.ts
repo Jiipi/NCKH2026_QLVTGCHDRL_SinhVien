@@ -13,29 +13,29 @@ import {
 } from './activity.mapper';
 
 export interface MappedStudent {
-  id: any;
-  mssv: any;
-  ho_ten: any;
-  email?: any;
-  ten_lop: any;
-  lop?: any;
+  id: string | number | null;
+  mssv: string | null;
+  ho_ten: string | null;
+  email?: string | null;
+  ten_lop: string | null;
+  lop?: Record<string, unknown> | null;
   nguoi_dung?: {
-    ho_ten: any;
-    email?: any;
-    anh_dai_dien?: any;
+    ho_ten: string | null;
+    email?: string | null;
+    anh_dai_dien?: string | null;
   } | null;
 }
 
 export interface MappedRegistration {
-  id: any;
-  dk_id: any;
-  hoat_dong_id: any;
-  sinh_vien_id: any;
-  trang_thai_dk: any;
+  id: string | number | null;
+  dk_id: string | number | null;
+  hoat_dong_id: string | null;
+  sinh_vien_id: string | null;
+  trang_thai_dk: string | null;
   status: string;
-  ngay_dang_ky: any;
-  ngay_duyet: any;
-  ly_do_tu_choi: any;
+  ngay_dang_ky: string | null;
+  ngay_duyet: string | null;
+  ly_do_tu_choi: string | null;
   approvedByRole: string | null;
   rejectedByRole: string | null;
   approvedByName: string | null;
@@ -43,16 +43,17 @@ export interface MappedRegistration {
   hoat_dong: MappedActivity;
   sinh_vien: MappedStudent;
   // Additional date fields for sorting
-  updated_at?: any;
-  updatedAt?: any;
-  createdAt?: any;
-  tg_diem_danh?: any;
+  updated_at?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+  tg_diem_danh?: string | null;
 }
 
 /**
  * Map registration data từ API sang UI format (teacher view)
  */
-export function mapRegistrationToUITeacher(registration: any): MappedRegistration {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapRegistrationToUITeacher(registration: Record<string, any>): MappedRegistration {
   // Extract approver role từ nguoi_duyet object nếu có
   const approverRole = extractApproverRole(registration.nguoi_duyet);
   
@@ -76,7 +77,7 @@ export function mapRegistrationToUITeacher(registration: any): MappedRegistratio
     if (registration.nguoi_duyet?.ho_ten) {
       registration.approvedByName = registration.nguoi_duyet.ho_ten;
     }
-    return registration;
+    return registration as unknown as MappedRegistration;
   }
   
   // Map từ cấu trúc cũ hoặc flat response
@@ -142,7 +143,8 @@ export function mapRegistrationToUITeacher(registration: any): MappedRegistratio
 /**
  * Map registration data từ API sang UI format (monitor view)
  */
-export function mapRegistrationToUIMonitor(registration: any): MappedRegistration {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapRegistrationToUIMonitor(registration: Record<string, any>): MappedRegistration {
   const activityData = registration.hoat_dong || registration.activity || {};
   const studentData = registration.sinh_vien || registration.student || {};
   
@@ -206,7 +208,8 @@ export interface GroupedRegistrations {
 /**
  * Group registrations by status (teacher view - English status)
  */
-export function groupRegistrationsByStatusTeacher(registrations: any[]): GroupedRegistrations {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function groupRegistrationsByStatusTeacher(registrations: Record<string, any>[]): GroupedRegistrations {
   const pending: MappedRegistration[] = [];
   const approved: MappedRegistration[] = [];
   const joined: MappedRegistration[] = [];
@@ -242,7 +245,8 @@ export function groupRegistrationsByStatusTeacher(registrations: any[]): Grouped
 /**
  * Group registrations by status (monitor view - Vietnamese status)
  */
-export function groupRegistrationsByStatusMonitor(registrations: any[]): GroupedRegistrations {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function groupRegistrationsByStatusMonitor(registrations: Record<string, any>[]): GroupedRegistrations {
   const cho_duyet: MappedRegistration[] = [];
   const da_duyet: MappedRegistration[] = [];
   const da_tham_gia: MappedRegistration[] = [];

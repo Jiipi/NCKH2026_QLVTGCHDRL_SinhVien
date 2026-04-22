@@ -26,6 +26,6 @@ export type {
   IPointsUtils
 } from './points.types';
 
-const routes = require('./presentation/routes/points.routes');
+import routes from './presentation/routes/points.routes';
 export { routes };
 module.exports = { routes };

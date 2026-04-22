@@ -7,8 +7,8 @@
 import type { SemesterOption } from '../interfaces/ISemesterRepository';
 import type ISemesterRepository from '../interfaces/ISemesterRepository';
 
-const SemesterClosure = require('../../../../business/services/semesterClosure.service');
-const { normalizeSemesterFormat, isSameSemester } = require('../../../../core/utils/semester');
+import SemesterClosure from '../../../../business/services/semesterClosure.service';
+import { normalizeSemesterFormat, isSameSemester } from '../../../../core/utils/semester';
 
 interface SemesterOptionWithStatus extends SemesterOption {
   value?: string;
@@ -27,8 +27,8 @@ class GetSemesterOptionsUseCase {
     // Get active semester from metadata
     let activeSemester: string | null = null;
     try {
-      const fs = require('fs');
-      const path = require('path');
+      const fs = await import('fs');
+      const path = await import('path');
       const metadataPath = path.join(process.cwd(), 'data', 'semesters', 'metadata.json');
       if (fs.existsSync(metadataPath)) {
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));

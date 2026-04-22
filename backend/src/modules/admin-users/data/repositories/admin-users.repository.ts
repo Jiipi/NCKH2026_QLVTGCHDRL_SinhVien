@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type { 
   UserWhereInput, 
   QueryOptions, 
@@ -18,6 +19,7 @@ import type {
 
 const adminUsersRepository = {
   async findUsers(where: UserWhereInput, options?: QueryOptions): Promise<UserRecord[]> {
+    const userWhere = where as Prisma.NguoiDungWhereInput;
     // Include relations needed for mapping
     const include = {
       vai_tro: {
@@ -52,11 +54,11 @@ const adminUsersRepository = {
       include: options?.include ? { ...include, ...options.include } : include
     };
 
-    return prisma.nguoiDung.findMany({ where: where as any, ...finalOptions }) as unknown as UserRecord[];
+    return prisma.nguoiDung.findMany({ where: userWhere, ...finalOptions }) as unknown as UserRecord[];
   },
 
   async countUsers(where: UserWhereInput): Promise<number> {
-    return prisma.nguoiDung.count({ where: where as any });
+    return prisma.nguoiDung.count({ where: where as Prisma.NguoiDungWhereInput });
   },
 
   async findUserById(id: string, include: Record<string, boolean | object> = {}): Promise<UserRecord | null> {
@@ -95,13 +97,13 @@ const adminUsersRepository = {
 
   async createUser(userData: UserCreateData, tx: TransactionClient | null = null): Promise<UserRecord> {
     const client = tx || prisma;
-    return client.nguoiDung.create({ data: userData as any }) as unknown as UserRecord;
+    return client.nguoiDung.create({ data: userData as Prisma.NguoiDungUncheckedCreateInput }) as unknown as UserRecord;
   },
 
   async updateUser(id: string, updateData: Partial<UserCreateData>): Promise<UserRecord> {
     return prisma.nguoiDung.update({
       where: { id },
-      data: updateData as any
+      data: updateData as Prisma.NguoiDungUncheckedUpdateInput
     }) as unknown as UserRecord;
   },
 
@@ -130,13 +132,13 @@ const adminUsersRepository = {
 
   async createStudent(studentData: StudentCreateData, tx: TransactionClient | null): Promise<SinhVienRecord> {
     const client = tx || prisma;
-    return client.sinhVien.create({ data: studentData as any }) as unknown as SinhVienRecord;
+    return client.sinhVien.create({ data: studentData as Prisma.SinhVienUncheckedCreateInput }) as unknown as SinhVienRecord;
   },
 
   async updateStudent(studentId: string, updateData: Partial<StudentCreateData>): Promise<SinhVienRecord> {
     return prisma.sinhVien.update({
       where: { id: studentId },
-      data: updateData as any
+      data: updateData as Prisma.SinhVienUncheckedUpdateInput
     }) as unknown as SinhVienRecord;
   },
 
@@ -146,7 +148,7 @@ const adminUsersRepository = {
   },
 
   async runInTransaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T> {
-    return prisma.$transaction(callback as any) as Promise<T>;
+    return prisma.$transaction((tx) => callback(tx as TransactionClient)) as Promise<T>;
   },
 
   async updateClassMonitor(lopId: string, studentId: string, tx: TransactionClient | null): Promise<void> {

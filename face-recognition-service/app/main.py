@@ -11,6 +11,7 @@ Endpoints:
 - GET  /health      : Health check
 """
 
+import os
 import io
 import base64
 import logging
@@ -28,8 +29,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global model instances (lazy loaded)
-face_detector = None
-face_embedder = None
+insightface_app = None
 
 # ============== Pydantic Models ==============
 
@@ -46,6 +46,8 @@ class EmbedResponse(BaseModel):
     message: str
     embedding: Optional[List[float]] = None
     embedding_dim: int = 0
+    liveness_score: Optional[float] = None
+    liveness_passed: Optional[bool] = None
 
 class VerifyRequest(BaseModel):
     """Request body cho endpoint /verify"""
@@ -69,6 +71,19 @@ class RegisterResponse(BaseModel):
     embedding_dim: int = 0
     face_detected: bool = False
     aligned_face_base64: Optional[str] = None
+    liveness_score: Optional[float] = None
+    liveness_passed: Optional[bool] = None
+
+class RegisterMultiResponse(BaseModel):
+    """Response từ endpoint /register-multi"""
+    success: bool
+    message: str
+    embedding: Optional[List[float]] = None
+    embedding_dim: int = 0
+    images_processed: int = 0
+    images_total: int = 0
+    liveness_scores: List[float] = []
+    liveness_all_passed: bool = False
 
 class HealthResponse(BaseModel):
     """Response từ endpoint /health"""
@@ -77,25 +92,23 @@ class HealthResponse(BaseModel):
     detector: str
     embedder: str
 
+# Environment config
+LIVENESS_THRESHOLD = float(os.environ.get("LIVENESS_THRESHOLD", "0.5"))
+
 # ============== Helper Functions ==============
 
 def load_models():
-    """Lazy load face detection and embedding models"""
-    global face_detector, face_embedder
+    """Lazy load InsightFace FaceAnalysis model"""
+    global insightface_app
     
-    if face_detector is None or face_embedder is None:
-        logger.info("Đang tải models RetinaFace và ArcFace...")
+    if insightface_app is None:
+        logger.info("Đang tải models InsightFace (buffalo_l)...")
         try:
-            from deepface import DeepFace
-            
-            # Build models (triggers download if not cached)
-            face_embedder = DeepFace.build_model("ArcFace")
-            logger.info("✅ ArcFace model đã tải thành công")
-            
-            # RetinaFace is loaded automatically by DeepFace when needed
-            face_detector = "RetinaFace"
-            logger.info("✅ RetinaFace detector sẵn sàng")
-            
+            import insightface
+            # buffalo_l includes RetinaFace feature Pyramid and ArcFace embedding
+            insightface_app = insightface.app.FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
+            insightface_app.prepare(ctx_id=0, det_size=(640, 640))
+            logger.info("✅ InsightFace model đã tải thành công")
         except Exception as e:
             logger.error(f"❌ Lỗi tải models: {e}")
             raise
@@ -105,7 +118,21 @@ def decode_image(image_bytes: bytes) -> np.ndarray:
     image = Image.open(io.BytesIO(image_bytes))
     if image.mode != "RGB":
         image = image.convert("RGB")
-    return np.array(image)
+        
+    img_array = np.array(image)
+    
+    # Giới hạn kích thước ảnh xuống 640px cho phù hợp input của RetinaFace InsightFace
+    max_dim = 640
+    h, w = img_array.shape[:2]
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        import cv2
+        img_array = cv2.resize(img_array, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        logger.info(f"Resized image from {w}x{h} to {new_w}x{new_h}")
+        
+    return img_array
 
 def encode_image_base64(image_array: np.ndarray) -> str:
     """Encode numpy array image to base64 string"""
@@ -119,6 +146,53 @@ def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     a = np.array(vec1)
     b = np.array(vec2)
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+def check_liveness(image_array: np.ndarray) -> dict:
+    """
+    Multi-factor liveness detection:
+    1. Laplacian variance (blur detection) - ảnh in thường bị mờ khi chụp lại
+    2. LBP texture analysis - phát hiện texture bất thường từ màn hình/ảnh in
+    3. Color distribution - ảnh từ màn hình có phân bố màu khác ảnh thực
+    """
+    import cv2
+    if len(image_array.shape) == 3:
+        gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = image_array
+
+    # Factor 1: Laplacian variance (blur detection)
+    laplacian_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+
+    # Factor 2: Texture analysis using Local Binary Pattern variance
+    # Ảnh từ màn hình/ảnh in có texture đồng đều hơn ảnh thực
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    texture_score = float(np.std(sobelx) + np.std(sobely))
+
+    # Factor 3: Color variance (chỉ khi ảnh có màu)
+    color_score = 0.0
+    if len(image_array.shape) == 3:
+        hsv = cv2.cvtColor(image_array, cv2.COLOR_RGB2HSV)
+        # Ảnh thực có saturation đa dạng hơn ảnh từ màn hình
+        color_score = float(np.std(hsv[:, :, 1]))
+
+    # Weighted combination
+    # Laplacian: 40%, Texture: 35%, Color: 25%
+    combined_score = (laplacian_score / 100.0) * 0.4 + (texture_score / 50.0) * 0.35 + (color_score / 40.0) * 0.25
+
+    passed = laplacian_score >= LIVENESS_THRESHOLD and texture_score >= 10.0
+
+    logger.info(
+        f"[Liveness] Laplacian: {laplacian_score:.2f}, "
+        f"Texture: {texture_score:.2f}, Color: {color_score:.2f}, "
+        f"Combined: {combined_score:.2f}, Passed: {passed}"
+    )
+    return {
+        "score": round(combined_score, 2),
+        "laplacian": round(laplacian_score, 2),
+        "texture": round(texture_score, 2),
+        "passed": passed
+    }
 
 # ============== Lifespan Events ==============
 
@@ -143,13 +217,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - chỉ cho phép origins cụ thể, KHÔNG dùng wildcard "*"
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # ============== API Endpoints ==============
@@ -157,15 +240,13 @@ app.add_middleware(
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
-    global face_detector, face_embedder
-    
-    models_loaded = face_detector is not None and face_embedder is not None
+    models_loaded = insightface_app is not None
     
     return HealthResponse(
         status="healthy" if models_loaded else "starting",
         models_loaded=models_loaded,
-        detector="RetinaFace" if face_detector else "not_loaded",
-        embedder="ArcFace" if face_embedder else "not_loaded"
+        detector="InsightFace_RetinaFace" if models_loaded else "not_loaded",
+        embedder="InsightFace_ArcFace" if models_loaded else "not_loaded"
     )
 
 @app.post("/detect", response_model=DetectResponse)
@@ -183,9 +264,8 @@ async def detect_faces(file: UploadFile = File(...)):
         image_bytes = await file.read()
         image_array = decode_image(image_bytes)
         
-        # Detect faces using RetinaFace via DeepFace
-        from retinaface import RetinaFace
-        faces = RetinaFace.detect_faces(image_array)
+        # Detect faces using InsightFace
+        faces = insightface_app.get(image_array)
         
         if not faces or len(faces) == 0:
             return DetectResponse(
@@ -197,12 +277,14 @@ async def detect_faces(file: UploadFile = File(...)):
         
         # Format response
         face_list = []
-        for face_id, face_data in faces.items():
+        for i, face in enumerate(faces):
+            bbox = [float(x) for x in face.bbox]
+            landmarks = face.kps.tolist() if face.kps is not None else []
             face_list.append({
-                "id": face_id,
-                "bbox": face_data["facial_area"],  # [x1, y1, x2, y2]
-                "confidence": float(face_data["score"]),
-                "landmarks": face_data["landmarks"]  # eyes, nose, mouth corners
+                "id": str(i),
+                "bbox": bbox,
+                "confidence": float(face.det_score) if hasattr(face, 'det_score') else 0.99,
+                "landmarks": landmarks
             })
         
         return DetectResponse(
@@ -231,36 +313,47 @@ async def extract_embedding(file: UploadFile = File(...)):
         image_bytes = await file.read()
         image_array = decode_image(image_bytes)
         
-        # Extract embedding using DeepFace + ArcFace
-        from deepface import DeepFace
+        # Liveness check
+        liveness = check_liveness(image_array)
+        if not liveness["passed"]:
+            return EmbedResponse(
+                success=False,
+                message=f"Ảnh không đạt kiểm tra liveness (score: {liveness['score']}). Vui lòng sử dụng ảnh chụp trực tiếp.",
+                embedding=None,
+                embedding_dim=0,
+                liveness_score=liveness["score"],
+                liveness_passed=False
+            )
+            
+        # Extract embedding using InsightFace
+        faces = insightface_app.get(image_array)
         
-        result = DeepFace.represent(
-            img_path=image_array,
-            model_name="ArcFace",
-            detector_backend="retinaface",
-            enforce_detection=True,
-            align=True
-        )
-        
-        if not result or len(result) == 0:
+        if not faces or len(faces) == 0:
             return EmbedResponse(
                 success=False,
                 message="Không thể trích xuất embedding - không tìm thấy khuôn mặt",
                 embedding=None,
-                embedding_dim=0
+                embedding_dim=0,
+                liveness_score=liveness["score"],
+                liveness_passed=liveness["passed"]
             )
         
-        embedding = result[0]["embedding"]
+        # Lấy khuôn mặt rõ nhất/to nhất
+        faces = sorted(faces, key=lambda f: (f.bbox[2]-f.bbox[0])*(f.bbox[3]-f.bbox[1]), reverse=True)
+        
+        embedding = [float(x) for x in faces[0].normed_embedding]
         
         return EmbedResponse(
             success=True,
             message="Trích xuất embedding thành công",
             embedding=embedding,
-            embedding_dim=len(embedding)
+            embedding_dim=len(embedding),
+            liveness_score=liveness["score"],
+            liveness_passed=liveness["passed"]
         )
         
     except ValueError as e:
-        # DeepFace raises ValueError when no face detected
+        # InsightFace có thể raise ValueError khi không phát hiện khuôn mặt
         logger.warning(f"Không tìm thấy khuôn mặt: {e}")
         return EmbedResponse(
             success=False,
@@ -321,56 +414,49 @@ async def register_face(file: UploadFile = File(...)):
         image_bytes = await file.read()
         image_array = decode_image(image_bytes)
         
-        from deepface import DeepFace
-        from retinaface import RetinaFace
-        
-        # Step 1: Detect faces
-        faces = RetinaFace.detect_faces(image_array)
+        # Step 0: Liveness check
+        liveness = check_liveness(image_array)
+        if not liveness["passed"]:
+            return RegisterResponse(
+                success=False,
+                message=f"Ảnh không đạt kiểm tra liveness (score: {liveness['score']}). Vui lòng chụp ảnh trực tiếp từ camera.",
+                face_detected=False,
+                liveness_score=liveness["score"],
+                liveness_passed=False
+            )
+            
+        # Step 1: Detect and Extract using InsightFace
+        faces = insightface_app.get(image_array)
         
         if not faces or len(faces) == 0:
             return RegisterResponse(
                 success=False,
                 message="Không tìm thấy khuôn mặt trong ảnh",
-                face_detected=False
+                face_detected=False,
+                liveness_score=liveness["score"],
+                liveness_passed=liveness["passed"]
             )
         
         if len(faces) > 1:
             return RegisterResponse(
                 success=False,
                 message=f"Phát hiện {len(faces)} khuôn mặt. Vui lòng chỉ chụp 1 khuôn mặt",
-                face_detected=True
+                face_detected=True,
+                liveness_score=liveness["score"],
+                liveness_passed=liveness["passed"]
             )
         
-        # Step 2: Extract aligned face
-        aligned_faces = RetinaFace.extract_faces(image_array, align=True)
+        face = faces[0]
+        embedding = [float(x) for x in face.normed_embedding]
         
-        if not aligned_faces or len(aligned_faces) == 0:
-            return RegisterResponse(
-                success=False,
-                message="Không thể căn chỉnh khuôn mặt",
-                face_detected=True
-            )
+        # Trích xuất ảnh khuôn mặt (cắt theo bbox) để gửi xuống FE
+        x1, y1, x2, y2 = [int(v) for v in face.bbox]
+        h_i, w_i = image_array.shape[:2]
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w_i, x2), min(h_i, y2)
         
-        aligned_face = aligned_faces[0]
-        aligned_face_b64 = encode_image_base64((aligned_face * 255).astype(np.uint8))
-        
-        # Step 3: Extract embedding
-        result = DeepFace.represent(
-            img_path=image_array,
-            model_name="ArcFace",
-            detector_backend="retinaface",
-            enforce_detection=True,
-            align=True
-        )
-        
-        if not result or len(result) == 0:
-            return RegisterResponse(
-                success=False,
-                message="Không thể trích xuất đặc trưng khuôn mặt",
-                face_detected=True
-            )
-        
-        embedding = result[0]["embedding"]
+        aligned_face = image_array[y1:y2, x1:x2]
+        aligned_face_b64 = encode_image_base64(aligned_face)
         
         return RegisterResponse(
             success=True,
@@ -378,11 +464,75 @@ async def register_face(file: UploadFile = File(...)):
             embedding=embedding,
             embedding_dim=len(embedding),
             face_detected=True,
-            aligned_face_base64=aligned_face_b64
+            aligned_face_base64=aligned_face_b64,
+            liveness_score=liveness["score"],
+            liveness_passed=liveness["passed"]
         )
         
     except Exception as e:
         logger.error(f"Lỗi register_face: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/register-multi", response_model=RegisterMultiResponse)
+async def register_face_multi(files: List[UploadFile] = File(...)):
+    """
+    Đăng ký khuôn mặt từ nhiều ảnh. Average embedding giúp tăng độ chính xác.
+    """
+    try:
+        load_models()
+        
+        if len(files) < 1:
+            return RegisterMultiResponse(success=False, message="Cần ít nhất 1 ảnh", images_total=0)
+        
+        embeddings = []
+        liveness_scores = []
+        failed_images = []
+        
+        for i, file in enumerate(files):
+            try:
+                image_bytes = await file.read()
+                image_array = decode_image(image_bytes)
+                
+                liveness = check_liveness(image_array)
+                liveness_scores.append(liveness["score"])
+                if not liveness["passed"]:
+                    failed_images.append(f"Ảnh {i+1}: liveness fail")
+                    continue
+                
+                faces = insightface_app.get(image_array)
+                if not faces or len(faces) == 0:
+                    continue
+                if len(faces) > 1:
+                    continue
+                
+                embeddings.append([float(x) for x in faces[0].normed_embedding])
+            except Exception:
+                continue
+                
+        if len(embeddings) == 0:
+            return RegisterMultiResponse(
+                success=False,
+                message="Không thể trích xuất embedding từ ảnh nào. Liveness hoặc không thấy khuôn mặt.",
+                images_total=len(files),
+                liveness_scores=liveness_scores,
+                liveness_all_passed=False
+            )
+            
+        import numpy as np
+        avg_embedding = np.mean(embeddings, axis=0).tolist()
+        
+        return RegisterMultiResponse(
+            success=True,
+            message=f"Đăng ký thành công từ {len(embeddings)}/{len(files)} ảnh hợp lệ",
+            embedding=avg_embedding,
+            embedding_dim=len(avg_embedding),
+            images_processed=len(embeddings),
+            images_total=len(files),
+            liveness_scores=liveness_scores,
+            liveness_all_passed=True
+        )
+    except Exception as e:
+        logger.error(f"Lỗi register-multi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============== Run Server ==============

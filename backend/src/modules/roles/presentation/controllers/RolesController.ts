@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
 import { logError } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
 import type ListRolesUseCase from '../../business/services/ListRolesUseCase';
 import type GetRoleByIdUseCase from '../../business/services/GetRoleByIdUseCase';
@@ -78,6 +79,7 @@ class RolesController {
     try {
       const adminId = req.user.sub;
       const role = await this.useCases.create.execute(req.body, adminId);
+      logAudit('create_role', req, { module: 'roles', entityId: role?.id, entityType: 'VaiTro' });
       return sendResponse(res, 201, ApiResponse.success(role, 'Tạo vai trò thành công'));
     } catch (error) {
       logError('Create role error', error);
@@ -92,6 +94,7 @@ class RolesController {
     try {
       const { id } = req.params;
       const role = await this.useCases.update.execute(id, req.body);
+      logAudit('update_role', req, { module: 'roles', entityId: id, entityType: 'VaiTro' });
       return sendResponse(res, 200, ApiResponse.success(role, 'Cập nhật vai trò thành công'));
     } catch (error) {
       logError('Update role error', error);
@@ -108,6 +111,7 @@ class RolesController {
       const { reassignTo, cascadeUsers } = (req.query || {}) as { reassignTo?: string; cascadeUsers?: string };
       
       await this.useCases.delete.execute(id, { reassignTo, cascadeUsers });
+      logAudit('delete_role', req, { module: 'roles', entityId: id, entityType: 'VaiTro', reassignTo, cascadeUsers });
       return sendResponse(res, 200, ApiResponse.success(null, 'Xóa vai trò thành công'));
     } catch (error) {
       logError('Delete role error', error);
@@ -132,6 +136,7 @@ class RolesController {
       const adminId = req.user.sub;
       
       const result = await this.useCases.assignToUsers.execute(id, user_ids, adminId);
+      logAudit('assign_role', req, { module: 'roles', entityId: id, entityType: 'VaiTro', userCount: user_ids?.length });
       return sendResponse(res, 200, ApiResponse.success(result, `Đã gán vai trò cho ${result.count} người dùng`));
     } catch (error) {
       logError('Assign role error', error);

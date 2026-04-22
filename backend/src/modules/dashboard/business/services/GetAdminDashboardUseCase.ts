@@ -12,8 +12,12 @@ class GetAdminDashboardUseCase {
     this.repository = dashboardRepository;
   }
 
-  async execute(): Promise<AdminOverviewStats> {
-    return this.repository.getAdminOverviewStats();
+  async execute(
+    scope?: { where: any; permissions: any },
+    semester?: { hoc_ky: string; nam_hoc: string }
+  ): Promise<AdminOverviewStats> {
+    // Admin có thể thấy tất cả, nhưng vẫn respect semester filter nếu có
+    return this.repository.getAdminOverviewStats(semester);
   }
 }
 

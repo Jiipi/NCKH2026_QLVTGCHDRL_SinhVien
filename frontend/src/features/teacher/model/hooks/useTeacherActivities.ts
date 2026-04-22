@@ -29,13 +29,13 @@ function getInitialSemester() {
   try {
     const backendCurrent = sessionStorage.getItem('backend_current_semester');
     if (backendCurrent) return backendCurrent;
-    
+
     const selected = sessionStorage.getItem('selected_semester');
     if (selected) return selected;
-    
+
     const current = sessionStorage.getItem('current_semester');
     if (current) return current;
-  } catch (_) {}
+  } catch (_) { }
   return '';
 }
 
@@ -56,12 +56,12 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
     const p = nextPage || page;
     const l = nextLimit || limit;
     const s = nextSemester !== undefined ? nextSemester : semester;
-    
+
     try {
       setLoading(true);
       setError(null);
       const result = await teacherActivitiesApi.listActivities({ page: p, limit: l, semester: s });
-      
+
       if (result.success && 'data' in result) {
         setActivitiesData(result.data.items || []);
         setTotal(result.data.total || 0);
@@ -95,11 +95,11 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
   useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], refresh, { debounceMs: 500 });
 
   // Auto-refresh for cross-user sync
-  useAutoRefresh(refresh, { 
-    intervalMs: 30000, 
+  useAutoRefresh(refresh, {
+    intervalMs: 30000,
     enabled: !!semester,
     refreshOnFocus: true,
-    refreshOnVisible: true 
+    refreshOnVisible: true
   });
 
   // Business logic: Transform activities
@@ -118,7 +118,7 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
   // Business logic: Handle approve
   const approve = useCallback(async (id: string) => {
     try {
-      const result = await teacherActivitiesApi.approveActivity(id);
+      const result = await teacherActivitiesApi.approveActivity(id, semester);
       if (result.success) {
         // API already emits event for other components, just refresh locally
         await refresh();
@@ -135,7 +135,7 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
   // Business logic: Handle reject
   const reject = useCallback(async (id: string, reason: string) => {
     try {
-      const result = await teacherActivitiesApi.rejectActivity(id, reason);
+      const result = await teacherActivitiesApi.rejectActivity(id, reason, semester);
       if (result.success) {
         // API already emits event for other components, just refresh locally
         await refresh();
@@ -172,18 +172,18 @@ export default function useTeacherActivities({ initialSemester, initialLimit = '
     activitiesByStatus,
     total,
     semester,
-    
+
     // State
     page,
     limit,
     loading,
     error,
-    
+
     // Setters
     setSemester,
     setPage,
     setLimit,
-    
+
     // Actions
     load,
     refresh,

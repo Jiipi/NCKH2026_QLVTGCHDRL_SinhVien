@@ -60,8 +60,11 @@ export interface StudentRegistration {
   hd_id: string;
   trang_thai_dk: string;
   ngay_dang_ky: Date;
+  ngay_duyet?: Date | null;
+  ly_do_tu_choi?: string | null;
   hoat_dong?: HoatDong & {
     loai_hd?: ActivityTypeSummary;
+    hinh_anh?: string[];
   };
 }
 

@@ -187,8 +187,9 @@ export default function useTeacherRegistrations() {
 
       // Activity type filter
       if (filters.type) {
-        const activityTypeId = activity?.loai_hd_id?.toString() || activity?.loai_hd?.id?.toString() || '';
-        const activityTypeName = activity?.loai_hd?.ten_loai_hd || '';
+        const loaiHd = activity?.loai_hd;
+        const activityTypeId = activity?.loai_hd_id?.toString() || (typeof loaiHd === 'object' && loaiHd !== null ? String((loaiHd as Record<string, unknown>).id || '') : '');
+        const activityTypeName = typeof loaiHd === 'object' && loaiHd !== null ? String((loaiHd as Record<string, unknown>).ten_loai_hd || '') : '';
         if (activityTypeId !== filters.type && activityTypeName !== filters.type) {
           matchesAdvancedFilters = false;
         }

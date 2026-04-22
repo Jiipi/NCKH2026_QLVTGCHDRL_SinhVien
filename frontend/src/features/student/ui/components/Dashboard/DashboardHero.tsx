@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sparkles,
   Filter,
@@ -9,6 +9,7 @@ import {
   Target
 } from 'lucide-react';
 import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
+import { resolveAssetUrl } from '../../../../../shared/lib/assetUrl';
 
 export default function DashboardHero({
   summary,
@@ -24,6 +25,10 @@ export default function DashboardHero({
   const safeClassification = classification || {};
   const safeStudent = studentInfo || {};
   const safeProfile = userProfile || {};
+
+  const [avatarError, setAvatarError] = useState(false);
+  const rawAvatar = safeProfile.anh_dai_dien || safeProfile.avatar;
+  const avatarSrc = rawAvatar && !avatarError ? resolveAssetUrl(rawAvatar) : null;
 
   return (
     <div className="mb-6">
@@ -58,29 +63,23 @@ export default function DashboardHero({
                   </defs>
                 </svg>
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
-                  {(safeProfile.anh_dai_dien || safeProfile.avatar) ? (
+                  {avatarSrc ? (
                     <img
-                      src={safeProfile.anh_dai_dien || safeProfile.avatar}
+                      src={avatarSrc}
                       alt="Avatar"
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const next = target.nextSibling as HTMLElement | null;
-                        if (next) next.style.display = 'flex';
-                      }}
+                      onError={() => setAvatarError(true)}
                     />
-                  ) : null}
-                  <span
-                    className={`text-2xl font-black text-white ${(safeProfile.anh_dai_dien || safeProfile.avatar) ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}
-                  >
-                    {(safeProfile.ho_ten || safeProfile.name || 'DV')
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </span>
+                  ) : (
+                    <span className="text-2xl font-black text-white flex w-full h-full items-center justify-center">
+                      {(safeProfile.ho_ten || safeProfile.name || 'DV')
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
               </div>

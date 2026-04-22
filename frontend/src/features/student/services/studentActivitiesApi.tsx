@@ -5,6 +5,7 @@
  */
 
 import http from '../../../shared/api/http';
+import { API_ENDPOINTS } from '../../../shared/api/endpoints';
 import { emitRegistrationsChange } from '../../../shared/lib/dataRefresh';
 
 const handleError = (error) => {
@@ -23,7 +24,7 @@ export const studentActivitiesApi = {
   async getMyActivities(semester) {
     try {
       const params = semester ? { semester } : {};
-      const response = await http.get('/core/dashboard/activities/me', { params });
+      const response = await http.get(API_ENDPOINTS.dashboard.activitiesMe, { params });
       const payload = response?.data?.data ?? response?.data ?? [];
       const activities = Array.isArray(payload) ? payload : (payload.items || payload.data || []);
       return {

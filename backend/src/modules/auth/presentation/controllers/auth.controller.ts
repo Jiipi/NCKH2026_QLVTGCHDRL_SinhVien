@@ -9,6 +9,7 @@ import { LoginDto } from '../../business/dto/LoginDto';
 import { RegisterDto } from '../../business/dto/RegisterDto';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
 import { logError } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
 import { ReferenceDataService } from '../../../../business/services';
 import LoginUseCase from '../../business/services/LoginUseCase';
@@ -66,13 +67,14 @@ class AuthController {
       const tabId = (req.headers['x-tab-id'] as string) || req.body.tabId || null;
 
       const result = await this.loginUseCase.execute(dto, ip, tabId);
+      logAudit('login', req, { module: 'auth', entityType: 'NguoiDung' });
 
       return sendResponse(
         res,
         200,
         ApiResponse.success(result, 'Đăng nhập thành công')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Login error', error, { ip: req.ip });
 
       if (error instanceof AppError) {
@@ -93,49 +95,19 @@ class AuthController {
 
   async register(req: Request, res: Response): Promise<Response> {
     try {
-      console.log('[AuthController] Register request:', { 
-        body: req.body,
-        hasName: !!req.body.name,
-        hasHo_ten: !!req.body.ho_ten,
-        hasMaso: !!req.body.maso,
-        hasEmail: !!req.body.email,
-        hasLopId: !!req.body.lop_id,
-        hasLopIdCamel: !!req.body.lopId,
-        hasNgaySinh: !!req.body.ngay_sinh,
-        hasNgaySinhCamel: !!req.body.ngaySinh
-      });
-      
       const dto = RegisterDto.fromRequest(req.body);
-      console.log('[AuthController] DTO created:', {
-        maso: dto.maso,
-        email: dto.email,
-        ho_ten: dto.ho_ten,
-        hasLopId: !!dto.lop_id,
-        hasNgaySinh: !!dto.ngay_sinh
-      });
-      
       const result = await this.registerUseCase.execute(dto);
-      console.log('[AuthController] Registration successful:', {
-        userId: result.user?.id,
-        maso: result.user?.maso
-      });
+      logAudit('register', req, { module: 'auth', entityType: 'NguoiDung' });
 
       return sendResponse(
         res,
         201,
         ApiResponse.success(result, 'Đăng ký thành công')
       );
-    } catch (error: any) {
-      console.error('[AuthController] Register error:', error.message);
-      console.error('[AuthController] Error stack:', error.stack);
+    } catch (error: unknown) {
       logError('Register error', error);
 
       if (error instanceof AppError) {
-        console.log('[AuthController] Returning AppError response:', {
-          statusCode: error.statusCode,
-          message: error.message,
-          details: error.details
-        });
         return sendResponse(
           res,
           error.statusCode,
@@ -161,7 +133,7 @@ class AuthController {
         200,
         ApiResponse.success(dto, 'Thông tin người dùng')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Get me error', error);
 
       if (error instanceof AppError) {
@@ -186,13 +158,14 @@ class AuthController {
       const { currentPassword, newPassword } = req.body;
 
       await this.changePasswordUseCase.execute(userId, currentPassword, newPassword);
+      logAudit('change_password', req, { module: 'auth', entityType: 'NguoiDung' });
 
       return sendResponse(
         res,
         200,
         ApiResponse.success(null, 'Đổi mật khẩu thành công')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Change password error', error);
 
       if (error instanceof AppError) {
@@ -214,14 +187,8 @@ class AuthController {
   async forgotPassword(req: Request, res: Response): Promise<Response> {
     try {
       const { email } = req.body;
-      console.log('[AuthController] Forgot password request:', { email: email?.trim() });
       
       const result = await this.forgotPasswordUseCase.execute(email);
-      console.log('[AuthController] Forgot password result:', { 
-        sent: result.sent, 
-        hasOtp: !!result.otp,
-        email: email?.trim()
-      });
 
       return sendResponse(
         res,
@@ -231,12 +198,11 @@ class AuthController {
           result.sent ? 'Mã OTP đã được gửi đến email của bạn' : 'Nếu email tồn tại, mã OTP đã được gửi'
         )
       );
-    } catch (error: any) {
-      console.error('[AuthController] Forgot password error:', error.message);
-      console.error('[AuthController] Error stack:', error.stack);
+    } catch (error: unknown) {
       logError('Forgot password error', error);
+      const errorMessage = error instanceof Error ? error.message : '';
       
-      if (error.message && error.message.includes('SMTP configuration is missing')) {
+      if (errorMessage.includes('SMTP configuration is missing')) {
         return sendResponse(
           res,
           500,
@@ -244,7 +210,7 @@ class AuthController {
         );
       }
       
-      if (error.message && error.message.includes('SMTP')) {
+      if (errorMessage.includes('SMTP')) {
         return sendResponse(
           res,
           500,
@@ -263,10 +229,8 @@ class AuthController {
   async verifyOtp(req: Request, res: Response): Promise<Response> {
     try {
       const { email, otp } = req.body;
-      console.log('[AuthController] Verify OTP request:', { email, hasOtp: !!otp });
 
       const isValid = await this.otpService.verifyOtp(email, otp, false);
-      console.log('[AuthController] OTP verification result:', isValid);
 
       if (!isValid) {
         return sendResponse(
@@ -296,13 +260,14 @@ class AuthController {
       const { email, otp, newPassword } = req.body;
 
       await this.resetPasswordUseCase.execute(email, otp, newPassword);
+      logAudit('reset_password', req, { module: 'auth', entityType: 'NguoiDung' });
 
       return sendResponse(
         res,
         200,
         ApiResponse.success(null, 'Đặt lại mật khẩu thành công')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Reset password error', error);
 
       if (error instanceof AppError) {

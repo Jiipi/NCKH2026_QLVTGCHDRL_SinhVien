@@ -8,7 +8,7 @@ import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { parseSemesterString } from '../../../../core/utils/semester';
 import { findTeacherClassesRaw } from './helpers/teacherClassHelper';
 import { countClassActivities } from '../../../../core/utils/classActivityCounter';
-import type { HocKy, TrangThaiHoatDong as PrismaTrangThaiHoatDong, TrangThaiDangKy } from '@prisma/client';
+import type { HocKy, TrangThaiHoatDong as PrismaTrangThaiHoatDong, TrangThaiDangKy, Prisma } from '@prisma/client';
 
 export interface DashboardStats {
   totalActivities: number;
@@ -81,7 +81,7 @@ class TeacherDashboardRepository {
 
     // Build activity filter for pending/approved counts
     const activityWhere = {
-      nguoi_tao_id: { in: studentUserIds },
+      lop_id: { in: classIds },
       trang_thai: { in: ['da_duyet', 'ket_thuc'] as PrismaTrangThaiHoatDong[] },
       ...(semesterFilter.hoc_ky && { hoc_ky: semesterFilter.hoc_ky }),
       ...(semesterFilter.nam_hoc && { nam_hoc: semesterFilter.nam_hoc })
@@ -99,7 +99,7 @@ class TeacherDashboardRepository {
       Promise.all(totalActivitiesPromises),
       prisma.hoatDong.count({
         where: {
-          nguoi_tao_id: { in: studentUserIds },
+          lop_id: { in: classIds },
           trang_thai: 'cho_duyet',
           ...(semesterFilter.hoc_ky && { hoc_ky: semesterFilter.hoc_ky }),
           ...(semesterFilter.nam_hoc && { nam_hoc: semesterFilter.nam_hoc })
@@ -136,8 +136,8 @@ class TeacherDashboardRepository {
     const totalScore = participatedRegistrations.reduce((sum, reg) => {
       return sum + (Number(reg.hoat_dong?.diem_rl) || 0);
     }, 0);
-    const avgClassScore = studentIds.length > 0 
-      ? Math.round(totalScore / studentIds.length) 
+    const avgClassScore = studentIds.length > 0
+      ? Math.round(totalScore / studentIds.length)
       : 0;
 
     // Calculate participation rate
@@ -242,8 +242,8 @@ class TeacherDashboardRepository {
     };
 
     const [totalRegistrations, approvedRegistrations] = await Promise.all([
-      prisma.dangKyHoatDong.count({ where: registrationWhere as any }),
-      prisma.dangKyHoatDong.count({ where: approvedRegistrationWhere as any })
+      prisma.dangKyHoatDong.count({ where: registrationWhere as Prisma.DangKyHoatDongWhereInput }),
+      prisma.dangKyHoatDong.count({ where: approvedRegistrationWhere as Prisma.DangKyHoatDongWhereInput })
     ]);
 
     return {

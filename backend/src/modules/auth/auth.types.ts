@@ -90,7 +90,7 @@ export interface IHashService {
 
 export interface ITokenService {
   generateToken(user: UserWithRelations, remember?: boolean): string;
-  verifyToken(token: string): any;
+  verifyToken(token: string): Record<string, unknown> | null;
 }
 
 export interface IOtpService {

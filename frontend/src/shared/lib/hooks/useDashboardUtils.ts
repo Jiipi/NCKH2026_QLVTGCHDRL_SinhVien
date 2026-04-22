@@ -55,8 +55,8 @@ export function useAsyncData<T>(
         setState({ data: null, loading: false, error: errorMsg });
         onError?.(errorMsg);
       }
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Lỗi không xác định';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Lỗi không xác định';
       setState({ data: null, loading: false, error: errorMsg });
       onError?.(errorMsg);
     }
@@ -114,8 +114,9 @@ export function useParallelFetch<T extends Record<string, unknown>>(
       } else {
         setState({ data, loading: false, error: errors.length > 0 ? errors.join('; ') : null });
       }
-    } catch (err: any) {
-      setState({ data: null, loading: false, error: err?.message || 'Lỗi không xác định' });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Lỗi không xác định';
+      setState({ data: null, loading: false, error: errorMsg });
     }
   }, [fetchFns, enabled]);
 

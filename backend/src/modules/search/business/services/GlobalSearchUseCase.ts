@@ -5,6 +5,7 @@
  */
 
 import { normalizeRoleName } from '../../../../core/utils/roleHelper';
+import type { Prisma } from '@prisma/client';
 import type { 
   ISearchRepository, 
   ActivityResult, 
@@ -121,7 +122,7 @@ class GlobalSearchUseCase {
 
     // 2. SEARCH STUDENTS (Admin, Teacher, Monitor)
     if (userRole === 'ADMIN' || userRole === 'GIANG_VIEN' || userRole === 'LOP_TRUONG') {
-      const studentWhere: any = {
+      const studentWhere: Prisma.SinhVienWhereInput = {
         OR: [
           { nguoi_dung: { is: { ho_ten: { contains: searchTerm, mode: 'insensitive' } } } },
           { nguoi_dung: { is: { ten_dn: { contains: searchTerm, mode: 'insensitive' } } } },
@@ -146,7 +147,7 @@ class GlobalSearchUseCase {
 
     // 3. SEARCH CLASSES (Admin, Teacher)
     if (userRole === 'ADMIN' || userRole === 'GIANG_VIEN') {
-      const classWhere: any = {
+      const classWhere: Prisma.LopWhereInput = {
         OR: [
           { ten_lop: { contains: searchTerm, mode: 'insensitive' } }
         ]
@@ -161,7 +162,7 @@ class GlobalSearchUseCase {
 
     // 4. SEARCH TEACHERS (Admin only)
     if (userRole === 'ADMIN') {
-      const teacherWhere = {
+      const teacherWhere: Prisma.NguoiDungWhereInput = {
         AND: [
           {
             OR: [

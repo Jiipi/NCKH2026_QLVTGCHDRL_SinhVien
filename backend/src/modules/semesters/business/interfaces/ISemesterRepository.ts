@@ -4,7 +4,7 @@
  * Follows Dependency Inversion Principle (DIP)
  */
 
-import type { HocKy, Prisma } from '@prisma/client';
+import type { HocKy, LoaiHoatDong, Prisma } from '@prisma/client';
 
 export interface SemesterOption {
   id: string;
@@ -37,6 +37,19 @@ export interface Registration {
   [key: string]: unknown;
 }
 
+export interface SemesterDistinctRow {
+  hoc_ky: HocKy | null;
+  nam_hoc: string | null;
+}
+
+export interface ClassIdentity {
+  id: string;
+}
+
+export interface StudentClassIdentity {
+  lop_id: string | null;
+}
+
 abstract class ISemesterRepository {
   abstract getSemesterOptions(): Promise<SemesterOption[]>;
 
@@ -49,6 +62,27 @@ abstract class ISemesterRepository {
   abstract getActivitiesBySemester(classId: string, semester: string): Promise<Activity[]>;
 
   abstract getRegistrationsBySemester(classId: string, semester: string): Promise<Registration[]>;
+
+  abstract findSystemActivityType(): Promise<LoaiHoatDong | null>;
+
+  abstract createSystemActivityType(): Promise<LoaiHoatDong>;
+
+  abstract getDistinctSemesters(): Promise<SemesterDistinctRow[]>;
+
+  abstract existsSemesterActivity(hocKy: HocKy, namHoc: string): Promise<boolean>;
+
+  abstract createSemesterSystemActivity(data: {
+    hoc_ky: HocKy;
+    nam_hoc: string;
+    ngay_bd: Date;
+    ngay_kt: Date;
+    loai_hd_id: string;
+    nguoi_tao_id: string;
+  }): Promise<void>;
+
+  abstract findClassByMonitorUserId(userId: string): Promise<ClassIdentity | null>;
+
+  abstract findStudentClassByUserId(userId: string): Promise<StudentClassIdentity | null>;
 }
 
 export default ISemesterRepository;

@@ -1,7 +1,6 @@
 import type { HoatDong, TrangThaiHoatDong } from '@prisma/client';
 import type IActivityRepository from '../interfaces/IActivityRepository';
 import { NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 interface User {
   sub: string;
@@ -39,9 +38,11 @@ class GetActivityByIdUseCase {
     this.activityRepository = activityRepository;
   }
 
-  async execute(id: string, scope: Scope | null, user: User): Promise<HoatDong> {
+  async execute(id: string, scope: Scope | null, user: User, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<HoatDong> {
     // First, fetch the activity without scope filter
-    const activity = await this.activityRepository.findById(id);
+    // DO NOT filter by semester for GET by ID - students should see activities they registered for
+    // regardless of semester. Semester filtering only applies to LIST operations.
+    const activity = await this.activityRepository.findById(id, {}, null, undefined);
 
     if (!activity) {
       throw new NotFoundError('Không tìm thấy hoạt động');
@@ -102,18 +103,10 @@ class GetActivityByIdUseCase {
       // Check if student has registered for this activity
       const userId = user?.sub;
       if (userId) {
-        const sinhVien = await prisma.sinhVien.findUnique({
-          where: { nguoi_dung_id: userId },
-          select: { id: true }
-        });
+        const sinhVien = await this.activityRepository.findStudentByUserId(userId);
 
         if (sinhVien) {
-          const registration = await prisma.dangKyHoatDong.findFirst({
-            where: {
-              hd_id: activity.id,
-              sv_id: sinhVien.id
-            }
-          });
+          const registration = await this.activityRepository.findUserRegistration(activity.id, sinhVien.id);
 
           if (registration) {
             return true;
@@ -126,18 +119,10 @@ class GetActivityByIdUseCase {
     if (userRole === 'LOP_TRUONG') {
       const userId = user?.sub;
       if (userId) {
-        const sinhVien = await prisma.sinhVien.findUnique({
-          where: { nguoi_dung_id: userId },
-          select: { id: true }
-        });
+        const sinhVien = await this.activityRepository.findStudentByUserId(userId);
 
         if (sinhVien) {
-          const registration = await prisma.dangKyHoatDong.findFirst({
-            where: {
-              hd_id: activity.id,
-              sv_id: sinhVien.id
-            }
-          });
+          const registration = await this.activityRepository.findUserRegistration(activity.id, sinhVien.id);
 
           if (registration) {
             return true;

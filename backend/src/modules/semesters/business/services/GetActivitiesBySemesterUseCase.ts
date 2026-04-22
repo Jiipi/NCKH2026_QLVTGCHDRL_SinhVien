@@ -4,8 +4,8 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-import type { HoatDong, LoaiHoatDong, DangKyHoatDong, HocKy, Prisma } from '@prisma/client';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { HoatDong, LoaiHoatDong, DangKyHoatDong } from '@prisma/client';
+import type ISemesterRepository from '../interfaces/ISemesterRepository';
 
 interface ActivityWithRelations extends HoatDong {
   loai_hd: Pick<LoaiHoatDong, 'ten_loai_hd'> | null;
@@ -13,6 +13,12 @@ interface ActivityWithRelations extends HoatDong {
 }
 
 class GetActivitiesBySemesterUseCase {
+  private semesterRepository: ISemesterRepository;
+
+  constructor(semesterRepository: ISemesterRepository) {
+    this.semesterRepository = semesterRepository;
+  }
+
   /**
    * Execute use case
    * @param classId - Class ID
@@ -20,28 +26,7 @@ class GetActivitiesBySemesterUseCase {
    * @returns Activities list
    */
   async execute(classId: string, semester: string): Promise<ActivityWithRelations[]> {
-    const [hoc_ky, nam_hoc] = semester ? semester.split('_') : [null, null];
-
-    const where: Prisma.HoatDongWhereInput = { lop_id: classId };
-    if (hoc_ky && nam_hoc) {
-      where.hoc_ky = hoc_ky as HocKy;
-      where.nam_hoc = nam_hoc;
-    }
-
-    const activities = await prisma.hoatDong.findMany({
-      where,
-      include: {
-        loai_hd: { select: { ten_loai_hd: true } },
-        dang_ky_hd: {
-          select: {
-            trang_thai_dk: true,
-            sv_id: true,
-          },
-        },
-      },
-      orderBy: { ngay_bd: 'desc' },
-    });
-
+    const activities = await this.semesterRepository.getActivitiesBySemester(classId, semester);
     return activities as unknown as ActivityWithRelations[];
   }
 }

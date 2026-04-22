@@ -3,10 +3,18 @@
  * Handles system-wide notifications with scope-based targeting
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { logInfo, logError } from '../../core/logger';
 
 const prisma = new PrismaClient();
+
+/** Prisma result type for notification queries with full relations */
+type NotificationWithRelations = Prisma.ThongBaoGetPayload<{
+  include: {
+    nguoi_gui: { include: { vai_tro: true } };
+    nguoi_nhan: { include: { vai_tro: true; sinh_vien: { include: { lop: true } } } };
+  };
+}>;
 
 // Types for broadcast service
 interface BroadcastParams {
@@ -26,7 +34,7 @@ interface RecipientInfo {
 }
 
 interface RecipientDetail {
-  id: number;
+  id: string;
   vai_tro: string;
   lop: string | null;
   ho_ten: string;
@@ -34,11 +42,11 @@ interface RecipientDetail {
 }
 
 interface GroupedNotification {
-  id: number;
+  id: string;
   title: string;
   message: string;
   date: Date;
-  nguoi_gui_id: number;
+  nguoi_gui_id: string;
   nguoi_gui_role: string;
   nguoi_gui_name: string;
   recipients: RecipientInfo[] | RecipientDetail[];
@@ -53,7 +61,7 @@ interface BroadcastStats {
 }
 
 interface BroadcastHistoryItem {
-  id: number;
+  id: string;
   title: string;
   message: string;
   date: Date;
@@ -144,9 +152,9 @@ class BroadcastService {
         // Lưu metadata broadcast (để thống kê/lịch sử chính xác)
         pham_vi_gui: String(scope || '').toLowerCase(),
         vai_tro_nhan: targetRole || null,
-        lop_nhan_id: (targetClass ? String(targetClass) : null) as any,
+        lop_nhan_id: targetClass ? String(targetClass) : null,
         khoa_nhan: targetDepartment || null,
-        hoat_dong_nhan_id: (activityId ? String(activityId) : null) as any,
+        hoat_dong_nhan_id: activityId ? String(activityId) : null,
         so_nguoi_duoc_chon: recipientIds.length,
         so_nguoi_da_gui: filteredRecipients.length,
         ngay_gui: new Date()
@@ -173,8 +181,8 @@ class BroadcastService {
         skippedSelf,
         createdNotifications: result.count
       };
-    } catch (error: any) {
-      logError('Broadcast failed', { error: error.message, params });
+    } catch (error: unknown) {
+      logError('Broadcast failed', { error: (error as Error).message, params });
       throw error;
     }
   }
@@ -212,7 +220,7 @@ class BroadcastService {
 
     // Group notifications by title + sender + timestamp (within 1 minute tolerance)
     const grouped: Record<string, GroupedNotification> = {};
-    allNotifications.forEach((tb: any) => {
+    allNotifications.forEach((tb: NotificationWithRelations) => {
       const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
       if (!grouped[key]) {
         grouped[key] = {
@@ -241,8 +249,8 @@ class BroadcastService {
     let classCount = 0;
 
     // Build a quick lookup for metadata from raw rows (keyed the same way)
-    const metaByKey: Record<string, any> = {};
-    allNotifications.forEach((tb: any) => {
+    const metaByKey: Record<string, NotificationWithRelations> = {};
+    allNotifications.forEach((tb: NotificationWithRelations) => {
       const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
       if (!metaByKey[key]) metaByKey[key] = tb;
     });
@@ -317,7 +325,7 @@ class BroadcastService {
 
     // Group notifications by title + sender + timestamp to detect broadcasts
     const grouped: Record<string, GroupedNotification> = {};
-    allNotifications.forEach((tb: any) => {
+    allNotifications.forEach((tb: NotificationWithRelations) => {
       const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
       if (!grouped[key]) {
         grouped[key] = {
@@ -342,8 +350,8 @@ class BroadcastService {
 
     // Filter broadcasts (sent to multiple recipients at once)
     // Metadata lookup per group
-    const metaByKey: Record<string, any> = {};
-    allNotifications.forEach((tb: any) => {
+    const metaByKey: Record<string, NotificationWithRelations> = {};
+    allNotifications.forEach((tb: NotificationWithRelations) => {
       const key = `${tb.tieu_de}_${tb.nguoi_gui_id}_${tb.ngay_gui.toISOString()}`;
       if (!metaByKey[key]) metaByKey[key] = tb;
     });

@@ -1,6 +1,6 @@
 import { NotFoundError } from '../../../../core/errors/AppError';
 import type IActivityTypeRepository from '../interfaces/IActivityTypeRepository';
-const { logInfo } = require('../../../../core/logger');
+import { logInfo } from '../../../../core/logger';
 
 /**
  * DeleteActivityTypeUseCase

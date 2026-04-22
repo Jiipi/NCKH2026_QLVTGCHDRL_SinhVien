@@ -4,14 +4,14 @@
  */
 
 import { Router } from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import ActivitiesController from '../controllers/ActivitiesController';
 import { createActivitiesController } from '../activities.factory';
 
-const validators = require('../../business/validators/activities.validators');
-const { auth, requireDynamicPermission } = require('../../../../core/http/middleware');
-const { asyncHandler } = require('../../../../core/http/middleware/asyncHandler');
-const { extractClassContext, applyClassScope } = require('../../../../core/http/middleware/classScope');
+import * as validators from '../../business/validators/activities.validators';
+import { auth, requireDynamicPermission } from '../../../../core/http/middleware';
+import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
+import { extractClassContext, applyClassScope } from '../../../../core/http/middleware/classScope';
 
 /**
  * Creates activities router with dependency-injected controller
@@ -43,22 +43,9 @@ function createActivitiesRouter(controller: InstanceType<typeof ActivitiesContro
   // Get QR data (must be before /:id route)
   router.get(
     '/:id/qr-data',
-    (req: Request, res: Response, next: NextFunction) => {
-      console.log('[QR-Data Route] Middleware - Request received:', req.params.id);
-      next();
-    },
     requireDynamicPermission('activities.read'),
-    (req: Request, res: Response, next: NextFunction) => {
-      console.log('[QR-Data Route] After permission check');
-      next();
-    },
     validators.validateGetById,
-    (req: Request, res: Response, next: NextFunction) => {
-      console.log('[QR-Data Route] After validation');
-      next();
-    },
     asyncHandler((req: Request, res: Response) => {
-      console.log('[QR-Data Route] Calling controller');
       return controller.getQRData(req, res);
     })
   );

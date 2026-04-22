@@ -10,7 +10,7 @@ import { UserWithRole } from '../interfaces/IAuthRepository';
 import config from '../../../../core/config';
 
 class JwtTokenService extends TokenServiceBase {
-  generateToken(user: UserWithRole, remember: boolean = false): string {
+  async generateToken(user: UserWithRole, remember: boolean = false): Promise<string> {
     const payload: object = {
       sub: user.id,
       maso: user.ten_dn,
@@ -21,8 +21,7 @@ class JwtTokenService extends TokenServiceBase {
       ? (process.env.JWT_EXPIRES_IN_REMEMBER || '30d')
       : config.jwt.expiresIn;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return jwt.sign(payload, config.jwt.secret, { expiresIn } as any);
+    return jwt.sign(payload, config.jwt.secret, { expiresIn } as SignOptions);
   }
 
   verifyToken(token: string): TokenPayload | null {

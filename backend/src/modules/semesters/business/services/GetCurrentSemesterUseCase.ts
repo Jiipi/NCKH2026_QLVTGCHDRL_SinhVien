@@ -13,7 +13,7 @@ export interface SemesterInfo {
 
 class GetCurrentSemesterUseCase {
   async execute(): Promise<SemesterInfo> {
-    return SemesterClosureService.getCurrentSemesterInfo();
+    return SemesterClosureService.getActiveSemesterInfo();
   }
 }
 

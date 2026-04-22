@@ -44,7 +44,7 @@ export const FACE_CONFIG = {
   api: {
     retryAttempts: 3,
     retryDelayMs: 1000,
-    timeoutMs: 120000, // 120s - cần thời gian cho việc load models lần đầu
+    timeoutMs: 200000, // 200s - đồng bộ với backend timeout (180s) + buffer 20s
     // Aliases for convenience
     get maxRetries() { return this.retryAttempts; },
     get retryDelay() { return this.retryDelayMs; },

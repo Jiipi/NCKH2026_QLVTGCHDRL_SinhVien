@@ -5,12 +5,16 @@
 
 import { NotFoundError } from '../../../../core/errors/AppError';
 import { parseSemesterString } from '../../../../core/utils/semester';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { countClassActivities } from '../../../../core/utils/classActivityCounter';
 import { calculateActivityPoints, type ActivityWithPoints } from '../utils/activityPoints';
 import type { IDashboardRepository } from '../interfaces/IDashboardRepository';
-import type { StudentInfo, UpcomingActivity, DashboardActivityFilter, SemesterFilter } from '../../dashboard.types';
+import type { StudentInfo, UpcomingActivity, DashboardActivityFilter, SemesterFilter, StudentRegistration } from '../../dashboard.types';
 import type { HocKy } from '@prisma/client';
+
+interface DashboardRegistration extends StudentRegistration {
+  ngay_duyet?: Date | null;
+  ly_do_tu_choi?: string | null;
+}
 
 export interface StudentDashboardQuery {
   semester?: string;
@@ -80,22 +84,19 @@ class GetStudentDashboardUseCase {
    */
   private async _getClassCreators(lopId: string | null, chuNhiemId: string | null | undefined): Promise<string[]> {
     if (!lopId) return [];
-    
+
     // Lấy tất cả sinh viên trong lớp
-    const classStudents = await prisma.sinhVien.findMany({
-      where: { lop_id: lopId },
-      select: { nguoi_dung_id: true }
-    });
-    
+    const classStudents = await this.repository.getClassStudents(lopId);
+
     const classCreatorUserIds = classStudents
       .map(s => s.nguoi_dung_id)
       .filter((id): id is string => id != null);
-    
+
     // Thêm GVCN vào danh sách
     if (chuNhiemId) {
       classCreatorUserIds.push(chuNhiemId);
     }
-    
+
     return [...new Set(classCreatorUserIds)]; // Remove duplicates
   }
 
@@ -105,7 +106,7 @@ class GetStudentDashboardUseCase {
   private _parseSemesterFilter(query: StudentDashboardQuery): SemesterFilter {
     const { semester, semesterValue, hoc_ky, nam_hoc } = query;
     const semesterParam = semesterValue || semester;
-    
+
     if (semesterParam) {
       const parsed = parseSemesterString(semesterParam);
       if (parsed && parsed.year) {
@@ -117,71 +118,83 @@ class GetStudentDashboardUseCase {
     } else if (hoc_ky && nam_hoc) {
       return { hoc_ky: hoc_ky as HocKy, nam_hoc };
     }
-    
+
     return {};
   }
 
-  async execute(userId: string, query: StudentDashboardQuery): Promise<StudentDashboardResult> {
+  async execute(
+    userId: string,
+    query: StudentDashboardQuery,
+    scope?: { where: any; permissions: any },
+    semester?: { hoc_ky: string; nam_hoc: string }
+  ): Promise<StudentDashboardResult> {
     const studentInfo = await this.repository.getStudentInfo(userId);
     if (!studentInfo) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');
     }
-    
-    // Parse semester filter
-    const semesterFilter = this._parseSemesterFilter(query);
-    
+
+    // Parse semester filter - prioritize from middleware
+    const semesterFilter: SemesterFilter = (semester || this._parseSemesterFilter(query)) as SemesterFilter;
+
     // Get class creators để filter upcoming activities
     const classCreators = await this._getClassCreators(
       studentInfo.lop_id,
       studentInfo.lop?.chu_nhiem
     );
-    
-    // Build activity filter với semester
-    const activityFilter: DashboardActivityFilter = { ...semesterFilter };
-    
+
+    // Build activity filter với semester và scope
+    const activityFilter: DashboardActivityFilter = {
+      ...semesterFilter,
+      ...(scope?.where || {})
+    };
+
     // Get registrations với filter
     const registrations = await this.repository.getStudentRegistrations(studentInfo.id, activityFilter);
-    
+
     // Get upcoming activities với class creators và semester filter
     const upcomingActivities = await this.repository.getUpcomingActivities(
       studentInfo.id,
       classCreators,
       semesterFilter
     );
-    
+
     const unreadCount = await this.repository.getUnreadNotificationsCount(userId);
-    
-    // Tính tổng điểm từ các đăng ký đã tham gia (da_tham_gia)
-    const attendedRegistrations = registrations.filter(reg => 
+
+    // Tính tổng điểm CHỈ từ các đăng ký đã tham gia (đã điểm danh QR) - đồng bộ với trang Score
+    const attendedRegistrations = registrations.filter(reg =>
       reg.trang_thai_dk === 'da_tham_gia' && reg.hoat_dong
     );
-    
+
     let totalPoints = 0;
     attendedRegistrations.forEach(reg => {
       const points = calculateActivityPoints(reg.hoat_dong as ActivityWithPoints);
       totalPoints += points;
     });
-    
+
     // Get class students count for ranking
-    const classStudents = studentInfo.lop_id 
+    const classStudents = studentInfo.lop_id
       ? await this.repository.getClassStudents(studentInfo.lop_id)
       : [];
     const totalStudentsInClass = classStudents.length;
-    
-    // Đếm tổng hoạt động của lớp theo chuẩn:
-    // Tất cả hoạt động da_duyet/ket_thuc do SV/GVCN của lớp tạo
-    const totalClassActivities = studentInfo.lop_id 
-      ? await countClassActivities(studentInfo.lop_id, semesterFilter)
-      : 0;
+
+    // Đếm tổng hoạt động: hoạt động lớp + hoạt động toàn trường
+    let totalClassActivities = 0;
+    if (studentInfo.lop_id) {
+      totalClassActivities = await countClassActivities(studentInfo.lop_id, semesterFilter);
+    }
+    // Nếu không có hoạt động lớp, đếm tổng đăng ký đã tham gia làm tong_hoat_dong
+    if (totalClassActivities === 0) {
+      totalClassActivities = attendedRegistrations.length;
+    }
 
     let myRankInClass: number | null = null;
     if (studentInfo.lop_id && totalStudentsInClass > 0) {
       // Optimized: Fetch all class registrations in one query instead of N+1
       const allClassRegistrations = await this.repository.getClassRegistrations(
-        studentInfo.lop_id, 
+        studentInfo.lop_id,
         activityFilter
       );
-      
+
       // Group by student and calculate points
       const studentPointsMap: Record<number, number> = {};
       allClassRegistrations.forEach(reg => {
@@ -211,13 +224,27 @@ class GetStudentDashboardUseCase {
         }
       });
     }
-    
+
     // Map registrations to activities (full list)
-    const activities: DashboardActivityItem[] = registrations.map(reg => {
+    const typedRegistrations = registrations as DashboardRegistration[];
+    const activities: DashboardActivityItem[] = typedRegistrations.map(reg => {
+      const regRecord = reg as unknown as Record<string, unknown>;
       if (!reg.hoat_dong) {
         return {
           ...reg,
-          hoat_dong: null as any,
+          hoat_dong: {
+            id: '',
+            ten_hd: '',
+            mo_ta: null,
+            hinh_anh: [],
+            loai_hd: { ten_loai_hd: 'Khác' },
+            diem_rl: 0,
+            ngay_bd: new Date(),
+            ngay_kt: null,
+            dia_diem: null,
+            hoc_ky: undefined,
+            nam_hoc: undefined
+          },
           diem_rl: 0,
           hinh_anh: [],
           ten_hd: '',
@@ -227,17 +254,21 @@ class GetStudentDashboardUseCase {
           is_class_activity: false
         } as DashboardActivityItem;
       }
-      
+
       const hoatDong = reg.hoat_dong;
+      const hoatDongRecord = hoatDong as unknown as Record<string, unknown>;
+      const activityImages = Array.isArray(hoatDongRecord.hinh_anh)
+        ? (hoatDongRecord.hinh_anh as string[])
+        : [];
       const calculatedPoints = calculateActivityPoints(hoatDong as ActivityWithPoints);
-      
+
       return {
         id: reg.id,
         hoat_dong: {
           id: hoatDong.id,
           ten_hd: hoatDong.ten_hd,
           mo_ta: hoatDong.mo_ta || null,
-          hinh_anh: (hoatDong as any).hinh_anh || [],
+          hinh_anh: activityImages,
           loai_hd: hoatDong.loai_hd ? {
             ten_loai_hd: hoatDong.loai_hd.ten_loai_hd || 'Khác',
             diem_mac_dinh: hoatDong.loai_hd.diem_mac_dinh,
@@ -251,19 +282,19 @@ class GetStudentDashboardUseCase {
           nam_hoc: hoatDong.nam_hoc
         },
         diem_rl: calculatedPoints,
-        hinh_anh: (hoatDong as any).hinh_anh || [],
+        hinh_anh: activityImages,
         ten_hd: hoatDong.ten_hd,
         ngay_bd: hoatDong.ngay_bd,
         dia_diem: hoatDong.dia_diem || null,
         ngay_dang_ky: reg.ngay_dang_ky,
         trang_thai_dk: reg.trang_thai_dk,
         trang_thai: reg.trang_thai_dk,
-        ngay_duyet: (reg as any).ngay_duyet,
-        ly_do_tu_choi: (reg as any).ly_do_tu_choi,
+        ngay_duyet: reg.ngay_duyet,
+        ly_do_tu_choi: reg.ly_do_tu_choi,
         is_class_activity: true
       };
     });
-    
+
     return {
       sinh_vien: studentInfo,
       activities: activities,

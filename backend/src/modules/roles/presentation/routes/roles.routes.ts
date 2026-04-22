@@ -25,7 +25,7 @@ router.get('/:id', auth, requireAdmin, asyncHandler((req: Request, res: Response
  * @desc    Create new role
  * @access  Private (Admin)
  */
-router.post('/', auth, requireAdmin, asyncHandler((req: Request, res: Response) => rolesController.create(req as any, res)));
+router.post('/', auth, requireAdmin, asyncHandler((req: Request, res: Response) => rolesController.create(req as unknown as Parameters<typeof rolesController.create>[0], res)));
 
 /**
  * @route   PUT /api/core/roles/:id
@@ -53,7 +53,7 @@ router.delete('/:id', auth, requireAdmin, asyncHandler((req: Request, res: Respo
  * @desc    Assign role to users
  * @access  Private (Admin)
  */
-router.post('/:id/assign', auth, requireAdmin, asyncHandler((req: Request, res: Response) => rolesController.assignToUsers(req as any, res)));
+router.post('/:id/assign', auth, requireAdmin, asyncHandler((req: Request, res: Response) => rolesController.assignToUsers(req as unknown as Parameters<typeof rolesController.assignToUsers>[0], res)));
 
 /**
  * @route   DELETE /api/core/roles/user/:userId

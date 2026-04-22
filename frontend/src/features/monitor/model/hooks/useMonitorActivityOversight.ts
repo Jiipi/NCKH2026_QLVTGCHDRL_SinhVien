@@ -477,21 +477,25 @@ export function useMonitorActivityOversight() {
           if (isNaN(filterId)) {
             // Filter by name (case-insensitive) when value is not numeric
             const filterName = filterValue.toLowerCase();
-            const activityTypeName = (activity.loai_hd?.ten_loai_hd || activity.loai_hd?.name || '').toLowerCase();
-            matchesType = activityTypeName === filterName;
+            const loaiHd = activity.loai_hd;
+            const activityTypeName = (typeof loaiHd === 'object' && loaiHd !== null
+              ? ((loaiHd as Record<string, unknown>).ten_loai_hd || (loaiHd as Record<string, unknown>).name || '')
+              : ''
+            );
+            matchesType = String(activityTypeName).toLowerCase() === filterName;
           } else {
             // Filter by numeric id
             let activityTypeId = null;
             if (activity.loai_hd_id !== undefined && activity.loai_hd_id !== null) {
               activityTypeId = activity.loai_hd_id;
-            } else if (activity.loai_hd && typeof activity.loai_hd === 'object' && activity.loai_hd.id !== undefined) {
-              activityTypeId = activity.loai_hd.id;
-            } else if (activity.loai_hd !== undefined && activity.loai_hd !== null) {
+            } else if (activity.loai_hd && typeof activity.loai_hd === 'object' && (activity.loai_hd as Record<string, unknown>).id !== undefined) {
+              activityTypeId = (activity.loai_hd as Record<string, unknown>).id;
+            } else if (activity.loai_hd !== undefined && activity.loai_hd !== null && typeof activity.loai_hd === 'string') {
               const parsed = parseInt(activity.loai_hd, 10);
               if (!isNaN(parsed)) activityTypeId = parsed;
             }
 
-            const activityId = activityTypeId !== null ? parseInt(activityTypeId, 10) : null;
+            const activityId = activityTypeId !== null ? parseInt(String(activityTypeId), 10) : null;
             matchesType = activityId !== null && activityId === filterId;
           }
         }
@@ -546,7 +550,7 @@ export function useMonitorActivityOversight() {
   }, [filteredActivities, pagination.page, pagination.limit]);
 
   // Derived counts
-  const countByDisplayStatus = useCallback((st) => {
+  const countByDisplayStatus = useCallback((st: string) => {
     return activities.reduce((n, a) => n + (getDisplayStatus(a) === st ? 1 : 0), 0);
   }, [activities, getDisplayStatus]);
 

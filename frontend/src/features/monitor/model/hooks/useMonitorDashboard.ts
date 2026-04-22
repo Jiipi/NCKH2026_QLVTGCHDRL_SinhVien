@@ -6,13 +6,29 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { monitorDashboardApi } from '../../services/monitorDashboardApi';
-import { studentDashboardApi } from '../../../student/services/studentDashboardApi';
-import { studentActivitiesApi } from '../../../student/services/studentActivitiesApi';
-import { studentProfileApi } from '../../../student/services/studentProfileApi';
+// Sử dụng shared API thay vì import trực tiếp từ student feature (fix coupling)
+import { dashboardApi } from '../../../../shared/api/dashboardApi';
 import { mapDashboardToUI, groupRegistrationsByStatus } from '../mappers/monitor.mappers';
-import { mapDashboardToUI as mapStudentDashboardToUI } from '../../../student/model/mappers/student.mappers';
-import { groupActivitiesByStatus } from '../../../student/model/mappers/student.mappers';
+import { mapActivityToUI as sharedMapActivityToUI, groupActivitiesByStatusStudent as groupActivitiesByStatus } from '../../../../shared/lib/mappers';
+import type { MappedActivity } from '../../../../shared/lib/mappers/activity.mapper';
 import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
+
+/** Map student dashboard API response sang UI format */
+function mapStudentDashboardToUI(apiData: any) {
+  return {
+    sinh_vien: apiData.sinh_vien || {},
+    hoat_dong_sap_toi: (apiData.hoat_dong_sap_toi || []).map(sharedMapActivityToUI),
+    tong_quan: {
+      tong_diem: apiData.tong_quan?.tong_diem || 0,
+      tong_hoat_dong: apiData.tong_quan?.tong_hoat_dong || 0,
+      muc_tieu: apiData.tong_quan?.muc_tieu || 100
+    },
+    so_sanh_lop: {
+      my_rank_in_class: apiData.so_sanh_lop?.my_rank_in_class || 1,
+      total_students_in_class: apiData.so_sanh_lop?.total_students_in_class || 0
+    }
+  };
+}
 
 /** Interface for tong_quan (overview) data */
 interface TongQuan {
@@ -86,12 +102,12 @@ export default function useMonitorDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel (sử dụng shared API thay vì student feature)
       const [monitorResult, studentResult, activitiesResult, profileResult] = await Promise.all([
         monitorDashboardApi.getDashboard(semester),
-        studentDashboardApi.getDashboard(semester),
-        studentActivitiesApi.getMyActivities(semester),
-        studentProfileApi.getProfile()
+        dashboardApi.getStudentDashboard(semester),
+        dashboardApi.getMyActivities(semester),
+        dashboardApi.getProfile()
       ]);
 
       // Set monitor dashboard data
@@ -127,7 +143,7 @@ export default function useMonitorDashboard() {
       }
     } catch (err) {
       console.error('[useMonitorDashboard] Load error:', err);
-      setError(err?.message || 'Không thể tải dữ liệu dashboard');
+      setError((err as Error)?.message || 'Không thể tải dữ liệu dashboard');
       setMonitorDashboardData(null);
       setStudentDashboardData(null);
       setMyActivitiesData([]);
@@ -168,7 +184,7 @@ export default function useMonitorDashboard() {
   }, [currentSemester, semesterOptions, semesterLoading, semester]);
 
   // Wrapper để broadcast global khi thay đổi semester
-  const handleSetSemester = useCallback((newSemester) => {
+  const handleSetSemester = useCallback((newSemester: string | null) => {
     setSemesterState(newSemester);
     setGlobalSemester(newSemester);
   }, []);
@@ -297,8 +313,8 @@ export default function useMonitorDashboard() {
   // Business logic: Extract recent activities
   const recentApprovals = useMemo(() => myActivities.all || [], [myActivities]);
 
-  const normalizeStatus = useCallback((a) => {
-    const s = (a?.trang_thai_dk || a?.status || a?.trang_thai || '').toLowerCase();
+  const normalizeStatus = useCallback((a: MappedActivity) => {
+    const s = String(a?.trang_thai_dk || a?.status || a?.trang_thai || '').toLowerCase();
     if (s === 'pending') return 'cho_duyet';
     if (s === 'approved') return 'da_duyet';
     if (s === 'participated' || s === 'attended') return 'da_tham_gia';
@@ -367,7 +383,7 @@ export default function useMonitorDashboard() {
   const pendingApprovals = useMemo(() => approvals?.pending || classSummary?.pendingApprovals || 0, [approvals, classSummary]);
   const totalActivities = useMemo(() => classSummary?.totalActivities || 0, [classSummary]);
 
-  const getClassification = useCallback((points) => {
+  const getClassification = useCallback((points: number) => {
     if (points >= 90) return { text: 'Xuất sắc', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' };
     if (points >= 80) return { text: 'Tốt', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
     if (points >= 65) return { text: 'Khá', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' };
@@ -377,12 +393,13 @@ export default function useMonitorDashboard() {
 
   const classification = useMemo(() => getClassification(monitorPoints), [monitorPoints, getClassification]);
 
-  const formatNumber = useCallback((num) => {
+  const formatNumber = useCallback((num: number | null | undefined) => {
     if (num === null || num === undefined) return '0';
     return Math.round(Number(num) * 10) / 10;
   }, []);
 
-  const handleActivityClick = useCallback((activity) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleActivityClick = useCallback((activity: any) => {
     setSelectedActivity(activity);
     setSelectedActivityId(activity?.id || activity);
     setShowSummaryModal(true);

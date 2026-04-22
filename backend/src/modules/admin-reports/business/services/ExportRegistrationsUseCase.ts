@@ -6,6 +6,7 @@ import { logInfo, logError } from '../../../../core/logger';
 import { buildSemesterFilter, parseSemesterString } from '../../../../core/utils/semester';
 import { AppError } from '../../../../core/errors/AppError';
 import type { IAdminReportsRepository } from '../interfaces/IAdminReportsRepository';
+import type { RegistrationExportData } from '../../admin-reports.types';
 
 interface ExportQuery {
   semester?: string;
@@ -58,7 +59,8 @@ class ExportRegistrationsUseCase {
 
       const safe = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
 
-      const data = (rows as any[]).map((r: any) => [
+      const typedRows = rows as RegistrationExportData[];
+      const data = typedRows.map((r) => [
         safe(r.sinh_vien?.nguoi_dung?.ho_ten),
         safe(r.sinh_vien?.nguoi_dung?.email),
         safe(r.hoat_dong?.ten_hd),

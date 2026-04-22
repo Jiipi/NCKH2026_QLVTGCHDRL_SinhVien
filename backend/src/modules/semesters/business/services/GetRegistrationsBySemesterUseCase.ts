@@ -4,9 +4,8 @@
  * Follows Single Responsibility Principle (SRP)
  */
 
-import type { DangKyHoatDong, SinhVien, NguoiDung, HoatDong, HocKy } from '@prisma/client';
-
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
+import type { DangKyHoatDong, HocKy } from '@prisma/client';
+import type ISemesterRepository from '../interfaces/ISemesterRepository';
 
 interface RegistrationWithDetails extends DangKyHoatDong {
   sinh_vien: {
@@ -22,6 +21,12 @@ interface RegistrationWithDetails extends DangKyHoatDong {
 }
 
 class GetRegistrationsBySemesterUseCase {
+  private semesterRepository: ISemesterRepository;
+
+  constructor(semesterRepository: ISemesterRepository) {
+    this.semesterRepository = semesterRepository;
+  }
+
   /**
    * Execute use case
    * @param classId - Class ID
@@ -29,48 +34,8 @@ class GetRegistrationsBySemesterUseCase {
    * @returns Registrations list
    */
   async execute(classId: string, semester: string): Promise<RegistrationWithDetails[]> {
-    const [hoc_ky, nam_hoc] = semester ? semester.split('_') : [null, null];
-
-    const where: {
-      hoat_dong: {
-        lop_id: string;
-        hoc_ky?: string;
-        nam_hoc?: string;
-      };
-    } = {
-      hoat_dong: { lop_id: classId },
-    };
-
-    if (hoc_ky && nam_hoc) {
-      where.hoat_dong = {
-        ...where.hoat_dong,
-        hoc_ky,
-        nam_hoc,
-      };
-    }
-
-    const registrations = await prisma.dangKyHoatDong.findMany({
-      where,
-      include: {
-        sinh_vien: {
-          select: {
-            mssv: true,
-            nguoi_dung: { select: { ho_ten: true } },
-          },
-        },
-        hoat_dong: {
-          select: {
-            ten_hd: true,
-            ngay_to_chuc: true,
-            hoc_ky: true,
-            nam_hoc: true,
-          },
-        },
-      },
-      orderBy: { ngay_dang_ky: 'desc' },
-    }) as RegistrationWithDetails[];
-
-    return registrations;
+    const registrations = await this.semesterRepository.getRegistrationsBySemester(classId, semester);
+    return registrations as unknown as RegistrationWithDetails[];
   }
 }
 

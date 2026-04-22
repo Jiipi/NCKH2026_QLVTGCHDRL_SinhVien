@@ -17,6 +17,6 @@ export type {
   IProfileController
 } from './profile.types';
 
-const routes = require('./presentation/routes/profile.routes');
+import routes from './presentation/routes/profile.routes';
 export { routes };
 module.exports = { routes };

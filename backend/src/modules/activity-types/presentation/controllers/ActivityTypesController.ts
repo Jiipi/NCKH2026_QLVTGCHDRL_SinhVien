@@ -7,7 +7,7 @@ import type DeleteActivityTypeUseCase from '../../business/services/DeleteActivi
 import type GetActivityTypeByIdUseCase from '../../business/services/GetActivityTypeByIdUseCase';
 import type ListActivityTypesUseCase from '../../business/services/ListActivityTypesUseCase';
 import type UpdateActivityTypeUseCase from '../../business/services/UpdateActivityTypeUseCase';
-const { logError } = require('../../../../core/logger');
+import { logError } from '../../../../core/logger';
 
 /**
  * Authenticated request with user info

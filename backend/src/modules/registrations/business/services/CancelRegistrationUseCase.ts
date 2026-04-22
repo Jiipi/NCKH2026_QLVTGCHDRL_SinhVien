@@ -5,10 +5,17 @@
  */
 
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import type { IRegistrationRepository } from '../interfaces/IRegistrationRepository';
 import type { AuthUser } from '../helpers/registrationAccess';
 import type { TrangThaiDangKy } from '@prisma/client';
+
+interface RegistrationWithOwner {
+  id: string;
+  trang_thai_dk: TrangThaiDangKy;
+  student?: {
+    nguoi_dung_id?: string;
+  };
+}
 
 /**
  * Cancel result
@@ -29,32 +36,20 @@ export class CancelRegistrationUseCase {
 
   async execute(id: string, user: AuthUser): Promise<CancelResult> {
     // Get student ID from user ID
-    const student = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: user.sub },
-      select: { id: true }
-    });
+    const student = await this.registrationRepository.findStudentByUserId(user.sub || user.id || '');
 
     if (!student) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');
     }
 
-    // Find registration using repository abstraction
-    // Note: Using direct Prisma query for legacy schema compatibility
-    const registration = await prisma.dangKyHoatDong.findUnique({
-      where: { id: String(id) },
-      include: {
-        sinh_vien: {
-          select: { nguoi_dung_id: true }
-        }
-      }
-    });
+    const registration = await this.registrationRepository.findById<RegistrationWithOwner>(id, { user: true });
 
     if (!registration) {
       throw new NotFoundError('Đăng ký không tồn tại');
     }
 
     // Authorization: Only owner can cancel (or ADMIN)
-    if (registration.sinh_vien?.nguoi_dung_id !== user.sub && user.role !== 'ADMIN') {
+    if (registration.student?.nguoi_dung_id !== user.sub && user.role !== 'ADMIN') {
       throw new ForbiddenError('Bạn chỉ có thể hủy đăng ký của mình');
     }
 
@@ -65,9 +60,7 @@ export class CancelRegistrationUseCase {
     }
 
     // Delete registration
-    await prisma.dangKyHoatDong.delete({
-      where: { id: String(id) }
-    });
+    await this.registrationRepository.delete(id);
 
     return { message: 'Đã hủy đăng ký thành công' };
   }

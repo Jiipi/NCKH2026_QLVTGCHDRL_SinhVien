@@ -1,6 +1,6 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
-const { buildScope } = require('../../../../app/scopes/scopeBuilder');
+import { buildScope } from '../../../../app/scopes/scopeBuilder';
 
 interface AuthUser {
   id: string | number;

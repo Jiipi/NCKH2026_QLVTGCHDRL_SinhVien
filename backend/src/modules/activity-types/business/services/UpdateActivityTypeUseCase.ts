@@ -2,7 +2,7 @@ import type { LoaiHoatDong } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../../../core/errors/AppError';
 import type IActivityTypeRepository from '../interfaces/IActivityTypeRepository';
 import type { UpdateActivityTypeData } from '../interfaces/IActivityTypeRepository';
-const { logInfo } = require('../../../../core/logger');
+import { logInfo } from '../../../../core/logger';
 
 /**
  * UpdateActivityTypeUseCase

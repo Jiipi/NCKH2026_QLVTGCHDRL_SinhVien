@@ -8,6 +8,7 @@ import { ListRegistrationsDto } from '../../business/dto/ListRegistrationsDto';
 import { CreateRegistrationDto } from '../../business/dto/CreateRegistrationDto';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
 import { logError } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 import type { AuthenticatedRequest } from '../../../../core/http/middleware/authJwt';
@@ -95,12 +96,6 @@ export class RegistrationsController {
 
   async create(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
-      console.log('[RegistrationsController] Create request:', {
-        body: req.body,
-        userId: req.user?.sub,
-        user: req.user?.sub
-      });
-      
       // Tự động lấy student.id từ user.sub (giống RegisterActivityUseCase)
       // Nếu body.userId được gửi từ frontend (admin/teacher đăng ký cho sv khác), dùng body.userId
       // Nếu không, tự động lấy student.id từ user.sub
@@ -126,19 +121,11 @@ export class RegistrationsController {
         userId: studentId // Dùng student.id (sv_id), không phải nguoi_dung_id
       }, req.user!);
       
-      console.log('[RegistrationsController] DTO created:', {
-        userId: dto.userId,
-        activityId: dto.activityId,
-        note: dto.note
-      });
-      
       const registration = await this.useCases.create.execute(dto, req.user!);
-      console.log('[RegistrationsController] Registration created successfully');
+      logAudit('create_registration', req, { module: 'registrations', entityId: (registration as Record<string, unknown>)?.id as string, entityType: 'DangKy' });
       
       return sendResponse(res, 201, ApiResponse.success(registration, 'Đăng ký thành công'));
     } catch (error) {
-      console.error('[RegistrationsController] Create registration error:', error);
-      console.error('[RegistrationsController] Error stack:', (error as Error).stack);
       logError('Create registration error', error as Error);
       if (error instanceof AppError) {
         return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
@@ -150,6 +137,7 @@ export class RegistrationsController {
   async update(req: RequestWithParams, res: Response): Promise<Response> {
     try {
       const registration = await this.useCases.update.execute(req.params.id!, req.body, req.user!);
+      logAudit('update_registration', req, { module: 'registrations', entityId: req.params.id, entityType: 'DangKy' });
       return sendResponse(res, 200, ApiResponse.success(registration, 'Cập nhật đăng ký thành công'));
     } catch (error) {
       logError('Update registration error', error as Error);
@@ -163,6 +151,7 @@ export class RegistrationsController {
   async delete(req: RequestWithParams, res: Response): Promise<Response> {
     try {
       await this.useCases.delete.execute(req.params.id!, req.user!);
+      logAudit('delete_registration', req, { module: 'registrations', entityId: req.params.id, entityType: 'DangKy' });
       return sendResponse(res, 200, ApiResponse.success(null, 'Xóa đăng ký thành công'));
     } catch (error) {
       logError('Delete registration error', error as Error);
@@ -176,6 +165,7 @@ export class RegistrationsController {
   async approve(req: RequestWithParams, res: Response): Promise<Response> {
     try {
       const registration = await this.useCases.approve.execute(req.params.id!, req.user!);
+      logAudit('approve_registration', req, { module: 'registrations', entityId: req.params.id, entityType: 'DangKy' });
       return sendResponse(res, 200, ApiResponse.success(registration, 'Đã duyệt đăng ký'));
     } catch (error) {
       logError('Approve registration error', error as Error);
@@ -189,6 +179,7 @@ export class RegistrationsController {
   async reject(req: RequestWithParams, res: Response): Promise<Response> {
     try {
       const registration = await this.useCases.reject.execute(req.params.id!, req.body.reason, req.user!);
+      logAudit('reject_registration', req, { module: 'registrations', entityId: req.params.id, entityType: 'DangKy' });
       return sendResponse(res, 200, ApiResponse.success(registration, 'Đã từ chối đăng ký'));
     } catch (error) {
       logError('Reject registration error', error as Error);
@@ -228,6 +219,7 @@ export class RegistrationsController {
   async bulkApprove(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
       const result = await this.useCases.bulkApprove.execute(req.body.ids, req.user!);
+      logAudit('bulk_approve_registrations', req, { module: 'registrations', entityType: 'DangKy', count: req.body.ids?.length });
       return sendResponse(res, 200, ApiResponse.success(result, 'Đã duyệt đăng ký'));
     } catch (error) {
       logError('Bulk approve registration error', error as Error);

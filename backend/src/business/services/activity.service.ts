@@ -11,6 +11,7 @@ import type {
     AuthPayload,
     IActivityService
 } from '../../core/types';
+import type { HoatDong } from '@prisma/client';
 
 // Import existing UseCases
 import GetActivitiesUseCase from '../../modules/activities/business/services/GetActivitiesUseCase';
@@ -23,6 +24,19 @@ import GetActivityByIdUseCase from '../../modules/activities/business/services/G
 
 // Import repository
 import ActivitiesRepository, { activitiesRepository } from '../../modules/activities/data/repositories/activities.repository';
+
+/** Decimal-like value from Prisma */
+interface DecimalLike { toNumber(): number; }
+
+/** Raw activity data from Prisma query */
+interface RawActivityData extends Record<string, unknown> {
+  diem_rl?: number | DecimalLike | null;
+  ngay_bd: Date | string;
+  ngay_kt: Date | string;
+  han_dk?: Date | string | null;
+  ngay_tao?: Date | string | null;
+  ngay_cap_nhat?: Date | string | null;
+}
 
 /**
  * ActivityService - Wrapper around existing UseCases
@@ -40,38 +54,33 @@ export class ActivityService implements IActivityService {
 
     constructor() {
         this.repository = activitiesRepository;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.getActivitiesUseCase = new GetActivitiesUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.getActivityByIdUseCase = new GetActivityByIdUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.createActivityUseCase = new CreateActivityUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.updateActivityUseCase = new UpdateActivityUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.deleteActivityUseCase = new DeleteActivityUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.approveActivityUseCase = new ApproveActivityUseCase(this.repository as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.rejectActivityUseCase = new RejectActivityUseCase(this.repository as any);
+        // Repository implements IActivityRepository; cast through unknown for extended interfaces
+        const repo = this.repository as unknown as ConstructorParameters<typeof GetActivitiesUseCase>[0];
+        this.getActivitiesUseCase = new GetActivitiesUseCase(repo);
+        this.getActivityByIdUseCase = new GetActivityByIdUseCase(this.repository);
+        this.createActivityUseCase = new CreateActivityUseCase(this.repository);
+        this.updateActivityUseCase = new UpdateActivityUseCase(this.repository);
+        this.deleteActivityUseCase = new DeleteActivityUseCase(this.repository);
+        this.approveActivityUseCase = new ApproveActivityUseCase(this.repository);
+        this.rejectActivityUseCase = new RejectActivityUseCase(this.repository);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private mapToActivity(data: any): Activity {
-        if (!data) return null as any;
+    private mapToActivity(data: RawActivityData | HoatDong | null): Activity {
+        if (!data) return null as unknown as Activity;
+        const d = data as RawActivityData;
         return {
-            ...data,
+            ...d,
             // Handle Prisma Decimal
-            diem_rl: data.diem_rl && typeof data.diem_rl === 'object' && 'toNumber' in data.diem_rl
-                ? data.diem_rl.toNumber()
-                : Number(data.diem_rl || 0),
+            diem_rl: d.diem_rl && typeof d.diem_rl === 'object' && 'toNumber' in d.diem_rl
+                ? (d.diem_rl as DecimalLike).toNumber()
+                : Number(d.diem_rl || 0),
             // Ensure dates are Dates
-            ngay_bd: new Date(data.ngay_bd),
-            ngay_kt: new Date(data.ngay_kt),
-            han_dk: data.han_dk ? new Date(data.han_dk) : undefined,
-            ngay_tao: data.ngay_tao ? new Date(data.ngay_tao) : undefined,
-            ngay_cap_nhat: data.ngay_cap_nhat ? new Date(data.ngay_cap_nhat) : undefined,
-        } as Activity;
+            ngay_bd: new Date(d.ngay_bd),
+            ngay_kt: new Date(d.ngay_kt as string | Date),
+            han_dk: d.han_dk ? new Date(d.han_dk) : undefined,
+            ngay_tao: d.ngay_tao ? new Date(d.ngay_tao) : undefined,
+            ngay_cap_nhat: d.ngay_cap_nhat ? new Date(d.ngay_cap_nhat) : undefined,
+        } as unknown as Activity;
     }
 
     async getActivities(
@@ -85,8 +94,10 @@ export class ActivityService implements IActivityService {
             order: params.order || 'desc',
             ...params,
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await this.getActivitiesUseCase.execute(dto as any, user as any);
+        const result = await this.getActivitiesUseCase.execute(
+            dto as unknown as Parameters<GetActivitiesUseCase['execute']>[0],
+            user as unknown as Parameters<GetActivitiesUseCase['execute']>[1]
+        );
 
         return {
             items: (result.items || []).map(item => this.mapToActivity(item)),
@@ -100,28 +111,37 @@ export class ActivityService implements IActivityService {
     }
 
     async getActivityById(id: string, user?: AuthPayload): Promise<Activity | null> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await this.getActivityByIdUseCase.execute(id, {} as any, user as any);
-        return this.mapToActivity(result);
+        const result = await this.getActivityByIdUseCase.execute(
+            id,
+            {} as Parameters<GetActivityByIdUseCase['execute']>[1],
+            user as unknown as Parameters<GetActivityByIdUseCase['execute']>[2]
+        );
+        return this.mapToActivity(result as unknown as RawActivityData);
     }
 
     async createActivity(data: Partial<Activity>, user: AuthPayload): Promise<Activity> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const dto = { ...data, toDomain: () => data };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await this.createActivityUseCase.execute(dto as any, user as any);
-        return this.mapToActivity(result);
+        const result = await this.createActivityUseCase.execute(
+            dto as unknown as Parameters<CreateActivityUseCase['execute']>[0],
+            user as unknown as Parameters<CreateActivityUseCase['execute']>[1]
+        );
+        return this.mapToActivity(result as unknown as RawActivityData);
     }
 
     async updateActivity(id: string, data: Partial<Activity>, user: AuthPayload): Promise<Activity> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await this.updateActivityUseCase.execute(id, data as any, user as any);
-        return this.mapToActivity(result);
+        const result = await this.updateActivityUseCase.execute(
+            id,
+            data as unknown as Parameters<UpdateActivityUseCase['execute']>[1],
+            user as unknown as Parameters<UpdateActivityUseCase['execute']>[2]
+        );
+        return this.mapToActivity(result as unknown as RawActivityData);
     }
 
     async deleteActivity(id: string, user: AuthPayload): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await this.deleteActivityUseCase.execute(id, user as any);
+        await this.deleteActivityUseCase.execute(
+            id,
+            user as unknown as Parameters<DeleteActivityUseCase['execute']>[1]
+        );
     }
 
     async approveActivity(id: string, note?: string): Promise<Activity> {

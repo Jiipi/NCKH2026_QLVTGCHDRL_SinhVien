@@ -37,7 +37,10 @@ interface AuthRequest extends Request {
 }
 
 // Safe require for legacy controllers
-const safeRequire = (p: string): any => {
+interface LegacyController {
+  [method: string]: (req: Request, res: Response) => void;
+}
+const safeRequire = (p: string): LegacyController | null => {
   try {
     return require(p);
   } catch (e) {
@@ -101,7 +104,7 @@ router.get('/notifications', async (req: AuthRequest, res: Response) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     
-    const where: any = {
+    const where: Record<string, unknown> = {
       ...(loai_tb_id ? { loai_tb_id } : {}),
       ...(muc_do_uu_tien ? { muc_do_uu_tien } : {}),
       ...(da_doc !== undefined ? { da_doc: da_doc === 'true' } : {}),

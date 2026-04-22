@@ -37,9 +37,8 @@ export type {
   IGetMeUseCase
 } from './auth.types';
 
-// Export routes for CommonJS require() compatibility
-// Use require to get the router directly (bypassing ES module wrapping)
-const authRoutes = require('./presentation/routes/auth.routes');
+// Export routes with ES module import
+import authRoutes from './presentation/routes/auth.routes';
 
 // Handle ES module interop
 const routes = authRoutes.default || authRoutes;

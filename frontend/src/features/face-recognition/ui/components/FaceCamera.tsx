@@ -152,15 +152,10 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
-    // Vẽ frame hiện tại lên canvas (mirror nếu là camera trước)
-    if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
+    // Vẽ frame gốc (KHÔNG mirror) lên canvas để gửi backend
+    // Video element đã có CSS scaleX(-1) cho preview UX
+    // Ảnh gửi backend phải ở hướng gốc để face recognition chính xác
     ctx.drawImage(video, 0, 0);
-    
-    // Reset transform
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     
     // Chuyển sang base64
     const imageData = canvas.toDataURL('image/jpeg', 0.9);

@@ -6,6 +6,7 @@ import ProfileEditForm from './components/Profile/ProfileEditForm';
 import PasswordChangeModal from './components/Profile/PasswordChangeModal';
 import ProfileLoading from './components/Profile/ProfileLoading';
 import ProfileEmpty from './components/Profile/ProfileEmpty';
+import { FaceRegistrationPageContent } from '../../face-recognition/ui/pages/FaceRegistrationPage';
 
 export default function StudentProfilePage() {
   const {
@@ -61,6 +62,15 @@ export default function StudentProfilePage() {
     />
   );
 
+  let tabContent = renderContent;
+  if (activeTab === 'face') {
+    tabContent = (
+      <div className="py-2">
+        <FaceRegistrationPageContent />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" data-ref="student-profile-refactored">
       <ProfileHero
@@ -78,11 +88,10 @@ export default function StudentProfilePage() {
           <nav className="-mb-px flex space-x-8 px-6">
             <button
               onClick={() => setActiveTab('info')}
-              className={`flex flex-col items-center gap-1 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'info'
+              className={`flex flex-col items-center gap-1 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'info'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <span className="text-lg">👤</span>
@@ -90,9 +99,22 @@ export default function StudentProfilePage() {
               </div>
               <span className="text-xs text-gray-400 font-normal">Họ tên, MSSV, lớp, khoa</span>
             </button>
+            <button
+              onClick={() => setActiveTab('face')}
+              className={`flex flex-col items-center gap-1 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'face'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📷</span>
+                <span>Nhận diện khuôn mặt</span>
+              </div>
+              <span className="text-xs text-gray-400 font-normal">Đăng ký điểm danh</span>
+            </button>
           </nav>
         </div>
-        <div className="p-6">{renderContent}</div>
+        <div className="p-6">{tabContent}</div>
       </div>
 
       <PasswordChangeModal

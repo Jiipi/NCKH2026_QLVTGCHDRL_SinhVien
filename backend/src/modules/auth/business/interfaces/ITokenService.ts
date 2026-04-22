@@ -16,7 +16,7 @@ export interface TokenPayload {
 }
 
 export interface ITokenService {
-  generateToken(user: UserWithRole, remember?: boolean): string;
+  generateToken(user: UserWithRole, remember?: boolean): string | Promise<string>;  // ✅ Support async
   verifyToken(token: string): TokenPayload | null;
 }
 
@@ -24,7 +24,7 @@ export interface ITokenService {
  * Abstract base class for implementations
  */
 export abstract class TokenServiceBase implements ITokenService {
-  abstract generateToken(user: UserWithRole, remember?: boolean): string;
+  abstract generateToken(user: UserWithRole, remember?: boolean): string | Promise<string>;  // ✅ Support async
   abstract verifyToken(token: string): TokenPayload | null;
 }
 

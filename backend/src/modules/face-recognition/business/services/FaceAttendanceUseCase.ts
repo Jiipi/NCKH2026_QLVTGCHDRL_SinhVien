@@ -5,9 +5,8 @@
  */
 
 import { ValidationError, NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { faceRecognitionClient } from '../../services';
-import { faceDataRepository } from '../../data/repositories';
+import type { IFaceDataRepository } from '../interfaces';
 
 // Ngưỡng similarity mặc định
 const DEFAULT_THRESHOLD = 0.68;
@@ -31,58 +30,48 @@ interface FaceAttendanceResult {
 }
 
 class FaceAttendanceUseCase {
+  private faceDataRepository: IFaceDataRepository;
+
+  constructor(faceDataRepository: IFaceDataRepository) {
+    this.faceDataRepository = faceDataRepository;
+  }
+
   async execute(input: FaceAttendanceInput): Promise<FaceAttendanceResult> {
     const { userId, activityId, imageBuffer, threshold = DEFAULT_THRESHOLD } = input;
 
     // 1. Tìm sinh viên theo nguoi_dung_id
-    const sinhVien = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: userId },
-      select: { id: true, mssv: true, nguoi_dung: { select: { ho_ten: true } } }
-    });
+    const sinhVien = await this.faceDataRepository.findStudentByUserId(userId);
 
     if (!sinhVien) {
       throw new ForbiddenError('Chỉ sinh viên mới có thể điểm danh bằng khuôn mặt');
     }
 
     // 2. Kiểm tra sinh viên đã đăng ký khuôn mặt chưa
-    const savedFaceData = await faceDataRepository.findBySinhVienId(sinhVien.id);
-    
+    const savedFaceData = await this.faceDataRepository.findBySinhVienId(sinhVien.id);
+
     if (!savedFaceData) {
       throw new ValidationError('Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi điểm danh.');
     }
 
     // 3. Kiểm tra hoạt động tồn tại và đang diễn ra
-    const activity = await prisma.hoatDong.findUnique({
-      where: { id: activityId },
-      select: {
-        id: true,
-        ten_hd: true,
-        ngay_bd: true,
-        ngay_kt: true,
-        trang_thai: true
-      }
-    });
+    const activity = await this.faceDataRepository.findActivityById(activityId);
 
     if (!activity) {
       throw new NotFoundError('Hoạt động không tồn tại');
     }
 
-    // Kiểm tra thời gian hoạt động
+    // Kiểm tra thời gian hoạt động (Cho phép điểm danh sớm 12 tiếng để xử lý lỗi lệch múi giờ UTC/Local)
     const now = new Date();
-    if (now < activity.ngay_bd) {
+    const leeway = 12 * 60 * 60 * 1000; // 12 hours leeway
+    if (now.getTime() + leeway < activity.ngay_bd.getTime()) {
       throw new ValidationError(`Hoạt động chưa bắt đầu. Thời gian bắt đầu: ${activity.ngay_bd.toLocaleString('vi-VN')}`);
     }
-    if (now > activity.ngay_kt) {
+    if (now.getTime() - leeway > activity.ngay_kt.getTime()) {
       throw new ValidationError(`Hoạt động đã kết thúc lúc ${activity.ngay_kt.toLocaleString('vi-VN')}`);
     }
 
     // 4. Kiểm tra đã đăng ký hoạt động và được duyệt
-    const registration = await prisma.dangKyHoatDong.findUnique({
-      where: {
-        sv_id_hd_id: { sv_id: sinhVien.id, hd_id: activityId }
-      },
-      select: { id: true, trang_thai_dk: true }
-    });
+    const registration = await this.faceDataRepository.findRegistrationByStudentAndActivity(sinhVien.id, activityId);
 
     if (!registration) {
       throw new ValidationError('Bạn chưa đăng ký hoạt động này');
@@ -93,21 +82,16 @@ class FaceAttendanceUseCase {
     }
 
     // 5. Kiểm tra đã điểm danh chưa
-    const existingAttendance = await prisma.diemDanh.findUnique({
-      where: {
-        sv_id_hd_id: { sv_id: sinhVien.id, hd_id: activityId }
-      }
-    });
+    const existingAttendance = await this.faceDataRepository.findAttendanceByStudentAndActivity(sinhVien.id, activityId);
 
     if (existingAttendance) {
       throw new ValidationError('Bạn đã điểm danh hoạt động này rồi');
     }
 
     // 6. Trích xuất embedding từ ảnh hiện tại
-    console.log(`[FaceAttendance] Xác minh khuôn mặt cho ${sinhVien.mssv}...`);
-    
+
     const embedResult = await faceRecognitionClient.extractEmbedding(imageBuffer);
-    
+
     if (!embedResult.success || !embedResult.embedding) {
       throw new ValidationError(embedResult.message || 'Không thể nhận diện khuôn mặt từ ảnh');
     }
@@ -119,8 +103,6 @@ class FaceAttendanceUseCase {
       threshold
     });
 
-    console.log(`[FaceAttendance] Similarity: ${verifyResult.similarity}, Threshold: ${threshold}`);
-
     if (!verifyResult.is_match) {
       throw new ValidationError(
         `Khuôn mặt không khớp (độ tương đồng: ${(verifyResult.similarity * 100).toFixed(1)}%, yêu cầu: ${(threshold * 100).toFixed(1)}%)`
@@ -128,26 +110,18 @@ class FaceAttendanceUseCase {
     }
 
     // 8. Tạo bản ghi điểm danh
-    const attendance = await prisma.diemDanh.create({
-      data: {
-        nguoi_diem_danh_id: userId,
-        sv_id: sinhVien.id,
-        hd_id: activityId,
-        phuong_thuc: 'khuon_mat',
-        trang_thai_tham_gia: 'co_mat',
-        xac_nhan_tham_gia: true,
-        do_tin_cay_nhan_dien: verifyResult.similarity,
-        ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(verifyResult.similarity * 100).toFixed(1)}%)`
-      }
+    const attendance = await this.faceDataRepository.createFaceAttendance({
+      nguoi_diem_danh_id: userId,
+      sv_id: sinhVien.id,
+      hd_id: activityId,
+      do_tin_cay_nhan_dien: verifyResult.similarity,
+      ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(verifyResult.similarity * 100).toFixed(1)}%)`
     });
 
     // 9. Cập nhật trạng thái đăng ký thành "đã tham gia"
-    await prisma.dangKyHoatDong.update({
-      where: { id: registration.id },
-      data: { trang_thai_dk: 'da_tham_gia' }
-    });
+    await this.faceDataRepository.markRegistrationAsAttended(registration.id);
 
-    console.log(`[FaceAttendance] ✅ Điểm danh thành công cho ${sinhVien.mssv} - ${activity.ten_hd}`);
+    // Log attendance success đã được ghi vào database qua ghi_chu field
 
     return {
       success: true,

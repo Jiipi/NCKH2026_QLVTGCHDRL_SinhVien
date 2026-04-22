@@ -26,7 +26,7 @@ interface SemesterParams {
 
 interface SemesterLockError extends Error {
   status?: number;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -46,7 +46,7 @@ export const enforceAdminWritable: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<any> => {
+): Promise<void | Response> => {
   try {
     const authReq = req as AuthRequest;
     const { hoc_ky, nam_hoc } = extractSemester(req);
@@ -72,7 +72,7 @@ export const enforceUserWritable: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<any> => {
+): Promise<void | Response> => {
   try {
     const authReq = req as AuthRequest;
     const { hoc_ky, nam_hoc } = extractSemester(req);

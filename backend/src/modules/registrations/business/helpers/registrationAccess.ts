@@ -4,10 +4,10 @@
  * Moved from application/helpers to business/helpers
  */
 
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { ForbiddenError } from '../../../../core/errors/AppError';
 import type { JwtPayload } from '../../../../core/http/middleware/authJwt';
 import type { HoatDong, SinhVien, NguoiDung, Lop } from '@prisma/client';
+import registrationsRepository from '../../data/repositories/registrations.repository';
 
 /**
  * User type for authorization checks
@@ -75,18 +75,12 @@ export async function checkAccess(registration: RegistrationForAccess, user: Aut
     if (registration.sinh_vien && registration.sinh_vien.lop_id) {
       studentClassId = registration.sinh_vien.lop_id;
     } else if (registrationUserId) {
-      const student = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: registrationUserId },
-        select: { lop_id: true }
-      });
+      const student = await registrationsRepository.findStudentByUserId(registrationUserId);
       if (student) studentClassId = student.lop_id;
     }
     
     // Get user's class
-    const userStudent = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: userSub },
-      select: { lop_id: true }
-    });
+    const userStudent = await registrationsRepository.findStudentByUserId(userSub);
     
     if (userStudent && studentClassId && userStudent.lop_id === studentClassId) {
       return true;
@@ -120,18 +114,12 @@ export async function canApproveRegistration(registration: RegistrationForAccess
     if (registration.sinh_vien && registration.sinh_vien.lop_id) {
       studentClassId = registration.sinh_vien.lop_id;
     } else if (registrationUserId) {
-      const student = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: registrationUserId },
-        select: { lop_id: true }
-      });
+      const student = await registrationsRepository.findStudentByUserId(registrationUserId);
       if (student) studentClassId = student.lop_id;
     }
     
     // Get user's class
-    const userStudent = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: userSub },
-      select: { lop_id: true }
-    });
+    const userStudent = await registrationsRepository.findStudentByUserId(userSub);
     
     return !!(userStudent && studentClassId && userStudent.lop_id === studentClassId);
   }

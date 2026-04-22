@@ -1,26 +1,16 @@
 import type ClassesController from './controllers/ClassesController';
 import type { ClassUseCases } from './controllers/ClassesController';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const classesRepository = require('../data/repositories/classes.repository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ListClassesUseCase = require('../business/services/ListClassesUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const GetClassByIdUseCase = require('../business/services/GetClassByIdUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const CreateClassUseCase = require('../business/services/CreateClassUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const UpdateClassUseCase = require('../business/services/UpdateClassUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DeleteClassUseCase = require('../business/services/DeleteClassUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const AssignTeacherUseCase = require('../business/services/AssignTeacherUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const GetClassStudentsUseCase = require('../business/services/GetClassStudentsUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const GetClassActivitiesUseCase = require('../business/services/GetClassActivitiesUseCase');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ClassesControllerModule = require('./controllers/ClassesController');
+import classesRepository from '../data/repositories/classes.repository';
+import ListClassesUseCase from '../business/services/ListClassesUseCase';
+import GetClassByIdUseCase from '../business/services/GetClassByIdUseCase';
+import CreateClassUseCase from '../business/services/CreateClassUseCase';
+import UpdateClassUseCase from '../business/services/UpdateClassUseCase';
+import DeleteClassUseCase from '../business/services/DeleteClassUseCase';
+import AssignTeacherUseCase from '../business/services/AssignTeacherUseCase';
+import GetClassStudentsUseCase from '../business/services/GetClassStudentsUseCase';
+import GetClassActivitiesUseCase from '../business/services/GetClassActivitiesUseCase';
+import ClassesControllerModule from './controllers/ClassesController';
 
 /**
  * Factory function to create ClassesController with all dependencies

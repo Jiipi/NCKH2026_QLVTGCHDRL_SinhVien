@@ -1,6 +1,6 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
-const { ForbiddenError } = require('../../../../core/errors/AppError');
+import { ForbiddenError } from '../../../../core/errors/AppError';
 
 interface AuthUser {
   id: string | number;

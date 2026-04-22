@@ -2,8 +2,8 @@ import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@
 import type IMonitorRepository from '../interfaces/IMonitorRepository';
 import type { StudentWithRelations } from '../interfaces/IMonitorRepository';
 
-const { parseSemesterString } = require('../../../../core/utils/semester');
-const { logInfo, logError } = require('../../../../core/logger');
+import { parseSemesterString } from '../../../../core/utils/semester';
+import { logInfo, logError } from '../../../../core/logger';
 
 interface StudentWithPoints {
   id: string;

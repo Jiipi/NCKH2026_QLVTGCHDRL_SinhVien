@@ -1,14 +1,14 @@
 import type UsersController from './controllers/UsersController';
-const UserPrismaRepository = require('../data/repositories/UserPrismaRepository');
-const ListUsersUseCase = require('../business/services/ListUsersUseCase');
-const GetUserByIdUseCase = require('../business/services/GetUserByIdUseCase');
-const CreateUserUseCase = require('../business/services/CreateUserUseCase');
-const UpdateUserUseCase = require('../business/services/UpdateUserUseCase');
-const DeleteUserUseCase = require('../business/services/DeleteUserUseCase');
-const SearchUsersUseCase = require('../business/services/SearchUsersUseCase');
-const GetUserStatsUseCase = require('../business/services/GetUserStatsUseCase');
-const GetUsersByClassUseCase = require('../business/services/GetUsersByClassUseCase');
-const UsersControllerClass = require('./controllers/UsersController');
+import UserPrismaRepository from '../data/repositories/UserPrismaRepository';
+import ListUsersUseCase from '../business/services/ListUsersUseCase';
+import GetUserByIdUseCase from '../business/services/GetUserByIdUseCase';
+import CreateUserUseCase from '../business/services/CreateUserUseCase';
+import UpdateUserUseCase from '../business/services/UpdateUserUseCase';
+import DeleteUserUseCase from '../business/services/DeleteUserUseCase';
+import SearchUsersUseCase from '../business/services/SearchUsersUseCase';
+import GetUserStatsUseCase from '../business/services/GetUserStatsUseCase';
+import GetUsersByClassUseCase from '../business/services/GetUsersByClassUseCase';
+import UsersControllerClass from './controllers/UsersController';
 
 /**
  * Factory function to create UsersController with all dependencies

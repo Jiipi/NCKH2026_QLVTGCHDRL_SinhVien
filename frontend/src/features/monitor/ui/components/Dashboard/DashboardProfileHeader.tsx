@@ -1,24 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { resolveAssetUrl } from '../../../../../shared/lib/assetUrl';
 
 /**
  * DashboardProfileHeader Component - Header profile với avatar và thông tin
  */
-export default function DashboardProfileHeader({ 
-  userProfile, 
-  monitorName, 
-  monitorMssv, 
-  summary, 
-  classSummary, 
-  classification 
+export default function DashboardProfileHeader({
+  userProfile,
+  monitorName,
+  monitorMssv,
+  summary,
+  classSummary,
+  classification
 }) {
+  const [avatarError, setAvatarError] = useState(false);
+  const rawAvatar = userProfile?.anh_dai_dien || userProfile?.avatar;
+  const avatarSrc = rawAvatar && !avatarError ? resolveAssetUrl(rawAvatar) : null;
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
           <svg className="absolute inset-0 w-20 h-20 -rotate-90 transform -translate-x-2 -translate-y-2" viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="4" />
-            <circle cx="40" cy="40" r="36" fill="none" stroke="url(#monitorGradient)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 36}`} strokeDashoffset={`${2 * Math.PI * 36 * (1 - Math.min((100/100)*100,100) / 100)}`} className="transition-all duration-1000 ease-out" />
+            <circle cx="40" cy="40" r="36" fill="none" stroke="url(#monitorGradient)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 36}`} strokeDashoffset={`${2 * Math.PI * 36 * (1 - Math.min((100 / 100) * 100, 100) / 100)}`} className="transition-all duration-1000 ease-out" />
             <defs>
               <linearGradient id="monitorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#a855f7" />
@@ -28,22 +33,18 @@ export default function DashboardProfileHeader({
             </defs>
           </svg>
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
-            {(userProfile?.anh_dai_dien || userProfile?.avatar) ? (
-              <img 
-                src={userProfile?.anh_dai_dien || userProfile?.avatar} 
-                alt="Avatar" 
-                className="w-full h-full object-cover" 
-                onError={(e) => { 
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none'; 
-                  const next = target.nextSibling as HTMLElement | null; 
-                  if (next) next.style.display = 'flex'; 
-                }} 
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+                onError={() => setAvatarError(true)}
               />
-            ) : null}
-            <span className={`text-2xl font-black text-white ${(userProfile?.anh_dai_dien || userProfile?.avatar) ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
-              {(monitorName || 'LT').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-            </span>
+            ) : (
+              <span className="text-2xl font-black text-white flex w-full h-full items-center justify-center">
+                {(monitorName || 'LT').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
         </div>

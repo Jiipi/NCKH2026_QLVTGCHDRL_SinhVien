@@ -4,9 +4,8 @@ import { ValidationError } from '../../../../core/errors/AppError';
 import { determineSemesterFromDate } from '../../../../core/utils/semester';
 import crypto from 'crypto';
 import { logInfo } from '../../../../core/logger';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 
-const CreateActivityDto = require('../dto/CreateActivityDto');
+import CreateActivityDto from '../dto/CreateActivityDto';
 
 interface User {
   sub: string;
@@ -26,7 +25,7 @@ interface CreateActivityInput {
   sl_toi_da?: number | string | null;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface NormalizedActivityData extends CreateActivityInput {
@@ -106,19 +105,13 @@ class CreateActivityUseCase {
 
     // LOP_TRUONG hoặc SINH_VIEN: lấy lop_id từ bảng SinhVien
     if (role === 'LOP_TRUONG' || role === 'SINH_VIEN') {
-      const sv = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: userId },
-        select: { lop_id: true }
-      });
+      const sv = await this.activityRepository.findStudentByUserId(userId);
       return sv?.lop_id || null;
     }
 
     // GIANG_VIEN: lấy lớp đầu tiên họ chủ nhiệm
     if (role === 'GIANG_VIEN') {
-      const lop = await prisma.lop.findFirst({
-        where: { chu_nhiem: userId },
-        select: { id: true }
-      });
+      const lop = await this.activityRepository.findFirstClassByTeacherId(userId);
       return lop?.id || null;
     }
 

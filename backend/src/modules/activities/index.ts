@@ -47,7 +47,7 @@ import { createActivitiesController } from './presentation/activities.factory';
 export { createActivitiesController };
 
 // Export routes - get the router instance, not the factory function
-const routesModule = require('./presentation/routes/activities.routes');
+import routesModule from './presentation/routes/activities.routes';
 const routes = routesModule.router || routesModule.default?.router || routesModule;
 
 export { routes };

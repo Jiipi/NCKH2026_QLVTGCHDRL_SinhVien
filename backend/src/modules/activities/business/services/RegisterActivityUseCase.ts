@@ -26,40 +26,23 @@ interface StudentRecord {
 }
 
 /**
- * Extended repository with student lookup
- */
-interface ExtendedActivityRepository extends IActivityRepository {
-  findStudentByUserId?(userId: string): Promise<StudentRecord | null>;
-}
-
-/**
  * RegisterActivityUseCase
  */
 class RegisterActivityUseCase {
   private createRegistrationUseCase: CreateRegistrationUseCaseType;
-  private activityRepository: ExtendedActivityRepository | null;
+  private activityRepository: IActivityRepository;
 
   constructor(
     createRegistrationUseCase: CreateRegistrationUseCaseType,
-    activityRepository: ExtendedActivityRepository | null = null
+    activityRepository: IActivityRepository
   ) {
     this.createRegistrationUseCase = createRegistrationUseCase;
     this.activityRepository = activityRepository;
   }
 
   async execute(activityId: string, user: AuthUser): Promise<unknown> {
-    // Get student ID from user ID using repository if available
-    let student: StudentRecord | null;
-    if (this.activityRepository && this.activityRepository.findStudentByUserId) {
-      student = await this.activityRepository.findStudentByUserId(user.sub);
-    } else {
-      // Fallback to direct prisma (for backward compatibility)
-      const { prisma } = require('../../../../data/infrastructure/prisma/client');
-      student = await prisma.sinhVien.findUnique({
-        where: { nguoi_dung_id: user.sub },
-        select: { id: true }
-      });
-    }
+    // Get student ID from user ID
+    const student: StudentRecord | null = await this.activityRepository.findStudentByUserId(user.sub);
     
     if (!student) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');

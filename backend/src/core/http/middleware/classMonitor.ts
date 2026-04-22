@@ -37,7 +37,7 @@ export const getMonitorClass: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<any> => {
+): Promise<Response | void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.sub;
@@ -87,7 +87,7 @@ export const getMonitorClass: RequestHandler = async (
  * Use after getMonitorClass middleware
  */
 export const verifyClassAccess = (resourceType: ResourceType): RequestHandler => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
       const authReq = req as AuthRequest;
       const classId = authReq.classMonitor?.lop_id;

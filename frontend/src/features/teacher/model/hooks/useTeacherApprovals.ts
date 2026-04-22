@@ -6,6 +6,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { teacherApprovalApi } from '../../services/teacherApprovalApi';
 import { mapActivityToUI, groupActivitiesByStatus } from '../mappers/teacher.mappers';
+import type { MappedActivity } from '../../../../shared/lib/mappers/activity.mapper';
 import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
 
 /** Hook options */
@@ -13,17 +14,33 @@ interface UseTeacherApprovalsOptions {
   initialSemester?: string;
 }
 
+/** Stats interface */
+interface ApprovalStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+/** Raw activity data from API */
+interface RawActivityData {
+  id?: string;
+  ten_hd?: string;
+  trang_thai?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Hook quản lý phê duyệt hoạt động (pending & history)
  */
 export default function useTeacherApprovals({ initialSemester }: UseTeacherApprovalsOptions = {}) {
-  const [semester, setSemester] = useState(initialSemester || '');
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'history'
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // cho history hoặc filter trong pending
-  const [activitiesData, setActivitiesData] = useState([]);
-  const [statsData, setStatsData] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
-  const [loading, setLoading] = useState(false);
+  const [semester, setSemester] = useState<string>(initialSemester || '');
+  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+  const [search, setSearch] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activitiesData, setActivitiesData] = useState<RawActivityData[]>([]);
+  const [statsData, setStatsData] = useState<ApprovalStats>({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Business logic: Load approvals
@@ -31,12 +48,18 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
     try {
       setLoading(true);
       setError(null);
-      
+
       if (activeTab === 'pending') {
         const result = await teacherApprovalApi.getPending({ semester, search });
         if (result.success && 'data' in result) {
           setActivitiesData(result.data.items || []);
-          setStatsData(result.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+          const rawStats = result.data.stats || {};
+          setStatsData({
+            total: Number(rawStats.total) || 0,
+            pending: Number(rawStats.pending) || 0,
+            approved: Number(rawStats.approved) || 0,
+            rejected: Number(rawStats.rejected) || 0,
+          });
         } else {
           const errorMsg = 'error' in result ? result.error : 'Không thể tải danh sách hoạt động';
           console.error('[useTeacherApprovals] Load pending error:', errorMsg);
@@ -56,7 +79,7 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
       }
     } catch (err: unknown) {
       console.error('[useTeacherApprovals] Load error:', err);
-      setError((err as Error)?.message || 'Không thể tải danh sách hoạt động');
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách hoạt động');
       setActivitiesData([]);
     } finally {
       setLoading(false);
@@ -73,15 +96,15 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
   useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], refresh, { debounceMs: 500 });
 
   // Auto-refresh for cross-user sync
-  useAutoRefresh(refresh, { 
-    intervalMs: 30000, 
+  useAutoRefresh(refresh, {
+    intervalMs: 30000,
     enabled: !!semester,
     refreshOnFocus: true,
-    refreshOnVisible: true 
+    refreshOnVisible: true
   });
 
   // Business logic: Transform activities
-  const activities = useMemo(() => {
+  const activities = useMemo((): MappedActivity[] => {
     if (!activitiesData || activitiesData.length === 0) {
       return [];
     }
@@ -99,7 +122,7 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
   // Business logic: Handle approve
   const approveActivity = useCallback(async (id: string) => {
     try {
-      const result = await teacherApprovalApi.approve(id);
+      const result = await teacherApprovalApi.approve(id, semester);
       if (result.success) {
         // API already emits event for other components, just refresh locally
         await refresh();
@@ -109,14 +132,14 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
       }
     } catch (err: unknown) {
       console.error('[useTeacherApprovals] Approve error:', err);
-      setError((err as Error)?.message || 'Không thể phê duyệt hoạt động');
+      setError(err instanceof Error ? err.message : 'Không thể phê duyệt hoạt động');
     }
   }, [refresh]);
 
   // Business logic: Handle reject
   const rejectActivity = useCallback(async (id: string, reason: string) => {
     try {
-      const result = await teacherApprovalApi.reject(id, reason);
+      const result = await teacherApprovalApi.reject(id, reason, semester);
       if (result.success) {
         // API already emits event for other components, just refresh locally
         await refresh();
@@ -126,7 +149,7 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
       }
     } catch (err: unknown) {
       console.error('[useTeacherApprovals] Reject error:', err);
-      setError((err as Error)?.message || 'Không thể từ chối hoạt động');
+      setError(err instanceof Error ? err.message : 'Không thể từ chối hoạt động');
     }
   }, [refresh]);
 
@@ -140,16 +163,16 @@ export default function useTeacherApprovals({ initialSemester }: UseTeacherAppro
     setSearch,
     statusFilter,
     setStatusFilter,
-    
+
     // Data
     activities,
     activitiesByStatus,
     stats,
-    
+
     // State
     loading,
     error,
-    
+
     // Actions
     load,
     refresh,

@@ -5,7 +5,6 @@
  */
 
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { canApproveRegistration, canManageActivity } from '../helpers/registrationAccess';
 import type { IRegistrationRepository } from '../interfaces/IRegistrationRepository';
 import type { AuthUser, RegistrationForAccess, ActivityForAccess } from '../helpers/registrationAccess';

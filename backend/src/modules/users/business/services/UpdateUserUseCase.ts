@@ -1,10 +1,10 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
 import type { UserUpdateInput } from '../interfaces/IUserRepository';
-const UpdateUserDto = require('../dto/UpdateUserDto');
-const { NotFoundError, ForbiddenError } = require('../../../../core/errors/AppError');
-const bcrypt = require('bcryptjs');
-const usersRepo = require('../../data/repositories/users.repository');
+import UpdateUserDto from '../dto/UpdateUserDto';
+import { NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
+import bcrypt from 'bcryptjs';
+import usersRepo from '../../data/repositories/users.repository';
 
 interface AuthUser {
   id: string | number;

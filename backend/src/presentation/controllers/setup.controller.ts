@@ -2,11 +2,25 @@ import { Request, Response } from 'express';
 import { prisma } from '../../data/infrastructure/prisma/client';
 import { ApiResponse, sendResponse } from '../../core/http/response/apiResponse';
 import bcrypt from 'bcryptjs';
+import { logInfo, logError } from '../../core/logger';
 
 export class SetupController {
     async setupAdmin(req: Request, res: Response) {
         try {
-            console.log('Starting manual setup...');
+            const adminPassword = process.env.SETUP_ADMIN_PASSWORD;
+            const adminUsername = process.env.SETUP_ADMIN_USERNAME || 'admin';
+            const adminEmail = process.env.SETUP_ADMIN_EMAIL || 'admin@hoatdongrenluyen.io.vn';
+            const adminFullName = process.env.SETUP_ADMIN_FULLNAME || 'Administrator';
+
+            if (!adminPassword || adminPassword.trim().length < 8) {
+                return sendResponse(
+                    res,
+                    500,
+                    ApiResponse.error('SETUP_ADMIN_PASSWORD is missing or too short (min 8 chars)')
+                );
+            }
+
+            logInfo('Starting secure setup-admin flow');
 
             // 1. Create Roles
             const roles = [
@@ -31,18 +45,18 @@ export class SetupController {
                 return sendResponse(res, 500, ApiResponse.error('Failed to create roles'));
             }
 
-            const hashedPassword = await bcrypt.hash('123456', 10);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
             const admin = await prisma.nguoiDung.upsert({
-                where: { ten_dn: 'admin' },
+                where: { ten_dn: adminUsername },
                 update: {
                     mat_khau: hashedPassword // Reset password if exists
                 },
                 create: {
-                    ten_dn: 'admin',
+                    ten_dn: adminUsername,
                     mat_khau: hashedPassword,
-                    email: 'admin@hoatdongrenluyen.io.vn',
-                    ho_ten: 'Administrator',
+                    email: adminEmail,
+                    ho_ten: adminFullName,
                     vai_tro_id: adminRole.id,
                     trang_thai: 'hoat_dong',
                 },
@@ -55,7 +69,7 @@ export class SetupController {
             }, 'Admin setup successful'));
 
         } catch (error) {
-            console.error('Setup error:', error);
+            logError('Setup admin failed', error);
             return sendResponse(res, 500, ApiResponse.error('Setup failed: ' + (error as Error).message));
         }
     }

@@ -4,7 +4,6 @@
  */
 
 import { NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { canManageActivity } from '../helpers/registrationAccess';
 import type { IRegistrationRepository, ActivityStats } from '../interfaces/IRegistrationRepository';
 import type { AuthUser } from '../helpers/registrationAccess';
@@ -30,16 +29,15 @@ export class GetActivityRegistrationStatsUseCase {
   }
 
   async execute(activityId: string, user: AuthUser): Promise<ActivityStats> {
-    // Check activity exists using legacy schema
-    const activity = await prisma.hoatDong.findUnique({
-      where: { id: String(activityId) },
-      select: {
-        id: true,
-        ten_hd: true,
-        nguoi_tao_id: true,
-        trang_thai: true
-      }
-    }) as ActivityQueryResult | null;
+    const activityEntity = await this.registrationRepository.findActivityForRegistrationValidation(activityId);
+    const activity = activityEntity
+      ? ({
+          id: activityEntity.id,
+          ten_hd: activityEntity.ten_hd,
+          nguoi_tao_id: '',
+          trang_thai: activityEntity.trang_thai,
+        } as ActivityQueryResult)
+      : null;
 
     if (!activity) {
       throw new NotFoundError('Hoạt động không tồn tại');

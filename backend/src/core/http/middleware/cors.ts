@@ -5,6 +5,7 @@
  */
 
 import cors, { CorsOptions, CorsOptionsDelegate } from 'cors';
+import { logInfo, logWarn } from '../../logger';
 
 /**
  * Allowed origins type
@@ -51,11 +52,11 @@ const corsOptions: CorsOptions = {
       if (!origin || allowedOrigins === true ||
         (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) ||
         (typeof allowedOrigins === 'string' && allowedOrigins === origin)) {
-        console.log(`[CORS] Dev mode - allowing origin: ${origin || '(no origin)'}`);
+        logInfo('CORS allow (dev)', { origin: origin || '(no origin)' });
         return callback(null, true);
       } else {
         const allowedList = Array.isArray(allowedOrigins) ? allowedOrigins.join(', ') : allowedOrigins;
-        console.warn(`[CORS] Dev mode - rejected origin: ${origin}. Allowed: ${allowedList}`);
+        logWarn('CORS reject (dev)', { origin, allowed: allowedList });
         return callback(new Error('Not allowed by CORS'));
       }
     }
@@ -75,7 +76,7 @@ const corsOptions: CorsOptions = {
       if (allowedOrigins.indexOf(origin) !== -1) {
         return callback(null, true);
       }
-      console.warn(`[CORS] Rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+      logWarn('CORS reject', { origin, allowed: allowedOrigins.join(', ') });
       return callback(new Error('Not allowed by CORS'));
     }
 
@@ -84,7 +85,7 @@ const corsOptions: CorsOptions = {
       return callback(null, true);
     }
 
-    console.warn(`[CORS] Rejected origin: ${origin}. Expected: ${allowedOrigins}`);
+    logWarn('CORS reject', { origin, expected: allowedOrigins });
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,

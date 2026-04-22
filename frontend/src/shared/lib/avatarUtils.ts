@@ -1,6 +1,7 @@
 /**
  * Utility functions for handling user avatars
  */
+import resolveAssetUrl from './assetUrl';
 
 /**
  * Check if an image URL is valid
@@ -9,20 +10,20 @@
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
   if (!url) return false;
-  
-  if (url.startsWith('data:image/') || 
-      url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
-      url.includes('i.pinimg.com') ||
-      url.includes('images.unsplash.com') ||
-      url.includes('cdn') ||
-      url.includes('imgur.com') ||
-      url.includes('googleusercontent.com') ||
-      url.includes('drive.google.com') ||
-      url.startsWith('/') || // Accept relative URLs
-      url.startsWith('http')) { // Accept any HTTP URL
+
+  if (url.startsWith('data:image/') ||
+    url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) ||
+    url.includes('i.pinimg.com') ||
+    url.includes('images.unsplash.com') ||
+    url.includes('cdn') ||
+    url.includes('imgur.com') ||
+    url.includes('googleusercontent.com') ||
+    url.includes('drive.google.com') ||
+    url.startsWith('/') || // Accept relative URLs
+    url.startsWith('http')) { // Accept any HTTP URL
     return true;
   }
-  
+
   return false;
 };
 
@@ -64,10 +65,9 @@ export const getDirectImageUrl = (url: string | null | undefined): string | null
     }
   }
 
-  // 4) Relative backend paths: prefer relative to avoid cross-origin in dev
+  // 4) Relative backend paths: resolve to full URL
   if (url.startsWith('/uploads/') || url.startsWith('/images/')) {
-    // Keep as-is to leverage same-origin/proxy in dev and static in prod
-    return url;
+    return resolveAssetUrl(url);
   }
 
   // 5) Generic quality upgrade for known CDNs/providers
@@ -101,8 +101,8 @@ const upgradeToHDQuality = (raw: string | null | undefined): string => {
   // Googleusercontent: bump size
   if (url.includes('googleusercontent.com')) {
     url = url.replace(/=s\d+-c/i, '=s2000')
-             .replace(/=w\d+-h\d+/i, '=w2000')
-             .replace(/-rw$/i, '');
+      .replace(/=w\d+-h\d+/i, '=w2000')
+      .replace(/-rw$/i, '');
   }
 
   // Generic CDNs with resize params
@@ -149,18 +149,18 @@ export const getUserAvatar = (userOrStudent: UserAvatarFields | null | undefined
   // If this is a student object with nguoi_dung, extract nguoi_dung
   // Otherwise treat as direct user object
   const nguoiDung = userOrStudent.nguoi_dung || userOrStudent;
-  
+
   // Debug log removed for production
-  
+
   // Exact same priority as ClassStudents.js line 112-114:
   // nguoiDung.anh_dai_dien || nguoiDung.avatar || nguoiDung.profile_image || nguoiDung.image || sv.anh_dai_dien || sv.avatar || sv.profile_image
-  const rawUrl = nguoiDung.anh_dai_dien || 
-                 nguoiDung.avatar || 
-                 nguoiDung.profile_image || 
-                 nguoiDung.image || 
-                 userOrStudent.anh_dai_dien || 
-                 userOrStudent.avatar || 
-                 userOrStudent.profile_image;
+  const rawUrl = nguoiDung.anh_dai_dien ||
+    nguoiDung.avatar ||
+    nguoiDung.profile_image ||
+    nguoiDung.image ||
+    userOrStudent.anh_dai_dien ||
+    userOrStudent.avatar ||
+    userOrStudent.profile_image;
 
   // Debug log removed
 
@@ -203,7 +203,7 @@ export const getStudentAvatar = (student: UserAvatarFields | null | undefined): 
 
   // Try to get avatar from nguoi_dung object first
   const user = student.nguoi_dung || student;
-  
+
   return getUserAvatar(user, student.mssv ? student.mssv.charAt(0).toUpperCase() : 'S');
 };
 
@@ -215,7 +215,7 @@ export const getStudentAvatar = (student: UserAvatarFields | null | undefined): 
 export const getAvatarGradient = (text: string = ''): string => {
   const colors: string[] = [
     'from-indigo-500 to-purple-500',
-    'from-emerald-500 to-teal-500', 
+    'from-emerald-500 to-teal-500',
     'from-rose-500 to-pink-500',
     'from-amber-500 to-orange-500',
     'from-blue-500 to-cyan-500',
@@ -223,15 +223,15 @@ export const getAvatarGradient = (text: string = ''): string => {
     'from-green-500 to-emerald-500',
     'from-red-500 to-rose-500'
   ];
-  
+
   if (!text) return colors[0];
-  
+
   // Generate consistent color based on text
   let hash = 0;
   for (let i = 0; i < text.length; i++) {
     hash = text.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   const index = Math.abs(hash) % colors.length;
   return colors[index];
 };

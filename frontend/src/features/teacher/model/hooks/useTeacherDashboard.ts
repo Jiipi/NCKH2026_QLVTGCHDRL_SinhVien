@@ -11,11 +11,11 @@ import { teacherDashboardApi } from '../../services/teacherDashboardApi';
 import { teacherActivitiesApi } from '../../services/teacherActivitiesApi';
 import { teacherRegistrationsApi } from '../../services/teacherRegistrationsApi';
 import { mapDashboardToUI } from '../mappers/teacher.mappers';
-import { 
-  dedupeById, 
-  isWithinDays, 
-  toFiniteNumber, 
-  devLog 
+import {
+  dedupeById,
+  isWithinDays,
+  toFiniteNumber,
+  devLog
 } from '../utils/teacherUtils';
 import { useAutoRefresh, useDataChangeListener } from '../../../../shared/lib/dataRefresh';
 
@@ -50,7 +50,7 @@ export default function useTeacherDashboard({ semester, classId }) {
       setLoading(true);
       setError(null);
       const result = await teacherDashboardApi.getDashboard(semester, classId);
-      
+
       if (result.success && 'data' in result) {
         setDashboardData(result.data);
       } else if (!result.success && 'error' in result) {
@@ -78,11 +78,11 @@ export default function useTeacherDashboard({ semester, classId }) {
   useDataChangeListener(['ACTIVITIES', 'APPROVALS', 'REGISTRATIONS'], fetchData, { debounceMs: 500 });
 
   // Auto-refresh for cross-user sync (60s interval for dashboard)
-  useAutoRefresh(fetchData, { 
-    intervalMs: 60000, 
+  useAutoRefresh(fetchData, {
+    intervalMs: 60000,
     enabled: !!semester,
     refreshOnFocus: true,
-    refreshOnVisible: true 
+    refreshOnVisible: true
   });
 
   useEffect(() => {
@@ -151,14 +151,14 @@ export default function useTeacherDashboard({ semester, classId }) {
           : null;
 
         if (!cancelled) {
-        setDerivedStats({
-          totalActivities,
+          setDerivedStats({
+            totalActivities,
             pendingActivities: pendingRegistrationsCount,
-          pendingRegistrations: pendingRegistrationsCount,
-          approvedThisWeek: derivedApprovedThisWeek,
-          avgClassScore: avgPoints,
-          participationRate: reportParticipationRate
-        });
+            pendingRegistrations: pendingRegistrationsCount,
+            approvedThisWeek: derivedApprovedThisWeek,
+            avgClassScore: avgPoints,
+            participationRate: reportParticipationRate
+          });
         }
       } catch (err) {
         console.error('[useTeacherDashboard] Derived stats error:', err);
@@ -274,7 +274,7 @@ export default function useTeacherDashboard({ semester, classId }) {
   // Business logic: Handle approve activity
   const handleApprove = useCallback(async (id) => {
     try {
-      const result = await teacherDashboardApi.approveActivity(id);
+      const result = await teacherDashboardApi.approveActivity(id, semester);
       if (result.success) {
         await fetchData();
       } else if ('error' in result) {
@@ -291,7 +291,7 @@ export default function useTeacherDashboard({ semester, classId }) {
   // Business logic: Handle reject activity
   const handleReject = useCallback(async (id, reason) => {
     try {
-      const result = await teacherDashboardApi.rejectActivity(id, reason);
+      const result = await teacherDashboardApi.rejectActivity(id, reason, semester);
       if (result.success) {
         await fetchData();
       } else if ('error' in result) {
@@ -313,11 +313,11 @@ export default function useTeacherDashboard({ semester, classId }) {
     classes,
     students,
     dashboard,
-    
+
     // State
     loading,
     error,
-    
+
     // Actions
     refresh: fetchData,
     approve: handleApprove,

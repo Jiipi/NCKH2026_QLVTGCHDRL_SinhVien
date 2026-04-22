@@ -19,7 +19,7 @@ interface AuthUser {
  * Interface for the underlying approve activity use case
  */
 interface IApproveActivityUseCase {
-  execute(activityId: string): Promise<unknown>;
+  execute(activityId: string, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<unknown>;
 }
 
 /**
@@ -33,12 +33,12 @@ class ApproveActivityUseCase {
     this.approveActivityUseCase = approveActivityUseCase;
   }
 
-  async execute(activityId: string, user: AuthUser): Promise<unknown> {
+  async execute(activityId: string, user: AuthUser, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<unknown> {
     if (user.role !== 'GIANG_VIEN') {
       throw new ForbiddenError('Chỉ giảng viên mới được duyệt hoạt động');
     }
 
-    return await this.approveActivityUseCase.execute(activityId);
+    return await this.approveActivityUseCase.execute(activityId, semesterInfo);
   }
 }
 

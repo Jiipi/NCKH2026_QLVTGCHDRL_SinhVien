@@ -20,6 +20,6 @@ export type {
   ISearchController
 } from './search.types';
 
-const routes = require('./presentation/routes/search.routes');
+import routes from './presentation/routes/search.routes';
 export { routes };
 module.exports = { routes };

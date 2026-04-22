@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@prisma/client';
 
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-const { logError } = require('../../../../core/logger');
-const { AppError } = require('../../../../core/errors/AppError');
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logError } from '../../../../core/logger';
+import { AppError } from '../../../../core/errors/AppError';
 
 /**
  * Authenticated request interface

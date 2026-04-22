@@ -5,6 +5,7 @@
  */
 
 import http from '../../../shared/api/http';
+import { API_ENDPOINTS } from '../../../shared/api/endpoints';
 
 const handleError = (error) => {
   const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
@@ -22,7 +23,7 @@ export const studentDashboardApi = {
   async getDashboard(semester) {
     try {
       const params = semester ? { semester } : {};
-      const response = await http.get('/core/dashboard/student', { params });
+      const response = await http.get(API_ENDPOINTS.dashboard.student, { params });
       return {
         success: true,
         data: response?.data?.data || response?.data || {}

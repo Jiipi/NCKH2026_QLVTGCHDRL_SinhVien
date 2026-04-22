@@ -1,6 +1,6 @@
 import type IUserRepository from '../interfaces/IUserRepository';
 import type { UserStats } from '../interfaces/IUserRepository';
-const { ForbiddenError } = require('../../../../core/errors/AppError');
+import { ForbiddenError } from '../../../../core/errors/AppError';
 
 interface AuthUser {
   id: string | number;

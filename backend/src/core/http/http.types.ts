@@ -162,8 +162,8 @@ export interface UploadedFile {
  * Note: Using 'any' for file types to avoid conflicts with multer's File type
  */
 export interface UploadRequest extends AuthenticatedRequest {
-  file?: Express.Multer.File | UploadedFile | any;
-  files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | any;
+  file?: Express.Multer.File;
+  files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] };
 }
 
 // ============== Sanitize Types ==============

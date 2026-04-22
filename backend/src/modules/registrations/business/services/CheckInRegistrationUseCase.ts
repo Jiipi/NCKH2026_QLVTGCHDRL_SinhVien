@@ -56,11 +56,13 @@ export class CheckInRegistrationUseCase {
     }
 
     // Business rule: Cannot check-in before activity starts (exact time)
+    // Cho phép điểm danh sớm 12 tiếng để xử lý lỗi lệch múi giờ (UTC vs Local)
     const now = new Date();
+    const leeway = 12 * 60 * 60 * 1000;
     const activityStart = new Date(registration.activity.ngay_bd);
-    
-    if (now.getTime() < activityStart.getTime()) {
-      const startDateStr = activityStart.toLocaleString('vi-VN', { 
+
+    if (now.getTime() + leeway < activityStart.getTime()) {
+      const startDateStr = activityStart.toLocaleString('vi-VN', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
@@ -69,9 +71,9 @@ export class CheckInRegistrationUseCase {
 
     // Business rule: Cannot check-in after activity ends (exact time)
     const activityEnd = new Date(registration.activity.ngay_kt);
-    
-    if (now.getTime() > activityEnd.getTime()) {
-      const endDateStr = activityEnd.toLocaleString('vi-VN', { 
+
+    if (now.getTime() - leeway > activityEnd.getTime()) {
+      const endDateStr = activityEnd.toLocaleString('vi-VN', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
       });

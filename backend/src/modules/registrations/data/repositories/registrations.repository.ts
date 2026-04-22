@@ -5,7 +5,7 @@
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { ValidationError } from '../../../../core/errors/AppError';
-import type { DangKyHoatDong, Prisma } from '@prisma/client';
+import type { DangKyHoatDong, Prisma, HocKy, TrangThaiDangKy } from '@prisma/client';
 import type { 
   IRegistrationRepository, 
   FindManyParams, 
@@ -15,7 +15,11 @@ import type {
   UpdateRegistrationData,
   UserRegistrationFilters,
   ActivityStats,
-  BulkUpdateResult
+  BulkUpdateResult,
+  StudentIdentity,
+  ActivityForRegistrationValidation,
+  RegistrationExportFilters,
+  RegistrationExportItem
 } from '../../business/interfaces/IRegistrationRepository';
 import type { RegistrationStatusVN, RegistrationStatusEN } from '../../registrations.types';
 
@@ -60,6 +64,61 @@ interface NormalizedRegistration {
  * RegistrationsRepository
  */
 class RegistrationsRepository implements IRegistrationRepository {
+  async findRegistrationsForExport(filters: RegistrationExportFilters = {}): Promise<RegistrationExportItem[]> {
+    const where: Prisma.DangKyHoatDongWhereInput = {
+      ...(filters.status ? { trang_thai_dk: filters.status as TrangThaiDangKy } : {}),
+      ...(filters.classId ? { sinh_vien: { lop_id: filters.classId } } : {}),
+      ...((filters.hoc_ky || filters.nam_hoc)
+        ? {
+            hoat_dong: {
+              ...(filters.hoc_ky ? { hoc_ky: filters.hoc_ky as HocKy } : {}),
+              ...(filters.nam_hoc ? { nam_hoc: filters.nam_hoc } : {})
+            }
+          }
+        : {}),
+    };
+
+    return prisma.dangKyHoatDong.findMany({
+      where,
+      include: {
+        sinh_vien: { include: { nguoi_dung: true, lop: true } },
+        hoat_dong: { include: { loai_hd: true } }
+      },
+      orderBy: { ngay_dang_ky: 'desc' }
+    }) as unknown as RegistrationExportItem[];
+  }
+
+  async findStudentByUserId(userId: string): Promise<StudentIdentity | null> {
+    return prisma.sinhVien.findUnique({
+      where: { nguoi_dung_id: String(userId) },
+      select: { id: true, nguoi_dung_id: true, lop_id: true }
+    }) as Promise<StudentIdentity | null>;
+  }
+
+  async findActivityForRegistrationValidation(activityId: string): Promise<ActivityForRegistrationValidation | null> {
+    return prisma.hoatDong.findUnique({
+      where: { id: String(activityId) },
+      select: {
+        id: true,
+        ten_hd: true,
+        nguoi_tao_id: true,
+        trang_thai: true,
+        sl_toi_da: true,
+        han_dk: true,
+        ngay_bd: true,
+        _count: {
+          select: {
+            dang_ky_hd: {
+              where: {
+                trang_thai_dk: { in: ['cho_duyet', 'da_duyet'] }
+              }
+            }
+          }
+        }
+      }
+    }) as Promise<ActivityForRegistrationValidation | null>;
+  }
+
   /**
    * Normalize raw item to unified shape
    */
@@ -190,12 +249,6 @@ class RegistrationsRepository implements IRegistrationRepository {
     if (!hdId || hdId === 'undefined' || hdId === 'null') {
       throw new ValidationError('hd_id (activityId) is required and must be a valid UUID');
     }
-    
-    console.log('[RegistrationsRepository] Creating registration:', {
-      sv_id: svId,
-      hd_id: hdId,
-      trang_thai_dk: trangThaiDk
-    });
     
     const created = await prisma.dangKyHoatDong.create({
       data: {

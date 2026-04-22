@@ -12,26 +12,31 @@ interface FaceRegistrationModalProps {
   onSuccess?: () => void;
   minImages?: number;
   maxImages?: number;
+  isRegistered?: boolean;
 }
 
 export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  minImages = 3,
-  maxImages = 5
+  minImages = 1,
+  maxImages = 2,
+  isRegistered: overrideIsRegistered
 }) => {
   const cameraRef = useRef<FaceCameraRef>(null);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [step, setStep] = useState<'intro' | 'capture' | 'confirm' | 'success'>('intro');
-  
+
   const {
     register,
-    isRegistered,
+    isRegistered: hookIsRegistered,
     isRegistering,
     error,
     clearError
   } = useFaceRecognition({ autoCheckStatus: false, autoCheckHealth: false });
+
+  // Use provided prop if available, otherwise use hook state
+  const isRegistered = overrideIsRegistered !== undefined ? overrideIsRegistered : hookIsRegistered;
 
   // Xử lý khi capture được ảnh
   const handleCapture = useCallback((imageData: string) => {
@@ -75,17 +80,19 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
   // Đăng ký khuôn mặt
   const handleRegister = useCallback(async () => {
     if (capturedImages.length < minImages) return;
-    
+
     try {
-      // Chuyển base64 thành Blob
-      // Sử dụng ảnh đầu tiên để đăng ký (backend sẽ xử lý embedding)
-      const firstImage = capturedImages[0];
-      const response = await fetch(firstImage);
-      const blob = await response.blob();
-      
-      // Gọi register với update = false (đăng ký mới) hoặc true (cập nhật)
-      const result = await register(blob, isRegistered);
-      
+      // Chuyển TẤT CẢ base64 images thành Blob
+      const blobs: Blob[] = [];
+      for (const imageData of capturedImages) {
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        blobs.push(blob);
+      }
+
+      // Gọi register với TẤT CẢ ảnh (multi-image → average embedding)
+      const result = await register(blobs, isRegistered);
+
       if (result.success) {
         setStep('success');
         onSuccess?.();
@@ -100,11 +107,11 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
-      
+
       {/* Modal content - responsive width */}
       <div className="relative bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-lg sm:max-w-2xl mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -121,7 +128,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
             </svg>
           </button>
         </div>
-        
+
         {/* Body - responsive padding and scroll */}
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-100px)] sm:max-h-[calc(90vh-130px)]">
           {/* Error message */}
@@ -136,7 +143,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Step: Intro */}
           {step === 'intro' && (
             <div className="text-center py-4 sm:py-8">
@@ -149,10 +156,10 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                 Đăng ký nhận dạng khuôn mặt
               </h3>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md mx-auto px-2">
-                Đăng ký khuôn mặt để điểm danh nhanh chóng và chính xác. 
-                Bạn cần chụp {minImages}-{maxImages} ảnh từ các góc độ khác nhau.
+                Đăng ký khuôn mặt để điểm danh nhanh chóng và chính xác.
+                Bạn cần chụp {minImages}-{maxImages} ảnh.
               </p>
-              
+
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-left max-w-md mx-auto">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3 text-sm sm:text-base">Lưu ý:</h4>
                 <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
@@ -178,11 +185,11 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                     <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    Chụp từ nhiều góc độ (nhìn thẳng, nghiêng trái, nghiêng phải)
+                    Chụp ít nhất 1 ảnh nhìn thẳng
                   </li>
                 </ul>
               </div>
-              
+
               <button
                 onClick={handleStartCapture}
                 className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium"
@@ -195,7 +202,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
               </button>
             </div>
           )}
-          
+
           {/* Step: Capture */}
           {step === 'capture' && (
             <div>
@@ -212,7 +219,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                   className="w-full"
                 />
               </div>
-              
+
               {/* Progress indicator */}
               <div className="mt-3 sm:mt-4 mb-2">
                 <div className="flex justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -220,13 +227,13 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                   <span>{capturedImages.length}/{maxImages}</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-emerald-500 transition-all duration-300"
                     style={{ width: `${(capturedImages.length / maxImages) * 100}%` }}
                   />
                 </div>
               </div>
-              
+
               {/* Captured images preview - scrollable on mobile */}
               {capturedImages.length > 0 && (
                 <div className="mt-3 sm:mt-4">
@@ -234,8 +241,8 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                   <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                     {capturedImages.map((img, index) => (
                       <div key={index} className="relative group flex-shrink-0">
-                        <img 
-                          src={img} 
+                        <img
+                          src={img}
                           alt={`Captured ${index + 1}`}
                           className="w-14 h-14 sm:w-20 sm:h-20 object-cover rounded-lg border-2 border-emerald-500"
                         />
@@ -255,7 +262,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Actions - responsive layout */}
               <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6">
                 <button
@@ -274,7 +281,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Step: Confirm */}
           {step === 'confirm' && (
             <div className="text-center">
@@ -284,19 +291,19 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
                 Kiểm tra lại các ảnh đã chụp trước khi đăng ký
               </p>
-              
+
               {/* Image grid - responsive */}
               <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mb-4 sm:mb-6">
                 {capturedImages.map((img, index) => (
-                  <img 
+                  <img
                     key={index}
-                    src={img} 
+                    src={img}
                     alt={`Captured ${index + 1}`}
                     className="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
                   />
                 ))}
               </div>
-              
+
               {/* Buttons - stack on mobile */}
               <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                 <button
@@ -328,7 +335,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Step: Success */}
           {step === 'success' && (
             <div className="text-center py-6 sm:py-8">
@@ -341,7 +348,7 @@ export const FaceRegistrationModal: React.FC<FaceRegistrationModalProps> = ({
                 Đăng ký thành công!
               </h3>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 px-2">
-                Khuôn mặt của bạn đã được đăng ký thành công. 
+                Khuôn mặt của bạn đã được đăng ký thành công.
                 Bây giờ bạn có thể sử dụng tính năng điểm danh bằng khuôn mặt.
               </p>
               <button

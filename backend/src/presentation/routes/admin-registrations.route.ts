@@ -13,9 +13,10 @@ import { ApiResponse, sendResponse } from '../../core/http/response/apiResponse'
 import { logError, logInfo } from '../../core/logger';
 import { parseSemesterString } from '../../core/utils/semester';
 import { prisma } from '../../data/infrastructure/prisma/client';
+import type { Prisma, HocKy, TrangThaiDangKy } from '@prisma/client';
 
 // Initialize services
-const exportService = new RegistrationExportService();
+const exportService = new RegistrationExportService(registrationsRepository);
 const approvalService = new RegistrationApprovalService(registrationsRepository);
 
 const router = Router();
@@ -55,7 +56,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     logInfo('Admin registrations request', { semester, status, page, limit, classId });
 
     // Build semester filter
-    let semesterWhere: any = {};
+    let semesterWhere: Prisma.DangKyHoatDongWhereInput = {};
     if (semester) {
       const parsed = parseSemesterString(semester);
       if (!parsed) {
@@ -64,21 +65,25 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       logInfo('Parsed semester filter', { parsed });
       semesterWhere = {
         hoat_dong: {
-          hoc_ky: parsed.semester,
-          ...(parsed.year ? { nam_hoc: { startsWith: parsed.year } } : {})
+          is: {
+            hoc_ky: parsed.semester as HocKy,
+            ...(parsed.year ? { nam_hoc: { startsWith: parsed.year } } : {})
+          }
         }
       };
     } else if (hoc_ky || nam_hoc) {
       semesterWhere = {
         hoat_dong: {
-          ...(hoc_ky ? { hoc_ky } : {}),
-          ...(nam_hoc ? { nam_hoc: { startsWith: nam_hoc } } : {})
+          is: {
+            ...(hoc_ky ? { hoc_ky: hoc_ky as HocKy } : {}),
+            ...(nam_hoc ? { nam_hoc: { startsWith: nam_hoc } } : {})
+          }
         }
       };
     }
 
-    const where: any = {
-      ...(status ? { trang_thai_dk: status } : {}),
+    const where: Prisma.DangKyHoatDongWhereInput = {
+      ...(status ? { trang_thai_dk: status as TrangThaiDangKy } : {}),
       ...(activityId ? { hd_id: activityId } : {}),
       ...semesterWhere,
       ...(classId ? { sinh_vien: { lop_id: classId } } : {}),

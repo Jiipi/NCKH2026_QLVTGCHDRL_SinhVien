@@ -29,14 +29,9 @@ export const resolveAssetUrl = (url: string = ''): string => {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
 
-  // For /uploads paths, use relative path (proxied by CRA dev server)
-  // This avoids cross-origin issues and works seamlessly in dev/prod
-  if (url.startsWith('/uploads')) {
-    return url;
-  }
-
   const apiBase = getApiBaseUrl();
-  const assetBase = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
+  // Strip /api, /api/v1, /api/v2 etc. to get the server root
+  const assetBase = apiBase.replace(/\/api(\/v\d+)?$/, '');
   const normalizedPath = url.startsWith('/') ? url : `/${url}`;
 
   return `${assetBase}${normalizedPath}`;

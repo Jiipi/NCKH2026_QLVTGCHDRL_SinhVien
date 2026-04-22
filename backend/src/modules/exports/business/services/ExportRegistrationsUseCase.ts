@@ -7,12 +7,17 @@
 import { parseSemesterString } from '../../../../core/utils/semester';
 import { ValidationError } from '../../../../core/errors/AppError';
 import { logInfo } from '../../../../core/logger';
+import type { HocKy } from '@prisma/client';
 import type { IExportRepository, ActivityWhereInput, RegistrationExportRow } from '../interfaces/IExportRepository';
 
 interface ExportFilters {
   semester?: string;
   hoc_ky?: string;
   nam_hoc?: string;
+}
+
+interface IsoDateLike {
+  toISOString: () => string;
 }
 
 class ExportRegistrationsUseCase {
@@ -31,14 +36,14 @@ class ExportRegistrationsUseCase {
       const parsed = parseSemesterString(semester);
       if (parsed && parsed.year) {
         return {
-          hoc_ky: parsed.semester,
+          hoc_ky: parsed.semester as HocKy,
           nam_hoc: parsed.year
         };
       }
       throw new ValidationError('Tham số học kỳ không hợp lệ');
     } else if (hoc_ky || nam_hoc) {
       return { 
-        hoc_ky: hoc_ky || undefined, 
+        hoc_ky: hoc_ky ? (hoc_ky as HocKy) : undefined,
         ...(nam_hoc ? { nam_hoc } : {}) 
       };
     }
@@ -53,7 +58,9 @@ class ExportRegistrationsUseCase {
         return isNaN(nd.getTime()) ? '' : nd.toISOString();
       }
       if (d instanceof Date && !isNaN(d.getTime())) return d.toISOString();
-      if (typeof (d as any).toISOString === 'function') return (d as any).toISOString();
+      if (typeof d === 'object' && d !== null && 'toISOString' in d) {
+        return (d as IsoDateLike).toISOString();
+      }
       return '';
     } catch { 
       return ''; 

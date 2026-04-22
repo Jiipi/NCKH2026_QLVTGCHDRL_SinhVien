@@ -5,7 +5,8 @@ import INotificationRepository, {
   PaginationOptions,
   CreateNotificationData,
   ActivityCriteria,
-  NotificationWithRelations
+  NotificationWithRelations,
+  NotificationAdminUser
 } from '../../business/interfaces/INotificationRepository';
 
 interface UserSelect {
@@ -267,6 +268,35 @@ class NotificationPrismaRepository extends INotificationRepository {
     });
 
     return classes.map(c => c.id);
+  }
+
+  async getClassMonitorUserId(classId: string): Promise<string | null> {
+    const classInfo = await prisma.lop.findUnique({
+      where: { id: classId },
+      select: {
+        lop_truong_rel: {
+          select: { nguoi_dung_id: true }
+        }
+      }
+    });
+
+    return classInfo?.lop_truong_rel?.nguoi_dung_id || null;
+  }
+
+  async getAdminUsers(): Promise<NotificationAdminUser[]> {
+    const adminRole = await prisma.vaiTro.findFirst({
+      where: { ten_vt: 'ADMIN' },
+      select: { id: true }
+    });
+
+    if (!adminRole) {
+      return [];
+    }
+
+    return prisma.nguoiDung.findMany({
+      where: { vai_tro_id: adminRole.id },
+      select: { id: true, ho_ten: true }
+    }) as Promise<NotificationAdminUser[]>;
   }
 
   async getStudentsByClassIds(classIds: string[]): Promise<string[]> {

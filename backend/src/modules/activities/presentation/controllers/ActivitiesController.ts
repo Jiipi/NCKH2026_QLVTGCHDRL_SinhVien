@@ -14,15 +14,25 @@ import {
   UpdateActivityUseCase,
 } from '../../business/services';
 
-const GetActivitiesDto = require('../../business/dto/GetActivitiesDto');
-const CreateActivityDto = require('../../business/dto/CreateActivityDto');
-const UpdateActivityDto = require('../../business/dto/UpdateActivityDto');
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-const { logError } = require('../../../../core/logger');
-const { AppError } = require('../../../../core/errors/AppError');
+import GetActivitiesDto from '../../business/dto/GetActivitiesDto';
+import CreateActivityDto from '../../business/dto/CreateActivityDto';
+import UpdateActivityDto from '../../business/dto/UpdateActivityDto';
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logError } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
+import { AppError } from '../../../../core/errors/AppError';
 
 /**
- * Authenticated request with user info
+ * Semester context from middleware
+ */
+interface SemesterContext {
+  hoc_ky: string;
+  nam_hoc: string;
+  key: string;
+}
+
+/**
+ * Authenticated request with user info and semester
  */
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -31,6 +41,7 @@ interface AuthenticatedRequest extends Request {
     role: string;
   };
   scope?: Record<string, unknown>;
+  semester?: SemesterContext;
 }
 
 /**
@@ -78,7 +89,7 @@ class ActivitiesController {
     try {
       const { id } = req.params;
       const scope = req.scope || {};
-      const activity = await this.useCases.getById.execute(id, scope, req.user);
+      const activity = await this.useCases.getById.execute(id, scope, req.user, req.semester);
 
       sendResponse(res, 200, ApiResponse.success(activity, 'Chi tiết hoạt động'));
     } catch (error) {
@@ -112,6 +123,7 @@ class ActivitiesController {
     try {
       const dto = CreateActivityDto.fromRequest(req.body);
       const result = await this.useCases.create.execute(dto, req.user);
+      logAudit('create_activity', req, { module: 'activities', entityId: result?.id, entityType: 'HoatDong' });
       sendResponse(res, 201, ApiResponse.success(result, 'Tạo hoạt động thành công'));
     } catch (error) {
       logError('Create activity error', error);
@@ -130,7 +142,8 @@ class ActivitiesController {
       const { id } = req.params;
       const dto = UpdateActivityDto.fromRequest(req.body);
       const scope = req.scope || {};
-      const result = await this.useCases.update.execute(id, dto, req.user, scope);
+      const result = await this.useCases.update.execute(id, dto, req.user, scope, req.semester);
+      logAudit('update_activity', req, { module: 'activities', entityId: id, entityType: 'HoatDong' });
 
       sendResponse(res, 200, ApiResponse.success(result, 'Cập nhật hoạt động thành công'));
     } catch (error) {
@@ -149,7 +162,8 @@ class ActivitiesController {
     try {
       const { id } = req.params;
       const scope = req.scope || {};
-      await this.useCases.delete.execute(id, req.user, scope);
+      await this.useCases.delete.execute(id, req.user, scope, req.semester);
+      logAudit('delete_activity', req, { module: 'activities', entityId: id, entityType: 'HoatDong' });
 
       sendResponse(res, 200, ApiResponse.success(null, 'Xóa hoạt động thành công'));
     } catch (error) {
@@ -167,7 +181,8 @@ class ActivitiesController {
   async approve(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const result = await this.useCases.approve.execute(id);
+      const result = await this.useCases.approve.execute(id, req.semester);
+      logAudit('approve_activity', req, { module: 'activities', entityId: id, entityType: 'HoatDong' });
       sendResponse(res, 200, ApiResponse.success(result, 'Duyệt hoạt động thành công'));
     } catch (error) {
       logError('Approve activity error', error);
@@ -185,7 +200,8 @@ class ActivitiesController {
     try {
       const { id } = req.params;
       const { reason } = req.body;
-      const result = await this.useCases.reject.execute(id, reason);
+      const result = await this.useCases.reject.execute(id, reason, req.semester);
+      logAudit('reject_activity', req, { module: 'activities', entityId: id, entityType: 'HoatDong', reason });
       sendResponse(res, 200, ApiResponse.success(result, 'Từ chối hoạt động thành công'));
     } catch (error) {
       logError('Reject activity error', error);
@@ -230,30 +246,14 @@ class ActivitiesController {
   }
 
   async getQRData(req: AuthenticatedRequest, res: Response): Promise<void> {
-    console.log('[GetQRData Controller] ====== START ======');
-    console.log('[GetQRData Controller] Request received');
     try {
       const { id } = req.params;
       const scope = req.scope || {};
-      
-      // Debug logging
-      console.log('[GetQRData Controller] Activity ID:', id);
-      console.log('[GetQRData Controller] User:', req.user?.sub);
-      console.log('[GetQRData Controller] Scope:', scope);
-      
-      const qrData = await this.useCases.getQRData.execute(id, scope, req.user);
-      
-      console.log('[GetQRData Controller] QR Data:', {
-        activity_id: qrData?.activity_id,
-        qr_token: qrData?.qr_token ? '***' + qrData.qr_token.slice(-4) : 'null'
-      });
-      
-      console.log('[GetQRData Controller] ====== SUCCESS ======');
+
+      const qrData = await this.useCases.getQRData.execute(id, scope, req.user, req.semester);
+
       sendResponse(res, 200, ApiResponse.success(qrData, 'Mã QR hoạt động'));
     } catch (error) {
-      console.error('[GetQRData Controller] ====== ERROR ======');
-      console.error('[GetQRData Controller] Error:', (error as Error).message);
-      console.error('[GetQRData Controller] Stack:', (error as Error).stack);
       logError('Get QR data error', error);
       if (error instanceof AppError) {
         sendResponse(res, error.statusCode, ApiResponse.error(error.message));
@@ -268,18 +268,11 @@ class ActivitiesController {
       const { id } = req.params;
       const { token } = req.body || {};
       const scope = req.scope || {};
-      
-      // Debug logging
-      console.log('[ScanAttendance Controller] Activity ID:', id);
-      console.log('[ScanAttendance Controller] Token from body:', token);
-      console.log('[ScanAttendance Controller] User:', req.user?.sub);
-      
-      const result = await this.useCases.scanAttendance.execute(id, token, scope, req.user);
-      
+
+      const result = await this.useCases.scanAttendance.execute(id, token, scope, req.user, req.semester);
+
       sendResponse(res, 201, ApiResponse.success(result, 'Điểm danh thành công'));
     } catch (error) {
-      console.error('[ScanAttendance Controller] Error:', (error as Error).message);
-      console.error('[ScanAttendance Controller] Stack:', (error as Error).stack);
       logError('QR scan attendance error', error);
       if (error instanceof AppError) {
         const statusCode = error.statusCode || 500;

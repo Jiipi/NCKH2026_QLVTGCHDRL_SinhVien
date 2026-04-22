@@ -2,9 +2,9 @@ import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@
 import type IMonitorRepository from '../interfaces/IMonitorRepository';
 import type { StudentWithRelations, RegistrationWithRelations, ActivityWithRelations, ActivityFilter } from '../interfaces/IMonitorRepository';
 
-const { parseSemesterString } = require('../../../../core/utils/semester');
-const { logInfo, logError } = require('../../../../core/logger');
-const { countClassActivities } = require('../../../../core/utils/classActivityCounter');
+import { parseSemesterString } from '../../../../core/utils/semester';
+import { logInfo, logError } from '../../../../core/logger';
+import { countClassActivities } from '../../../../core/utils/classActivityCounter';
 
 interface StudentScore {
   id: string;

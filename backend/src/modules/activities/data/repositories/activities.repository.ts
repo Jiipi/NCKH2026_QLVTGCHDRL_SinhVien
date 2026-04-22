@@ -8,7 +8,7 @@
 import type { PrismaClient, HoatDong, Prisma, DangKyHoatDong, SinhVien, Lop } from '@prisma/client';
 import IActivityRepository from '../../business/interfaces/IActivityRepository';
 
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
+import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 interface FindManyResult {
   items: HoatDong[];
@@ -51,6 +51,10 @@ interface ClassInfo {
   ten_lop: string;
 }
 
+interface TeacherClassInfo {
+  id: string;
+}
+
 interface StudentByClass {
   nguoi_dung_id: string;
 }
@@ -67,14 +71,11 @@ class ActivitiesRepository extends IActivityRepository {
    * Find many activities with filters and pagination
    */
   async findMany(where: Prisma.HoatDongWhereInput = {}, options: FindManyOptions = {}): Promise<FindManyResult> {
-    const {
-      page = 1,
-      limit, // No default - undefined means fetch all
-      sort = 'ngay_cap_nhat',
-      order = 'desc',
-      include = this.getDefaultInclude()
-    } = options;
-    
+    const { page = 1, limit, sort, order = 'desc', include } = options;
+
+    // Use getListInclude() by default for list views (Requirement 4.1)
+    const effectiveInclude = include || this.getListInclude();
+
     // Handle limit: undefined/null/'all' = no limit (fetch all)
     let effectiveLimit: number | undefined;
     if (limit === undefined || limit === null || limit === 'all') {
@@ -83,24 +84,24 @@ class ActivitiesRepository extends IActivityRepository {
       const parsed = typeof limit === 'string' ? parseInt(limit) : limit;
       effectiveLimit = isNaN(parsed) ? undefined : parsed;
     }
-    
+
     const effectivePage = effectiveLimit === undefined ? 1 : parseInt(String(page));
     const skip = effectiveLimit ? (effectivePage - 1) * effectiveLimit : undefined;
     const take = effectiveLimit;
-    
+
     const orderBy: Prisma.HoatDongOrderByWithRelationInput = sort ? { [sort]: order === 'asc' ? 'asc' : 'desc' } as Prisma.HoatDongOrderByWithRelationInput : {};
-    
+
     const [items, total] = await Promise.all([
       this.prisma.hoatDong.findMany({
         where,
         skip: take ? skip : undefined,
         take,
-        include,
+        include: effectiveInclude,
         orderBy
       }),
       this.prisma.hoatDong.count({ where })
     ]);
-    
+
     return {
       items,
       total,
@@ -109,18 +110,40 @@ class ActivitiesRepository extends IActivityRepository {
       totalPages: effectiveLimit ? Math.ceil(total / effectiveLimit) : 1
     };
   }
-  
+
   /**
    * Find activity by ID
+   * @param id - Activity ID
+   * @param where - Additional where conditions
+   * @param include - Include relations (defaults to getDetailInclude())
+   * @param semesterInfo - Optional semester validation (Requirements 10.3)
    */
-  async findById(id: string, where: Prisma.HoatDongWhereInput = {}, include: Prisma.HoatDongInclude | null = null): Promise<HoatDong | null> {
+  async findById(
+    id: string,
+    where: Prisma.HoatDongWhereInput = {},
+    include: Prisma.HoatDongInclude | null = null,
+    semesterInfo?: { hoc_ky: string; nam_hoc: string }
+  ): Promise<HoatDong | null> {
     if (!id) return null;
+
+    // Build where clause with semester filter if provided (Requirements 10.3)
+    const whereClause: Prisma.HoatDongWhereInput = {
+      id: String(id),
+      ...where
+    };
+
+    // Add semester filter if semesterInfo provided
+    if (semesterInfo) {
+      whereClause.hoc_ky = semesterInfo.hoc_ky as Prisma.HoatDongWhereInput['hoc_ky'];
+      whereClause.nam_hoc = semesterInfo.nam_hoc;
+    }
+
     return this.prisma.hoatDong.findFirst({
-      where: { id: String(id), ...where },
-      include: include || this.getDefaultInclude()
+      where: whereClause,
+      include: include || this.getDetailInclude()
     });
   }
-  
+
   /**
    * Find activity by ID with full details (registrations)
    */
@@ -159,7 +182,7 @@ class ActivitiesRepository extends IActivityRepository {
       }
     });
   }
-  
+
   /**
    * Create new activity
    */
@@ -173,7 +196,7 @@ class ActivitiesRepository extends IActivityRepository {
       include: this.getDefaultInclude()
     });
   }
-  
+
   /**
    * Update activity
    */
@@ -184,7 +207,7 @@ class ActivitiesRepository extends IActivityRepository {
       include: this.getDefaultInclude()
     });
   }
-  
+
   /**
    * Delete activity
    */
@@ -193,7 +216,7 @@ class ActivitiesRepository extends IActivityRepository {
       where: { id: String(id) }
     });
   }
-  
+
   /**
    * Check if activity exists
    */
@@ -204,26 +227,26 @@ class ActivitiesRepository extends IActivityRepository {
     });
     return count > 0;
   }
-  
+
   /**
    * Count activities
    */
   async count(where: Prisma.HoatDongWhereInput = {}): Promise<number> {
     return this.prisma.hoatDong.count({ where });
   }
-  
+
   /**
    * Get registration statistics for activity
    */
   async getRegistrationStats(id: string): Promise<RegistrationStats> {
     if (!id) return { total: 0, cho_duyet: 0, da_duyet: 0, tu_choi: 0, da_tham_gia: 0 };
-    
+
     const stats = await this.prisma.dangKyHoatDong.groupBy({
       by: ['trang_thai_dk'],
       where: { hd_id: String(id) },
       _count: true
     });
-    
+
     const result: RegistrationStats = {
       total: 0,
       cho_duyet: 0,
@@ -231,16 +254,16 @@ class ActivitiesRepository extends IActivityRepository {
       tu_choi: 0,
       da_tham_gia: 0
     };
-    
+
     stats.forEach((stat: { trang_thai_dk: string | null; _count: number }) => {
       const status = stat.trang_thai_dk || 'cho_duyet';
       result[status] = stat._count;
       result.total += stat._count;
     });
-    
+
     return result;
   }
-  
+
   /**
    * Get user's registration for activity
    */
@@ -250,6 +273,40 @@ class ActivitiesRepository extends IActivityRepository {
         hd_id: String(activityId),
         sv_id: String(userId)
       }
+    });
+  }
+
+  async countRegistrationsByActivity(activityId: string): Promise<number> {
+    return this.prisma.dangKyHoatDong.count({
+      where: { hd_id: String(activityId) }
+    });
+  }
+
+  async findAttendanceByStudentAndActivity(studentId: string, activityId: string) {
+    return this.prisma.diemDanh.findUnique({
+      where: {
+        sv_id_hd_id: { sv_id: String(studentId), hd_id: String(activityId) }
+      }
+    });
+  }
+
+  async createAttendance(data: { nguoi_diem_danh_id: string; sv_id: string; hd_id: string }) {
+    return this.prisma.diemDanh.create({
+      data: {
+        nguoi_diem_danh_id: data.nguoi_diem_danh_id,
+        sv_id: String(data.sv_id),
+        hd_id: String(data.hd_id),
+        phuong_thuc: 'qr',
+        trang_thai_tham_gia: 'co_mat',
+        xac_nhan_tham_gia: true
+      }
+    });
+  }
+
+  async markRegistrationAsAttended(studentId: string, activityId: string): Promise<void> {
+    await this.prisma.dangKyHoatDong.update({
+      where: { sv_id_hd_id: { sv_id: String(studentId), hd_id: String(activityId) } },
+      data: { trang_thai_dk: 'da_tham_gia' }
     });
   }
 
@@ -300,6 +357,13 @@ class ActivitiesRepository extends IActivityRepository {
     });
   }
 
+  async findFirstClassByTeacherId(teacherId: string): Promise<TeacherClassInfo | null> {
+    return this.prisma.lop.findFirst({
+      where: { chu_nhiem: teacherId },
+      select: { id: true }
+    });
+  }
+
   /**
    * Count registrations by activity and class
    */
@@ -333,9 +397,107 @@ class ActivitiesRepository extends IActivityRepository {
     }
     return grouped || {};
   }
-  
+
   /**
-   * Default include for activity queries
+   * Minimal include for list views
+   * Returns only essential data + counts (no full registrations)
+   * Fixes Bug #3: N+1 query in list views
+   */
+  getListInclude(): Prisma.HoatDongInclude {
+    return {
+      loai_hd: {
+        select: {
+          id: true,
+          ten_loai_hd: true,
+          mau_sac: true
+        }
+      },
+      nguoi_tao: {
+        select: {
+          id: true,
+          ho_ten: true
+        }
+      },
+      _count: {
+        select: {
+          dang_ky_hd: true  // Count only, don't load records
+        }
+      }
+    };
+  }
+
+  /**
+   * Full include for detail views
+   * Returns complete data with limited registrations
+   * Fixes Bug #3: N+1 query in detail views
+   * Requirements: 4.2, 4.4, 4.5
+   */
+  getDetailInclude(): Prisma.HoatDongInclude {
+    return {
+      loai_hd: {
+        select: {
+          id: true,
+          ten_loai_hd: true,
+          diem_mac_dinh: true,
+          diem_toi_da: true,
+          mau_sac: true
+        }
+      },
+      nguoi_tao: {
+        select: {
+          id: true,
+          ho_ten: true,
+          email: true,
+          sinh_vien: {
+            select: {
+              mssv: true,
+              lop: {
+                select: { ten_lop: true }
+              }
+            }
+          }
+        }
+      },
+      dang_ky_hd: {
+        where: {
+          trang_thai_dk: { in: ['cho_duyet', 'da_duyet', 'da_tham_gia'] }
+        },
+        select: {
+          id: true,
+          trang_thai_dk: true,
+          ngay_dang_ky: true,
+          sinh_vien: {
+            select: {
+              id: true,
+              mssv: true,
+              nguoi_dung: {
+                select: {
+                  ho_ten: true,
+                  email: true
+                }
+              },
+              lop: {
+                select: {
+                  ten_lop: true
+                }
+              }
+            }
+          }
+        },
+        take: 100  // Limit to prevent loading thousands of records
+      },
+      lop: {
+        select: {
+          id: true,
+          ten_lop: true
+        }
+      }
+    };
+  }
+
+  /**
+   * Default include for activity queries (backward compatibility)
+   * @deprecated Use getListInclude() or getDetailInclude() instead
    */
   getDefaultInclude(): Prisma.HoatDongInclude {
     return {

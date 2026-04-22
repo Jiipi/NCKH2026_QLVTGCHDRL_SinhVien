@@ -95,7 +95,7 @@ export const handleUploadError = (
   req: Request,
   res: Response,
   next: NextFunction
-): any => {
+): void | Response => {
   if (err instanceof MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({

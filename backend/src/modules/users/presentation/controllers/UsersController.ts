@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-const ListUsersDto = require('../../business/dto/ListUsersDto');
-const CreateUserDto = require('../../business/dto/CreateUserDto');
-const UpdateUserDto = require('../../business/dto/UpdateUserDto');
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-const { logError } = require('../../../../core/logger');
-const { AppError } = require('../../../../core/errors/AppError');
+import ListUsersDto from '../../business/dto/ListUsersDto';
+import CreateUserDto from '../../business/dto/CreateUserDto';
+import UpdateUserDto from '../../business/dto/UpdateUserDto';
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logError } from '../../../../core/logger';
+import { AppError } from '../../../../core/errors/AppError';
 
 /**
  * Authenticated request interface with user information

@@ -4,21 +4,21 @@
  */
 
 import { Router, Request, Response } from 'express';
-const { createSemestersController } = require('../semesters.factory');
-const {
+import { createSemestersController } from '../semesters.factory';
+import {
   validateProposeClosure,
   validateSoftLock,
   validateHardLock,
   validateRollback,
   validateGetSemesterStatus,
   validateGetActivitiesBySemester,
-} = require('../../business/validators/semesters.validators');
-const { auth } = require('../../../../core/http/middleware/authJwt');
-const { requirePermission } = require('../../../../core/policies');
-const { asyncHandler } = require('../../../../core/http/middleware/asyncHandler');
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-const { logInfo, logError } = require('../../../../core/logger');
+} from '../../business/validators/semesters.validators';
+import { auth } from '../../../../core/http/middleware/authJwt';
+import { requirePermission } from '../../../../core/policies';
+import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
+import { prisma } from '../../../../data/infrastructure/prisma/client';
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logInfo, logError } from '../../../../core/logger';
 
 /**
  * Authenticated request interface

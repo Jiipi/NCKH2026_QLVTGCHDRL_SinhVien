@@ -1,29 +1,52 @@
-node_modules
+# Dependencies
+**/node_modules
 npm-debug.log
 yarn.lock
 .yarn
 .pnp*
+
+# Git
 .git
 .gitignore
-README.md
+
+# Environment
 .env
 .env.*
-.DS_Store
-coverage
-.nyc_output
-frontend/node_modules
-backend/node_modules
-backend/logs/*
-frontend/build
-**/*.mapnode_modules
-**/node_modules
-**/build
-npm-debug.log
-.DS_Store
-.git
-.gitignore
-.vscode
 **/.env
-**/.cache
-**/coverage
+
+# IDE
+.vscode
+.idea
+**/*.swp
+**/*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+**/build
 **/dist
+**/coverage
+**/out
+**/.cache
+**/.nyc_output
+**/*.map
+
+# Logs
+backend/logs/*
+*.log
+
+# Docs
+README.md
+docs/
+**/*.md
+!backend/prisma/migrations/**/*.sql
+
+# Face recognition service (not needed in app build)
+face-recognition-service/
+
+# Docker files
+docker-compose.yml
+**/Dockerfile
+**/.dockerignore

@@ -41,18 +41,18 @@ export class RegisterDto {
     this.dia_chi = data.dia_chi;
   }
 
-  static fromRequest(body: any): RegisterDto {
+  static fromRequest(body: Record<string, unknown>): RegisterDto {
     return new RegisterDto({
-      maso: body.maso,
-      email: body.email,
-      ho_ten: body.ho_ten,
-      password: body.password,
-      khoa: body.khoa,
-      lop_id: body.lop_id || body.lopId, // Support both formats
-      ngay_sinh: body.ngay_sinh || body.ngaySinh, // Support both formats
-      gioi_tinh: body.gioi_tinh || body.gioiTinh, // Support both formats
-      sdt: body.sdt,
-      dia_chi: body.dia_chi || body.diaChi // Support both formats
+      maso: String(body.maso || ''),
+      email: String(body.email || ''),
+      ho_ten: String(body.ho_ten || ''),
+      password: String(body.password || ''),
+      khoa: body.khoa ? String(body.khoa) : undefined,
+      lop_id: body.lop_id ? String(body.lop_id) : (body.lopId ? String(body.lopId) : undefined),
+      ngay_sinh: body.ngay_sinh ? String(body.ngay_sinh) : (body.ngaySinh ? String(body.ngaySinh) : undefined),
+      gioi_tinh: body.gioi_tinh ? String(body.gioi_tinh) : (body.gioiTinh ? String(body.gioiTinh) : undefined),
+      sdt: body.sdt ? String(body.sdt) : undefined,
+      dia_chi: body.dia_chi ? String(body.dia_chi) : (body.diaChi ? String(body.diaChi) : undefined),
     });
   }
 }

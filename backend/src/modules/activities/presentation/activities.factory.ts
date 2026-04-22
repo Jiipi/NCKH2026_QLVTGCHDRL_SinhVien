@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 // Import repositories
-import activitiesRepository from '../data/repositories/activities.repository';
+import { activitiesRepository } from '../data/repositories/activities.repository';
 import registrationsRepository from '../../registrations/data/repositories/registrations.repository';
 
 // Import use cases from activities module
@@ -26,21 +26,26 @@ import CreateRegistrationUseCaseModule from '../../registrations/business/servic
 import CancelRegistrationUseCaseModule from '../../registrations/business/services/CancelRegistrationUseCase';
 
 // Handle ES module interop (TypeScript files may export { default: Class })
-const GetActivitiesUseCase = (GetActivitiesUseCaseModule as any).default || GetActivitiesUseCaseModule;
-const GetActivityByIdUseCase = (GetActivityByIdUseCaseModule as any).default || GetActivityByIdUseCaseModule;
-const CreateActivityUseCase = (CreateActivityUseCaseModule as any).default || CreateActivityUseCaseModule;
-const UpdateActivityUseCase = (UpdateActivityUseCaseModule as any).default || UpdateActivityUseCaseModule;
-const DeleteActivityUseCase = (DeleteActivityUseCaseModule as any).default || DeleteActivityUseCaseModule;
-const ApproveActivityUseCase = (ApproveActivityUseCaseModule as any).default || ApproveActivityUseCaseModule;
-const RejectActivityUseCase = (RejectActivityUseCaseModule as any).default || RejectActivityUseCaseModule;
-const GetActivityDetailsUseCase = (GetActivityDetailsUseCaseModule as any).default || GetActivityDetailsUseCaseModule;
-const RegisterActivityUseCase = (RegisterActivityUseCaseModule as any).default || RegisterActivityUseCaseModule;
-const CancelActivityRegistrationUseCase = (CancelActivityRegistrationUseCaseModule as any).default || CancelActivityRegistrationUseCaseModule;
-const GetActivityQRDataUseCase = (GetActivityQRDataUseCaseModule as any).default || GetActivityQRDataUseCaseModule;
-const ScanAttendanceUseCase = (ScanAttendanceUseCaseModule as any).default || ScanAttendanceUseCaseModule;
-const ActivitiesController = (ActivitiesControllerModule as any).default || ActivitiesControllerModule;
-const CreateRegistrationUseCase = (CreateRegistrationUseCaseModule as any).default || CreateRegistrationUseCaseModule;
-const CancelRegistrationUseCase = (CancelRegistrationUseCaseModule as any).default || CancelRegistrationUseCaseModule;
+type ModuleWithDefault<T> = T & { default?: T };
+function resolveDefault<T>(mod: ModuleWithDefault<T>): T {
+  return (mod as ModuleWithDefault<T>).default || mod;
+}
+
+const GetActivitiesUseCase = resolveDefault(GetActivitiesUseCaseModule);
+const GetActivityByIdUseCase = resolveDefault(GetActivityByIdUseCaseModule);
+const CreateActivityUseCase = resolveDefault(CreateActivityUseCaseModule);
+const UpdateActivityUseCase = resolveDefault(UpdateActivityUseCaseModule);
+const DeleteActivityUseCase = resolveDefault(DeleteActivityUseCaseModule);
+const ApproveActivityUseCase = resolveDefault(ApproveActivityUseCaseModule);
+const RejectActivityUseCase = resolveDefault(RejectActivityUseCaseModule);
+const GetActivityDetailsUseCase = resolveDefault(GetActivityDetailsUseCaseModule);
+const RegisterActivityUseCase = resolveDefault(RegisterActivityUseCaseModule);
+const CancelActivityRegistrationUseCase = resolveDefault(CancelActivityRegistrationUseCaseModule);
+const GetActivityQRDataUseCase = resolveDefault(GetActivityQRDataUseCaseModule);
+const ScanAttendanceUseCase = resolveDefault(ScanAttendanceUseCaseModule);
+const ActivitiesController = resolveDefault(ActivitiesControllerModule);
+const CreateRegistrationUseCase = resolveDefault(CreateRegistrationUseCaseModule);
+const CancelRegistrationUseCase = resolveDefault(CancelRegistrationUseCaseModule);
 
 /**
  * Factory for creating ActivitiesController with all dependencies
@@ -65,7 +70,7 @@ function createActivitiesController(): InstanceType<typeof ActivitiesController>
     reject: new RejectActivityUseCase(repo),
     getDetails: new GetActivityDetailsUseCase(repo),
     register: new RegisterActivityUseCase(createRegistrationUseCase, repo),
-    cancelRegistration: new CancelActivityRegistrationUseCase(cancelRegistrationUseCase),
+    cancelRegistration: new CancelActivityRegistrationUseCase(cancelRegistrationUseCase, repo),
     getQRData: new GetActivityQRDataUseCase(repo),
     scanAttendance: new ScanAttendanceUseCase(repo)
   };

@@ -5,11 +5,13 @@
  */
 
 import { ConflictError } from '../../../../core/errors/AppError';
-import { logInfo } from '../../../../core/logger';
+import { logInfo, logWarn, logError } from '../../../../core/logger';
 import { IAuthRepository, UserWithRole } from '../interfaces/IAuthRepository';
 import { ITokenService } from '../interfaces/ITokenService';
 import { RegisterDto } from '../dto/RegisterDto';
 import { IHashService, UserDTO } from './LoginUseCase';
+
+type ErrorWithCode = Error & { code?: string };
 
 // Extended interface for repository with student lookup
 interface IAuthRepositoryWithStudent extends IAuthRepository {
@@ -37,9 +39,8 @@ class RegisterUseCase {
   }
 
   async execute(dto: RegisterDto): Promise<RegisterResult> {
-    console.log('[RegisterUseCase] Starting registration:', { 
-      maso: dto.maso, 
-      email: dto.email, 
+    logInfo('Register flow started', {
+      maso: dto.maso,
       ho_ten: dto.ho_ten,
       hasLopId: !!dto.lop_id,
       khoa: dto.khoa
@@ -47,9 +48,7 @@ class RegisterUseCase {
 
     // Check if maso exists in nguoiDung table
     const existingUser = await this.authRepository.findUserByMaso(dto.maso);
-    console.log('[RegisterUseCase] Check maso in nguoiDung:', { maso: dto.maso, exists: !!existingUser });
     if (existingUser) {
-      console.log('[RegisterUseCase] Maso already exists in nguoiDung:', { maso: dto.maso, userId: existingUser.id });
       throw new ConflictError('Mã số đã được sử dụng', [
         { field: 'maso', message: 'Mã số đã được sử dụng' }
       ]);
@@ -57,9 +56,7 @@ class RegisterUseCase {
 
     // Check if mssv exists in sinhVien table (mssv is unique)
     const existingStudent = await this.authRepository.findStudentByMssv(dto.maso);
-    console.log('[RegisterUseCase] Check mssv in sinhVien:', { mssv: dto.maso, exists: !!existingStudent });
     if (existingStudent) {
-      console.log('[RegisterUseCase] Mssv already exists in sinhVien:', { mssv: dto.maso, studentId: existingStudent.id, userId: existingStudent.nguoi_dung_id });
       throw new ConflictError('Mã số đã được sử dụng', [
         { field: 'maso', message: 'Mã số đã được sử dụng' }
       ]);
@@ -67,9 +64,7 @@ class RegisterUseCase {
 
     // Check if email exists in nguoiDung table
     const existingEmail = await this.authRepository.findUserByEmail(dto.email);
-    console.log('[RegisterUseCase] Check email in nguoiDung:', { email: dto.email, exists: !!existingEmail });
     if (existingEmail) {
-      console.log('[RegisterUseCase] Email already exists in nguoiDung:', { email: dto.email, userId: existingEmail.id });
       throw new ConflictError('Email đã được sử dụng', [
         { field: 'email', message: 'Email đã được sử dụng' }
       ]);
@@ -88,7 +83,6 @@ class RegisterUseCase {
     const hashedPassword = await this.hashService.hash(dto.password);
 
     // Create user
-    console.log('[RegisterUseCase] Creating user...');
     const newUser = await this.authRepository.createUser({
       ten_dn: dto.maso,
       email: dto.email,
@@ -97,12 +91,13 @@ class RegisterUseCase {
       vai_tro_id: studentRole.id!,
       trang_thai: 'hoat_dong'
     });
-    console.log('[RegisterUseCase] User created:', { userId: newUser.id, maso: newUser.ten_dn, email: newUser.email });
 
     // Create student record - REQUIRED for student role
     if (!dto.lop_id) {
-      console.warn('[RegisterUseCase] WARNING: lop_id not provided, student record will not be created');
-      console.warn('[RegisterUseCase] This may cause issues when logging in as student record is required');
+      logWarn('Register completed without student record (missing lop_id)', {
+        userId: newUser.id,
+        maso: newUser.ten_dn
+      });
       logInfo('User registered without student record (missing lop_id)', {
         userId: newUser.id,
         maso: newUser.ten_dn
@@ -114,24 +109,24 @@ class RegisterUseCase {
         if (dto.ngay_sinh) {
           ngaySinhDate = new Date(dto.ngay_sinh);
           if (isNaN(ngaySinhDate.getTime())) {
-            console.warn('[RegisterUseCase] Invalid ngay_sinh, using default');
+            logWarn('Invalid ngay_sinh in register payload, using default date');
             ngaySinhDate = new Date('2000-01-01');
           }
         } else {
-          console.warn('[RegisterUseCase] ngay_sinh not provided, using default date');
+          logWarn('ngay_sinh not provided in register payload, using default date');
           ngaySinhDate = new Date('2000-01-01');
         }
 
-        console.log('[RegisterUseCase] Creating student record...', { 
-          nguoi_dung_id: newUser.id, 
-          lop_id: dto.lop_id, 
+        logInfo('Creating student record during register', {
+          nguoi_dung_id: newUser.id,
+          lop_id: dto.lop_id,
           mssv: dto.maso,
           ngay_sinh: ngaySinhDate,
-          gioi_tinh: dto.gioi_tinh,
-          sdt: dto.sdt,
-          dia_chi: dto.dia_chi
+          hasGioiTinh: !!dto.gioi_tinh,
+          hasSdt: !!dto.sdt,
+          hasDiaChi: !!dto.dia_chi
         });
-        
+
         const student = await this.authRepository.createStudent({
           nguoi_dung_id: newUser.id,
           lop_id: dto.lop_id,
@@ -141,25 +136,26 @@ class RegisterUseCase {
           sdt: dto.sdt || undefined,
           dia_chi: dto.dia_chi || undefined
         });
-        console.log('[RegisterUseCase] Student record created successfully:', { 
-          studentId: student.id, 
+        logInfo('Student record created successfully during register', {
+          studentId: student.id,
           mssv: student.mssv,
           lop_id: student.lop_id
         });
-      } catch (studentErr: any) {
-        console.error('[RegisterUseCase] Failed to create student record:', studentErr.message);
-        console.error('[RegisterUseCase] Error code:', studentErr.code);
-        console.error('[RegisterUseCase] Error details:', studentErr);
+      } catch (studentErr: unknown) {
+        const error: ErrorWithCode = studentErr instanceof Error
+          ? (studentErr as ErrorWithCode)
+          : new Error(String(studentErr));
+        logError('Failed to create student record during register', error);
         logInfo('User created but student record creation failed', {
           userId: newUser.id,
-          error: studentErr.message,
-          errorCode: studentErr.code
+          error: error.message,
+          errorCode: error.code
         });
       }
     }
 
     // Generate token
-    const token = this.tokenService.generateToken(newUser);
+    const token = await this.tokenService.generateToken(newUser);
 
     logInfo('User registered successfully', {
       userId: newUser.id,

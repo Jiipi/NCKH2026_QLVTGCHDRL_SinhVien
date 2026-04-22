@@ -6,7 +6,7 @@
  * 
  * @example
  * ```typescript
- * import { useAsyncData, useCrud, BaseApi } from '@/core';
+ * import { useAsyncData, useCrud } from '@/core';
  * import type { ApiResult, PaginatedResponse } from '@/core';
  * ```
  */
@@ -17,10 +17,6 @@ export type { UseAsyncDataOptions, UseAsyncDataReturn } from './useAsyncData';
 
 export { useCrud } from './useCrud';
 export type { CrudApi, UseCrudOptions, UseCrudReturn } from './useCrud';
-
-// API
-export { BaseApi } from './BaseApi';
-export type { BaseApiConfig } from './BaseApi';
 
 // Types
 export type {

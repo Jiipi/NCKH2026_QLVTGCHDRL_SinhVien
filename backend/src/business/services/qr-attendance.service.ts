@@ -87,7 +87,7 @@ class QrAttendanceService {
     // 3. Time validation - kiểm tra thời gian bắt đầu
     const now = new Date();
     const start = new Date(activity.ngay_bd);
-    
+
     console.log('🕐 Time validation:', {
       now: now.toISOString(),
       nowLocal: now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
@@ -97,9 +97,12 @@ class QrAttendanceService {
       startTime: start.getTime(),
       diff: (start.getTime() - now.getTime()) / 1000 + ' seconds'
     });
-    
-    if (now.getTime() < start.getTime()) {
-      const startDateStr = start.toLocaleString('vi-VN', { 
+
+    // Cho phép điểm danh sớm 12 tiếng để xử lý lỗi lệch múi giờ (UTC vs Local)
+    const leeway = 12 * 60 * 60 * 1000;
+
+    if (now.getTime() + leeway < start.getTime()) {
+      const startDateStr = start.toLocaleString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh',
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -112,9 +115,9 @@ class QrAttendanceService {
 
     // 4. Time validation - kiểm tra thời gian kết thúc
     const end = new Date(activity.ngay_kt);
-    
-    if (now.getTime() > end.getTime()) {
-      const endDateStr = end.toLocaleString('vi-VN', { 
+
+    if (now.getTime() - leeway > end.getTime()) {
+      const endDateStr = end.toLocaleString('vi-VN', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
@@ -203,7 +206,7 @@ class QrAttendanceService {
     // 11. Create attendance record
     const forwardedFor = req.headers['x-forwarded-for'];
     const clientIp = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0] : req.ip) || null;
-    
+
     const created = await prisma.diemDanh.create({
       data: {
         nguoi_diem_danh_id: user.sub,

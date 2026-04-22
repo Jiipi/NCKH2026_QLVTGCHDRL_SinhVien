@@ -13,6 +13,12 @@ services:
       - dacn_network
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d Web_QuanLyDiemRenLuyen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -26,12 +32,13 @@ services:
       dockerfile: backend/Dockerfile
     container_name: dacn_app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://admin:abc@db:5432/Web_QuanLyDiemRenLuyen?schema=public
-      JWT_SECRET: supersecret_in_docker_change_me
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set}
       JWT_EXPIRES_IN: 1d
       CORS_ORIGIN: http://localhost:3001
     ports:
@@ -42,6 +49,12 @@ services:
         target: /app/backend/logs
     networks:
       - dacn_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     profiles:
       - prod
     logging:
@@ -59,7 +72,7 @@ services:
       NODE_ENV: development
       PORT: 3001
       DATABASE_URL: postgresql://admin:abc@db:5432/Web_QuanLyDiemRenLuyen?schema=public
-      JWT_SECRET: supersecret_in_docker_change_me
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable must be set}
       JWT_EXPIRES_IN: 1d
       # Updated CORS to allow any local network IP for cross-device testing
       CORS_ORIGIN: http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.8:3000,http://192.168.2.12:3000
@@ -75,22 +88,29 @@ services:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "3001:3001"
     networks:
       - dacn_network
     command: >-
       sh -lc "
-      npm install && 
-      ATTEMPTS=0; 
-      until npx prisma db push --accept-data-loss; do 
-        ATTEMPTS=$$((ATTEMPTS+1)); 
-        if [ $$ATTEMPTS -gt 20 ]; then echo 'DB not ready after retries'; exit 1; fi; 
-        echo 'Waiting for DB...'; sleep 3; 
-      done && 
-      npx prisma generate || true && 
+      npm install &&
+      ATTEMPTS=0;
+      until npx prisma db push --accept-data-loss; do
+        ATTEMPTS=$$((ATTEMPTS+1));
+        if [ $$ATTEMPTS -gt 20 ]; then echo 'DB not ready after retries'; exit 1; fi;
+        echo 'Waiting for DB...'; sleep 3;
+      done &&
+      npx prisma generate || true &&
       npx ts-node --transpile-only src/index.ts"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     profiles:
       - dev
     logging:
@@ -110,7 +130,8 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "5555:5555"
     networks:
@@ -140,12 +161,19 @@ services:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     depends_on:
-      - backend-dev
+      backend-dev:
+        condition: service_healthy
     ports:
       - "3000:3000"
     networks:
       - dacn_network
     command: sh -lc "npm install && npm start"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
     profiles:
       - dev
     logging:
@@ -188,6 +216,10 @@ services:
       EMBEDDING_MODEL: "ArcFace"
       # Ngưỡng nhận diện mặc định
       FACE_THRESHOLD: "0.68"
+      # Ngưỡng liveness detection
+      LIVENESS_THRESHOLD: "0.5"
+      # CORS - chỉ cho phép các origin cụ thể (mặc định: tất cả)
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
     ports:
       - "5000:5000"
     volumes:

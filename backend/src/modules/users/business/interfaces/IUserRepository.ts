@@ -76,6 +76,10 @@ abstract class IUserRepository {
 
   abstract findByFaculty(faculty: string): Promise<NguoiDung[]>;
 
+  abstract findByRoleNames(roleNames: string[]): Promise<Partial<NguoiDung>[]>;
+
+  abstract findByTeacherClassAssignments(): Promise<Partial<NguoiDung>[]>;
+
   abstract search(searchTerm: string): Promise<NguoiDung[]>;
 
   abstract getStats(): Promise<UserStats>;

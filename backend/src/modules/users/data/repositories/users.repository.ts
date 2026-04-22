@@ -3,7 +3,7 @@
  */
 
 import type { NguoiDung, Prisma } from '@prisma/client';
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
+import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 interface FindManyOptions {
   where?: Prisma.NguoiDungWhereInput;
@@ -239,6 +239,42 @@ const usersRepository = {
             lop: true
           }
         }
+      }
+    });
+  },
+
+  async findByRoleNames(roleNames: string[]): Promise<NguoiDung[]> {
+    return prisma.nguoiDung.findMany({
+      where: {
+        trang_thai: 'hoat_dong',
+        vai_tro: { ten_vt: { in: roleNames, mode: 'insensitive' } }
+      },
+      include: {
+        vai_tro: true,
+        sinh_vien: {
+          include: {
+            lop: true
+          }
+        }
+      }
+    });
+  },
+
+  async findByTeacherClassAssignments(): Promise<NguoiDung[]> {
+    const classRows = await prisma.lop.findMany({
+      select: { chu_nhiem: true }
+    });
+    const teacherIds = [...new Set(classRows.map((c: { chu_nhiem?: string | null }) => c.chu_nhiem).filter(Boolean))] as string[];
+
+    if (!teacherIds.length) {
+      return [];
+    }
+
+    return prisma.nguoiDung.findMany({
+      where: { id: { in: teacherIds } },
+      include: {
+        vai_tro: true,
+        sinh_vien: { include: { lop: true } }
       }
     });
   },

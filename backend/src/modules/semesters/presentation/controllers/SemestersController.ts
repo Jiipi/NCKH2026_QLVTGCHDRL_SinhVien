@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-const { logError } = require('../../../../core/logger');
-const { AppError } = require('../../../../core/errors/AppError');
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logError } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
+import { AppError } from '../../../../core/errors/AppError';
 
 /**
  * Authenticated request interface
@@ -112,6 +113,7 @@ class SemestersController {
       const { classId, semester } = req.body;
       const actorId = req.user!.sub;
       const state = await this.useCases.proposeClosure.execute(classId, actorId, semester);
+      logAudit('propose_closure', req, { module: 'semesters', entityType: 'HocKy', classId, semester });
       return sendResponse(res, 200, ApiResponse.success(state, 'Đề xuất khóa học kỳ thành công'));
     } catch (error) {
       logError('Propose closure error', error);
@@ -132,6 +134,7 @@ class SemestersController {
         semester, 
         parseInt(graceHours || 72)
       );
+      logAudit('soft_lock_semester', req, { module: 'semesters', entityType: 'HocKy', classId, semester });
       return sendResponse(res, 200, ApiResponse.success(state, 'Khóa mềm học kỳ thành công'));
     } catch (error) {
       logError('Soft lock error', error);
@@ -147,6 +150,7 @@ class SemestersController {
       const { classId, semester } = req.body;
       const actorId = req.user!.sub;
       const state = await this.useCases.hardLock.execute(classId, actorId, semester);
+      logAudit('hard_lock_semester', req, { module: 'semesters', entityType: 'HocKy', classId, semester });
       return sendResponse(res, 200, ApiResponse.success(state, 'Khóa cứng học kỳ thành công'));
     } catch (error) {
       logError('Hard lock error', error);
@@ -162,6 +166,7 @@ class SemestersController {
       const { classId, semester } = req.body;
       const actorId = req.user!.sub;
       const state = await this.useCases.rollback.execute(classId, actorId, semester);
+      logAudit('rollback_semester', req, { module: 'semesters', entityType: 'HocKy', classId, semester });
       return sendResponse(res, 200, ApiResponse.success(state, 'Mở lại học kỳ thành công'));
     } catch (error) {
       logError('Rollback error', error);
@@ -251,6 +256,7 @@ class SemestersController {
       const result = await this.useCases.createNextSemester.execute(req.user);
       
       if (result.success) {
+        logAudit('create_semester', req, { module: 'semesters', entityType: 'HocKy' });
         return sendResponse(res, 200, ApiResponse.success(result.data, result.message));
       } else {
         return sendResponse(res, 400, ApiResponse.error(result.message));
@@ -281,6 +287,7 @@ class SemestersController {
       const result = await this.useCases.activateSemester.execute(semester, req.user);
       
       if (result.success) {
+        logAudit('activate_semester', req, { module: 'semesters', entityType: 'HocKy', semester });
         return sendResponse(res, 200, ApiResponse.success(result.data, result.message));
       } else {
         return sendResponse(res, 400, ApiResponse.error(result.message));

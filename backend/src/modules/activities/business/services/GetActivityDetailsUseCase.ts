@@ -46,7 +46,7 @@ class GetActivityDetailsUseCase {
   }
 
   async execute(id: string, user?: AuthUser): Promise<EnrichedActivity> {
-    const activity = await (activitiesRepo as any).findByIdWithDetails(id);
+    const activity = await (activitiesRepo as unknown as { findByIdWithDetails(id: string): Promise<ActivityWithDetails | null> }).findByIdWithDetails(id);
     
     if (!activity) {
       throw new NotFoundError('Hoạt động không tồn tại');

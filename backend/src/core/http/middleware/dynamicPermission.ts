@@ -27,7 +27,7 @@ interface PermissionCacheEntry {
 
 // Cache quyền của user trong 5 giây để tránh query liên tục
 const permissionsCache = new Map<string, PermissionCacheEntry>();
-const CACHE_TTL = 0; // 0 = không cache (tắt cache để permissions mới có hiệu lực ngay)
+const CACHE_TTL = Math.max(0, Number(process.env.PERMISSION_CACHE_TTL_MS || '60000')); // default 60s
 
 /**
  * PERMISSION ALIASES - Bảng ánh xạ quyền tương đương
@@ -90,6 +90,13 @@ export const PERMISSION_ALIASES: Record<string, string[]> = {
   // ============ SEMESTERS ============
   'semesters.write': ['semesters.create', 'semesters.update', 'semesters.manage'],
   'semesters.read': ['semesters.view'],
+
+  // ============ DASHBOARD ============
+  'dashboard.view': ['dashboard.read', 'activities.read', 'activities.view'],
+  'dashboard.stats': ['dashboard.read', 'reports.read', 'reports.view'],
+
+  // ============ SCORES ============
+  'scores.read': ['scores.view', 'points.read', 'points.view_own', 'points.view_all', 'points.view'],
 };
 
 /**
@@ -237,7 +244,6 @@ export function requireDynamicPermission(requiredPermission: string) {
           message: `Bạn không có quyền ${requiredPermission}`,
           code: 'FORBIDDEN',
           requiredPermission,
-          userPermissions,
           debug: process.env.NODE_ENV !== 'production' ? {
             userId,
             role: req.user?.role,
@@ -286,7 +292,6 @@ export function requireAnyPermission(requiredPermissions: string[]) {
           message: `Bạn cần một trong các quyền: ${requiredPermissions.join(', ')}`,
           code: 'FORBIDDEN',
           requiredPermissions,
-          userPermissions,
         });
       }
 
@@ -334,7 +339,6 @@ export function requireAllPermissions(requiredPermissions: string[]) {
           code: 'FORBIDDEN',
           requiredPermissions,
           missingPermissions,
-          userPermissions,
         });
       }
 

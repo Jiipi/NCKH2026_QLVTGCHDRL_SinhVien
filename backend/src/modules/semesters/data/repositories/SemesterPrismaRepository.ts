@@ -4,7 +4,10 @@ import ISemesterRepository, {
   ClassDetail,
   ClassStudent,
   Activity,
-  Registration
+  Registration,
+  SemesterDistinctRow,
+  ClassIdentity,
+  StudentClassIdentity
 } from '../../business/interfaces/ISemesterRepository';
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { buildSemesterValue } from '../../../../core/utils/semester';
@@ -66,6 +69,87 @@ interface StudentRow {
  * Follows Dependency Inversion Principle (DIP)
  */
 class SemesterPrismaRepository extends ISemesterRepository {
+  async findSystemActivityType() {
+    return prisma.loaiHoatDong.findFirst({
+      where: { ten_loai_hd: 'Hệ thống' }
+    });
+  }
+
+  async createSystemActivityType() {
+    return prisma.loaiHoatDong.create({
+      data: {
+        ten_loai_hd: 'Hệ thống',
+        mo_ta: 'Loại hoạt động hệ thống để quản lý học kỳ',
+        diem_mac_dinh: 0,
+        diem_toi_da: 0,
+        mau_sac: '#94a3b8'
+      }
+    });
+  }
+
+  async getDistinctSemesters(): Promise<SemesterDistinctRow[]> {
+    return prisma.hoatDong.findMany({
+      select: { hoc_ky: true, nam_hoc: true },
+      distinct: ['hoc_ky', 'nam_hoc'],
+      where: {
+        nam_hoc: { not: null }
+      }
+    }) as Promise<SemesterDistinctRow[]>;
+  }
+
+  async existsSemesterActivity(hocKy: HocKy, namHoc: string): Promise<boolean> {
+    const existing = await prisma.hoatDong.findFirst({
+      where: {
+        hoc_ky: hocKy,
+        nam_hoc: namHoc
+      },
+      select: { id: true }
+    });
+    return !!existing;
+  }
+
+  async createSemesterSystemActivity(data: {
+    hoc_ky: HocKy;
+    nam_hoc: string;
+    ngay_bd: Date;
+    ngay_kt: Date;
+    loai_hd_id: string;
+    nguoi_tao_id: string;
+  }): Promise<void> {
+    await prisma.hoatDong.create({
+      data: {
+        ten_hd: `[SYSTEM] Học kỳ ${data.hoc_ky === 'hoc_ky_1' ? '1' : '2'} năm học ${data.nam_hoc}`,
+        mo_ta: 'Hoạt động hệ thống để đánh dấu học kỳ mới',
+        hoc_ky: data.hoc_ky,
+        nam_hoc: data.nam_hoc,
+        ngay_bd: data.ngay_bd,
+        ngay_kt: data.ngay_kt,
+        ngay_tao: new Date(),
+        loai_hd_id: data.loai_hd_id,
+        nguoi_tao_id: data.nguoi_tao_id,
+        trang_thai: 'da_duyet'
+      }
+    });
+  }
+
+  async findClassByMonitorUserId(userId: string): Promise<ClassIdentity | null> {
+    return prisma.lop.findFirst({
+      where: {
+        lop_truong_rel: {
+          nguoi_dung_id: userId
+        }
+      },
+      select: { id: true }
+    }) as Promise<ClassIdentity | null>;
+  }
+
+  async findStudentClassByUserId(userId: string): Promise<StudentClassIdentity | null> {
+    return prisma.sinhVien.findFirst({
+      where: { nguoi_dung_id: userId },
+      select: { lop_id: true }
+    }) as Promise<StudentClassIdentity | null>;
+  }
+
   async getSemesterOptions(): Promise<SemesterOption[]> {
     const rows = await prisma.hoatDong.findMany({
       select: { hoc_ky: true, nam_hoc: true },

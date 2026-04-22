@@ -3,7 +3,7 @@
  * Single Responsibility: Handle all classes-related API calls
  */
 
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 const classesApi = {
   /**
@@ -18,8 +18,8 @@ const classesApi = {
    * Get students of a class
    */
   getClassStudents: async (classId) => {
-    const response = await http.get('/teacher/students', { 
-      params: { classFilter: classId, classId } 
+    const response = await http.get('/teacher/students', {
+      params: { classFilter: classId, classId }
     });
     return response.data?.data?.students || [];
   },

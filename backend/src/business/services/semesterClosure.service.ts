@@ -32,9 +32,18 @@ interface SemesterState {
   error?: string;
 }
 
+interface SnapshotData {
+  classId: string;
+  semester: string;
+  timestamp: string;
+  studentCount: number;
+  activityCount: number;
+  registrations: { id: string; sv_id: string; hd_id: string; status: string }[];
+}
+
 interface SemesterSnapshot {
   checksum: string;
-  data: any;
+  data: SnapshotData;
 }
 
 interface StatusResult {
@@ -47,7 +56,7 @@ interface StatusResult {
  */
 function readActiveSemesterFromMetadata(): string | null {
   try {
-    const metaPath = path.join(DATA_DIR, 'metadata.json');
+    const metaPath = path.join(DATA_DIR, 'semesters', 'metadata.json');
     if (fs.existsSync(metaPath)) {
       const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
       return meta.active_semester || null;
@@ -77,13 +86,13 @@ function getCurrentSemesterInfo(): SemesterInfo {
   const now = new Date();
   const month = now.getMonth() + 1; // 1-12
   const year = now.getFullYear();
-  
+
   // Academic year logic:
   // - Semester 1 (hoc_ky_1): September - January (year of Sep)
   // - Semester 2 (hoc_ky_2): February - August (year of Feb)
   let semester: string;
   let academicYear: string;
-  
+
   if (month >= 9) {
     // Sep-Dec: Semester 1 of current year
     semester = 'hoc_ky_1';
@@ -97,8 +106,20 @@ function getCurrentSemesterInfo(): SemesterInfo {
     semester = 'hoc_ky_1';
     academicYear = String(year - 1);
   }
-  
+
   return { semester, year: academicYear };
+}
+
+/**
+ * Get active semester info from metadata or fallback to date-based
+ */
+function getActiveSemesterInfo(): SemesterInfo {
+  const active = readActiveSemesterFromMetadata();
+  const activeMatch = active ? active.match(/^(hoc_ky_[12])[_-](\d{4})$/) : null;
+  if (activeMatch) {
+    return { semester: activeMatch[1], year: activeMatch[2] };
+  }
+  return getCurrentSemesterInfo();
 }
 
 /**
@@ -167,14 +188,14 @@ async function computeSnapshot(classId: string, semInfo: SemesterInfo): Promise<
     select: { id: true, nguoi_dung_id: true }
   });
   const studentIds = students.map(s => s.id);
-  
+
   // Get all activities for this semester
   const activities = await prisma.hoatDong.findMany({
     where: { hoc_ky: semInfo.semester as HocKy, nam_hoc: semInfo.year },
     select: { id: true }
   });
   const activityIds = activities.map(a => a.id);
-  
+
   // Get all registrations for these students and activities
   const registrations = await prisma.dangKyHoatDong.findMany({
     where: {
@@ -188,7 +209,7 @@ async function computeSnapshot(classId: string, semInfo: SemesterInfo): Promise<
       trang_thai_dk: true
     }
   });
-  
+
   // Create snapshot data
   const snapshotData = {
     classId,
@@ -203,12 +224,12 @@ async function computeSnapshot(classId: string, semInfo: SemesterInfo): Promise<
       status: r.trang_thai_dk
     }))
   };
-  
+
   // Compute checksum
   const checksum = crypto.createHash('sha256')
     .update(JSON.stringify(snapshotData))
     .digest('hex');
-  
+
   // Write snapshot file
   const semKey = semesterKeyFromInfo(semInfo);
   const snapshotDir = path.join(DATA_DIR, 'semesters', semKey, 'snapshots');
@@ -217,7 +238,7 @@ async function computeSnapshot(classId: string, semInfo: SemesterInfo): Promise<
   }
   const snapshotPath = path.join(snapshotDir, `class_${classId}_${Date.now()}.json`);
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshotData, null, 2), 'utf8');
-  
+
   logInfo('Snapshot computed', { classId, semInfo, checksum });
   return { checksum, data: snapshotData };
 }
@@ -277,7 +298,8 @@ function deriveYear(hoc_ky: string, nam_hoc: string): string | null {
 const SemesterClosureService = {
   semesterKeyFromInfo,
   getCurrentSemesterInfo,
-  
+  getActiveSemesterInfo,
+
   /**
    * Get status for a class/semester
    */
@@ -297,7 +319,7 @@ const SemesterClosureService = {
     const state = readState(classId, semInfo) || { error: 'state_corrupted' };
     return { semInfo, state: state as SemesterState | { error: string } };
   },
-  
+
   /**
    * Check if write operations are allowed for class/semester
    */
@@ -310,58 +332,59 @@ const SemesterClosureService = {
     const { classId, hoc_ky, nam_hoc, userRole = null } = params;
     const pair = (nam_hoc || '').match(/(\d{4})-(\d{4})/);
     if (!classId || !hoc_ky || !pair) return;
-    
+
     const year = deriveYear(hoc_ky, nam_hoc);
     if (!year) return;
-    
+
     const semInfo = { semester: hoc_ky, year };
     const debug = process.env.DEBUG_SEMESTER === '1';
-    
+
     if (debug) {
       console.log('[SemesterLock][ClassCheck] input:', { classId, hoc_ky, nam_hoc, userRole });
       console.log('[SemesterLock][ClassCheck] computed semInfo:', semInfo);
     }
-    
+
     // Check if globally active
     const activeSemester = readActiveSemesterFromMetadata();
     const currentValue = `${hoc_ky}-${year}`;
     const isGloballyActive = activeSemester === currentValue;
-    
+
     if (debug) {
       console.log('[SemesterLock][ClassCheck] metadata.active_semester:', activeSemester, 'currentValue:', currentValue, 'isGloballyActive:', isGloballyActive);
     }
-    
+
     if (isGloballyActive) {
       if (debug) console.log('[SemesterLock][ClassCheck] allow: globally active');
       return;
     }
-    
+
     // Admin bypass
     if (userRole && (userRole === 'ADMIN' || userRole === 'admin')) {
       if (debug) console.log('[SemesterLock][ClassCheck] allow: admin bypass');
       return;
     }
-    
+
     // Check class-level lock state
     const state = readState(classId, semInfo);
     if (state && (state.state === 'LOCKED_SOFT' || state.state === 'LOCKED_HARD')) {
       const hard = state.state === 'LOCKED_HARD';
       const softExpired = state.state === 'LOCKED_SOFT' && state.grace_until && new Date(state.grace_until) < new Date();
-      
+
       if (debug) console.log('[SemesterLock][ClassCheck] state:', state, 'hard:', hard, 'softExpired:', softExpired);
-      
+
       if (hard || softExpired) {
         const label = semesterKeyFromInfo(semInfo);
-        const err: any = new Error(`SEMESTER_CLOSED_${state.state}`);
-        err.status = 423; // Locked
-        err.details = { classId, semester: label, state: state.state };
-        if (debug) console.log('[SemesterLock][ClassCheck] block -> throw 423', err.details);
+        const err = Object.assign(new Error(`SEMESTER_CLOSED_${state.state}`), {
+          status: 423,
+          details: { classId, semester: label, state: state.state }
+        });
+        if (debug) console.log('[SemesterLock][ClassCheck] block -> throw 423', (err as { details: unknown }).details);
         throw err;
       }
     }
     if (debug) console.log('[SemesterLock][ClassCheck] allow: not locked');
   },
-  
+
   /**
    * Propose closing a semester for a class
    */
@@ -383,7 +406,7 @@ const SemesterClosureService = {
     state.version = (state.version || 1) + 1;
     return writeState(classId, semInfo, state);
   },
-  
+
   /**
    * Apply soft lock to a class/semester
    */
@@ -398,7 +421,7 @@ const SemesterClosureService = {
     const state = readState(classId, semInfo);
     if (!state) throw new Error('STATE_READ_FAILED');
     if (['LOCKED_HARD', 'ARCHIVED'].includes(state.state)) throw new Error('ALREADY_LOCKED');
-    
+
     // Checklist: ensure no pending registrations
     const students = await prisma.sinhVien.findMany({
       where: { lop_id: classId },
@@ -408,7 +431,7 @@ const SemesterClosureService = {
       where: { hoc_ky: semInfo.semester as HocKy, nam_hoc: semInfo.year },
       select: { id: true }
     })).map(a => a.id);
-    
+
     const pending = await prisma.dangKyHoatDong.count({
       where: {
         sv_id: { in: students.map(s => s.id) },
@@ -417,10 +440,10 @@ const SemesterClosureService = {
       }
     });
     if (pending > 0) throw new Error('CHECKLIST_PENDING_REGISTRATIONS');
-    
+
     // Compute snapshot
     const snap = await computeSnapshot(classId, semInfo);
-    
+
     state.state = 'LOCKED_SOFT';
     state.lock_level = 'SOFT';
     state.grace_until = nowPlusHours(graceHours);
@@ -430,7 +453,7 @@ const SemesterClosureService = {
     state.version = (state.version || 1) + 1;
     return writeState(classId, semInfo, state);
   },
-  
+
   /**
    * Rollback from soft lock to active
    */
@@ -443,13 +466,13 @@ const SemesterClosureService = {
     const semInfo = semesterStr ? (parseSemesterString(semesterStr) || getCurrentSemesterInfo()) : getCurrentSemesterInfo();
     const state = readState(classId, semInfo);
     if (!state) throw new Error('STATE_READ_FAILED');
-    
+
     if (state.state === 'LOCKED_SOFT') {
       if (state.grace_until && new Date(state.grace_until) < new Date()) throw new Error('GRACE_EXPIRED');
     } else if (state.state !== 'CLOSING') {
       throw new Error('NOT_SOFT_LOCKED');
     }
-    
+
     state.state = 'ACTIVE';
     state.lock_level = null;
     state.grace_until = null;
@@ -459,7 +482,7 @@ const SemesterClosureService = {
     state.version = (state.version || 1) + 1;
     return writeState(classId, semInfo, state);
   },
-  
+
   /**
    * Apply hard lock to a class/semester
    */
@@ -472,7 +495,7 @@ const SemesterClosureService = {
     const semInfo = semesterStr ? (parseSemesterString(semesterStr) || getCurrentSemesterInfo()) : getCurrentSemesterInfo();
     const state = readState(classId, semInfo);
     if (!state) throw new Error('STATE_READ_FAILED');
-    
+
     state.state = 'LOCKED_HARD';
     state.lock_level = 'HARD';
     state.grace_until = null;
@@ -481,7 +504,7 @@ const SemesterClosureService = {
     state.version = (state.version || 1) + 1;
     return writeState(classId, semInfo, state);
   },
-  
+
   /**
    * Enforce writable for user's semester operations
    */
@@ -494,49 +517,50 @@ const SemesterClosureService = {
     const { userId, hoc_ky, nam_hoc, userRole = null } = params;
     const classId = await getUserClassId(userId);
     if (!classId) return; // non-student actions
-    
+
     const pair = (nam_hoc || '').match(/(\d{4})-(\d{4})/);
     if (!hoc_ky || !pair) return;
-    
+
     const year = deriveYear(hoc_ky, nam_hoc);
     if (!year) return;
-    
+
     const semInfo = { semester: hoc_ky, year };
     const debug = process.env.DEBUG_SEMESTER === '1';
-    
+
     if (debug) {
       console.log('[SemesterLock][UserCheck] input:', { userId, classId, hoc_ky, nam_hoc, userRole });
       console.log('[SemesterLock][UserCheck] computed semInfo:', semInfo);
     }
-    
+
     // Globally active allows writes
     const activeSemester = readActiveSemesterFromMetadata();
     if (debug) console.log('[SemesterLock][UserCheck] metadata.active_semester:', activeSemester, 'currentValue:', `${hoc_ky}-${year}`);
-    
+
     if (activeSemester && activeSemester === `${hoc_ky}-${year}`) {
       if (debug) console.log('[SemesterLock][UserCheck] allow: globally active');
       return;
     }
-    
+
     // Admin bypass
     if (userRole && (userRole === 'ADMIN' || userRole === 'admin')) {
       if (debug) console.log('[SemesterLock][UserCheck] allow: admin bypass');
       return;
     }
-    
+
     const state = readState(classId, semInfo);
     if (state && (state.state === 'LOCKED_SOFT' || state.state === 'LOCKED_HARD')) {
       const hard = state.state === 'LOCKED_HARD';
       const softExpired = state.state === 'LOCKED_SOFT' && state.grace_until && new Date(state.grace_until) < new Date();
-      
+
       if (debug) console.log('[SemesterLock][UserCheck] state:', state, 'hard:', hard, 'softExpired:', softExpired);
-      
+
       if (hard || softExpired) {
         const label = semesterKeyFromInfo(semInfo);
-        const err: any = new Error(`SEMESTER_CLOSED_${state.state}`);
-        err.status = 423; // Locked
-        err.details = { classId, semester: label, state: state.state };
-        if (debug) console.log('[SemesterLock][UserCheck] block -> throw 423', err.details);
+        const err = Object.assign(new Error(`SEMESTER_CLOSED_${state.state}`), {
+          status: 423,
+          details: { classId, semester: label, state: state.state }
+        });
+        if (debug) console.log('[SemesterLock][UserCheck] block -> throw 423', (err as { details: unknown }).details);
         throw err;
       }
     }

@@ -18,6 +18,6 @@ export type {
   IExportsController
 } from './exports.types';
 
-const routes = require('./presentation/routes/exports.routes');
+import routes from './presentation/routes/exports.routes';
 export { routes };
 module.exports = { routes };

@@ -111,6 +111,7 @@ export const ActivityCard: FC<ActivityCardProps> = ({
             <img 
               src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
               alt={activity.ten_hd}
+              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           </div>
@@ -158,6 +159,7 @@ export const ActivityCard: FC<ActivityCardProps> = ({
         <img 
           src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
           alt={activity.ten_hd}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-2 left-2 right-2 flex justify-between items-start">

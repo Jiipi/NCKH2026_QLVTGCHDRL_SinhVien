@@ -24,6 +24,6 @@ export type {
   IClassValidator
 } from './classes.types';
 
-const routes = require('./presentation/routes/classes.routes');
+import routes from './presentation/routes/classes.routes';
 export { routes };
 module.exports = { routes };

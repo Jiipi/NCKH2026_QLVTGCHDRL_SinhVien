@@ -38,7 +38,7 @@ class SearchController {
       const results = await this.useCases.globalSearch.execute(q, user || {});
       
       return sendResponse(res, 200, ApiResponse.success(results));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Global search error', error);
       if (error instanceof AppError) {
         return sendResponse(res, error.statusCode, ApiResponse.error(error.message));

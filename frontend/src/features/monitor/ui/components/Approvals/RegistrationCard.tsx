@@ -142,7 +142,7 @@ export default function RegistrationCard({
               </div>
             </div>
             <div className="flex flex-col justify-center gap-2 flex-shrink-0">
-              {isPending && registration.canProcess !== false && isWritable ? (
+              {isPending && registration.canProcess !== false ? (
                 <>
                   <button 
                     onClick={() => onApprove(registration)} 
@@ -304,7 +304,7 @@ export default function RegistrationCard({
           </div>
         </div>
         <div className="p-3 pt-0 mt-auto flex gap-2">
-          {isPending && registration.canProcess !== false && isWritable ? (
+          {isPending && registration.canProcess !== false ? (
             <>
               <button 
                 onClick={() => onApprove(registration)} 

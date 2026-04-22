@@ -15,9 +15,57 @@ import TeacherRegistrationRepository, { type ClassRegistrationFilters } from './
 import type { TeacherDashboardStats, ClassStats, TeacherClass, TeacherClassIncludeOptions, TeacherStudentFilters, TeacherStudent, PendingActivity, ClassRegistration } from '../../teachers.types';
 import type { Prisma } from '@prisma/client';
 
+interface ClassWithCount {
+  id: string;
+  ten_lop: string;
+  khoa: string | null;
+  nien_khoa: string | null;
+  _count?: {
+    sinh_viens?: number;
+  };
+}
+
+interface RegistrationWithRelations {
+  id: string;
+  trang_thai_dk: string;
+  ngay_dang_ky: Date;
+  sinh_vien?: {
+    id: string;
+    mssv: string;
+    nguoi_dung?: {
+      ho_ten: string | null;
+    } | null;
+  } | null;
+  hoat_dong?: {
+    ten_hd: string;
+  } | null;
+}
+
+/**
+ * Interfaces for Dependency Injection
+ * TODO: Extract these to a separate interfaces file and use a DI container
+ * (e.g., tsyringe, inversify) to inject these dependencies.
+ * This would enable unit testing by allowing mock repositories to be injected.
+ */
+interface ITeacherSubRepositories {
+  dashboardRepo: TeacherDashboardRepository;
+  classRepo: TeacherClassRepository;
+  studentRepo: TeacherStudentRepository;
+  activityRepo: TeacherActivityRepository;
+  registrationRepo: TeacherRegistrationRepository;
+}
+
 /**
  * TeacherPrismaRepository - Composition Pattern
  * Implements ITeacherRepository by delegating to specialized repositories
+ * 
+ * TODO: Refactor to accept sub-repositories via constructor injection for testability:
+ * ```
+ * constructor(deps: ITeacherSubRepositories) {
+ *   this.dashboardRepo = deps.dashboardRepo;
+ *   // ...
+ * }
+ * ```
  */
 class TeacherPrismaRepository extends BaseTeacherRepository {
   private dashboardRepo: TeacherDashboardRepository;
@@ -26,14 +74,14 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
   private activityRepo: TeacherActivityRepository;
   private registrationRepo: TeacherRegistrationRepository;
 
-  constructor() {
+  constructor(deps?: Partial<ITeacherSubRepositories>) {
     super();
-    // Compose specialized repositories
-    this.dashboardRepo = new TeacherDashboardRepository();
-    this.classRepo = new TeacherClassRepository();
-    this.studentRepo = new TeacherStudentRepository();
-    this.activityRepo = new TeacherActivityRepository();
-    this.registrationRepo = new TeacherRegistrationRepository();
+    // Compose specialized repositories (hardcoded for now, see TODO above)
+    this.dashboardRepo = deps?.dashboardRepo ?? new TeacherDashboardRepository();
+    this.classRepo = deps?.classRepo ?? new TeacherClassRepository();
+    this.studentRepo = deps?.studentRepo ?? new TeacherStudentRepository();
+    this.activityRepo = deps?.activityRepo ?? new TeacherActivityRepository();
+    this.registrationRepo = deps?.registrationRepo ?? new TeacherRegistrationRepository();
   }
 
   // ==================== DASHBOARD METHODS ====================
@@ -74,13 +122,13 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
     if (include.monitor) {
       prismaInclude.lop_truong_rel = true;
     }
-    const classes = await this.classRepo.getTeacherClasses(teacherId, prismaInclude);
+    const classes = await this.classRepo.getTeacherClasses(teacherId, prismaInclude) as unknown as ClassWithCount[];
     return classes.map(c => ({
       id: String(c.id),
       ten_lop: c.ten_lop,
       khoa: c.khoa,
       nien_khoa: c.nien_khoa,
-      studentCount: (c as any)._count?.sinh_viens || 0
+      studentCount: c._count?.sinh_viens || 0
     }));
   }
 
@@ -101,7 +149,7 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
     const students = await this.studentRepo.getTeacherStudents(teacherId, {
       search: filters.search,
       classId: filters.classId?.toString(),
-      semester: undefined
+      semester: filters.semester
     });
     return students.map(s => ({
       id: String(s.id),
@@ -110,7 +158,8 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
       lop_id: s.lop_id ? String(s.lop_id) : null,
       name: s.nguoi_dung?.ho_ten ?? null,
       email: s.nguoi_dung?.email ?? null,
-      className: s.lop?.ten_lop ?? null
+      className: s.lop?.ten_lop ?? null,
+      dang_ky_hd: s.dang_ky_hd
     }));
   }
 
@@ -131,6 +180,14 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
     return this.studentRepo.createStudent(teacherId, payload);
   }
 
+  async updateStudent(teacherId: string, studentId: string, payload: import('../../business/interfaces/ITeacherRepository').UpdateStudentPayload): Promise<CreateStudentResult> {
+    return this.studentRepo.updateStudent(teacherId, studentId, payload);
+  }
+
+  async deleteStudent(teacherId: string, studentId: string): Promise<boolean> {
+    return this.studentRepo.deleteStudent(teacherId, studentId);
+  }
+
   // ==================== ACTIVITY METHODS ====================
   async getPendingActivitiesList(teacherId: string, semester: string | null = null, limit: number = 10, classId: string | null = null): Promise<PendingActivity[]> {
     const activities = await this.activityRepo.getPendingActivitiesList(teacherId, semester, limit, classId);
@@ -149,13 +206,13 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
 
   // ==================== REGISTRATION METHODS ====================
   async getClassRegistrations(classIds: string[], filters: ClassRegistrationFilters = {}): Promise<ClassRegistration[]> {
-    const registrations = await this.registrationRepo.getClassRegistrations(classIds, filters);
+    const registrations = await this.registrationRepo.getClassRegistrations(classIds, filters) as unknown as RegistrationWithRelations[];
     return registrations.map(r => ({
       id: r.id,
-      studentId: (r.sinh_vien as any)?.id || 0,
-      studentName: (r.sinh_vien as any)?.nguoi_dung?.ho_ten ?? null,
-      mssv: (r.sinh_vien as any)?.mssv || '',
-      activityName: (r.hoat_dong as any)?.ten_hd || '',
+      studentId: r.sinh_vien?.id || '',
+      studentName: r.sinh_vien?.nguoi_dung?.ho_ten ?? null,
+      mssv: r.sinh_vien?.mssv || '',
+      activityName: r.hoat_dong?.ten_hd || '',
       status: r.trang_thai_dk,
       registrationDate: r.ngay_dang_ky
     }));

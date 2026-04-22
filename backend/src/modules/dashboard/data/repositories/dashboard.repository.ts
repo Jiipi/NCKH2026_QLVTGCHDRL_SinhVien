@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma, HocKy, TrangThaiHoatDong } from '@prisma/client';
 import type {
   StudentInfo,
   ClassStudentInfo,
@@ -68,11 +69,23 @@ class DashboardRepository implements IDashboardRepository {
   }
 
   async getStudentRegistrations(svId: string, activityFilter: DashboardActivityFilter = {}): Promise<StudentRegistration[]> {
+    // Build where clause with semester filter applied to hoat_dong relation
+    const whereClause: Prisma.DangKyHoatDongWhereInput = {
+      sv_id: svId
+    };
+
+    // If semester filter exists, apply it to hoat_dong relation
+    // Only extract valid Prisma fields (hoc_ky, nam_hoc, trang_thai)
+    if (activityFilter.hoc_ky || activityFilter.nam_hoc) {
+      const hoatDongFilter: Prisma.HoatDongWhereInput = {};
+      if (activityFilter.hoc_ky) hoatDongFilter.hoc_ky = activityFilter.hoc_ky;
+      if (activityFilter.nam_hoc) hoatDongFilter.nam_hoc = activityFilter.nam_hoc;
+      if (activityFilter.trang_thai) hoatDongFilter.trang_thai = activityFilter.trang_thai as TrangThaiHoatDong;
+      whereClause.hoat_dong = hoatDongFilter;
+    }
+
     return prisma.dangKyHoatDong.findMany({
-      where: {
-        sv_id: svId,
-        hoat_dong: activityFilter as any
-      },
+      where: whereClause,
       include: {
         hoat_dong: {
           include: {
@@ -99,14 +112,22 @@ class DashboardRepository implements IDashboardRepository {
     classCreators: string[] = [],
     semesterFilter: SemesterFilter = {}
   ): Promise<UpcomingActivity[]> {
-    return prisma.hoatDong.findMany({
+    const now = new Date();
+
+    // Build semester where clause - only extract valid Prisma fields
+    const semesterWhere: Prisma.HoatDongWhereInput = {};
+    if (semesterFilter.hoc_ky) semesterWhere.hoc_ky = semesterFilter.hoc_ky;
+    if (semesterFilter.nam_hoc) semesterWhere.nam_hoc = semesterFilter.nam_hoc;
+
+    // Get upcoming activities (not started yet) from class
+    const upcomingFromClass = await prisma.hoatDong.findMany({
       where: {
         trang_thai: 'da_duyet',
         ngay_bd: {
-          gte: new Date()
+          gte: now
         },
         nguoi_tao_id: classCreators.length > 0 ? { in: classCreators } : undefined,
-        ...semesterFilter
+        ...semesterWhere
       },
       include: {
         loai_hd: true,
@@ -123,8 +144,64 @@ class DashboardRepository implements IDashboardRepository {
       orderBy: {
         ngay_bd: 'asc'
       },
-      take: 10
-    }) as unknown as Promise<UpcomingActivity[]>;
+      take: 5
+    });
+
+    // Get recent registered activities (from "My Activities")
+    const recentRegistered = await prisma.hoatDong.findMany({
+      where: {
+        trang_thai: 'da_duyet',
+        dang_ky_hd: {
+          some: {
+            sv_id: svId,
+            trang_thai_dk: {
+              in: ['cho_duyet', 'da_duyet', 'da_tham_gia']
+            }
+          }
+        },
+        ...semesterWhere
+      },
+      include: {
+        loai_hd: true,
+        dang_ky_hd: {
+          where: {
+            sv_id: svId
+          },
+          select: {
+            id: true,
+            trang_thai_dk: true,
+            ngay_dang_ky: true
+          }
+        }
+      },
+      orderBy: {
+        ngay_bd: 'desc'
+      },
+      take: 5
+    });
+
+    // Combine and deduplicate by activity ID
+    const combinedMap = new Map<string, any>();
+
+    upcomingFromClass.forEach(activity => {
+      combinedMap.set(activity.id, activity);
+    });
+
+    recentRegistered.forEach(activity => {
+      if (!combinedMap.has(activity.id)) {
+        combinedMap.set(activity.id, activity);
+      }
+    });
+
+    // Convert to array and sort by date
+    const combined = Array.from(combinedMap.values());
+    combined.sort((a, b) => {
+      const dateA = new Date(a.ngay_bd).getTime();
+      const dateB = new Date(b.ngay_bd).getTime();
+      return dateA - dateB;
+    });
+
+    return combined.slice(0, 10) as unknown as Promise<UpcomingActivity[]>;
   }
 
   async getUnreadNotificationsCount(userId: string): Promise<number> {
@@ -170,11 +247,17 @@ class DashboardRepository implements IDashboardRepository {
     });
   }
 
-  async getAdminOverviewStats(): Promise<AdminOverviewStats> {
+  async getAdminOverviewStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminOverviewStats> {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Build semester filter if provided
+    const semesterFilter: Prisma.HoatDongWhereInput = semester ? {
+      hoc_ky: semester.hoc_ky as HocKy,
+      nam_hoc: semester.nam_hoc
+    } : {};
 
     const [
       totalUsers,
@@ -186,11 +269,20 @@ class DashboardRepository implements IDashboardRepository {
       newUsersThisMonth
     ] = await Promise.all([
       prisma.nguoiDung.count(),
-      prisma.hoatDong.count(),
-      prisma.dangKyHoatDong.count(),
+      prisma.hoatDong.count({
+        where: semesterFilter
+      }),
+      prisma.dangKyHoatDong.count({
+        where: semester ? {
+          hoat_dong: semesterFilter
+        } : undefined
+      }),
       prisma.nguoiDung.count({ where: { trang_thai: 'hoat_dong' } }),
       prisma.dangKyHoatDong.count({
-        where: { trang_thai_dk: 'cho_duyet' }
+        where: {
+          trang_thai_dk: 'cho_duyet',
+          ...(semester && { hoat_dong: semesterFilter })
+        }
       }),
       prisma.dangKyHoatDong.count({
         where: {
@@ -198,7 +290,8 @@ class DashboardRepository implements IDashboardRepository {
           ngay_duyet: {
             gte: startOfToday,
             lte: endOfToday
-          }
+          },
+          ...(semester && { hoat_dong: semesterFilter })
         }
       }),
       prisma.nguoiDung.count({
@@ -225,14 +318,27 @@ class DashboardRepository implements IDashboardRepository {
     lopId: string,
     activityFilter: DashboardActivityFilter = {}
   ): Promise<ClassRegistration[]> {
-    return prisma.dangKyHoatDong.findMany({
-      where: {
-        sinh_vien: {
-          lop_id: lopId
-        },
-        hoat_dong: activityFilter as any,
-        trang_thai_dk: 'da_tham_gia' // Only fetch attended registrations for ranking
+    // Build where clause with semester filter applied to hoat_dong relation
+    const whereClause: Prisma.DangKyHoatDongWhereInput = {
+      sinh_vien: {
+        lop_id: lopId
       },
+      // Only count attended registrations (QR scanned) for points - đồng bộ với trang Score
+      trang_thai_dk: 'da_tham_gia'
+    };
+
+    // If semester filter exists, apply it to hoat_dong relation
+    // Only extract valid Prisma fields (hoc_ky, nam_hoc, trang_thai)
+    if (activityFilter.hoc_ky || activityFilter.nam_hoc) {
+      const hoatDongFilter: Prisma.HoatDongWhereInput = {};
+      if (activityFilter.hoc_ky) hoatDongFilter.hoc_ky = activityFilter.hoc_ky;
+      if (activityFilter.nam_hoc) hoatDongFilter.nam_hoc = activityFilter.nam_hoc;
+      if (activityFilter.trang_thai) hoatDongFilter.trang_thai = activityFilter.trang_thai as TrangThaiHoatDong;
+      whereClause.hoat_dong = hoatDongFilter;
+    }
+
+    return prisma.dangKyHoatDong.findMany({
+      where: whereClause,
       select: {
         sv_id: true,
         hoat_dong: {

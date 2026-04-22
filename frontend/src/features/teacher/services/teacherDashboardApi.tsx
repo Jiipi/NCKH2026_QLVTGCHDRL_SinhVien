@@ -7,11 +7,12 @@
  */
 
 import http from '../../../shared/api/http';
-import { 
-  handleApiError, 
-  createSuccessResponse, 
+import { API_ENDPOINTS } from '../../../shared/api/endpoints';
+import {
+  handleApiError,
+  createSuccessResponse,
   createValidationError,
-  extractApiData 
+  extractApiData
 } from './apiErrorHandler';
 
 /** Report statistics parameters */
@@ -34,11 +35,11 @@ export const teacherDashboardApi = {
       const params: Record<string, string> = {};
       if (semester) params.semester = semester;
       if (classId) params.classId = classId;
-      
-      const response = await http.get('/teacher/dashboard', 
+
+      const response = await http.get(API_ENDPOINTS.dashboard.teacher,
         Object.keys(params).length ? { params } : undefined
       );
-      
+
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
       return handleApiError(error, 'Dashboard');
@@ -48,14 +49,16 @@ export const teacherDashboardApi = {
   /**
    * Phê duyệt hoạt động
    * @param {string|number} activityId - ID hoạt động
+   * @param {string} [semester] - Học kỳ
    */
-  async approveActivity(activityId) {
+  async approveActivity(activityId: string | number, semester?: string) {
     if (!activityId) {
       return createValidationError('activityId là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${activityId}/approve`);
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${activityId}/approve`, undefined, config);
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
       return handleApiError(error, 'Dashboard.approveActivity');
@@ -66,17 +69,19 @@ export const teacherDashboardApi = {
    * Từ chối hoạt động
    * @param {string|number} activityId - ID hoạt động
    * @param {string} reason - Lý do từ chối
+   * @param {string} [semester] - Học kỳ
    */
-  async rejectActivity(activityId, reason) {
+  async rejectActivity(activityId: string | number, reason: string, semester?: string) {
     if (!activityId) {
       return createValidationError('activityId là bắt buộc');
     }
     if (!reason) {
       return createValidationError('Lý do từ chối là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${activityId}/reject`, { reason });
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${activityId}/reject`, { reason }, config);
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
       return handleApiError(error, 'Dashboard.rejectActivity');
@@ -93,7 +98,7 @@ export const teacherDashboardApi = {
       if (query.semester === 'all' || !query.semester) {
         delete query.semester;
       }
-      
+
       const response = await http.get('/teacher/reports/statistics', { params: query });
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {

@@ -1,41 +1,23 @@
 import type { PrismaClient } from '@prisma/client';
 import SemestersController from './controllers/SemestersController';
 
-// Import use cases with ES module interop
-const SemesterPrismaRepositoryModule = require('../data/repositories/SemesterPrismaRepository');
-const GetSemesterOptionsUseCaseModule = require('../business/services/GetSemesterOptionsUseCase');
-const GetCurrentSemesterUseCaseModule = require('../business/services/GetCurrentSemesterUseCase');
-const GetAllClassesUseCaseModule = require('../business/services/GetAllClassesUseCase');
-const GetClassDetailUseCaseModule = require('../business/services/GetClassDetailUseCase');
-const GetClassStudentsUseCaseModule = require('../business/services/GetClassStudentsUseCase');
-const GetSemesterStatusUseCaseModule = require('../business/services/GetSemesterStatusUseCase');
-const ProposeClosureUseCaseModule = require('../business/services/ProposeClosureUseCase');
-const SoftLockSemesterUseCaseModule = require('../business/services/SoftLockSemesterUseCase');
-const HardLockSemesterUseCaseModule = require('../business/services/HardLockSemesterUseCase');
-const RollbackSemesterUseCaseModule = require('../business/services/RollbackSemesterUseCase');
-const GetActivitiesBySemesterUseCaseModule = require('../business/services/GetActivitiesBySemesterUseCase');
-const GetRegistrationsBySemesterUseCaseModule = require('../business/services/GetRegistrationsBySemesterUseCase');
-const CreateNextSemesterUseCaseModule = require('../business/services/CreateNextSemesterUseCase');
-const ActivateSemesterUseCaseModule = require('../business/services/ActivateSemesterUseCase');
-const GetCurrentSemesterStatusUseCaseModule = require('../business/services/GetCurrentSemesterStatusUseCase');
-
-// Handle ES module interop - get the actual class from default export or module itself
-const SemesterPrismaRepository = SemesterPrismaRepositoryModule.default || SemesterPrismaRepositoryModule;
-const GetSemesterOptionsUseCase = GetSemesterOptionsUseCaseModule.default || GetSemesterOptionsUseCaseModule;
-const GetCurrentSemesterUseCase = GetCurrentSemesterUseCaseModule.default || GetCurrentSemesterUseCaseModule;
-const GetAllClassesUseCase = GetAllClassesUseCaseModule.default || GetAllClassesUseCaseModule;
-const GetClassDetailUseCase = GetClassDetailUseCaseModule.default || GetClassDetailUseCaseModule;
-const GetClassStudentsUseCase = GetClassStudentsUseCaseModule.default || GetClassStudentsUseCaseModule;
-const GetSemesterStatusUseCase = GetSemesterStatusUseCaseModule.default || GetSemesterStatusUseCaseModule;
-const ProposeClosureUseCase = ProposeClosureUseCaseModule.default || ProposeClosureUseCaseModule;
-const SoftLockSemesterUseCase = SoftLockSemesterUseCaseModule.default || SoftLockSemesterUseCaseModule;
-const HardLockSemesterUseCase = HardLockSemesterUseCaseModule.default || HardLockSemesterUseCaseModule;
-const RollbackSemesterUseCase = RollbackSemesterUseCaseModule.default || RollbackSemesterUseCaseModule;
-const GetActivitiesBySemesterUseCase = GetActivitiesBySemesterUseCaseModule.default || GetActivitiesBySemesterUseCaseModule;
-const GetRegistrationsBySemesterUseCase = GetRegistrationsBySemesterUseCaseModule.default || GetRegistrationsBySemesterUseCaseModule;
-const CreateNextSemesterUseCase = CreateNextSemesterUseCaseModule.default || CreateNextSemesterUseCaseModule;
-const ActivateSemesterUseCase = ActivateSemesterUseCaseModule.default || ActivateSemesterUseCaseModule;
-const GetCurrentSemesterStatusUseCase = GetCurrentSemesterStatusUseCaseModule.default || GetCurrentSemesterStatusUseCaseModule;
+// Import use cases with ES module imports
+import SemesterPrismaRepository from '../data/repositories/SemesterPrismaRepository';
+import GetSemesterOptionsUseCase from '../business/services/GetSemesterOptionsUseCase';
+import GetCurrentSemesterUseCase from '../business/services/GetCurrentSemesterUseCase';
+import GetAllClassesUseCase from '../business/services/GetAllClassesUseCase';
+import GetClassDetailUseCase from '../business/services/GetClassDetailUseCase';
+import GetClassStudentsUseCase from '../business/services/GetClassStudentsUseCase';
+import GetSemesterStatusUseCase from '../business/services/GetSemesterStatusUseCase';
+import ProposeClosureUseCase from '../business/services/ProposeClosureUseCase';
+import SoftLockSemesterUseCase from '../business/services/SoftLockSemesterUseCase';
+import HardLockSemesterUseCase from '../business/services/HardLockSemesterUseCase';
+import RollbackSemesterUseCase from '../business/services/RollbackSemesterUseCase';
+import GetActivitiesBySemesterUseCase from '../business/services/GetActivitiesBySemesterUseCase';
+import GetRegistrationsBySemesterUseCase from '../business/services/GetRegistrationsBySemesterUseCase';
+import CreateNextSemesterUseCase from '../business/services/CreateNextSemesterUseCase';
+import ActivateSemesterUseCase from '../business/services/ActivateSemesterUseCase';
+import GetCurrentSemesterStatusUseCase from '../business/services/GetCurrentSemesterStatusUseCase';
 
 /**
  * Factory function to create SemestersController with all dependencies
@@ -58,11 +40,11 @@ function createSemestersController(): SemestersController {
     softLock: new SoftLockSemesterUseCase(),
     hardLock: new HardLockSemesterUseCase(),
     rollback: new RollbackSemesterUseCase(),
-    getActivitiesBySemester: new GetActivitiesBySemesterUseCase(),
-    getRegistrationsBySemester: new GetRegistrationsBySemesterUseCase(),
-    createNextSemester: new CreateNextSemesterUseCase(),
+    getActivitiesBySemester: new GetActivitiesBySemesterUseCase(semesterRepository),
+    getRegistrationsBySemester: new GetRegistrationsBySemesterUseCase(semesterRepository),
+    createNextSemester: new CreateNextSemesterUseCase(semesterRepository),
     activateSemester: new ActivateSemesterUseCase(),
-    getCurrentSemesterStatus: new GetCurrentSemesterStatusUseCase(getCurrentSemesterUseCase)
+    getCurrentSemesterStatus: new GetCurrentSemesterStatusUseCase(getCurrentSemesterUseCase, semesterRepository)
   };
 
   // Presentation layer

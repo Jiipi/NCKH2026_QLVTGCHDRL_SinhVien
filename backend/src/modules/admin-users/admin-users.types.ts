@@ -64,28 +64,41 @@ export interface UserFilterOptions {
   search?: string;
 }
 
+export interface PaginationInput {
+  page?: number;
+  limit?: number;
+  [key: string]: unknown;
+}
+
+export interface AuthActor {
+  id?: string;
+  sub?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 // ==================== USE CASE INTERFACES ====================
 
 export interface IGetUsersUseCase {
-  execute(filters: UserFilterOptions, pagination: any, user: any): Promise<any>;
+  execute(filters: UserFilterOptions, pagination: PaginationInput, user: AuthActor): Promise<unknown>;
 }
 
 export interface IGetUserByIdUseCase {
-  execute(id: string, user: any): Promise<UserDto>;
+  execute(id: string, user: AuthActor): Promise<UserDto>;
 }
 
 export interface ICreateUserUseCase {
-  execute(dto: CreateUserDto, user: any): Promise<UserDto>;
+  execute(dto: CreateUserDto, user: AuthActor): Promise<UserDto>;
 }
 
 export interface IUpdateUserUseCase {
-  execute(id: string, dto: UpdateUserDto, user: any): Promise<UserDto>;
+  execute(id: string, dto: UpdateUserDto, user: AuthActor): Promise<UserDto>;
 }
 
 export interface IDeleteUserUseCase {
-  execute(id: string, user: any): Promise<void>;
+  execute(id: string, user: AuthActor): Promise<void>;
 }
 
 export interface IToggleUserStatusUseCase {
-  execute(id: string, user: any): Promise<UserDto>;
+  execute(id: string, user: AuthActor): Promise<UserDto>;
 }

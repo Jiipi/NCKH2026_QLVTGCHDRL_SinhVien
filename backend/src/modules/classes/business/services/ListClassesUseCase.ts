@@ -2,8 +2,7 @@ import type ListClassesDto from '../dto/ListClassesDto';
 import type IClassRepository from '../interfaces/IClassRepository';
 import type { Lop } from '@prisma/client';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { buildScope } = require('../../../../app/scopes/scopeBuilder');
+import { buildScope } from '../../../../app/scopes/scopeBuilder';
 
 /**
  * User interface for authorization

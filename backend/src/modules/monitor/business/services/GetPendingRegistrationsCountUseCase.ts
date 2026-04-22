@@ -2,7 +2,7 @@ import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@
 import type IMonitorRepository from '../interfaces/IMonitorRepository';
 import type { StudentWithRelations, ActivityFilter } from '../interfaces/IMonitorRepository';
 
-const { logInfo, logError } = require('../../../../core/logger');
+import { logInfo, logError } from '../../../../core/logger';
 
 /**
  * GetPendingRegistrationsCountUseCase

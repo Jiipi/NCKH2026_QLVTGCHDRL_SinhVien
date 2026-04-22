@@ -7,8 +7,8 @@
 import { ForbiddenError } from '../../../../core/errors/AppError';
 
 // Import DTO and scope builder
-const GetActivitiesDto = require('../../../activities/business/dto/GetActivitiesDto');
-const { buildScope } = require('../../../../app/scopes/scopeBuilder');
+import GetActivitiesDto from '../../../activities/business/dto/GetActivitiesDto';
+import { buildScope } from '../../../../app/scopes/scopeBuilder';
 
 /**
  * User object from JWT token

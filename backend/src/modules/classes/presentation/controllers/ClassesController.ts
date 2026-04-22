@@ -11,16 +11,11 @@ import type AssignTeacherUseCase from '../../business/services/AssignTeacherUseC
 import type GetClassStudentsUseCase from '../../business/services/GetClassStudentsUseCase';
 import type GetClassActivitiesUseCase from '../../business/services/GetClassActivitiesUseCase';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ListClassesDtoModule = require('../../business/dto/ListClassesDto');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const CreateClassDtoModule = require('../../business/dto/CreateClassDto');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { ApiResponse, sendResponse } = require('../../../../core/http/response/apiResponse');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { logError } = require('../../../../core/logger');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { AppError } = require('../../../../core/errors/AppError');
+import ListClassesDtoModule from '../../business/dto/ListClassesDto';
+import CreateClassDtoModule from '../../business/dto/CreateClassDto';
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { logError } from '../../../../core/logger';
+import { AppError } from '../../../../core/errors/AppError';
 
 /**
  * Authenticated user interface

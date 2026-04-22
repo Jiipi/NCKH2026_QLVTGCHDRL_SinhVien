@@ -6,7 +6,7 @@ import IUserRepository, {
   UserUpdateInput,
   UserStats,
 } from '../../business/interfaces/IUserRepository';
-const usersRepo = require('./users.repository');
+import usersRepo from './users.repository';
 
 /**
  * UserPrismaRepository
@@ -63,6 +63,14 @@ class UserPrismaRepository extends IUserRepository {
 
   async findByFaculty(faculty: string): Promise<NguoiDung[]> {
     return usersRepo.findByFaculty(faculty);
+  }
+
+  async findByRoleNames(roleNames: string[]): Promise<Partial<NguoiDung>[]> {
+    return usersRepo.findByRoleNames(roleNames);
+  }
+
+  async findByTeacherClassAssignments(): Promise<Partial<NguoiDung>[]> {
+    return usersRepo.findByTeacherClassAssignments();
   }
 
   async search(searchTerm: string): Promise<NguoiDung[]> {

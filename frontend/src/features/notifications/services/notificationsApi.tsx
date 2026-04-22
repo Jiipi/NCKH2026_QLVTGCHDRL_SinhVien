@@ -1,4 +1,4 @@
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 interface ApiError {
   response?: {

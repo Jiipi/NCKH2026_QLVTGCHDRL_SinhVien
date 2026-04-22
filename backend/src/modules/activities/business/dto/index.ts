@@ -2,9 +2,9 @@
  * Activities DTOs - Barrel Export
  */
 
-const CreateActivityDto = require('./CreateActivityDto');
-const GetActivitiesDto = require('./GetActivitiesDto');
-const UpdateActivityDto = require('./UpdateActivityDto');
+import CreateActivityDto from './CreateActivityDto';
+import GetActivitiesDto from './GetActivitiesDto';
+import UpdateActivityDto from './UpdateActivityDto';
 
 export {
   CreateActivityDto,

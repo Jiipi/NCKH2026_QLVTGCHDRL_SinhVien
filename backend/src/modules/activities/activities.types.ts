@@ -176,12 +176,12 @@ export interface PaginatedResult<T> {
 // ==================== REPOSITORY INTERFACE ====================
 
 export interface IActivityRepository {
-  findMany(where: any, options?: PaginationOptions): Promise<PaginatedResult<ActivityWithRelations>>;
-  findById(id: string, where?: any, include?: any): Promise<ActivityWithRelations | null>;
+  findMany(where: Record<string, unknown>, options?: PaginationOptions): Promise<PaginatedResult<ActivityWithRelations>>;
+  findById(id: string, where?: Record<string, unknown>, include?: Record<string, unknown>): Promise<ActivityWithRelations | null>;
   create(data: CreateActivityDto & { nguoi_tao: string }): Promise<ActivityWithRelations>;
   update(id: string, data: UpdateActivityDto): Promise<ActivityWithRelations>;
   delete(id: string): Promise<ActivityWithRelations>;
-  count(where?: any): Promise<number>;
+  count(where?: Record<string, unknown>): Promise<number>;
 }
 
 export interface IRegistrationRepository {

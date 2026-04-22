@@ -1,10 +1,10 @@
 import type { Router, Request, Response } from 'express';
 import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@prisma/client';
 
-const express = require('express');
+import express from 'express';
 const router: Router = express.Router();
-const { createMonitorController } = require('../monitor.factory');
-const { auth, isClassMonitor, getMonitorClass } = require('../../../../core/http/middleware');
+import { createMonitorController } from '../monitor.factory';
+import { auth, isClassMonitor, getMonitorClass } from '../../../../core/http/middleware';
 
 const monitorController = createMonitorController();
 

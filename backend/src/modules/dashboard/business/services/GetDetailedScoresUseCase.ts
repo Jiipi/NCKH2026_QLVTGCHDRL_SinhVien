@@ -131,8 +131,8 @@ class GetDetailedScoresUseCase {
         ngay_dang_ky: reg.ngay_dang_ky,
         trang_thai_dk: reg.trang_thai_dk,
         trang_thai: reg.trang_thai_dk, // Alias cho frontend
-        ngay_duyet: (reg as any).ngay_duyet,
-        ly_do_tu_choi: (reg as any).ly_do_tu_choi
+        ngay_duyet: reg.ngay_duyet,
+        ly_do_tu_choi: reg.ly_do_tu_choi
       };
     });
     

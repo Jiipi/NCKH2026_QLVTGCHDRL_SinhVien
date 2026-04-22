@@ -20,11 +20,11 @@ export class LoginDto {
     this.remember = data.remember || false;
   }
 
-  static fromRequest(body: any): LoginDto {
+  static fromRequest(body: Record<string, unknown>): LoginDto {
     return new LoginDto({
-      maso: body.maso,
-      password: body.password,
-      remember: body.remember || false
+      maso: String(body.maso || ''),
+      password: String(body.password || ''),
+      remember: Boolean(body.remember)
     });
   }
 }

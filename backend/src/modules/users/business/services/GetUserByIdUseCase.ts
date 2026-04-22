@@ -1,7 +1,7 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
-const { NotFoundError, ForbiddenError } = require('../../../../core/errors/AppError');
-const usersRepo = require('../../data/repositories/users.repository');
+import { NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
+import usersRepo from '../../data/repositories/users.repository';
 
 interface AuthUser {
   id: string | number;

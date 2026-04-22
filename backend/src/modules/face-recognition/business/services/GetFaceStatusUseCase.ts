@@ -5,8 +5,7 @@
  */
 
 import { NotFoundError } from '../../../../core/errors/AppError';
-import { prisma } from '../../../../data/infrastructure/prisma/client';
-import { faceDataRepository } from '../../data/repositories';
+import type { IFaceDataRepository } from '../interfaces';
 
 interface FaceStatusResult {
   registered: boolean;
@@ -21,30 +20,29 @@ interface FaceStatusResult {
 }
 
 class GetFaceStatusUseCase {
+  private faceDataRepository: IFaceDataRepository;
+
+  constructor(faceDataRepository: IFaceDataRepository) {
+    this.faceDataRepository = faceDataRepository;
+  }
+
   async execute(userId: string): Promise<FaceStatusResult> {
     // 1. Tìm sinh viên theo nguoi_dung_id
-    const sinhVien = await prisma.sinhVien.findUnique({
-      where: { nguoi_dung_id: userId },
-      select: { 
-        id: true, 
-        mssv: true, 
-        nguoi_dung: { select: { ho_ten: true } } 
-      }
-    });
+    const sinhVien = await this.faceDataRepository.findStudentByUserId(userId);
 
     if (!sinhVien) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');
     }
 
     // 2. Kiểm tra đã đăng ký khuôn mặt chưa
-    const faceData = await faceDataRepository.findBySinhVienId(sinhVien.id);
+    const faceData = await this.faceDataRepository.findBySinhVienId(sinhVien.id);
 
     if (!faceData) {
       return {
         registered: false,
         sinhVienId: sinhVien.id,
         mssv: sinhVien.mssv,
-        hoTen: sinhVien.nguoi_dung?.ho_ten || ''
+        hoTen: sinhVien.ho_ten || ''
       };
     }
 
@@ -52,7 +50,7 @@ class GetFaceStatusUseCase {
       registered: true,
       sinhVienId: sinhVien.id,
       mssv: sinhVien.mssv,
-      hoTen: sinhVien.nguoi_dung?.ho_ten || '',
+      hoTen: sinhVien.ho_ten || '',
       faceDataId: faceData.id,
       daXacMinh: faceData.da_xac_minh,
       soAnhDangKy: faceData.so_anh_dang_ky,

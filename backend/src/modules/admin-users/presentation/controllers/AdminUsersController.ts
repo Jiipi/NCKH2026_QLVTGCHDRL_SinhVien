@@ -9,7 +9,8 @@ import GetUsersDto from '../../business/dto/GetUsersDto';
 import CreateUserDto from '../../business/dto/CreateUserDto';
 import UpdateUserDto from '../../business/dto/UpdateUserDto';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
-import { logError } from '../../../../core/logger';
+import { logError, logInfo } from '../../../../core/logger';
+import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
 import type GetUsersUseCase from '../../business/services/GetUsersUseCase';
 import type GetUserByIdUseCase from '../../business/services/GetUserByIdUseCase';
@@ -24,6 +25,7 @@ interface AuthRequest extends Request {
     sub?: string;
     id?: string;
   };
+  requestId?: string;
 }
 
 /**
@@ -55,12 +57,19 @@ class AdminUsersController {
     this.exportUsersUseCase = exportUsersUseCase;
   }
 
+  private getErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof AppError || error instanceof Error) {
+      return error.message || fallback;
+    }
+    return fallback;
+  }
+
   /**
    * Get user statistics (counts by role, status)
    */
   async getStats(req: Request, res: Response): Promise<Response> {
     try {
-      const { prisma } = require('../../../../data/infrastructure/prisma/client');
+      const { prisma } = await import('../../../../data/infrastructure/prisma/client');
       
       // Count by role
       const roleCounts = await prisma.nguoiDung.groupBy({
@@ -70,7 +79,7 @@ class AdminUsersController {
 
       // Get role names
       const roles = await prisma.vaiTro.findMany();
-      const roleMap = Object.fromEntries(roles.map((r: any) => [r.id, r.ten_vt]));
+      const roleMap = Object.fromEntries(roles.map((r: { id: string; ten_vt: string }) => [r.id, r.ten_vt]));
 
       // Normalize role name helper (remove diacritics, lowercase, remove special chars)
       const normalizeRoleName = (name: string = ''): string =>
@@ -82,7 +91,7 @@ class AdminUsersController {
 
       // Calculate counts
       let adminCount = 0, teacherCount = 0, classMonitorCount = 0, studentCount = 0;
-      roleCounts.forEach((rc: any) => {
+      roleCounts.forEach((rc: { vai_tro_id: string | null; _count: { id: number } }) => {
         const roleName = roleMap[rc.vai_tro_id] || '';
         const normalized = normalizeRoleName(roleName);
         
@@ -113,19 +122,14 @@ class AdminUsersController {
       // Count by status
       const totalUsers = await prisma.nguoiDung.count();
       const lockedCount = await prisma.nguoiDung.count({ where: { trang_thai: 'khoa' } });
-      
-      // Debug: Log để kiểm tra
-      console.log('[AdminUsersController.getStats] Total users:', totalUsers);
-      console.log('[AdminUsersController.getStats] Locked users:', lockedCount);
-      console.log('[AdminUsersController.getStats] Role counts:', { adminCount, teacherCount, classMonitorCount, studentCount });
 
       return sendResponse(res, 200, ApiResponse.success({
         total: totalUsers,
         locked: lockedCount,
         roleCounts: { adminCount, teacherCount, classMonitorCount, studentCount }
       }, 'Lấy thống kê thành công'));
-    } catch (error: any) {
-      logError('Error getting user stats', { error: error.message });
+    } catch (error: unknown) {
+      logError('Error getting user stats', error);
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy thống kê'));
     }
   }
@@ -133,17 +137,15 @@ class AdminUsersController {
   async getUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const dto = GetUsersDto.fromQuery(req.query);
-      const SessionTrackingService = require('../../../../business/services/session-tracking.service').default;
-      
+      const SessionTrackingService = (await import('../../../../business/services/session-tracking.service')).default;
+
       // Xử lý filter theo trạng thái session
       if (dto.status === 'hoat_dong') {
         // Filter user đang online (có session active trong 5 phút)
         const activeData = await SessionTrackingService.getActiveUsers(5);
         dto.userIds = activeData.userIds || [];
-        console.log('[AdminUsersController.getUsers] status=hoat_dong, activeUserIds:', dto.userIds.length);
         // Nếu không có ai online thì trả về rỗng
         if (dto.userIds.length === 0) {
-          console.log('[AdminUsersController.getUsers] No active users, returning empty list');
           return sendResponse(res, 200, ApiResponse.success({
             users: [],
             pagination: { page: 1, limit: dto.limit || 20, total: 0, totalPages: 0 }
@@ -154,16 +156,13 @@ class AdminUsersController {
         const activeData = await SessionTrackingService.getActiveUsers(5);
         dto.excludeUserIds = activeData.userIds || [];
         dto.excludeStatus = 'khoa'; // Loại bỏ user bị khóa
-        console.log('[AdminUsersController.getUsers] status=khong_hoat_dong, excludeUserIds:', dto.excludeUserIds.length);
-      } else if (dto.status === 'khoa') {
-        console.log('[AdminUsersController.getUsers] status=khoa, filtering locked accounts');
       }
       // status === 'khoa' được xử lý trong UseCase bình thường
       
       const result = await this.getUsersUseCase.execute(dto);
       return sendResponse(res, 200, ApiResponse.success(result, 'Lấy danh sách người dùng thành công'));
-    } catch (error: any) {
-      logError('Error fetching users', { error: error.message, userId: (req as AuthRequest).user?.id });
+    } catch (error: unknown) {
+      logError('Error fetching users', error, { userId: (req as AuthRequest).user?.id, requestId: req.requestId });
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy danh sách người dùng'));
     }
   }
@@ -173,7 +172,7 @@ class AdminUsersController {
    */
   async getOnlineUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const SessionTrackingService = require('../../../../business/services/session-tracking.service').default;
+      const SessionTrackingService = (await import('../../../../business/services/session-tracking.service')).default;
       const minutesThreshold = parseInt(req.query.minutes as string) || 5;
       const activeData = await SessionTrackingService.getActiveUsers(minutesThreshold);
       
@@ -193,8 +192,8 @@ class AdminUsersController {
       
       const result = await this.getUsersUseCase.execute(dto);
       return sendResponse(res, 200, ApiResponse.success(result, 'Lấy danh sách người dùng online thành công'));
-    } catch (error: any) {
-      logError('Error fetching online users', { error: error.message, userId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error fetching online users', error, { userId: req.user?.id, requestId: req.requestId });
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy danh sách người dùng online'));
     }
   }
@@ -203,10 +202,10 @@ class AdminUsersController {
     try {
       const user = await this.getUserByIdUseCase.execute(req.params.id);
       return sendResponse(res, 200, ApiResponse.success(user, 'Lấy thông tin người dùng thành công'));
-    } catch (error: any) {
-      logError('Error fetching user details', { error: error.message, adminId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error fetching user details', error, { adminId: req.user?.id, requestId: req.requestId });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi lấy thông tin người dùng'));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi lấy thông tin người dùng')));
     }
   }
 
@@ -221,21 +220,27 @@ class AdminUsersController {
                       dto.role === 'Giảng viên' ? 'Giảng viên' :
                       dto.role === 'Lớp trưởng' ? 'Lớp trưởng' : 'Sinh viên';
       const successMessage = `Đã tạo tài khoản ${roleName} "${dto.hoten}" (${dto.maso}) thành công`;
+      logAudit('create_user', req, {
+        module: 'admin-users',
+        entityId: (result as { id?: string })?.id || null,
+        entityType: 'NguoiDung',
+        targetRole: dto.role,
+      });
       
       return sendResponse(res, 201, ApiResponse.success(result, successMessage));
-    } catch (error: any) {
-      logError('Error creating user', { error: error.message, userId: req.user?.id, body: req.body });
+    } catch (error: unknown) {
+      logError('Error creating user', error, { userId: req.user?.id, requestId: req.requestId, body: req.body });
       const status = error instanceof AppError ? error.statusCode : 500;
       
       // Cải thiện thông báo lỗi
-      let errorMessage = error.message || 'Lỗi tạo người dùng';
+      let errorMessage = this.getErrorMessage(error, 'Lỗi tạo người dùng');
       if (error instanceof AppError && error.statusCode === 409) {
         errorMessage = error.message || 'Tài khoản đã tồn tại trong hệ thống';
       } else if (error instanceof AppError && error.statusCode === 400) {
         errorMessage = error.message || 'Dữ liệu không hợp lệ';
       }
       
-      return sendResponse(res, status, ApiResponse.error(errorMessage, status, error.details));
+      return sendResponse(res, status, ApiResponse.error(errorMessage, status, error instanceof AppError ? error.details : undefined));
     }
   }
 
@@ -244,11 +249,12 @@ class AdminUsersController {
       const dto = UpdateUserDto.fromRequest(req.body);
       const adminId = req.user?.sub || req.user?.id || '';
       const result = await this.updateUserUseCase.execute(req.params.id, dto, adminId);
+      logAudit('update_user', req, { module: 'admin-users', entityId: req.params.id, entityType: 'NguoiDung' });
       return sendResponse(res, 200, ApiResponse.success(result, 'Cập nhật người dùng thành công'));
-    } catch (error: any) {
-      logError('Error updating user', { error: error.message, userId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error updating user', error, { userId: req.user?.id, requestId: req.requestId });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi cập nhật người dùng', status, error.details));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi cập nhật người dùng'), status, error instanceof AppError ? error.details : undefined));
     }
   }
 
@@ -256,15 +262,16 @@ class AdminUsersController {
     try {
       const adminId = req.user?.sub || req.user?.id || '';
       await this.deleteUserUseCase.execute(req.params.id, adminId);
+      logAudit('delete_user', req, { module: 'admin-users', entityId: req.params.id, entityType: 'NguoiDung' });
       return sendResponse(res, 200, ApiResponse.success(null, 'Đã xóa người dùng và toàn bộ dữ liệu liên quan khỏi hệ thống'));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logError('Error deleting user completely', {
-        error: error.message,
-        stack: error.stack,
+        error: this.getErrorMessage(error, 'UNKNOWN'),
+        stack: error instanceof Error ? error.stack : undefined,
         userId: req.user?.id
       });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi xóa người dùng'));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi xóa người dùng')));
     }
   }
 
@@ -276,8 +283,8 @@ class AdminUsersController {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="users.csv"');
       res.status(200).send(csv);
-    } catch (error: any) {
-      logError('Error export users', { error: error.message });
+    } catch (error: unknown) {
+      logError('Error export users', error, { requestId: (req as AuthRequest).requestId });
       sendResponse(res, 500, ApiResponse.error('Lỗi xuất người dùng'));
     }
   }
@@ -297,11 +304,12 @@ class AdminUsersController {
       
       const dto = UpdateUserDto.fromRequest({ trang_thai: 'khoa' });
       const result = await this.updateUserUseCase.execute(userId, dto, adminId || '');
+      logAudit('lock_user', req, { module: 'admin-users', entityId: userId, entityType: 'NguoiDung' });
       return sendResponse(res, 200, ApiResponse.success(result, 'Đã khóa tài khoản thành công'));
-    } catch (error: any) {
-      logError('Error locking user', { error: error.message, userId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error locking user', error, { userId: req.user?.id, requestId: req.requestId });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi khóa tài khoản'));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi khóa tài khoản')));
     }
   }
 
@@ -315,11 +323,12 @@ class AdminUsersController {
       
       const dto = UpdateUserDto.fromRequest({ trang_thai: 'hoat_dong' });
       const result = await this.updateUserUseCase.execute(userId, dto, adminId || '');
+      logAudit('unlock_user', req, { module: 'admin-users', entityId: userId, entityType: 'NguoiDung' });
       return sendResponse(res, 200, ApiResponse.success(result, 'Đã mở khóa tài khoản thành công'));
-    } catch (error: any) {
-      logError('Error unlocking user', { error: error.message, userId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error unlocking user', error, { userId: req.user?.id, requestId: req.requestId });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi mở khóa tài khoản'));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi mở khóa tài khoản')));
     }
   }
 
@@ -341,18 +350,18 @@ class AdminUsersController {
       }
 
       // Lấy điểm rèn luyện từ dashboard service
-      const GetDetailedScoresUseCase = require('../../../dashboard/business/services/GetDetailedScoresUseCase');
-      const DashboardRepository = require('../../../dashboard/data/repositories/dashboard.repository');
+      const GetDetailedScoresUseCase = (await import('../../../dashboard/business/services/GetDetailedScoresUseCase')).default;
+      const DashboardRepository = (await import('../../../dashboard/data/repositories/dashboard.repository')).default;
       const dashboardRepository = new DashboardRepository();
       const getDetailedScoresUseCase = new GetDetailedScoresUseCase(dashboardRepository);
       
       const pointsData = await getDetailedScoresUseCase.execute(userId, req.query);
       
       return sendResponse(res, 200, ApiResponse.success(pointsData, 'Lấy điểm rèn luyện thành công'));
-    } catch (error: any) {
-      logError('Error getting user points', { error: error.message, userId: req.user?.id });
+    } catch (error: unknown) {
+      logError('Error getting user points', error, { userId: req.user?.id, requestId: req.requestId });
       const status = error instanceof AppError ? error.statusCode : 500;
-      return sendResponse(res, status, ApiResponse.error(error.message || 'Lỗi lấy điểm rèn luyện'));
+      return sendResponse(res, status, ApiResponse.error(this.getErrorMessage(error, 'Lỗi lấy điểm rèn luyện')));
     }
   }
 }

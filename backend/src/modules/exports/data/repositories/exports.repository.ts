@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type {
   IExportRepository,
   StatusGroupResult,
@@ -17,16 +18,18 @@ import type {
 
 class ExportsRepository implements IExportRepository {
   async groupActivitiesByStatus(activityWhere: ActivityWhereInput): Promise<StatusGroupResult[]> {
+    const where = activityWhere as Prisma.HoatDongWhereInput;
     return await prisma.hoatDong.groupBy({ 
       by: ['trang_thai'], 
-      where: activityWhere as any, 
+      where, 
       _count: { _all: true } 
     }) as unknown as StatusGroupResult[];
   }
 
   async findTopActivities(activityWhere: ActivityWhereInput, limit: number = 20): Promise<TopActivityResult[]> {
+    const where = activityWhere as Prisma.HoatDongWhereInput;
     return await prisma.hoatDong.findMany({
-      where: activityWhere as any,
+      where,
       select: { 
         id: true, 
         ten_hd: true, 
@@ -41,16 +44,18 @@ class ExportsRepository implements IExportRepository {
   }
 
   async groupRegistrationsByDate(activityWhere: ActivityWhereInput): Promise<DailyRegResult[]> {
+    const where = activityWhere as Prisma.HoatDongWhereInput;
     return await prisma.dangKyHoatDong.groupBy({
       by: ['ngay_dang_ky'],
-      where: { hoat_dong: activityWhere as any },
+      where: { hoat_dong: where },
       _count: { _all: true }
     }) as unknown as DailyRegResult[];
   }
 
   async findActivitiesForExport(activityWhere: ActivityWhereInput, useOrderBy: boolean = true): Promise<ActivityExportRow[]> {
-    const query: any = {
-      where: activityWhere as any,
+    const where = activityWhere as Prisma.HoatDongWhereInput;
+    const query: Prisma.HoatDongFindManyArgs = {
+      where,
       select: {
         id: true,
         ma_hd: true,
@@ -71,8 +76,9 @@ class ExportsRepository implements IExportRepository {
   }
 
   async findRegistrationsForExport(activityWhere: ActivityWhereInput, limit: number = 5000): Promise<RegistrationExportRow[]> {
+    const where = activityWhere as Prisma.HoatDongWhereInput;
     return await prisma.dangKyHoatDong.findMany({
-      where: { hoat_dong: activityWhere as any },
+      where: { hoat_dong: where },
       include: { 
         sinh_vien: { 
           include: { 

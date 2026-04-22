@@ -22,9 +22,9 @@ class TeacherActivityRepository {
    * @returns Array of pending activities
    */
   async getPendingActivitiesList(
-    teacherId: string, 
-    semester: string | null = null, 
-    limit: number = 10, 
+    teacherId: string,
+    semester: string | null = null,
+    limit: number = 10,
     classId: string | null = null
   ) {
     let classes = await findTeacherClassesRaw(teacherId);
@@ -37,20 +37,12 @@ class TeacherActivityRepository {
       return [];
     }
 
-    // Get all students in teacher's classes
-    const students = await prisma.sinhVien.findMany({
-      where: { lop_id: { in: classIds } },
-      select: { nguoi_dung_id: true }
-    });
-
-    const studentUserIds = students.map(s => s.nguoi_dung_id).filter((id): id is string => Boolean(id));
-
     // Build semester where clause using simple filter
     const activityWhere: Prisma.HoatDongWhereInput = {
-      nguoi_tao_id: { in: studentUserIds },
+      lop_id: { in: classIds },
       trang_thai: 'cho_duyet'
     };
-    
+
     if (semester) {
       const parsed = parseSemesterString(semester);
       if (parsed && parsed.year) {
@@ -166,25 +158,15 @@ class TeacherActivityRepository {
       }
     }
 
-    // Count activities created by class members in this semester
+    // Count activities assigned to the teacher's classes in this semester
     const where: Prisma.HoatDongWhereInput = {
       AND: [
         semesterWhere,
-        { nguoi_tao_id: { in: classCreatorUserIds } },
-        { trang_thai: { in: ['da_duyet', 'ket_thuc'] } }
+        { lop_id: { in: classIds } }
       ]
     };
 
     const count = await prisma.hoatDong.count({ where });
-
-    console.log('[countActivitiesForTeacherClassesStrict]', {
-      teacherId,
-      classesCount: classes.length,
-      classCreatorUserIdsCount: classCreatorUserIds.length,
-      semesterId,
-      semesterWhere,
-      count
-    });
 
     return count;
   }

@@ -3,11 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import '../../styles/teacher-sidebar.css'; // Sử dụng cùng CSS với TeacherSidebar
-import { 
-  Users, 
-  Calendar, 
-  BarChart3, 
-  Bell, 
+import {
+  Users,
+  Calendar,
+  BarChart3,
+  Bell,
   Activity,
   BookOpen,
   TrendingUp,
@@ -67,7 +67,7 @@ interface MenuItemData {
 // MenuItem component với modern design - NO React.memo để active state cập nhật đúng
 function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdown }: MenuItemProps) {
   // console.log('[MenuItem] Rendering:', { to, label, active, collapsed, inDropdown });
-  
+
   const content = (
     <Link
       to={to}
@@ -75,8 +75,8 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
         flex items-center gap-3 rounded-lg transition-all duration-200 relative group
         ${collapsed && !inDropdown ? 'justify-center p-3' : 'px-4 py-2.5'}
         ${inDropdown ? 'mx-2' : ''}
-        ${active 
-          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/50' 
+        ${active
+          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/50'
           : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
         }
       `}
@@ -132,7 +132,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const containerRef = useRef(null);
   const hoverTimerRef = useRef(null);
-  
+
   const handleToggle = useCallback(() => {
     setOpen(prev => {
       const newState = !prev;
@@ -190,7 +190,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
       </div>
     );
   }
-  
+
   return (
     <div className="mb-2">
       <button
@@ -207,9 +207,9 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
           <ChevronDown className="w-4 h-4" />
         </div>
       </button>
-      <div 
+      <div
         className="overflow-hidden transition-all duration-300"
-        style={{ 
+        style={{
           maxHeight: open ? '500px' : '0',
           opacity: open ? 1 : 0
         }}
@@ -230,10 +230,10 @@ function StudentSidebar(props) {
   const location = useLocation();
   const path = location.pathname;
   const roleUpper = role.toUpperCase();
-  
+
   // Permission checking
   const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
-  
+
   // Sidebar toggle state với persistence
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('student-sidebar-collapsed');
@@ -268,26 +268,26 @@ function StudentSidebar(props) {
     setSidebarCollapsed(prev => {
       const newState = !prev;
       localStorage.setItem('student-sidebar-collapsed', newState.toString());
-      
+
       // Update CSS variable immediately
       const w = newState ? 64 : 280;
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
-      
+
       // Dispatch custom event
       setTimeout(() => {
-        try { window.dispatchEvent(new Event('student-sidebar-toggle')); } catch(_) {}
+        try { window.dispatchEvent(new Event('student-sidebar-toggle')); } catch (_) { }
       }, 0);
-      
+
       return newState;
     });
   }, []);
-  
+
   // Use refs to prevent unnecessary re-renders
   const prevRoleRef = useRef(role);
   const prevPathRef = useRef(path);
   const stableRoleRef = useRef(role);
   const stablePathRef = useRef(path);
-  
+
   // Only update refs if values actually changed
   if (prevRoleRef.current !== role || prevPathRef.current !== path) {
     prevRoleRef.current = role;
@@ -295,15 +295,15 @@ function StudentSidebar(props) {
     stableRoleRef.current = role;
     stablePathRef.current = path;
   }
-  
+
   // Direct path comparison
   const getActiveState = (menuPath) => {
     if (!menuPath) return false;
-    
+
     // Clean paths
     const cleanMenuPath = menuPath.replace(/\/$/, '');
     const cleanCurrentPath = path.replace(/\/$/, '');
-    
+
     // Direct comparison
     return cleanCurrentPath === cleanMenuPath;
   };
@@ -320,10 +320,10 @@ function StudentSidebar(props) {
         active: getActiveState('/student')
       },
     ];
-    
+
     // Hoạt động group
     const activitiesItems = [];
-    
+
     // Danh sách hoạt động - cần activities.view
     if (hasAnyPermission(['activities.view', 'activities.read'])) {
       activitiesItems.push({
@@ -334,7 +334,7 @@ function StudentSidebar(props) {
         active: getActiveState('/student/activities')
       });
     }
-    
+
     // Hoạt động của tôi - cần registrations.view
     if (hasAnyPermission(['registrations.view', 'registrations.read', 'registrations.register'])) {
       activitiesItems.push({
@@ -345,7 +345,7 @@ function StudentSidebar(props) {
         active: getActiveState('/student/my-activities')
       });
     }
-    
+
     // Chỉ thêm group Hoạt động nếu có ít nhất 1 item
     if (activitiesItems.length > 0) {
       baseMenu.push({
@@ -375,23 +375,12 @@ function StudentSidebar(props) {
       baseMenu.push({
         key: 'qr-scanner',
         to: '/student/qr-scanner',
-        label: 'QR Điểm danh',
+        label: 'Điểm danh',
         icon: <QrCode className="w-5 h-5" />,
         active: getActiveState('/student/qr-scanner')
       });
     }
 
-    // Đăng ký khuôn mặt - cần profile.read hoặc attendance.write
-    if (hasAnyPermission(['profile.read', 'profile.view', 'attendance.write'])) {
-      baseMenu.push({
-        key: 'face-registration',
-        to: '/student/face-registration',
-        label: 'Điểm danh khuôn mặt',
-        icon: <Users className="w-5 h-5" />,
-        active: getActiveState('/student/face-registration')
-      });
-    }
-    
     return baseMenu;
   }, [path, hasAnyPermission]); // Include path and hasAnyPermission
 
@@ -423,7 +412,7 @@ function StudentSidebar(props) {
           </Group>
         );
       }
-      
+
       return (
         <MenuItem
           key={item.key}
@@ -439,7 +428,7 @@ function StudentSidebar(props) {
   }, [sidebarCollapsed]);
 
   return (
-    <aside 
+    <aside
       ref={asideRef}
       className={`
         fixed left-0 top-0 h-screen z-30 transition-all duration-300
@@ -471,9 +460,9 @@ function StudentSidebar(props) {
                 <div className="text-gray-400 text-xs">Quản lý hoạt động</div>
               </div>
             </div>
-            
+
             {/* Toggle Button - Only visible when expanded */}
-            <button 
+            <button
               onClick={toggleSidebar}
               className="
                 relative p-2 rounded-xl
@@ -494,9 +483,9 @@ function StudentSidebar(props) {
           </>
         )}
       </div>
-      
+
       {/* Navigation Menu */}
-      <nav className={`flex-1 py-6 space-y-2 ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible', overflowY: 'visible' }}>
+      <nav role="navigation" aria-label="Student sidebar navigation" className={`flex-1 py-6 space-y-2 ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible', overflowY: 'visible' }}>
         {!sidebarCollapsed && (
           <div className="px-4 mb-4">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">

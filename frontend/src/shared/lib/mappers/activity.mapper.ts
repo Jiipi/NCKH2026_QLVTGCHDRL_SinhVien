@@ -8,10 +8,11 @@
  * @param nguoiDuyet - The nguoi_duyet object from API
  * @returns Role string like 'GIANG_VIEN', 'LOP_TRUONG', etc.
  */
-export function extractApproverRole(nguoiDuyet: any): string | null {
+export function extractApproverRole(nguoiDuyet: Record<string, unknown> | null | undefined): string | null {
   if (!nguoiDuyet) return null;
   // Try to get role from vai_tro.ten_vt (Prisma field name)
-  const roleName = nguoiDuyet.vai_tro?.ten_vt;
+  const vaiTro = nguoiDuyet.vai_tro as Record<string, unknown> | undefined;
+  const roleName = vaiTro?.ten_vt as string | undefined;
   if (roleName) {
     // Map common role names to role codes
     const roleMap: Record<string, string> = {
@@ -34,7 +35,7 @@ export function extractApproverRole(nguoiDuyet: any): string | null {
  * @param value - Raw value from API
  * @returns Normalized array
  */
-export function normalizeArrayField(value: any): any[] {
+export function normalizeArrayField(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   return value ? [value] : [];
 }
@@ -42,7 +43,7 @@ export function normalizeArrayField(value: any): any[] {
 /**
  * Map activity registration status từ API sang UI format (student view)
  */
-export function mapRegistrationStatusStudent(status: any): string {
+export function mapRegistrationStatusStudent(status: unknown): string {
   const statusMap: Record<string, string> = {
     'cho_duyet': 'pending',
     'da_duyet': 'approved',
@@ -62,7 +63,7 @@ export function mapRegistrationStatusStudent(status: any): string {
 /**
  * Map activity status từ API sang UI format (teacher view)
  */
-export function mapActivityStatus(status: any): string {
+export function mapActivityStatus(status: unknown): string {
   const statusMap: Record<string, string> = {
     'cho_duyet': 'pending',
     'da_duyet': 'approved',
@@ -84,7 +85,7 @@ export function mapActivityStatus(status: any): string {
 /**
  * Map registration status từ API sang UI format (monitor view - keeps Vietnamese)
  */
-export function mapRegistrationStatusMonitor(status: any): string {
+export function mapRegistrationStatusMonitor(status: unknown): string {
   const statusMap: Record<string, string> = {
     'cho_duyet': 'cho_duyet',
     'da_duyet': 'da_duyet',
@@ -104,7 +105,7 @@ export function mapRegistrationStatusMonitor(status: any): string {
 /**
  * Map attendance status từ API sang UI format
  */
-export function mapAttendanceStatus(status: any): string {
+export function mapAttendanceStatus(status: unknown): string {
   const statusMap: Record<string, string> = {
     'co_mat': 'present',
     'vang': 'absent',
@@ -118,53 +119,62 @@ export function mapAttendanceStatus(status: any): string {
   return statusMap[normalized] || 'absent';
 }
 
+/** Known shape of loai_hd when it's an object */
+interface LoaiHdObject {
+  id?: string;
+  ten_loai_hd?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
 export interface MappedActivity {
-  id: any;
-  hd_id: any;
+  id: string | number;
+  hd_id: string | number;
   ten_hd: string;
-  mo_ta: any;
-  loai_hd: any;
-  loai_hd_id?: any;
+  mo_ta: string | null;
+  loai_hd: LoaiHdObject | string | null;
+  loai_hd_id?: string | null;
   diem_rl: number;
-  ngay_bd: any;
-  ngay_kt: any;
-  ngay_tao?: any;
-  ngay_cap_nhat?: any;
-  dia_diem: any;
-  trang_thai?: any;
-  trang_thai_dk?: any;
+  ngay_bd: string | null;
+  ngay_kt: string | null;
+  ngay_tao?: string | null;
+  ngay_cap_nhat?: string | null;
+  dia_diem: string | null;
+  trang_thai?: string | null;
+  trang_thai_dk?: string | null;
   status?: string;
-  ngay_dang_ky?: any;
-  ngay_duyet?: any;
-  ly_do_tu_choi?: any;
-  hinh_anh: any[];
-  tep_dinh_kem: any[];
+  ngay_dang_ky?: string | null;
+  ngay_duyet?: string | null;
+  ly_do_tu_choi?: string | null;
+  hinh_anh: unknown[];
+  tep_dinh_kem: unknown[];
   is_class_activity?: boolean;
-  nguoi_tao?: any;
-  lop_id?: any;
+  nguoi_tao?: Record<string, unknown> | null;
+  lop_id?: string | null;
   registeredStudents?: number;
-  hoat_dong?: any;
+  hoat_dong?: Record<string, unknown>;
   // Additional fields for various use cases
-  han_dk?: any;
-  sl_toi_da?: any;
-  so_luong_toi_da?: any;
-  don_vi_to_chuc?: any;
-  yeu_cau_tham_gia?: any;
+  han_dk?: string | null;
+  sl_toi_da?: number | null;
+  so_luong_toi_da?: number | null;
+  don_vi_to_chuc?: string | null;
+  yeu_cau_tham_gia?: string | null;
   is_registered?: boolean;
   registration_status?: string;
   registrationCount?: number;
   so_dang_ky?: number;
   _count?: { dang_ky_hd?: number };
-  updated_at?: any;
-  updatedAt?: any;
-  createdAt?: any;
+  updated_at?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 
 /**
  * Map activity data từ API sang UI format (base mapper)
  * This is the consolidated version used by all features
  */
-export function mapActivityToUI(activity: any): MappedActivity {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapActivityToUI(activity: Record<string, any>): MappedActivity {
   const activityData = activity.hoat_dong || activity;
   
   // Process images - normalize to array
@@ -216,7 +226,8 @@ export interface GroupedActivities {
 /**
  * Group activities by status (student view)
  */
-export function groupActivitiesByStatusStudent(activities: any[]): GroupedActivities {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function groupActivitiesByStatusStudent(activities: Record<string, any>[]): GroupedActivities {
   const pending: MappedActivity[] = [];
   const approved: MappedActivity[] = [];
   const joined: MappedActivity[] = [];
@@ -253,7 +264,8 @@ export function groupActivitiesByStatusStudent(activities: any[]): GroupedActivi
 /**
  * Group activities by status (teacher view)
  */
-export function groupActivitiesByStatusTeacher(activities: any[]): GroupedActivities {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function groupActivitiesByStatusTeacher(activities: Record<string, any>[]): GroupedActivities {
   const pending: MappedActivity[] = [];
   const approved: MappedActivity[] = [];
   const joined: MappedActivity[] = [];

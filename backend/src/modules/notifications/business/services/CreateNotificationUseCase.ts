@@ -128,7 +128,7 @@ class CreateNotificationUseCase {
       throw new ValidationError('Không xác định được người gửi');
     }
 
-    const dto = new CreateNotificationDto(data as any);
+    const dto = new CreateNotificationDto(data as unknown as ConstructorParameters<typeof CreateNotificationDto>[0]);
     dto.validate();
 
     const loaiThongBao = await this.notificationRepository.getOrCreateNotificationType(dto.loai_tb_id);

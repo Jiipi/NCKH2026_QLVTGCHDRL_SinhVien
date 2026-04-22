@@ -19,7 +19,7 @@ class CreateRoleDto {
   static schema = z.object({
     ten_vt: z.string().min(1, 'Tên vai trò là bắt buộc'),
     mo_ta: z.string().optional().nullable(),
-    quyen_han: z.union([z.array(z.string()), z.record(z.any())]).optional().nullable()
+    quyen_han: z.union([z.array(z.string()), z.record(z.unknown())]).optional().nullable()
   });
 
   static fromRequest(body: unknown): CreateRoleOutput {

@@ -6,6 +6,7 @@
 
 import { updateAdminUserSchema, UpdateAdminUserData, StudentUpdateData } from '../validators/admin-users.validators';
 import { ValidationError } from '../../../../core/errors/AppError';
+import { ZodError } from 'zod';
 
 export interface UpdateUserDtoData {
   hoten?: string;
@@ -43,8 +44,8 @@ class UpdateUserDto implements UpdateUserDtoData {
     try {
       const validatedData = updateAdminUserSchema.parse(body);
       return new UpdateUserDto(validatedData);
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         throw new ValidationError('Dữ liệu không hợp lệ', error.errors);
       }
       throw error;

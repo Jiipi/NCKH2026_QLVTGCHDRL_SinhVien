@@ -8,6 +8,9 @@ import { ForbiddenError } from '../../../../core/errors/AppError';
 import { ListRegistrationsDto } from '../../../registrations/business/dto/ListRegistrationsDto';
 import type GetAllRegistrationsUseCase from './GetAllRegistrationsUseCase';
 import type { ListRegistrationsUseCase } from '../../../registrations/business/services/ListRegistrationsUseCase';
+import type { ClassRegistration } from '../../teachers.types';
+import type { ListRegistrationsResult, PaginationInfo } from '../../../registrations/business/services/ListRegistrationsUseCase';
+import type { AuthUser } from '../../../registrations/business/helpers/registrationAccess';
 
 export interface PendingRegistrationsUser {
   sub?: string;
@@ -24,13 +27,8 @@ export interface PendingRegistrationsOptions {
 }
 
 export interface PendingRegistrationsResult {
-  items: any[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  items: ClassRegistration[];
+  pagination: PaginationInfo;
 }
 
 class GetPendingRegistrationsUseCase {
@@ -53,7 +51,7 @@ class GetPendingRegistrationsUseCase {
     const { page, limit, classId, semester, status } = options;
     
     if (classId || semester) {
-      const registrations = await this.getAllRegistrationsUseCase.execute(user as any, {
+      const registrations = await this.getAllRegistrationsUseCase.execute(user, {
         status: status || 'cho_duyet',
         semester,
         classId
@@ -82,14 +80,20 @@ class GetPendingRegistrationsUseCase {
       limit: parseInt(String(limit)) || 20,
       includeApprover: true
     });
+
+    const authUser: AuthUser = {
+      sub: user.sub || user.id || '',
+      role: user.role,
+      id: user.id,
+    };
     
-    const result = await this.listRegistrationsUseCase.execute(dto, user as any);
+    const result = await this.listRegistrationsUseCase.execute<ClassRegistration>(dto, authUser) as ListRegistrationsResult<ClassRegistration>;
     return {
-      items: (result as any).data || [],
-      pagination: (result as any).pagination || {
+      items: result.data || [],
+      pagination: result.pagination || {
         page: dto.page,
         limit: dto.limit,
-        total: ((result as any).data || []).length,
+        total: (result.data || []).length,
         totalPages: 1
       }
     };

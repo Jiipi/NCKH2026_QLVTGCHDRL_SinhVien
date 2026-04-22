@@ -19,7 +19,7 @@ interface AuthUser {
  * Interface for the underlying reject activity use case
  */
 interface IRejectActivityUseCase {
-  execute(activityId: string, reason: string): Promise<unknown>;
+  execute(activityId: string, reason: string, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<unknown>;
 }
 
 /**
@@ -33,12 +33,12 @@ class RejectActivityUseCase {
     this.rejectActivityUseCase = rejectActivityUseCase;
   }
 
-  async execute(activityId: string, reason: string, user: AuthUser): Promise<unknown> {
+  async execute(activityId: string, reason: string, user: AuthUser, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<unknown> {
     if (user.role !== 'GIANG_VIEN') {
       throw new ForbiddenError('Chỉ giảng viên mới được từ chối hoạt động');
     }
 
-    return await this.rejectActivityUseCase.execute(activityId, reason);
+    return await this.rejectActivityUseCase.execute(activityId, reason, semesterInfo);
   }
 }
 

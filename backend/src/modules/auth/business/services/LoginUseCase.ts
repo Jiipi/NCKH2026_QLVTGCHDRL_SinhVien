@@ -10,6 +10,7 @@ import { IAuthRepository, UserWithRole } from '../interfaces/IAuthRepository';
 import { ITokenService } from '../interfaces/ITokenService';
 import { IOtpService } from '../interfaces/IOtpService';
 import { LoginDto } from '../dto/LoginDto';
+import { prisma } from '../../../../data/infrastructure/prisma/client';
 
 export interface IHashService {
   hash(password: string): Promise<string>;
@@ -91,7 +92,7 @@ class LoginUseCase {
     // Track session if tabId provided
     if (tabId) {
       try {
-        const SessionTrackingService = require('../../../../business/services/session-tracking.service').default;
+        const SessionTrackingService = (await import('../../../../business/services/session-tracking.service')).default;
         await SessionTrackingService.trackSession(
           user.id,
           tabId,
@@ -103,8 +104,8 @@ class LoginUseCase {
       }
     }
 
-    // Generate token
-    const token = this.tokenService.generateToken(user, dto.remember);
+    // Generate token (now async to support isMonitor check)
+    const token = await this.tokenService.generateToken(user, dto.remember);
 
     logInfo('LOGIN_SUCCESS', {
       userId: user.id,
@@ -116,23 +117,24 @@ class LoginUseCase {
 
     return {
       token,
-      user: this.toUserDTO(user)
+      user: await this.toUserDTO(user)
     };
   }
 
   private async verifyPasswordAndUpgrade(user: UserWithRole, password: string): Promise<boolean> {
     // Security: Only accept bcrypt hashed passwords
     if (!user.mat_khau || !user.mat_khau.startsWith('$2')) {
-      console.error('[Security] Non-bcrypt password detected for user:', user.ten_dn);
-      console.error('[Security] Run migration: node backend/scripts/force_hash_passwords.js');
+      logError('Non-bcrypt password detected for user', undefined, { maso: user.ten_dn });
+      logError('Password hashing migration is required', undefined, { script: 'node backend/scripts/force_hash_passwords.js' });
       return false;
     }
     
     return await this.hashService.compare(password, user.mat_khau);
   }
 
-  private toUserDTO(user: UserWithRole): UserDTO {
+  private async toUserDTO(user: UserWithRole): Promise<UserDTO> {
     const role = user.vai_tro;
+    
     return {
       id: user.id,
       maso: user.ten_dn,
@@ -148,11 +150,17 @@ class LoginUseCase {
   private async ensureDemoUsersIfNeeded(): Promise<void> {
     if (process.env.NODE_ENV !== 'development') return;
 
+    const demoAdminPassword = process.env.DEMO_ADMIN_PASSWORD;
+    if (!demoAdminPassword || demoAdminPassword.length < 8) {
+      logInfo('Skipping demo user bootstrap because DEMO_ADMIN_PASSWORD is missing or too short');
+      return;
+    }
+
     const count = await this.authRepository.countUsers();
     if (count > 0) return;
 
     try {
-      const config = require('../../../../core/config').default;
+      const config = (await import('../../../../core/config')).default;
 
       // Ensure admin role exists
       let adminRole = await this.authRepository.findRoleByName('ADMIN');
@@ -164,7 +172,7 @@ class LoginUseCase {
       }
 
       // Create admin user
-      const hashedPassword = await this.hashService.hash('123456');
+      const hashedPassword = await this.hashService.hash(demoAdminPassword);
       await this.authRepository.createUser({
         ten_dn: 'admin',
         email: 'admin@dlu.edu.vn',

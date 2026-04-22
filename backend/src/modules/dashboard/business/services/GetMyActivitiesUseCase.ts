@@ -93,7 +93,7 @@ class GetMyActivitiesUseCase {
       if (!reg.hoat_dong) {
         return {
           ...reg,
-          hoat_dong: null as any,
+          hoat_dong: null as unknown as MyActivityItem['hoat_dong'],
           diem_rl: 0,
           hinh_anh: [],
           ten_hd: '',
@@ -113,7 +113,7 @@ class GetMyActivitiesUseCase {
           id: hoatDong.id,
           ten_hd: hoatDong.ten_hd,
           mo_ta: hoatDong.mo_ta || null,
-          hinh_anh: (hoatDong as any).hinh_anh || [],
+          hinh_anh: hoatDong.hinh_anh || [],
           loai_hd: hoatDong.loai_hd ? {
             ten_loai_hd: hoatDong.loai_hd.ten_loai_hd || 'Khác',
             diem_mac_dinh: hoatDong.loai_hd.diem_mac_dinh,
@@ -128,15 +128,15 @@ class GetMyActivitiesUseCase {
         },
         // Flatten để frontend có thể lấy trực tiếp
         diem_rl: calculatedPoints,
-        hinh_anh: (hoatDong as any).hinh_anh || [],
+        hinh_anh: hoatDong.hinh_anh || [],
         ten_hd: hoatDong.ten_hd,
         ngay_bd: hoatDong.ngay_bd,
         dia_diem: hoatDong.dia_diem || null,
         ngay_dang_ky: reg.ngay_dang_ky,
         trang_thai_dk: reg.trang_thai_dk,
         trang_thai: reg.trang_thai_dk,
-        ngay_duyet: (reg as any).ngay_duyet,
-        ly_do_tu_choi: (reg as any).ly_do_tu_choi,
+        ngay_duyet: reg.ngay_duyet,
+        ly_do_tu_choi: reg.ly_do_tu_choi,
         is_class_activity: true
       };
     });

@@ -3,7 +3,7 @@
  * Route: /student/face-registration
  */
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FaceRegistrationModal,
   FaceRegistrationPageSkeleton,
   FaceRecognitionErrorBoundary,
@@ -12,7 +12,7 @@ import {
 import { useFaceRecognition } from '../../model/hooks/useFaceRecognition';
 
 // Inner component wrapped by error boundary
-const FaceRegistrationPageContent: React.FC = () => {
+export const FaceRegistrationPageContent: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const {
     faceStatus,
@@ -175,9 +175,12 @@ const FaceRegistrationPageContent: React.FC = () => {
               ) : (
                 <div className="text-center py-4">
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    Đăng ký khuôn mặt để sử dụng tính năng điểm danh nhanh bằng camera.
-                    Bạn chỉ cần chụp 3-5 ảnh khuôn mặt từ các góc độ khác nhau.
+                    Đăng ký khuôn mặt để điểm danh nhanh chóng. Bạn chỉ cần chụp 1-2 ảnh nhìn thẳng.
                   </p>
+                  <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-3 rounded-lg text-sm mb-6 text-left">
+                    <p className="font-semibold mb-1">💡 Để điểm danh:</p>
+                    <p>Sau khi đăng ký thành công, hãy vào trang <a href="/student/qr-scanner" className="font-bold underline">Điểm danh</a> chọn "Nhận diện khuôn mặt" để thực hiện điểm danh.</p>
+                  </div>
                   <button
                     onClick={() => setIsModalOpen(true)}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
@@ -200,7 +203,7 @@ const FaceRegistrationPageContent: React.FC = () => {
               </svg>
               Thông tin về nhận dạng khuôn mặt
             </h3>
-            
+
             <div className="space-y-4 text-gray-600 dark:text-gray-400">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -211,7 +214,7 @@ const FaceRegistrationPageContent: React.FC = () => {
                   <p className="text-sm">Dữ liệu khuôn mặt được mã hóa và lưu trữ an toàn trên server.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
@@ -221,7 +224,7 @@ const FaceRegistrationPageContent: React.FC = () => {
                   <p className="text-sm">Điểm danh chỉ mất vài giây, không cần quét mã QR.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -241,6 +244,7 @@ const FaceRegistrationPageContent: React.FC = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSuccess={handleRegistrationSuccess}
+          isRegistered={isRegistered}
         />
       </div>
     </div>

@@ -23,6 +23,20 @@ import type { IRepository, FindManyOptions, FindOneOptions } from '../interfaces
 import type { PaginatedResult } from '../types/common.types';
 import { createPaginatedResult } from '../types/common.types';
 
+interface PrismaModelDelegate {
+  findMany(args?: unknown): Promise<unknown[]>;
+  count(args?: unknown): Promise<number>;
+  findUnique(args: unknown): Promise<unknown | null>;
+  findFirst(args: unknown): Promise<unknown | null>;
+  create(args: unknown): Promise<unknown>;
+  createMany(args: unknown): Promise<{ count: number }>;
+  update(args: unknown): Promise<unknown>;
+  updateMany(args: unknown): Promise<{ count: number }>;
+  delete(args: unknown): Promise<unknown>;
+  deleteMany(args: unknown): Promise<{ count: number }>;
+  upsert(args: unknown): Promise<unknown>;
+}
+
 /**
  * Abstract Base Repository
  * Provides standard CRUD operations using Prisma
@@ -47,8 +61,9 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
    * Get the Prisma model delegate
    * Uses dynamic access for flexibility
    */
-  protected get model(): any {
-    return (this.prisma as any)[this.modelName];
+  protected get model(): PrismaModelDelegate {
+    const delegates = this.prisma as unknown as Record<string, unknown>;
+    return delegates[this.modelName] as PrismaModelDelegate;
   }
 
   /**
@@ -89,7 +104,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
       this.model.count({ where })
     ]);
 
-    return createPaginatedResult(items, total, page, limit);
+    return createPaginatedResult(items as T[], total, page, limit);
   }
 
   /**
@@ -108,7 +123,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
       orderBy,
       ...(include && { include }),
       ...(select && { select })
-    });
+    }) as Promise<T[]>;
   }
 
   /**
@@ -118,7 +133,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
     return this.model.findUnique({
       where: { id },
       include: include || this.defaultInclude
-    });
+    }) as Promise<T | null>;
   }
 
   /**
@@ -131,7 +146,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
       where,
       ...(include && { include }),
       ...(select && { select })
-    });
+    }) as Promise<T | null>;
   }
 
   /**
@@ -141,7 +156,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
     return this.model.create({
       data,
       include: this.defaultInclude
-    });
+    }) as Promise<T>;
   }
 
   /**
@@ -163,7 +178,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
       where: { id },
       data,
       include: this.defaultInclude
-    });
+    }) as Promise<T>;
   }
 
   /**
@@ -178,7 +193,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
    * Delete entity by ID
    */
   async delete(id: string): Promise<T> {
-    return this.model.delete({ where: { id } });
+    return this.model.delete({ where: { id } }) as Promise<T>;
   }
 
   /**
@@ -229,7 +244,7 @@ export abstract class BaseRepository<T, CreateDto = Partial<T>, UpdateDto = Part
       create,
       update,
       include: this.defaultInclude
-    });
+    }) as Promise<T>;
   }
 
   /**

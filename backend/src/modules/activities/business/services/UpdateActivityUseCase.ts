@@ -1,7 +1,7 @@
 import type { HoatDong, Prisma } from '@prisma/client';
 import type IActivityRepository from '../interfaces/IActivityRepository';
-const { NotFoundError, ForbiddenError, ValidationError } = require('../../../../core/errors/AppError');
-const { canAccessItem } = require('../../../../app/scopes/scopeBuilder');
+import { NotFoundError, ForbiddenError, ValidationError } from '../../../../core/errors/AppError';
+import { canAccessItem } from '../../../../app/scopes/scopeBuilder';
 
 /**
  * User type for authorization
@@ -86,10 +86,11 @@ class UpdateActivityUseCase {
     id: string,
     dto: UpdateActivityDtoType,
     user: User,
-    scope?: Scope
+    scope?: Scope,
+    semesterInfo?: { hoc_ky: string; nam_hoc: string }
   ): Promise<HoatDong> {
-    // Check if activity exists in scope
-    const existing = await this.activityRepository.findById(id, scope?.activityFilter || {});
+    // Check if activity exists in scope and validate semester
+    const existing = await this.activityRepository.findById(id, scope?.activityFilter || {}, null, semesterInfo);
 
     if (!existing) {
       throw new NotFoundError('Không tìm thấy hoạt động');

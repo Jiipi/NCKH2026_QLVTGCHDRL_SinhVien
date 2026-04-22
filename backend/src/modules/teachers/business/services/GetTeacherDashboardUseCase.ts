@@ -207,7 +207,7 @@ class GetTeacherDashboardUseCase {
           const points = calculateActivityPoints(dk.hoat_dong);
           return sum + points;
         }, 0) || 0;
-        
+
         // Repository returns mapped fields: name, email, className instead of nested objects
         return {
           id: s.id || s.nguoi_dung_id || s.nguoi_dung?.id,

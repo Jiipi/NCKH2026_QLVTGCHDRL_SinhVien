@@ -68,12 +68,12 @@ const INITIAL_STATS = {
 const normalizeStudent = (student) => {
   const user = student.nguoi_dung || {};
   const sv = student.sinh_vien || student;
-  
+
   // API may return name/className instead of ho_ten/lop.ten_lop
   const ho_ten = user.ho_ten || student.ho_ten || student.name || '';
   const mssv = sv.mssv || student.mssv || '';
   const className = (sv?.lop?.ten_lop) || (student.lop?.ten_lop) || student.className || '';
-  
+
   return {
     ...student,
     id: user.id || student.id,
@@ -100,7 +100,7 @@ const normalizeStudent = (student) => {
  */
 const normalizeClass = (cls) => ({
   ...cls,
-  so_sinh_vien: cls.so_sinh_vien ?? cls._count?.sinh_viens ?? 0
+  so_sinh_vien: cls.so_sinh_vien ?? cls.studentCount ?? cls._count?.sinh_viens ?? 0
 });
 
 /**
@@ -170,28 +170,28 @@ export function useTeacherStudentManagement() {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [classStatistics, setClassStatistics] = useState(INITIAL_STATS);
-  
+
   // Loading & Error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
-  
+
   // View states
   const [viewMode, setViewMode] = useState('list'); // 'grid' | 'list'
-  
+
   // Selection states
   const [selectedStudents, setSelectedStudents] = useState([]);
-  
+
   // Pagination
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
-  
+
   // Monitor assignment
   const [selectedMonitorId, setSelectedMonitorId] = useState('');
   const [assigningMonitor, setAssigningMonitor] = useState(false);
-  
+
   // Modal states
   const [modals, setModals] = useState({
     view: false,
@@ -200,7 +200,7 @@ export function useTeacherStudentManagement() {
   });
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('basic');
-  
+
   // Form state
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
@@ -212,7 +212,7 @@ export function useTeacherStudentManagement() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const params: { search?: string; classFilter?: string; classId?: string } = {};
       if (searchTerm) params.search = searchTerm;
       if (selectedClass) {
@@ -230,7 +230,7 @@ export function useTeacherStudentManagement() {
       const studentsData = Array.isArray(rawStudents)
         ? rawStudents
         : (Array.isArray(rawStudents?.students) ? rawStudents.students : []);
-      
+
       const normalizedStudents = studentsData.map(normalizeStudent);
 
       // Process classes
@@ -238,12 +238,12 @@ export function useTeacherStudentManagement() {
       const classesData = Array.isArray(rawClasses)
         ? rawClasses
         : (Array.isArray(rawClasses?.classes) ? rawClasses.classes : []);
-      
+
       const normalizedClasses = classesData.map(normalizeClass);
 
       setStudents(normalizedStudents);
       setClasses(normalizedClasses);
-      
+
       // Update pagination
       setPagination(prev => {
         const nextTotal = normalizedStudents.length;
@@ -262,7 +262,7 @@ export function useTeacherStudentManagement() {
       // Load class statistics if class selected
       if (selectedClass) {
         await loadClassStatistics(selectedClass);
-        
+
         const currentClass = classesData.find(c => c.id === selectedClass);
         if (currentClass?.lop_truong) {
           setSelectedMonitorId(currentClass.lop_truong);
@@ -437,7 +437,7 @@ export function useTeacherStudentManagement() {
       const mimeType = format === 'xlsx'
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'text/csv;charset=utf-8;';
-      
+
       const fileBlob = new Blob([blob], { type: mimeType });
       const link = document.createElement('a');
       const href = window.URL.createObjectURL(fileBlob);
@@ -448,7 +448,7 @@ export function useTeacherStudentManagement() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(href);
-      
+
       return true;
     } catch (err) {
       console.error('Export error:', err);
@@ -477,8 +477,8 @@ export function useTeacherStudentManagement() {
       ho_ten: student.ho_ten || '',
       email: student.email || '',
       mssv: student.sinh_vien?.mssv || '',
-      ngay_sinh: student.sinh_vien?.ngay_sinh 
-        ? new Date(student.sinh_vien.ngay_sinh).toISOString().split('T')[0] 
+      ngay_sinh: student.sinh_vien?.ngay_sinh
+        ? new Date(student.sinh_vien.ngay_sinh).toISOString().split('T')[0]
         : '',
       gt: student.sinh_vien?.gt || 'nam',
       lop_id: student.sinh_vien?.lop_id || '',
@@ -538,7 +538,7 @@ export function useTeacherStudentManagement() {
   const toggleSelectAll = useCallback((paginatedStudents) => {
     const allIds = paginatedStudents.map(s => s.id);
     const allSelected = allIds.every(id => selectedStudents.includes(id));
-    
+
     if (allSelected) {
       setSelectedStudents([]);
     } else {
@@ -559,12 +559,12 @@ export function useTeacherStudentManagement() {
   const { page, limit, total } = pagination;
   const filteredStudents = useMemo(() => students, [students]);
   const startIndex = (page - 1) * limit;
-  
+
   const paginatedStudents = useMemo(
     () => filteredStudents.slice(startIndex, startIndex + limit),
     [filteredStudents, startIndex, limit]
   );
-  
+
   const displayFrom = filteredStudents.length ? Math.min(startIndex + 1, filteredStudents.length) : 0;
   const displayTo = Math.min(startIndex + paginatedStudents.length, filteredStudents.length);
 
@@ -600,40 +600,40 @@ export function useTeacherStudentManagement() {
     classStatistics,
     paginatedStudents,
     filteredStudents,
-    
+
     // Loading & Error
     loading,
     error,
-    
+
     // Filters
     searchTerm,
     setSearchTerm,
     selectedClass,
     setSelectedClass,
-    
+
     // View
     viewMode,
     setViewMode,
-    
+
     // Selection
     selectedStudents,
     toggleStudentSelection,
     toggleSelectAll,
     clearSelection,
-    
+
     // Pagination
     pagination: { ...pagination, total: filteredStudents.length },
     displayFrom,
     displayTo,
     handlePageChange,
     handleLimitChange,
-    
+
     // Monitor
     selectedMonitorId,
     setSelectedMonitorId,
     assigningMonitor,
     handleAssignMonitor,
-    
+
     // Modals
     modals,
     selectedStudent,
@@ -644,11 +644,11 @@ export function useTeacherStudentManagement() {
     openAddModal,
     closeModals,
     closeModal,
-    
+
     // Form
     formData,
     setFormData,
-    
+
     // Actions
     loadData,
     handleAddStudent,

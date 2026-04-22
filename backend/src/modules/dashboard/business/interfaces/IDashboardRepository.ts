@@ -61,7 +61,7 @@ export interface IDashboardRepository {
   
   getTotalRegistrationsCount(fromDate: Date): Promise<number>;
   
-  getAdminOverviewStats(): Promise<AdminOverviewStats>;
+  getAdminOverviewStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminOverviewStats>;
   
   getClassRegistrations(lopId: string, activityFilter?: DashboardActivityFilter): Promise<ClassRegistration[]>;
 }

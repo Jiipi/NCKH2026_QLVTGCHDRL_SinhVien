@@ -23,7 +23,7 @@ export function createAuthController(): AuthController {
 
   // Application layer (Use Cases)
   const loginUseCase = new LoginUseCase(authRepository, hashService, tokenService, otpService);
-  const registerUseCase = new RegisterUseCase(authRepository as any, hashService, tokenService);
+  const registerUseCase = new RegisterUseCase(authRepository as unknown as ConstructorParameters<typeof RegisterUseCase>[0], hashService, tokenService);
   const changePasswordUseCase = new ChangePasswordUseCase(authRepository, hashService);
   const forgotPasswordUseCase = new ForgotPasswordUseCase(authRepository, otpService);
   const resetPasswordUseCase = new ResetPasswordUseCase(authRepository, hashService, otpService);

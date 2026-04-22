@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  Upload, 
-  Download, 
-  FileSpreadsheet, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Upload,
+  Download,
+  FileSpreadsheet,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   ArrowLeft,
   Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import http from '../../../../../shared/services/api/client';
+import http from '../../../../../shared/api/http';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
 
 export default function ImportStudents() {
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useNotification();
-  
+
   const [file, setFile] = useState(null);
   const [previewData, setPreviewData] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -55,11 +55,11 @@ export default function ImportStudents() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await http.post('/teacher/students/preview', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       const data = response.data?.data || { valid: [], invalid: [] };
       setValidationResults(data);
       setPreviewData([...data.valid, ...data.invalid]);
@@ -85,11 +85,11 @@ export default function ImportStudents() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await http.post('/teacher/students/import', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       showSuccess(`Import thành công ${response.data?.data?.imported || 0} sinh viên`);
       navigate('/teacher/students');
     } catch (err) {
@@ -126,7 +126,7 @@ export default function ImportStudents() {
       link.href = URL.createObjectURL(blob);
       link.download = 'mau_import_sinh_vien.csv';
       link.click();
-      
+
       showSuccess('Đã tải xuống file mẫu');
     } catch (e) {
       showError('Không thể tạo file mẫu. Vui lòng thử lại.');

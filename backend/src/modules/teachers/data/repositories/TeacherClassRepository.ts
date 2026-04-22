@@ -24,7 +24,6 @@ class TeacherClassRepository {
    * @returns Array of classes
    */
   async getTeacherClasses(teacherId: string, include: Prisma.LopInclude = {}) {
-    console.log('[getTeacherClasses] teacherId=', teacherId);
     const result = await prisma.lop.findMany({
       where: { chu_nhiem: teacherId },
       include: {
@@ -37,7 +36,6 @@ class TeacherClassRepository {
       },
       orderBy: { ten_lop: 'asc' }
     });
-    console.log('[getTeacherClasses] found', result.length, 'classes');
     return result;
   }
 

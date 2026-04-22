@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type {
   ISearchRepository,
   SearchOptions,
@@ -19,11 +20,11 @@ import type {
 } from '../../business/interfaces/ISearchRepository';
 
 class SearchRepository implements ISearchRepository {
-  async searchActivities(filters: object, options: SearchOptions = {}): Promise<ActivityResult[]> {
+  async searchActivities(filters: Prisma.HoatDongWhereInput, options: SearchOptions = {}): Promise<ActivityResult[]> {
     const { take = 5, orderBy = { ngay_tao: 'desc' } } = options;
     
     return await prisma.hoatDong.findMany({
-      where: filters as any,
+      where: filters,
       select: {
         id: true,
         ten_hd: true,
@@ -45,11 +46,11 @@ class SearchRepository implements ISearchRepository {
     }) as unknown as ActivityResult[];
   }
 
-  async searchStudents(filters: object, options: SearchOptions = {}): Promise<StudentResult[]> {
+  async searchStudents(filters: Prisma.SinhVienWhereInput, options: SearchOptions = {}): Promise<StudentResult[]> {
     const { take = 5 } = options;
     
     return await prisma.sinhVien.findMany({
-      where: filters as any,
+      where: filters,
       select: {
         nguoi_dung_id: true,
         mssv: true,
@@ -70,11 +71,11 @@ class SearchRepository implements ISearchRepository {
     }) as unknown as StudentResult[];
   }
 
-  async searchClasses(filters: object, options: SearchOptions = {}): Promise<ClassResult[]> {
+  async searchClasses(filters: Prisma.LopWhereInput, options: SearchOptions = {}): Promise<ClassResult[]> {
     const { take = 5 } = options;
     
     return await prisma.lop.findMany({
-      where: filters as any,
+      where: filters,
       select: {
         id: true,
         ten_lop: true,
@@ -85,11 +86,11 @@ class SearchRepository implements ISearchRepository {
     }) as unknown as ClassResult[];
   }
 
-  async searchTeachers(filters: object, options: SearchOptions = {}): Promise<TeacherResult[]> {
+  async searchTeachers(filters: Prisma.NguoiDungWhereInput, options: SearchOptions = {}): Promise<TeacherResult[]> {
     const { take = 5 } = options;
     
     return await prisma.nguoiDung.findMany({
-      where: filters as any,
+      where: filters,
       select: {
         id: true,
         ho_ten: true,

@@ -19,15 +19,29 @@ class GetPointsDetailUseCase {
     this.pointsRepository = pointsRepository;
   }
 
-  async execute(userId: string, filters: PointsFilters, pagination: PaginationParams): Promise<unknown> {
+  async execute(
+    userId: string, 
+    filters: PointsFilters, 
+    pagination: PaginationParams,
+    scope?: { where: any; permissions: any },
+    semester?: { hoc_ky: string; nam_hoc: string }
+  ): Promise<unknown> {
     const sinhVien = await this.pointsRepository.findStudentByUserId(userId);
     if (!sinhVien) {
       throw new NotFoundError('Không tìm thấy thông tin sinh viên');
     }
 
+    // Merge filters with scope - prioritize semester from middleware
+    const finalFilters = {
+      ...filters,
+      ...(semester && { 
+        semester: `${semester.hoc_ky}_${semester.nam_hoc.split('-')[0]}` 
+      })
+    };
+
     const { registrations, total } = await this.pointsRepository.findRegistrationsWithPagination(
       sinhVien.id,
-      filters,
+      finalFilters,
       pagination
     );
 

@@ -1,8 +1,7 @@
 import type { NguoiDung } from '@prisma/client';
 import type IUserRepository from '../interfaces/IUserRepository';
-const ListUsersDto = require('../dto/ListUsersDto');
-const { buildScope } = require('../../../../app/scopes/scopeBuilder');
-const { prisma } = require('../../../../data/infrastructure/prisma/client');
+import ListUsersDto from '../dto/ListUsersDto';
+import { buildScope } from '../../../../app/scopes/scopeBuilder';
 
 interface AuthUser {
   id: string | number;
@@ -114,33 +113,12 @@ class ListUsersUseCase {
     // Fallback logic for teacher role
     if (teacherRequested && result.items.length === 0) {
       const roleVariants = ['GIANG_VIEN','GIANG VIEN','Giảng viên','GIẢNG_VIÊN','GV'];
-      const variantResult = await prisma.nguoiDung.findMany({
-        where: {
-          trang_thai: 'hoat_dong',
-          vai_tro: { ten_vt: { in: roleVariants, mode: 'insensitive' } }
-        },
-        include: {
-          vai_tro: true,
-          sinh_vien: { include: { lop: true } }
-        }
-      });
+      const variantResult = await this.userRepository.findByRoleNames(roleVariants);
       if (variantResult.length > 0) {
-        result = { items: variantResult, total: variantResult.length };
+        result = { items: variantResult as FindManyResult['items'], total: variantResult.length };
       } else {
-        const classRows = await prisma.lop.findMany({
-          select: { id: true, ten_lop: true, chu_nhiem: true }
-        });
-        const teacherIds = [...new Set(classRows.map((c: { chu_nhiem?: string }) => c.chu_nhiem).filter(Boolean))] as string[];
-        if (teacherIds.length) {
-          const teacherUsers = await prisma.nguoiDung.findMany({
-            where: { id: { in: teacherIds } },
-            include: {
-              vai_tro: true,
-              sinh_vien: { include: { lop: true } }
-            }
-          });
-          result = { items: teacherUsers, total: teacherUsers.length };
-        }
+        const teacherUsers = await this.userRepository.findByTeacherClassAssignments();
+        result = { items: teacherUsers as FindManyResult['items'], total: teacherUsers.length };
       }
     }
 

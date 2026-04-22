@@ -140,7 +140,7 @@ function NotificationContainer(): React.JSX.Element | null {
 
   return React.createElement(
     'div',
-    { className: 'fixed top-4 right-4 z-50 space-y-2' },
+    { className: 'fixed top-4 right-4 z-50 space-y-2', 'aria-live': 'polite', 'aria-atomic': 'false', role: 'status' },
     notifications.map(notification => 
       React.createElement(ToastNotification, {
         key: notification.id,
@@ -232,6 +232,7 @@ function ToastNotification({ notification, onClose }) {
                 {
                   className: 'bg-white rounded-full inline-flex text-gray-400 hover:text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 transition-colors',
                   onClick: onClose,
+                  'aria-label': 'Đóng thông báo',
                 },
                 React.createElement(X, { className: 'h-4 w-4' })
               )
@@ -251,7 +252,7 @@ function ConfirmModal() {
 
   return React.createElement(
     'div',
-    { className: 'fixed inset-0 z-50 overflow-y-auto flex items-center justify-center' },
+    { className: 'fixed inset-0 z-50 overflow-y-auto flex items-center justify-center', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'confirm-modal-title' },
     React.createElement(
       'div',
       { className: 'flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0' },
@@ -295,7 +296,7 @@ function ConfirmModal() {
                   [
                     React.createElement(
                       'h3',
-                      { key: 'title', className: 'text-lg leading-6 font-medium text-gray-900' },
+                      { key: 'title', id: 'confirm-modal-title', className: 'text-lg leading-6 font-medium text-gray-900' },
                       confirmModal.title || 'Xác nhận'
                     ),
                     React.createElement(

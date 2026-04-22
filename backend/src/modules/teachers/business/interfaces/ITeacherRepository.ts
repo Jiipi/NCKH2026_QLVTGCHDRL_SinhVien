@@ -35,6 +35,8 @@ export interface ITeacherRepository {
   getTeacherStudents(teacherId: string, filters?: TeacherStudentFilters): Promise<TeacherStudent[]>;
   exportStudents(teacherId: string): Promise<TeacherStudent[]>;
   createStudent(teacherId: string, payload: CreateStudentPayload): Promise<CreateStudentResult>;
+  updateStudent(teacherId: string, studentId: string, payload: UpdateStudentPayload): Promise<CreateStudentResult>;
+  deleteStudent(teacherId: string, studentId: string): Promise<boolean>;
 
   // Activities
   getPendingActivitiesList(teacherId: string, semester?: string | null, limit?: number, classId?: string | null): Promise<PendingActivity[]>;
@@ -60,6 +62,22 @@ export interface CreateStudentPayload {
   sdt?: string | null;
   ten_dn: string;
   mat_khau: string;
+}
+
+/**
+ * Payload for updating a student
+ */
+export interface UpdateStudentPayload {
+  ho_ten?: string;
+  email?: string;
+  mssv?: string;
+  ngay_sinh?: string | Date;
+  gt?: string;
+  lop_id?: string;
+  dia_chi?: string | null;
+  sdt?: string | null;
+  ten_dn?: string;
+  mat_khau?: string;
 }
 
 /**
@@ -165,6 +183,14 @@ export abstract class BaseTeacherRepository implements ITeacherRepository {
   }
 
   async createStudent(_teacherId: string, _payload: CreateStudentPayload): Promise<CreateStudentResult> {
+    throw new Error('Method not implemented');
+  }
+
+  async updateStudent(_teacherId: string, _studentId: string, _payload: UpdateStudentPayload): Promise<CreateStudentResult> {
+    throw new Error('Method not implemented');
+  }
+
+  async deleteStudent(_teacherId: string, _studentId: string): Promise<boolean> {
     throw new Error('Method not implemented');
   }
 

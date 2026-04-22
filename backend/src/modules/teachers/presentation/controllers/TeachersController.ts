@@ -28,6 +28,7 @@ import type GetClassStatisticsUseCase from '../../business/services/GetClassStat
 import type AssignClassMonitorUseCase from '../../business/services/AssignClassMonitorUseCase';
 import type CreateStudentUseCase from '../../business/services/CreateStudentUseCase';
 import type ExportStudentsUseCase from '../../business/services/ExportStudentsUseCase';
+import type { TeacherStudent } from '../../teachers.types';
 import type GetReportStatisticsUseCase from '../../business/services/GetReportStatisticsUseCase';
 
 export interface AuthenticatedRequest extends Request {
@@ -37,6 +38,11 @@ export interface AuthenticatedRequest extends Request {
     role: string;
     vai_tro_id?: string;
     vai_tro?: { ten_vt: string };
+  };
+  semester?: {
+    hoc_ky: string;
+    nam_hoc: string;
+    key: string;
   };
 }
 
@@ -168,7 +174,7 @@ class TeachersController {
 
   async approveActivity(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
-      const activity = await this.useCases.approveActivity.execute(req.params.id, req.user!);
+      const activity = await this.useCases.approveActivity.execute(req.params.id, req.user!, req.semester);
       return sendResponse(res, 200, ApiResponse.success(activity, 'Đã duyệt hoạt động thành công'));
     } catch (error) {
       logError('Approve activity error', error);
@@ -182,7 +188,7 @@ class TeachersController {
   async rejectActivity(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
       const { reason } = req.body;
-      const activity = await this.useCases.rejectActivity.execute(req.params.id, reason, req.user!);
+      const activity = await this.useCases.rejectActivity.execute(req.params.id, reason, req.user!, req.semester);
       return sendResponse(res, 200, ApiResponse.success(activity, 'Đã từ chối hoạt động'));
     } catch (error) {
       logError('Reject activity error', error);
@@ -363,7 +369,7 @@ class TeachersController {
       const format = String(req.query.format || 'xlsx').toLowerCase();
       const students = await this.useCases.exportStudents.execute(req.user!);
 
-      const rows = students.map((s: any) => ({
+      const rows = students.map((s: TeacherStudent & Record<string, unknown>) => ({
         MSSV: s.mssv,
         'Họ và tên': s.ho_ten,
         Email: s.email,
@@ -378,12 +384,12 @@ class TeachersController {
         const headers = Object.keys(rows[0] || {
           MSSV: '', 'Họ và tên': '', Email: '', Lớp: '', Khoa: '', 'Niên khóa': '', 'Số điện thoại': ''
         });
-        const escape = (v: any): string => {
+        const escape = (v: unknown): string => {
           const s = v == null ? '' : String(v);
           if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
           return s;
         };
-        const lines = [headers.join(',')].concat(rows.map((r: any) => headers.map(h => escape(r[h])).join(',')));
+        const lines = [headers.join(',')].concat(rows.map((r: Record<string, unknown>) => headers.map(h => escape(r[h])).join(',')));
         const csv = '\uFEFF' + lines.join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="danh_sach_sinh_vien_${dateStr}.csv"`);

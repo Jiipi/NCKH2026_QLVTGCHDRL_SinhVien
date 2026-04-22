@@ -1,9 +1,9 @@
 import type { DangKyHoatDong, SinhVien, HoatDong, Lop, TrangThaiDangKy } from '@prisma/client';
 import type IMonitorRepository from '../interfaces/IMonitorRepository';
 
-const SemesterClosure = require('../../../../business/services/semesterClosure.service');
-const { NotFoundError } = require('../../../../core/errors/AppError');
-const { logInfo, logError } = require('../../../../core/logger');
+import SemesterClosure from '../../../../business/services/semesterClosure.service';
+import { NotFoundError } from '../../../../core/errors/AppError';
+import { logInfo, logError } from '../../../../core/logger';
 
 /**
  * RejectRegistrationUseCase
@@ -27,9 +27,9 @@ class RejectRegistrationUseCase {
         throw new NotFoundError('Không tìm thấy đăng ký');
       }
 
-      SemesterClosure.checkWritableForClassSemesterOrThrow({ 
-        classId: registration.sinh_vien?.lop?.id, 
-        hoc_ky: registration.hoat_dong?.hoc_ky, 
+      SemesterClosure.checkWritableForClassSemesterOrThrow({
+        classId: registration.sinh_vien?.lop?.id,
+        hoc_ky: registration.hoat_dong?.hoc_ky,
         nam_hoc: registration.hoat_dong?.nam_hoc,
         userRole
       });
@@ -45,7 +45,7 @@ class RejectRegistrationUseCase {
         const firstLoai = await this.monitorRepository.findFirstNotificationType();
         const loaiId = loai?.id || firstLoai?.id;
         const recipientId = registration?.sinh_vien?.nguoi_dung_id;
-        
+
         if (loaiId && recipientId) {
           await this.monitorRepository.createNotification({
             tieu_de: 'Đăng ký bị từ chối',

@@ -7,9 +7,9 @@
  */
 
 import http from '../../../shared/api/http';
-import { 
-  handleApiError, 
-  createSuccessResponse, 
+import {
+  handleApiError,
+  createSuccessResponse,
   createValidationError,
   extractApiData,
   extractArrayItems
@@ -38,12 +38,12 @@ export const teacherActivitiesApi = {
     try {
       const params: Record<string, unknown> = { page, limit };
       if (semester) params.semester = semester;
-      
+
       const response = await http.get('/activities', { params });
       const root = extractApiData<Record<string, unknown>>(response, {});
       const items = extractArrayItems(root);
       const pagination = (root.pagination || {}) as Record<string, unknown>;
-      
+
       return createSuccessResponse({
         items,
         total: typeof pagination.total === 'number' ? pagination.total : items.length,
@@ -62,7 +62,7 @@ export const teacherActivitiesApi = {
     if (!id) {
       return createValidationError('id là bắt buộc');
     }
-    
+
     try {
       const response = await http.get(`/activities/${id}`);
       return createSuccessResponse(extractApiData(response, null));
@@ -74,14 +74,16 @@ export const teacherActivitiesApi = {
   /**
    * Phê duyệt hoạt động
    * @param {string|number} id - ID hoạt động
+   * @param {string} [semester] - Học kỳ
    */
-  async approveActivity(id) {
+  async approveActivity(id: string | number, semester?: string) {
     if (!id) {
       return createValidationError('id là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${id}/approve`);
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${id}/approve`, undefined, config);
       emitActivitiesChange({ action: 'approve', id });
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
@@ -93,17 +95,19 @@ export const teacherActivitiesApi = {
    * Từ chối hoạt động
    * @param {string|number} id - ID hoạt động
    * @param {string} reason - Lý do từ chối
+   * @param {string} [semester] - Học kỳ
    */
-  async rejectActivity(id, reason) {
+  async rejectActivity(id: string | number, reason: string, semester?: string) {
     if (!id) {
       return createValidationError('id là bắt buộc');
     }
     if (!reason) {
       return createValidationError('Lý do từ chối là bắt buộc');
     }
-    
+
     try {
-      const response = await http.post(`/teacher/activities/${id}/reject`, { reason });
+      const config = semester ? { params: { semester } } : undefined;
+      const response = await http.post(`/teacher/activities/${id}/reject`, { reason }, config);
       emitActivitiesChange({ action: 'reject', id });
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {

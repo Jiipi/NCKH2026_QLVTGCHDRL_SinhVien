@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, RefreshCw, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
-import http from '../../../../../shared/services/api/client';
+import http from '../../../../../shared/api/http';
 import { getStudentAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 import useSemesterData from '../../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../../shared/lib/semester';
@@ -11,7 +11,7 @@ export default function ClassStudents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('points_desc');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
-  
+
   const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(null);
@@ -38,14 +38,14 @@ export default function ClassStudents() {
       setLoading(true);
       const endpoints = ['/monitor/students', '/class/students', '/teacher/students'];
       let response = null;
-      
+
       // Always send semester parameter with pagination
-      const params = { 
+      const params = {
         semester,
         page: pagination.page,
         limit: pagination.limit
       };
-      
+
       for (const ep of endpoints) {
         try {
           response = await http.get(ep, { params });
@@ -54,15 +54,15 @@ export default function ClassStudents() {
           continue;
         }
       }
-      
+
       const responseData = response?.data?.data || response?.data || {};
       const raw = responseData.students || responseData.items || responseData || [];
       const total = responseData.total || (Array.isArray(raw) ? raw.length : 0);
-      
+
       const normalized = (Array.isArray(raw) ? raw : []).map(sv => {
         const nguoiDung = sv.nguoi_dung || {};
         const lop = sv.lop || {};
-        
+
         return {
           id: sv.id,
           mssv: sv.mssv || '',
@@ -79,20 +79,23 @@ export default function ClassStudents() {
             ten_lop: lop.ten_lop || '',
             khoa: lop.khoa || ''
           },
-          totalPoints: sv._count?.diem_danh || sv.totalPoints || 0,
-          activitiesJoined: sv._count?.dang_ky_hd || sv.activitiesJoined || 0,
+          // Use totalPoints from backend (sum of diem_rl), fallback to calculating from dang_ky_hd array
+          totalPoints: sv.totalPoints ||
+            (sv.dang_ky_hd || []).reduce((sum, reg) => sum + Number(reg.hoat_dong?.diem_rl || 0), 0) ||
+            0,
+          activitiesJoined: sv.activitiesJoined || sv._count?.dang_ky_hd || (sv.dang_ky_hd || []).length || 0,
           rank: sv.rank || 0,
           status: sv.status || 'active',
           lastActivityDate: sv.lastActivityDate || new Date().toISOString()
         };
       });
-      
+
       // Add ranking
       const sorted = normalized.sort((a, b) => b.totalPoints - a.totalPoints);
       sorted.forEach((student, index) => {
         student.rank = index + 1;
       });
-      
+
       setStudents(sorted);
       setPagination(prev => ({ ...prev, total }));
       setError('');
@@ -188,12 +191,11 @@ export default function ClassStudents() {
     const avatar = getStudentAvatar(student);
 
     return (
-      <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${
-        isTopRanked ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
-      }`}>
+      <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${isTopRanked ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
+        }`}>
         {/* Decorative gradient */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        
+
         {/* Top performer badge */}
         {isTopRanked && (
           <div className="absolute top-0 right-0">
@@ -249,7 +251,7 @@ export default function ClassStudents() {
               </span>
             </div>
             <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className={`absolute top-0 left-0 h-full bg-gradient-to-r ${getProgressColor(student.totalPoints)} transition-all duration-500 rounded-full`}
                 style={{ width: `${progressPercent}%` }}
               >
@@ -335,7 +337,7 @@ export default function ClassStudents() {
         {/* Main Content Container with Glassmorphism */}
         <div className="relative z-10 p-8">
           <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-            
+
             {/* Top Bar with Badge */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -382,7 +384,7 @@ export default function ClassStudents() {
                   <div className="absolute -bottom-2 left-0 right-0 h-4 bg-cyan-400/30 blur-sm"></div>
                 </span>
               </h1>
-              
+
               <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
                 Theo dõi thành tích và tiến độ rèn luyện của sinh viên trong lớp
               </p>
@@ -424,7 +426,8 @@ export default function ClassStudents() {
         </div>
 
         {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes grid-move {
             0% { transform: translateY(0); }
             100% { transform: translateY(50px); }
@@ -510,18 +513,18 @@ export default function ClassStudents() {
           ))}
         </div>
       ) : (
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-300 p-16 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="h-12 w-12 text-indigo-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Không tìm thấy sinh viên</h3>
-              <p className="text-gray-600 text-lg">
-                Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
-              </p>
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-300 p-16 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users className="h-12 w-12 text-indigo-600" />
             </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Không tìm thấy sinh viên</h3>
+            <p className="text-gray-600 text-lg">
+              Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
+            </p>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Pagination Controls */}
       {pagination.total > pagination.limit && (
@@ -609,7 +612,7 @@ const StudentDetailModal = ({ student, onClose }) => {
               <span className="text-4xl font-bold text-indigo-600">{student.totalPoints}</span>
             </div>
             <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               ></div>

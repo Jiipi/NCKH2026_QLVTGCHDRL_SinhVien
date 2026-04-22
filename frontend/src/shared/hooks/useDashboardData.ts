@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import http from '../api/http';
+import { API_ENDPOINTS } from '../api/endpoints';
 
 /**
  * Interface for dashboard data parameters
@@ -53,7 +54,7 @@ export const useUpcomingActivities = ({ semester, autoFetch = true }: { semester
 
       // ✅ Sử dụng CORE endpoint - dashboard module
       // Backend sẽ tự động filter theo lớp của user
-      const response = await http.get('/core/dashboard/student', {
+      const response = await http.get(API_ENDPOINTS.dashboard.student, {
         params: { semesterValue: semester }
       });
 
@@ -118,7 +119,7 @@ export const useMyActivities = ({ semester, autoFetch = true }: { semester?: str
 
       console.log('[useMyActivities] Fetching for semester:', semester);
 
-      const response = await http.get('/core/dashboard/activities/me', {
+      const response = await http.get(API_ENDPOINTS.dashboard.activitiesMe, {
         params: { semesterValue: semester }
       });
 
@@ -212,21 +213,21 @@ export const useStudentSummary = ({ semester, autoFetch = true }: { semester?: s
 
   const calculateGoal = useCallback((points) => {
     const p = Number(points || 0);
-    if (p < 50) return { 
-      goalPoints: Math.max(0, Math.ceil(50 - p)), 
-      goalText: `Cần ${Math.max(0, Math.ceil(50 - p))} điểm để đạt Trung bình` 
+    if (p < 50) return {
+      goalPoints: Math.max(0, Math.ceil(50 - p)),
+      goalText: `Cần ${Math.max(0, Math.ceil(50 - p))} điểm để đạt Trung bình`
     };
-    if (p < 65) return { 
-      goalPoints: Math.max(0, Math.ceil(65 - p)), 
-      goalText: `Cần ${Math.max(0, Math.ceil(65 - p))} điểm để đạt Khá` 
+    if (p < 65) return {
+      goalPoints: Math.max(0, Math.ceil(65 - p)),
+      goalText: `Cần ${Math.max(0, Math.ceil(65 - p))} điểm để đạt Khá`
     };
-    if (p < 80) return { 
-      goalPoints: Math.max(0, Math.ceil(80 - p)), 
-      goalText: `Cần ${Math.max(0, Math.ceil(80 - p))} điểm để đạt Tốt` 
+    if (p < 80) return {
+      goalPoints: Math.max(0, Math.ceil(80 - p)),
+      goalText: `Cần ${Math.max(0, Math.ceil(80 - p))} điểm để đạt Tốt`
     };
-    if (p < 90) return { 
-      goalPoints: Math.max(0, Math.ceil(90 - p)), 
-      goalText: `Cần ${Math.max(0, Math.ceil(90 - p))} điểm để đạt Xuất sắc` 
+    if (p < 90) return {
+      goalPoints: Math.max(0, Math.ceil(90 - p)),
+      goalText: `Cần ${Math.max(0, Math.ceil(90 - p))} điểm để đạt Xuất sắc`
     };
     return { goalPoints: 0, goalText: 'ĐÃ ĐẠT XUẤT SẮC' };
   }, []);
@@ -244,8 +245,8 @@ export const useStudentSummary = ({ semester, autoFetch = true }: { semester?: s
 
       // Fetch cả dashboard và profile - SỬ DỤNG CORE ENDPOINT
       const [dashboardRes, profileRes] = await Promise.all([
-        http.get('/core/dashboard/student', { params: { semesterValue: semester } }),
-        http.get('/core/profile')
+        http.get(API_ENDPOINTS.dashboard.student, { params: { semesterValue: semester } }),
+        http.get(API_ENDPOINTS.profile.get)
       ]);
 
       const apiData = dashboardRes.data?.data || dashboardRes.data || {};
@@ -265,12 +266,12 @@ export const useStudentSummary = ({ semester, autoFetch = true }: { semester?: s
       // Extract tổng quan
       const tongQuan = apiData.tong_quan || {};
       const soSanhLop = apiData.so_sanh_lop || {};
-      
+
       const totalPoints = Number(tongQuan.tong_diem || 0);
       const activitiesJoined = tongQuan.tong_hoat_dong || 0;
       const target = Number(tongQuan.muc_tieu || 100);
       const progress = Math.round(Math.min((totalPoints / target) * 100, 100) * 10) / 10;
-      
+
       const goal = calculateGoal(totalPoints);
 
       const upcomingCount = (apiData.hoat_dong_sap_toi || []).length;
@@ -352,7 +353,7 @@ export const useClassStats = ({ semester, enabled = true }: { semester?: string;
 
       // ✅ Sử dụng CORE endpoint
       const [classDashboardRes, registrationsRes] = await Promise.all([
-        http.get('/core/monitor/dashboard', { params: { semester } }),
+        http.get(API_ENDPOINTS.dashboard.monitor, { params: { semester } }),
         http.get('/core/monitor/registrations', { params: { status: 'all', semester } })
           .catch(() => ({ data: { data: [] } }))
       ]);
@@ -362,15 +363,15 @@ export const useClassStats = ({ semester, enabled = true }: { semester?: string;
 
       // Normalize class summary
       const classSummary = classData?.summary || classData?.tong_quan_lop || {};
-      
+
       // Normalize top students
       const topStudents = classData?.topStudents || classData?.top_sinh_vien || [];
 
       // Count approvals
-      const registrations = Array.isArray(regsData?.items) 
-        ? regsData.items 
+      const registrations = Array.isArray(regsData?.items)
+        ? regsData.items
         : (Array.isArray(regsData) ? regsData : []);
-      
+
       const pendingCount = registrations.filter(r => r.trang_thai_dk === 'cho_duyet').length;
 
       setClassStats({
@@ -417,53 +418,152 @@ export const useClassStats = ({ semester, enabled = true }: { semester?: string;
 /**
  * Hook tổng hợp: Lấy toàn bộ dashboard data
  * Sử dụng khi cần tất cả data cùng lúc
+ * 
+ * ✅ FIXED: Trước đây gọi /core/dashboard/student 2 lần (1 lần từ useUpcomingActivities,
+ * 1 lần từ useStudentSummary). Giờ gọi 1 lần duy nhất và share data.
  */
 export const useDashboardData = ({ semester, role = 'student' }: DashboardDataParams = {}) => {
-  const upcomingHook = useUpcomingActivities({ semester });
+  // ── Shared state for student dashboard (called ONCE) ──
+  const [sharedDashboardData, setSharedDashboardData] = useState<Record<string, unknown> | null>(null);
+  const [sharedProfileData, setSharedProfileData] = useState<Record<string, unknown> | null>(null);
+  const [sharedLoading, setSharedLoading] = useState(false);
+  const [sharedError, setSharedError] = useState<string | null>(null);
+
+  // ── Derived state: upcoming activities ──
+  const [upcoming, setUpcoming] = useState([]);
+
+  // ── Derived state: my activities ──
   const myActivitiesHook = useMyActivities({ semester });
-  const summaryHook = useStudentSummary({ semester });
-  
+
+  // ── Derived state: summary ──
+  const [summary, setSummary] = useState({
+    totalPoints: 0, activitiesJoined: 0, activitiesUpcoming: 0,
+    classRank: 1, totalStudents: 1, progress: 0,
+    targetPoints: 100, goalText: '', goalPoints: 0
+  });
+  const [userProfile, setUserProfile] = useState(null);
+  const [studentInfo, setStudentInfo] = useState({ mssv: '', ten_lop: '' });
+
+  const calculateGoal = useCallback((points) => {
+    const p = Number(points || 0);
+    if (p < 50) return { goalPoints: Math.max(0, Math.ceil(50 - p)), goalText: `Cần ${Math.max(0, Math.ceil(50 - p))} điểm để đạt Trung bình` };
+    if (p < 65) return { goalPoints: Math.max(0, Math.ceil(65 - p)), goalText: `Cần ${Math.max(0, Math.ceil(65 - p))} điểm để đạt Khá` };
+    if (p < 80) return { goalPoints: Math.max(0, Math.ceil(80 - p)), goalText: `Cần ${Math.max(0, Math.ceil(80 - p))} điểm để đạt Tốt` };
+    if (p < 90) return { goalPoints: Math.max(0, Math.ceil(90 - p)), goalText: `Cần ${Math.max(0, Math.ceil(90 - p))} điểm để đạt Xuất sắc` };
+    return { goalPoints: 0, goalText: 'ĐÃ ĐẠT XUẤT SẮC' };
+  }, []);
+
+  // ── Single fetch for student dashboard + profile ──
+  const fetchSharedData = useCallback(async () => {
+    if (!semester) return;
+    try {
+      setSharedLoading(true);
+      setSharedError(null);
+
+      console.log('[useDashboardData] Fetching student dashboard + profile (SINGLE call)');
+
+      const [dashboardRes, profileRes] = await Promise.all([
+        http.get(API_ENDPOINTS.dashboard.student, { params: { semesterValue: semester } }),
+        http.get(API_ENDPOINTS.profile.get)
+      ]);
+
+      const apiData = dashboardRes.data?.data || dashboardRes.data || {};
+      const profileData = profileRes.data?.data || profileRes.data || {};
+
+      setSharedDashboardData(apiData);
+      setSharedProfileData(profileData);
+
+      // ── Derive upcoming activities ──
+      const upcomingData = (apiData as Record<string, unknown>).hoat_dong_sap_toi || [];
+      setUpcoming(upcomingData as never[]);
+
+      // ── Derive summary ──
+      setUserProfile(profileData as never);
+      if ((apiData as Record<string, unknown>).sinh_vien) {
+        const sv = (apiData as Record<string, unknown>).sinh_vien as Record<string, unknown>;
+        setStudentInfo({
+          mssv: (sv.mssv as string) || '',
+          ten_lop: ((sv.lop as Record<string, unknown>)?.ten_lop as string) || ''
+        });
+      }
+
+      const tongQuan = (apiData as Record<string, unknown>).tong_quan as Record<string, unknown> || {};
+      const soSanhLop = (apiData as Record<string, unknown>).so_sanh_lop as Record<string, unknown> || {};
+      const totalPoints = Number(tongQuan.tong_diem || 0);
+      const activitiesJoined = (tongQuan.tong_hoat_dong as number) || 0;
+      const target = Number(tongQuan.muc_tieu || 100);
+      const progress = Math.round(Math.min((totalPoints / target) * 100, 100) * 10) / 10;
+      const goal = calculateGoal(totalPoints);
+      const upcomingCount = ((apiData as Record<string, unknown>).hoat_dong_sap_toi as unknown[] || []).length;
+
+      setSummary({
+        totalPoints: Math.round(totalPoints * 10) / 10,
+        activitiesJoined,
+        activitiesUpcoming: upcomingCount,
+        classRank: (soSanhLop.my_rank_in_class as number) || 1,
+        totalStudents: (soSanhLop.total_students_in_class as number) || 1,
+        progress,
+        targetPoints: target,
+        goalText: goal.goalText,
+        goalPoints: goal.goalPoints
+      });
+
+      console.log('[useDashboardData] Loaded from single call:', { totalPoints, activitiesJoined, upcomingCount });
+    } catch (err: unknown) {
+      const errorMsg = (err as Error).message || 'Không thể tải dữ liệu dashboard';
+      console.error('[useDashboardData] Error:', err);
+      setSharedError(errorMsg);
+    } finally {
+      setSharedLoading(false);
+    }
+  }, [semester, calculateGoal]);
+
+  useEffect(() => {
+    if (semester) {
+      fetchSharedData();
+    }
+  }, [semester, fetchSharedData]);
+
   // Chỉ fetch class stats nếu role = monitor
-  const classStatsHook = useClassStats({ 
-    semester, 
-    enabled: role === 'monitor' || role === 'class_monitor' 
+  const classStatsHook = useClassStats({
+    semester,
+    enabled: role === 'monitor' || role === 'class_monitor'
   });
 
-  const loading = upcomingHook.loading || myActivitiesHook.loading || summaryHook.loading || classStatsHook.loading;
-  const error = upcomingHook.error || myActivitiesHook.error || summaryHook.error || classStatsHook.error;
+  const loading = sharedLoading || myActivitiesHook.loading || classStatsHook.loading;
+  const error = sharedError || myActivitiesHook.error || classStatsHook.error;
 
   const refresh = useCallback(() => {
-    upcomingHook.refresh();
+    fetchSharedData();
     myActivitiesHook.refresh();
-    summaryHook.refresh();
     if (role === 'monitor' || role === 'class_monitor') {
       classStatsHook.refresh();
     }
-  }, [upcomingHook, myActivitiesHook, summaryHook, classStatsHook, role]);
+  }, [fetchSharedData, myActivitiesHook, classStatsHook, role]);
 
   return {
     // Upcoming activities
-    upcoming: upcomingHook.upcoming,
-    
+    upcoming,
+
     // My activities (personal registrations)
     myActivities: myActivitiesHook.myActivities,
-    
+
     // Summary (points, rank, etc)
-    summary: summaryHook.summary,
-    
+    summary,
+
     // User info
-    userProfile: summaryHook.userProfile,
-    studentInfo: summaryHook.studentInfo,
-    
+    userProfile,
+    studentInfo,
+
     // Class stats (monitor only)
     topStudents: classStatsHook.topStudents,
     classSummary: classStatsHook.classSummary,
     approvals: classStatsHook.approvals,
-    
+
     // States
     loading,
     error,
-    
+
     // Actions
     refresh
   };
@@ -500,7 +600,7 @@ export const useTeacherDashboard = ({ semester }: { semester?: string } = {}) =>
 
       console.log('[useTeacherDashboard] Fetching for semester:', semester || 'current');
 
-      const response = await http.get('/teacher/dashboard', {
+      const response = await http.get(API_ENDPOINTS.dashboard.teacher, {
         params: semester ? { semester } : {}
       });
 
@@ -519,13 +619,13 @@ export const useTeacherDashboard = ({ semester }: { semester?: string } = {}) =>
       });
 
       // pendingActivities from backend - prefer pendingRegistrations if pendingActivities is empty
-      const activities = dashboardData.pendingActivities?.length > 0 
-        ? dashboardData.pendingActivities 
+      const activities = dashboardData.pendingActivities?.length > 0
+        ? dashboardData.pendingActivities
         : (dashboardData.pendingRegistrations || []);
       setRecentActivities(activities);
       setRecentNotifications(dashboardData.recentNotifications || []);
       setClasses(dashboardData.classes || []);
-      
+
       // Also expose students data if available - normalize API shape
       if (dashboardData.students) {
         const normalizedStudents = dashboardData.students.map((s: Record<string, unknown>) => ({
@@ -589,7 +689,7 @@ export const useAdminDashboard = () => {
 
       console.log('[useAdminDashboard] Fetching system stats...');
 
-      const response = await http.get('/admin/dashboard');
+      const response = await http.get(API_ENDPOINTS.dashboard.admin);
       const data = response.data?.data || {};
 
       setStats({

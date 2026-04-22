@@ -27,8 +27,9 @@ class ApproveActivityUseCase {
     this.activityRepository = activityRepository;
   }
 
-  async execute(id: string): Promise<HoatDong> {
-    const activity = await this.activityRepository.findById(id);
+  async execute(id: string, semesterInfo?: { hoc_ky: string; nam_hoc: string }): Promise<HoatDong> {
+    // Override semesterInfo to undefined to find the activity regardless of the current semester filter
+    const activity = await this.activityRepository.findById(id, {}, null, undefined);
 
     if (!activity) {
       throw new NotFoundError('Không tìm thấy hoạt động');

@@ -4,7 +4,7 @@
  * HTTP client gọi Python Face Recognition Service
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import FormData from 'form-data';
 import type {
   IFaceRecognitionClient,
@@ -12,7 +12,8 @@ import type {
   FaceEmbedResponse,
   FaceVerifyRequest,
   FaceVerifyResponse,
-  FaceRegisterResponse
+  FaceRegisterResponse,
+  FaceRegisterMultiResponse
 } from '../business/interfaces';
 
 const FACE_RECOGNITION_URL = process.env.FACE_RECOGNITION_URL || 'http://localhost:5000';
@@ -21,7 +22,6 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
   private client: AxiosInstance;
 
   constructor(baseURL: string = FACE_RECOGNITION_URL) {
-    console.log('[FaceRecognitionClient] Initializing with baseURL:', baseURL);
     this.client = axios.create({
       baseURL,
       timeout: 180000, // 180s - cần thêm thời gian cho load models lần đầu
@@ -29,6 +29,20 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
         'Accept': 'application/json'
       }
     });
+
+    // Add interceptor to retry with localhost if ENOTFOUND (useful when running backend outside docker)
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.code === 'ENOTFOUND' && error.config && !error.config.__isRetry) {
+          console.log('[FaceRecognitionClient] ENOTFOUND, retrying with localhost:5000...');
+          error.config.__isRetry = true;
+          error.config.baseURL = 'http://localhost:5000';
+          return axios.request(error.config);
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   async healthCheck(): Promise<{ status: string; models_loaded: boolean }> {
@@ -54,11 +68,12 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
       });
 
       return response.data;
-    } catch (error: any) {
-      console.error('[FaceRecognitionClient] detectFaces failed:', error.message);
+    } catch (error: unknown) {
+      const axErr = error as AxiosError<{ detail?: string }>;
+      console.error('[FaceRecognitionClient] detectFaces failed:', axErr.message);
       return {
         success: false,
-        message: error.response?.data?.detail || error.message || 'Lỗi phát hiện khuôn mặt',
+        message: axErr.response?.data?.detail || axErr.message || 'Lỗi phát hiện khuôn mặt',
         faces: [],
         face_count: 0
       };
@@ -78,11 +93,12 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
       });
 
       return response.data;
-    } catch (error: any) {
-      console.error('[FaceRecognitionClient] extractEmbedding failed:', error.message);
+    } catch (error: unknown) {
+      const axErr = error as AxiosError<{ detail?: string }>;
+      console.error('[FaceRecognitionClient] extractEmbedding failed:', axErr.message);
       return {
         success: false,
-        message: error.response?.data?.detail || error.message || 'Lỗi trích xuất embedding',
+        message: axErr.response?.data?.detail || axErr.message || 'Lỗi trích xuất embedding',
         embedding: null,
         embedding_dim: 0
       };
@@ -98,11 +114,12 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
       });
 
       return response.data;
-    } catch (error: any) {
-      console.error('[FaceRecognitionClient] verifyEmbeddings failed:', error.message);
+    } catch (error: unknown) {
+      const axErr = error as AxiosError<{ detail?: string }>;
+      console.error('[FaceRecognitionClient] verifyEmbeddings failed:', axErr.message);
       return {
         success: false,
-        message: error.response?.data?.detail || error.message || 'Lỗi xác minh embedding',
+        message: axErr.response?.data?.detail || axErr.message || 'Lỗi xác minh embedding',
         is_match: false,
         similarity: 0,
         threshold: request.threshold || 0.68
@@ -118,26 +135,57 @@ class FaceRecognitionClient implements IFaceRecognitionClient {
         contentType: 'image/jpeg'
       });
 
-      console.log('[FaceRecognitionClient] Sending register request to Python service...');
-      console.log('[FaceRecognitionClient] Image buffer size:', imageBuffer.length, 'bytes');
-
       const response = await this.client.post('/register', formData, {
         headers: formData.getHeaders()
       });
 
-      console.log('[FaceRecognitionClient] Python response:', response.data);
       return response.data;
-    } catch (error: any) {
-      console.error('[FaceRecognitionClient] registerFace failed:', error.message);
-      console.error('[FaceRecognitionClient] Error response status:', error.response?.status);
-      console.error('[FaceRecognitionClient] Error response data:', JSON.stringify(error.response?.data, null, 2));
+    } catch (error: unknown) {
+      const axErr = error as AxiosError<{ detail?: string; message?: string }>;
+      console.error('[FaceRecognitionClient] registerFace failed:', axErr.message);
+      console.error('[FaceRecognitionClient] Error response status:', axErr.response?.status);
+      console.error('[FaceRecognitionClient] Error response data:', JSON.stringify(axErr.response?.data, null, 2));
       return {
         success: false,
-        message: error.response?.data?.detail || error.response?.data?.message || error.message || 'Lỗi đăng ký khuôn mặt',
+        message: axErr.response?.data?.detail || axErr.response?.data?.message || axErr.message || 'Lỗi đăng ký khuôn mặt',
         embedding: null,
         embedding_dim: 0,
         face_detected: false,
         aligned_face_base64: null
+      };
+    }
+  }
+
+  async registerMultiFace(imageBuffers: Buffer[]): Promise<FaceRegisterMultiResponse> {
+    try {
+      const formData = new FormData();
+
+      // Append each image buffer as a separate file
+      imageBuffers.forEach((buffer, index) => {
+        formData.append('files', buffer, {
+          filename: `face_${index + 1}.jpg`,
+          contentType: 'image/jpeg'
+        });
+      });
+
+      const response = await this.client.post('/register-multi', formData, {
+        headers: formData.getHeaders()
+      });
+
+      return response.data;
+    } catch (error: unknown) {
+      const axErr = error as AxiosError<{ detail?: string; message?: string }>;
+      console.error('[FaceRecognitionClient] registerMultiFace failed:', axErr.message);
+      console.error('[FaceRecognitionClient] Error response status:', axErr.response?.status);
+      return {
+        success: false,
+        message: axErr.response?.data?.detail || axErr.response?.data?.message || axErr.message || 'Lỗi đăng ký khuôn mặt đa ảnh',
+        embedding: null,
+        embedding_dim: 0,
+        images_processed: 0,
+        images_total: imageBuffers.length,
+        liveness_scores: [],
+        liveness_all_passed: false
       };
     }
   }

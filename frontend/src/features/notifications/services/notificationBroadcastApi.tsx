@@ -1,4 +1,4 @@
-import http from '../../../shared/services/api/client';
+import http from '../../../shared/api/http';
 
 interface ApiError {
   response?: {
@@ -25,7 +25,7 @@ const handleError = (error: ApiError) => {
   return { success: false as const, error: message };
 };
 
-const extractData = <T = unknown>(response: { data?: { data?: T } | T }): T | null => 
+const extractData = <T = unknown>(response: { data?: { data?: T } | T }): T | null =>
   (response?.data as { data?: T })?.data ?? (response?.data as T) ?? null;
 
 const notificationBroadcastApi = {

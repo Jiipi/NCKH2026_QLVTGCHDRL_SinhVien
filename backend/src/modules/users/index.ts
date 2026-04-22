@@ -21,7 +21,7 @@ export type {
   IUsersController
 } from './users.types';
 
-const routes = require('./presentation/routes/users.routes');
-const validators = require('./business/validators/users.validators');
+import routes from './presentation/routes/users.routes';
+import * as validators from './business/validators/users.validators';
 export { routes, validators };
 module.exports = { routes, validators };

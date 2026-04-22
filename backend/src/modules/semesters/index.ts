@@ -19,11 +19,8 @@ export type {
   ISemestersController
 } from './semesters.types';
 
-// Re-export factory
-export { createSemestersController } from './presentation/semesters.factory';
-
-const routes = require('./presentation/routes/semesters.routes');
-const validators = require('./business/validators/semesters.validators');
-const { createSemestersController } = require('./presentation/semesters.factory');
-export { routes, validators };
+import routes from './presentation/routes/semesters.routes';
+import * as validators from './business/validators/semesters.validators';
+import { createSemestersController } from './presentation/semesters.factory';
+export { routes, validators, createSemestersController };
 module.exports = { routes, validators, createSemestersController };

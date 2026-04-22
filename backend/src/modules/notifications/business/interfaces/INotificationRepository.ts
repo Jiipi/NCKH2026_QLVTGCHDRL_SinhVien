@@ -37,6 +37,11 @@ export interface NotificationWithRelations extends ThongBao {
   nguoi_nhan: { ho_ten: string | null; email: string };
 }
 
+export interface NotificationAdminUser {
+  id: string;
+  ho_ten: string | null;
+}
+
 /**
  * INotificationRepository
  * Interface for notification data access
@@ -85,6 +90,10 @@ abstract class INotificationRepository {
   abstract getStudentClassIds(userId: string): Promise<string[]>;
 
   abstract getTeacherClassIds(userId: string): Promise<string[]>;
+
+  abstract getClassMonitorUserId(classId: string): Promise<string | null>;
+
+  abstract getAdminUsers(): Promise<NotificationAdminUser[]>;
 
   abstract getStudentsByClassIds(classIds: string[]): Promise<string[]>;
 

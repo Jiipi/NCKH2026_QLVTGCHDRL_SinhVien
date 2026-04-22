@@ -59,6 +59,7 @@ export const TeacherActivityGrid: FC<TeacherActivityGridProps> = ({
               <img 
                 src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
                 alt={activity.ten_hd}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
