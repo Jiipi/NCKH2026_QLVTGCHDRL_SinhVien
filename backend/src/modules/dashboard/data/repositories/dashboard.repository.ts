@@ -19,7 +19,8 @@ import type {
   IDashboardRepository,
   AdminOverviewStats,
   ActivityStatsByStatus,
-  ClassRegistration
+  ClassRegistration,
+  AdminChartStats
 } from '../../business/interfaces/IDashboardRepository';
 
 class DashboardRepository implements IDashboardRepository {
@@ -353,6 +354,119 @@ class DashboardRepository implements IDashboardRepository {
         }
       }
     }) as unknown as Promise<ClassRegistration[]>;
+  }
+
+  async getAdminChartStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminChartStats> {
+    const semesterFilter: Prisma.HoatDongWhereInput = semester ? {
+      hoc_ky: semester.hoc_ky as HocKy,
+      nam_hoc: semester.nam_hoc
+    } : {};
+
+    // 1. Activities by type (loai_hd)
+    const activitiesWithType = await prisma.hoatDong.findMany({
+      where: semesterFilter,
+      select: {
+        loai_hd: {
+          select: { ten_loai_hd: true }
+        }
+      }
+    });
+
+    const typeCountMap: Record<string, number> = {};
+    activitiesWithType.forEach(a => {
+      const typeName = a.loai_hd?.ten_loai_hd || 'Khác';
+      typeCountMap[typeName] = (typeCountMap[typeName] || 0) + 1;
+    });
+    const activitiesByType = Object.entries(typeCountMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // 2. Registrations by status
+    const STATUS_LABELS: Record<string, { name: string; color: string }> = {
+      cho_duyet: { name: 'Chờ duyệt', color: '#F59E0B' },
+      da_duyet: { name: 'Đã duyệt', color: '#10B981' },
+      tu_choi: { name: 'Từ chối', color: '#EF4444' },
+      da_tham_gia: { name: 'Đã tham gia', color: '#6366F1' },
+      da_huy: { name: 'Đã hủy', color: '#94A3B8' }
+    };
+
+    const regGrouped = await prisma.dangKyHoatDong.groupBy({
+      by: ['trang_thai_dk'],
+      where: semester ? { hoat_dong: semesterFilter } : undefined,
+      _count: { id: true }
+    });
+
+    const registrationsByStatus = regGrouped.map(g => {
+      const meta = STATUS_LABELS[g.trang_thai_dk] || { name: g.trang_thai_dk, color: '#94A3B8' };
+      return { name: meta.name, count: g._count.id, color: meta.color };
+    }).sort((a, b) => b.count - a.count);
+
+    // 3. Participation rate
+    const totalRegs = registrationsByStatus.reduce((s, r) => s + r.count, 0);
+    const attendedCount = regGrouped.find(g => g.trang_thai_dk === 'da_tham_gia')?._count.id || 0;
+    const participationRate = totalRegs > 0 ? Math.round((attendedCount / totalRegs) * 100) : 0;
+
+    // 4. Monthly trend (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const [recentActivities, recentRegistrations] = await Promise.all([
+      prisma.hoatDong.findMany({
+        where: {
+          ngay_tao: { gte: sixMonthsAgo },
+          ...semesterFilter
+        },
+        select: { ngay_tao: true }
+      }),
+      prisma.dangKyHoatDong.findMany({
+        where: {
+          ngay_dang_ky: { gte: sixMonthsAgo },
+          ...(semester ? { hoat_dong: semesterFilter } : {})
+        },
+        select: { ngay_dang_ky: true }
+      })
+    ]);
+
+    const monthLabels = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'];
+    const trendMap: Record<string, { activities: number; registrations: number }> = {};
+
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      trendMap[key] = { activities: 0, registrations: 0 };
+    }
+
+    recentActivities.forEach(a => {
+      const d = new Date(a.ngay_tao);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (trendMap[key]) trendMap[key].activities++;
+    });
+
+    recentRegistrations.forEach(r => {
+      const d = new Date(r.ngay_dang_ky);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (trendMap[key]) trendMap[key].registrations++;
+    });
+
+    const monthlyTrend = Object.entries(trendMap).map(([key, val]) => {
+      const monthIndex = parseInt(key.split('-')[1], 10) - 1;
+      return {
+        label: monthLabels[monthIndex],
+        activities: val.activities,
+        registrations: val.registrations
+      };
+    });
+
+    return {
+      activitiesByType,
+      registrationsByStatus,
+      participationRate,
+      monthlyTrend
+    };
   }
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Tag, Plus } from 'lucide-react';
+import { Activity, Tag, Plus, BookOpen, Sparkles } from 'lucide-react';
 
 export default function TeacherActivitiesHeroInline({
   activeTab,
@@ -8,145 +8,79 @@ export default function TeacherActivitiesHeroInline({
   activityTypesCount
 }) {
   return (
-    <div className="relative min-h-[280px]">
-      {/* Animated Background Grid */}
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-        <div className="absolute inset-0" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }}></div>
-      </div>
-
-      {/* Floating Geometric Shapes */}
-      <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce"></div>
-      <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full"></div>
-
-      {/* Main Content Container with Glassmorphism */}
-      <div className="relative z-10 p-8">
-        <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-          
-          {/* Top Bar with Badge */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-400 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-black text-indigo-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-indigo-400">
-                  ⚡ QUẢN LÝ
-                </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
+      <div className="relative z-10 space-y-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+              <Sparkles className="h-4 w-4" />
+              Danh mục giảng viên
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-indigo-50/80 p-3 shadow-sm ring-1 ring-indigo-100 dark:bg-indigo-400/10 dark:ring-indigo-400/20">
+                <BookOpen className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
               </div>
-              <div className="h-8 w-1 bg-white/40"></div>
-              <div className="text-white/90 font-bold text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                  {activeTab === 'activities' ? `${stats?.total || 0} HOẠT ĐỘNG` : `${activityTypesCount || 0} LOẠI`}
-                </div>
+              <div>
+                <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Danh mục hoạt động</h1>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+                  Xem, duyệt và quản lý hoạt động rèn luyện cùng hệ thống loại hoạt động theo học kỳ.
+                </p>
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 rounded-2xl border border-white/60 bg-white/45 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <TabButton active={activeTab === 'activities'} onClick={() => onTabChange('activities')} icon={Activity} label="Hoạt động" />
+              <TabButton active={activeTab === 'types'} onClick={() => onTabChange('types')} icon={Tag} label="Loại hoạt động" />
+            </div>
+
             {activeTab === 'types' && (
               <button
-                onClick={() => {
-                  // Trigger modal in ActivityTypesManagementPage
-                  const event = new CustomEvent('openActivityTypeModal');
-                  window.dispatchEvent(event);
-                }}
-                className="group flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 shadow-xl hover:shadow-white/50 hover:scale-105 font-bold"
+                onClick={() => window.dispatchEvent(new CustomEvent('openActivityTypeModal'))}
+                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
               >
-                <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+                <Plus className="h-4 w-4" />
                 Thêm mới
               </button>
             )}
           </div>
+        </div>
 
-          {/* Main Title Section */}
-          <div className="mb-6">
-            <h1 className="text-5xl lg:text-6xl font-black text-white mb-4 leading-none tracking-tight">
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">D</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">A</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-              <span className="inline-block mx-2">•</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">M</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ụ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">C</span>
-              <br />
-              <span className="relative inline-block mt-2">
-                <span className="relative z-10 text-pink-300 drop-shadow-[0_0_30px_rgba(249,168,212,0.5)]">
-                  HOẠT ĐỘNG
-                </span>
-                <div className="absolute -bottom-2 left-0 right-0 h-4 bg-pink-300/30 blur-sm"></div>
-              </span>
-            </h1>
-            
-            <p className="text-white/80 text-lg font-medium max-w-2xl leading-relaxed">
-              Xem và quản lý tất cả các hoạt động rèn luyện
-            </p>
-          </div>
-
-          {/* Tab Switcher */}
-          <div className="flex gap-3 mb-6">
-            <button
-              onClick={() => onTabChange('activities')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform ${
-                activeTab === 'activities'
-                  ? 'bg-pink-400 text-black scale-105 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
-              }`}
-            >
-              <Activity className="h-5 w-5" />
-              Danh sách hoạt động
-            </button>
-            <button
-              onClick={() => onTabChange('types')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform ${
-                activeTab === 'types'
-                  ? 'bg-purple-400 text-black scale-105 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
-              }`}
-            >
-              <Tag className="h-5 w-5" />
-              Loại hoạt động
-            </button>
-          </div>
-
-          {/* Stats Bar with Brutalist Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Card 1 - Activities Stats */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative border-4 border-black bg-white p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 hover:bg-pink-100">
-                <Activity className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats?.total || 0}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG HOẠT ĐỘNG</p>
-              </div>
-            </div>
-
-            {/* Card 2 - Types Stats */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative border-4 border-black bg-white p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 hover:bg-purple-100">
-                <Tag className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{activityTypesCount || 0}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">LOẠI HOẠT ĐỘNG</p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <StatCell icon={Activity} label="Tổng hoạt động" value={stats?.total || 0} tone="text-indigo-600 dark:text-indigo-300" />
+          <StatCell icon={Tag} label="Loại hoạt động" value={activityTypesCount || 0} tone="text-purple-600 dark:text-purple-300" />
         </div>
       </div>
-
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0) rotate(45deg); }
-          50% { transform: translateY(-20px) rotate(45deg); }
-        }
-        .animate-bounce {
-          animation: bounce-slow 3s ease-in-out infinite;
-        }
-      `}</style>
-    </div>
+    </section>
   );
 }
 
+function TabButton({ active, onClick, icon: Icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all duration-200 sm:text-sm ${
+        active
+          ? 'bg-white/80 text-indigo-700 shadow-sm backdrop-blur-xl dark:bg-white/15 dark:text-indigo-300'
+          : 'text-slate-500 hover:bg-white/45 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function StatCell({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{label}</span>
+        <Icon className={`h-5 w-5 ${tone}`} />
+      </div>
+      <p className={`text-3xl font-black tracking-[-0.04em] ${tone}`}>{value}</p>
+    </div>
+  );
+}

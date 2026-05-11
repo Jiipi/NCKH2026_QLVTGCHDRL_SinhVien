@@ -8,6 +8,7 @@ import { logError } from '../../../../core/logger';
 import type GetOverviewUseCase from '../../business/services/GetOverviewUseCase';
 import type GetClassesListUseCase from '../../business/services/GetClassesListUseCase';
 import type GetAttendanceReportUseCase from '../../business/services/GetAttendanceReportUseCase';
+import type GetAttendanceAuditReportUseCase from '../../business/services/GetAttendanceAuditReportUseCase';
 import type GetUserPointsReportUseCase from '../../business/services/GetUserPointsReportUseCase';
 import type ExportActivitiesUseCase from '../../business/services/ExportActivitiesUseCase';
 import type ExportRegistrationsUseCase from '../../business/services/ExportRegistrationsUseCase';
@@ -15,6 +16,7 @@ import type ExportRegistrationsUseCase from '../../business/services/ExportRegis
 interface AdminReportsUseCases {
   getUserPointsReport: GetUserPointsReportUseCase;
   getAttendanceReport: GetAttendanceReportUseCase;
+  getAttendanceAuditReport: GetAttendanceAuditReportUseCase;
   getClassesList: GetClassesListUseCase;
   getOverview: GetOverviewUseCase;
   exportActivities: ExportActivitiesUseCase;
@@ -48,6 +50,16 @@ class AdminReportsController {
     } catch (err) {
       logError('Error fetching attendance report:', err as Error);
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy danh sách điểm danh', 500));
+    }
+  }
+
+  async getAttendanceAuditReport(req: Request, res: Response): Promise<Response> {
+    try {
+      const data = await this.useCases.getAttendanceAuditReport.execute(req.query as Record<string, string>);
+      return sendResponse(res, 200, ApiResponse.success(data, 'Lấy lịch sử điểm danh thành công'));
+    } catch (err) {
+      logError('Error fetching attendance audit report:', err as Error);
+      return sendResponse(res, 500, ApiResponse.error('Lỗi lấy lịch sử điểm danh', 500));
     }
   }
 

@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import adminActivitiesApi from '../../services/adminActivitiesApi';
-import http from '../../../../shared/api/http';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
@@ -170,18 +169,7 @@ export default function useAdminActivitiesList() {
   // Load classes for filter
   const loadClasses = useCallback(async () => {
     try {
-      // Sử dụng API endpoint mới /core/classes (thay vì /admin/classes đã deprecated)
-      const res = await http.get('/core/classes');
-      const payload = res.data?.data;
-      const items = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload)
-            ? payload
-            : Array.isArray(res.data)
-              ? res.data
-              : [];
+      const items = await adminActivitiesApi.listCoreClasses();
       setClasses(items);
     } catch (err) {
       console.warn('Không thể tải danh sách lớp', err);

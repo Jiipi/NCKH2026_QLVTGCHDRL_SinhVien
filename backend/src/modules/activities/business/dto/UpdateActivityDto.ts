@@ -23,6 +23,11 @@ interface UpdateActivityInput {
   nam_hoc?: string | number;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string;
+  geo_longitude?: number | string;
+  geo_radius_meters?: number | string;
 }
 
 /**
@@ -42,6 +47,11 @@ interface UpdateActivityDomain {
   nam_hoc?: string | null;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string;
+  geo_longitude?: number | string;
+  geo_radius_meters?: number | string;
 }
 
 /**
@@ -63,6 +73,11 @@ class UpdateActivityDto {
   nam_hoc?: string | null;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string;
+  geo_longitude?: number | string;
+  geo_radius_meters?: number | string;
 
   constructor(data: UpdateActivityInput) {
     // Only allow specific fields for update
@@ -80,6 +95,11 @@ class UpdateActivityDto {
     this.nam_hoc = data.nam_hoc !== undefined ? this._normalizeNamHoc(data.nam_hoc) : undefined;
     this.hinh_anh = data.hinh_anh;
     this.tep_dinh_kem = data.tep_dinh_kem;
+    this.yeu_cau_gps = data.yeu_cau_gps;
+    this.cho_phep_fallback = data.cho_phep_fallback;
+    this.geo_latitude = data.geo_latitude;
+    this.geo_longitude = data.geo_longitude;
+    this.geo_radius_meters = data.geo_radius_meters;
   }
 
   /**
@@ -125,7 +145,12 @@ class UpdateActivityDto {
     if (this.nam_hoc !== undefined) result.nam_hoc = this.nam_hoc || null;
     if (this.hinh_anh !== undefined) result.hinh_anh = Array.isArray(this.hinh_anh) ? this.hinh_anh : [];
     if (this.tep_dinh_kem !== undefined) result.tep_dinh_kem = Array.isArray(this.tep_dinh_kem) ? this.tep_dinh_kem : [];
-    
+    if (this.yeu_cau_gps !== undefined) result.yeu_cau_gps = Boolean(this.yeu_cau_gps);
+    if (this.cho_phep_fallback !== undefined) result.cho_phep_fallback = this.cho_phep_fallback !== false;
+    if (this.geo_latitude !== undefined) result.geo_latitude = toNumberOrNull(this.geo_latitude);
+    if (this.geo_longitude !== undefined) result.geo_longitude = toNumberOrNull(this.geo_longitude);
+    if (this.geo_radius_meters !== undefined) result.geo_radius_meters = toNumberOrNull(this.geo_radius_meters);
+
     return result;
   }
 

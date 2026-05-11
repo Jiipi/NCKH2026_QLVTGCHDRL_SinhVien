@@ -17,6 +17,11 @@ import RegisterActivityUseCaseModule from '../business/services/RegisterActivity
 import CancelActivityRegistrationUseCaseModule from '../business/services/CancelActivityRegistrationUseCase';
 import GetActivityQRDataUseCaseModule from '../business/services/GetActivityQRDataUseCase';
 import ScanAttendanceUseCaseModule from '../business/services/ScanAttendanceUseCase';
+import CreateAttendanceFallbackRequestUseCaseModule from '../business/services/CreateAttendanceFallbackRequestUseCase';
+import ListAttendanceFallbackRequestsUseCaseModule from '../business/services/ListAttendanceFallbackRequestsUseCase';
+import ApproveAttendanceFallbackRequestUseCaseModule from '../business/services/ApproveAttendanceFallbackRequestUseCase';
+import RejectAttendanceFallbackRequestUseCaseModule from '../business/services/RejectAttendanceFallbackRequestUseCase';
+import CancelAttendanceFallbackRequestUseCaseModule from '../business/services/CancelAttendanceFallbackRequestUseCase';
 
 // Import controller
 import ActivitiesControllerModule from './controllers/ActivitiesController';
@@ -43,6 +48,11 @@ const RegisterActivityUseCase = resolveDefault(RegisterActivityUseCaseModule);
 const CancelActivityRegistrationUseCase = resolveDefault(CancelActivityRegistrationUseCaseModule);
 const GetActivityQRDataUseCase = resolveDefault(GetActivityQRDataUseCaseModule);
 const ScanAttendanceUseCase = resolveDefault(ScanAttendanceUseCaseModule);
+const CreateAttendanceFallbackRequestUseCase = resolveDefault(CreateAttendanceFallbackRequestUseCaseModule);
+const ListAttendanceFallbackRequestsUseCase = resolveDefault(ListAttendanceFallbackRequestsUseCaseModule);
+const ApproveAttendanceFallbackRequestUseCase = resolveDefault(ApproveAttendanceFallbackRequestUseCaseModule);
+const RejectAttendanceFallbackRequestUseCase = resolveDefault(RejectAttendanceFallbackRequestUseCaseModule);
+const CancelAttendanceFallbackRequestUseCase = resolveDefault(CancelAttendanceFallbackRequestUseCaseModule);
 const ActivitiesController = resolveDefault(ActivitiesControllerModule);
 const CreateRegistrationUseCase = resolveDefault(CreateRegistrationUseCaseModule);
 const CancelRegistrationUseCase = resolveDefault(CancelRegistrationUseCaseModule);
@@ -72,7 +82,12 @@ function createActivitiesController(): InstanceType<typeof ActivitiesController>
     register: new RegisterActivityUseCase(createRegistrationUseCase, repo),
     cancelRegistration: new CancelActivityRegistrationUseCase(cancelRegistrationUseCase, repo),
     getQRData: new GetActivityQRDataUseCase(repo),
-    scanAttendance: new ScanAttendanceUseCase(repo)
+    scanAttendance: new ScanAttendanceUseCase(repo),
+    createFallbackRequest: new CreateAttendanceFallbackRequestUseCase(repo),
+    listFallbackRequests: new ListAttendanceFallbackRequestsUseCase(repo),
+    approveFallbackRequest: new ApproveAttendanceFallbackRequestUseCase(repo),
+    rejectFallbackRequest: new RejectAttendanceFallbackRequestUseCase(repo),
+    cancelFallbackRequest: new CancelAttendanceFallbackRequestUseCase(repo)
   };
 
   // Presentation layer

@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import http from '../../../../shared/api/http';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import reportsApi from '../../services/reportsApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 export default function useMonitorReports() {
@@ -34,8 +34,7 @@ export default function useMonitorReports() {
       setError('');
       console.log('📊 [ClassReports] Loading data for semester:', semester);
       
-      const response = await http.get(`/class/reports?semester=${semester}`);
-      const raw = response?.data?.data;
+      const raw = await reportsApi.getClassReports(semester);
       console.log('📊 [ClassReports] Raw response:', raw);
       
       const data = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? { ...raw } : null;

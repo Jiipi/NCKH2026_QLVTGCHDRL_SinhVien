@@ -213,7 +213,27 @@ export function useFaceRecognition(
     setError(null);
 
     try {
-      const result = await faceAttendance(activityId, imageBlob);
+      // Lấy vị trí GPS trước khi điểm danh
+      let location: { latitude: number; longitude: number; accuracy?: number } | null = null;
+      if (navigator.geolocation) {
+        try {
+          location = await new Promise<{ latitude: number; longitude: number; accuracy?: number } | null>((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (position) => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+              }),
+              () => resolve(null),
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+            );
+          });
+        } catch {
+          location = null;
+        }
+      }
+
+      const result = await faceAttendance(activityId, imageBlob, undefined, location);
 
       if (!result.success) {
         setError(result.message);
@@ -249,7 +269,14 @@ export function useFaceRecognition(
       const result = await deleteFaceData();
 
       if (result.success) {
-        setFaceStatus(prev => prev ? { ...prev, registered: false } : null);
+        setFaceStatus(prev => prev ? {
+          registered: false,
+          sinhVienId: prev.sinhVienId,
+          mssv: prev.mssv,
+          hoTen: prev.hoTen,
+          anhKhuonMat: null,
+          hasFaceImage: false
+        } : null);
       } else {
         setError(result.message);
       }

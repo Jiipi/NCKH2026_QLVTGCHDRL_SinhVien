@@ -46,9 +46,8 @@ export type {
 import { createActivitiesController } from './presentation/activities.factory';
 export { createActivitiesController };
 
-// Export routes - get the router instance, not the factory function
-import routesModule from './presentation/routes/activities.routes';
-const routes = routesModule.router || routesModule.default?.router || routesModule;
+// Export routes
+import routes from './presentation/routes/activities.routes';
 
 export { routes };
 

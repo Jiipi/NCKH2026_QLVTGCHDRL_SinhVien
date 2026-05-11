@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, ArrowUp, ArrowDown } from 'lucide-react';
-import http from '../../../../shared/api/http';
-import { ConfirmModal, Toast, SemesterFilter } from '../../../../shared/components/common';
+import { approvalTeacherApi } from '../../services';
+import { ConfirmModal, Toast } from '../../../../shared/components/common';
 import { useSemesterData } from '../../../../shared/hooks';
 
 export default function TeacherRegistrationApprovals() {
@@ -60,9 +60,8 @@ export default function TeacherRegistrationApprovals() {
     // Load classes teacher owns
     (async () => {
       try {
-        const res = await http.get('/teacher/classes');
-        const payload = res?.data?.data || res?.data || {};
-        const list = Array.isArray(payload?.classes) ? payload.classes : (Array.isArray(payload) ? payload : []);
+        const result = await approvalTeacherApi.getTeacherClasses();
+        const list = result.success ? result.data : [];
         setClasses(list);
         // Auto-select first class if none selected
         if (list.length > 0 && !classId) {
@@ -89,20 +88,17 @@ export default function TeacherRegistrationApprovals() {
         search: searchTerm || undefined,
         classId: classId || undefined
       };
-      const response = await http.get('/teacher/registrations/pending', { params });
-      console.log('📦 Response từ API:', response.data);
+      const result = await approvalTeacherApi.getPendingRegistrations(params);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách đăng ký');
 
-      // Parse response - backend returns: { success: true, data: { items: [...], total }, message }
-      const responseData = response.data?.data || response.data || {};
-      const items = responseData.items || responseData.data || responseData || [];
-      const registrationsArray = Array.isArray(items) ? items : [];
+      const registrationsArray = result.data.items;
       console.log('📋 Dữ liệu đăng ký:', registrationsArray);
 
       setRegistrations(registrationsArray);
-      const p = responseData.pagination || {};
-      const nextTotal = typeof p.total === 'number' ? p.total : (responseData.total || registrationsArray.length);
+      const p = result.data.pagination || {};
+      const nextTotal = typeof p.total === 'number' ? p.total : (result.data.total || registrationsArray.length);
       setTotal(nextTotal);
-      if (responseData.counts) setCounts(responseData.counts);
+      if (result.data.counts) setCounts(result.data.counts);
       setError('');
 
       if (registrationsArray.length > 0) {
@@ -188,15 +184,18 @@ export default function TeacherRegistrationApprovals() {
 
       if (type === 'approve') {
         if (isBulk) {
-          await Promise.all(
+          const results = await Promise.all(
             selectedRegistrations.map(id =>
-              http.post(`/teacher/registrations/${id}/approve`)
+              approvalTeacherApi.approveRegistration(id)
             )
           );
+          const failed = results.find(result => !result.success);
+          if (failed) throw new Error((failed as { error?: string }).error || 'Không thể xử lý đăng ký. Vui lòng thử lại.');
           showToast(`Đã phê duyệt ${selectedRegistrations.length} đăng ký thành công!`, 'success');
           setSelectedRegistrations([]);
         } else {
-          await http.post(`/teacher/registrations/${registrationId}/approve`);
+          const result = await approvalTeacherApi.approveRegistration(registrationId);
+          if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể xử lý đăng ký. Vui lòng thử lại.');
           showToast('Đã phê duyệt đăng ký thành công!', 'success');
         }
         await loadRegistrations();
@@ -208,15 +207,18 @@ export default function TeacherRegistrationApprovals() {
         }
 
         if (isBulk) {
-          await Promise.all(
+          const results = await Promise.all(
             selectedRegistrations.map(id =>
-              http.post(`/teacher/registrations/${id}/reject`, { reason: rejectReason.trim() })
+              approvalTeacherApi.rejectRegistration(id, rejectReason.trim())
             )
           );
+          const failed = results.find(result => !result.success);
+          if (failed) throw new Error((failed as { error?: string }).error || 'Không thể xử lý đăng ký. Vui lòng thử lại.');
           showToast(`Đã từ chối ${selectedRegistrations.length} đăng ký thành công!`, 'success');
           setSelectedRegistrations([]);
         } else {
-          await http.post(`/teacher/registrations/${registrationId}/reject`, { reason: rejectReason.trim() });
+          const result = await approvalTeacherApi.rejectRegistration(registrationId, rejectReason.trim());
+          if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể xử lý đăng ký. Vui lòng thử lại.');
           showToast('Đã từ chối đăng ký thành công!', 'success');
         }
         await loadRegistrations();
@@ -446,11 +448,6 @@ export default function TeacherRegistrationApprovals() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-          </div>
-
-          {/* Semester Filter */}
-          <div className="lg:w-64">
-            <SemesterFilter value={semester} onChange={setSemester} label="" />
           </div>
 
           {/* Class Filter */}

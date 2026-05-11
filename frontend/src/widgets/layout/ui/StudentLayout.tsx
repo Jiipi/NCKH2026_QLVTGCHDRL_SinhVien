@@ -9,7 +9,6 @@ import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton
 export default function StudentLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('student-sidebar-collapsed');
-    console.log('[StudentLayout] Initial state:', stored === 'true');
     return stored === 'true';
   });
 
@@ -35,7 +34,6 @@ export default function StudentLayout({ children }) {
   useEffect(() => {
     const handleStorageChange = () => {
       const stored = localStorage.getItem('student-sidebar-collapsed');
-      console.log('[StudentLayout] Storage change:', stored === 'true');
       setSidebarCollapsed(stored === 'true');
     };
 
@@ -43,7 +41,6 @@ export default function StudentLayout({ children }) {
     // Listen to custom events from sidebar toggle for same-tab updates
     const handleCustom = () => {
       const stored = localStorage.getItem('student-sidebar-collapsed');
-      console.log('[StudentLayout] Custom event received:', stored === 'true');
       setSidebarCollapsed(stored === 'true');
     };
     window.addEventListener('student-sidebar-toggle', handleCustom);
@@ -53,10 +50,8 @@ export default function StudentLayout({ children }) {
     };
   }, []);
 
-  console.log('[StudentLayout] Render with collapsed:', sidebarCollapsed);
-
   return (
-    <div className="fixed inset-0 flex bg-gray-50 dark:bg-slate-950">
+    <div className="fixed inset-0 flex overflow-hidden bg-[radial-gradient(circle_at_10%_10%,rgba(129,140,248,0.18),transparent_30%),radial-gradient(circle_at_90%_0%,rgba(45,212,191,0.14),transparent_28%),linear-gradient(135deg,#f8fafc,#eef2ff_45%,#f8fafc)] dark:bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.16),transparent_30%),radial-gradient(circle_at_90%_0%,rgba(20,184,166,0.12),transparent_28%),linear-gradient(135deg,#020617,#0f172a_48%,#020617)]">
       {/* Desktop Sidebar - only render on desktop */}
       {!isMobile && <StudentSidebar />}
 
@@ -81,8 +76,8 @@ export default function StudentLayout({ children }) {
           isMobile={isMobile}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1 flex flex-col px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             {children || <Outlet />}
           </div>
           <ModernFooter />

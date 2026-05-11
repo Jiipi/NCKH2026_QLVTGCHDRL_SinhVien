@@ -42,7 +42,7 @@ export default function AdminStudentLayout() {
   }, []);
 
   return (
-    <div className="fixed inset-0 flex bg-gray-50 dark:bg-slate-950">
+    <div className="fixed inset-0 flex overflow-hidden bg-[radial-gradient(circle_at_10%_10%,rgba(129,140,248,0.18),transparent_30%),radial-gradient(circle_at_90%_0%,rgba(45,212,191,0.14),transparent_28%),linear-gradient(135deg,#f8fafc,#eef2ff_45%,#f8fafc)] dark:bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.16),transparent_30%),radial-gradient(circle_at_90%_0%,rgba(20,184,166,0.12),transparent_28%),linear-gradient(135deg,#020617,#0f172a_48%,#020617)]">
       {!isMobile && <AdminStudentSidebar />}
       {isMobile && (
         <MobileSidebarWrapper isOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)}>

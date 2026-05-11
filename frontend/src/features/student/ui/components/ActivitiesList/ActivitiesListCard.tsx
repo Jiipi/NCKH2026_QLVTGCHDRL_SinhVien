@@ -41,8 +41,8 @@ export default function ActivitiesListCard({
   if (mode === 'list') {
     return (
       <div className="group relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-        <div className="relative bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-300 transition-all duration-200">
+        <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-indigo-500/10 to-teal-500/10 blur opacity-0 transition-opacity duration-200 group-hover:opacity-100"></div>
+        <div className="relative rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden">
               <ActivityImageSlideshow
@@ -118,9 +118,9 @@ export default function ActivitiesListCard({
                 </div>
               </div>
 
-              {(isDeadlinePast || isAfterStart || registrationRejected) && (
+              {(isDeadlinePast || registrationRejected) && (
                 <div className="flex flex-col gap-1.5 mt-2">
-                  {(isDeadlinePast || isAfterStart) && (
+                  {isDeadlinePast && (
                     <Badge icon={AlertCircle} text="Đã hết hạn đăng ký" />
                   )}
                   {registrationRejected && rejectionReason && (
@@ -154,8 +154,8 @@ export default function ActivitiesListCard({
 
   return (
     <div className="group relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-      <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
+      <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-indigo-500/10 to-teal-500/10 blur opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
         <div className="relative w-full h-36 overflow-hidden">
           <ActivityImageSlideshow
             images={activity.hinh_anh}
@@ -224,7 +224,7 @@ export default function ActivitiesListCard({
 
           <div className="flex flex-col gap-1">
             <span className={`text-xs font-semibold ${timeStatusColor}`}>• {timeStatus}</span>
-            {(isDeadlinePast || isAfterStart) && (
+            {isDeadlinePast && (
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 w-fit">
                 <AlertCircle className="h-3 w-3" />
                 Hết hạn ĐK
@@ -316,11 +316,9 @@ function buildActivityMeta(activity: Activity = {}, role: string, isWritable: bo
     activity.trang_thai === 'da_duyet' &&
     !isPast &&
     !isDeadlinePast &&
-    !isAfterStart &&
     (!activity.is_registered || activity.registration_status === 'tu_choi') &&
     role !== 'giang_vien' &&
-    role !== 'teacher' &&
-    isWritable;
+    role !== 'teacher';
 
   return {
     startDate,

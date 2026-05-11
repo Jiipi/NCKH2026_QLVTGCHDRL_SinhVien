@@ -31,6 +31,13 @@ export interface ActivityStatsByStatus {
   };
 }
 
+export interface AdminChartStats {
+  activitiesByType: { name: string; count: number }[];
+  registrationsByStatus: { name: string; count: number; color: string }[];
+  participationRate: number;
+  monthlyTrend: { label: string; activities: number; registrations: number }[];
+}
+
 export interface ClassRegistration {
   sv_id: string;
   hoat_dong: {
@@ -64,6 +71,8 @@ export interface IDashboardRepository {
   getAdminOverviewStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminOverviewStats>;
   
   getClassRegistrations(lopId: string, activityFilter?: DashboardActivityFilter): Promise<ClassRegistration[]>;
+
+  getAdminChartStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminChartStats>;
 }
 
 export default IDashboardRepository;

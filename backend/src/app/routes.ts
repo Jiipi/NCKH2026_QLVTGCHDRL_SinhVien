@@ -6,8 +6,12 @@
 
 import { Router, IRouter } from 'express';
 import { auth as authenticate } from '../core/http/middleware/authJwt';
+import { requireDynamicPermission } from '../core/http/middleware';
 import { validateAndInjectSemester } from './middleware/semesterMiddleware';
 import { applyScope } from './scopes/scopeMiddleware';
+import { qrAttendanceTokenService } from '../business/services/qr-attendance-token.service';
+import { createActivitiesController } from '../modules/activities/presentation/activities.factory';
+import { ApiResponse, sendResponse } from '../core/utils/response';
 
 const router: IRouter = Router();
 
@@ -69,6 +73,61 @@ router.use('/semesters', semestersModule.routes);
 
 // Activities V2 - Using repository pattern
 import * as activitiesV2 from '../modules/activities';
+const activitiesFallbackController = createActivitiesController();
+
+router.get('/activities/:id/attendance/session/current', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('activities.read'), async (req, res) => {
+	try {
+		const session = await qrAttendanceTokenService.getCurrentSession(req.params.id);
+		return sendResponse(res, 200, ApiResponse.success(session, 'Phiên QR hiện tại'));
+	} catch (error: any) {
+		return sendResponse(res, error?.statusCode || 500, ApiResponse.error(error?.message || 'Không lấy được phiên QR'));
+	}
+});
+
+router.post('/activities/:id/attendance/session', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), async (req, res) => {
+	try {
+		const userId = (req as any).user?.sub || (req as any).user?.id;
+		if (!userId) return sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập', 401));
+		const session = await qrAttendanceTokenService.createSession(req.params.id, userId, req.body?.ttlMinutes, {
+			actorId: userId,
+			ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+			userAgent: req.get('user-agent') || null
+		});
+		return sendResponse(res, 201, ApiResponse.success(session, 'Tạo phiên QR thành công'));
+	} catch (error: any) {
+		return sendResponse(res, error?.statusCode || 500, ApiResponse.error(error?.message || 'Không tạo được phiên QR'));
+	}
+});
+
+router.post('/activities/:id/attendance/session/:sessionId/token', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), async (req, res) => {
+	try {
+		const userId = (req as any).user?.sub || (req as any).user?.id;
+		const token = await qrAttendanceTokenService.generateToken(req.params.id, req.params.sessionId, req.body?.ttlSeconds, {
+			actorId: userId || null,
+			ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+			userAgent: req.get('user-agent') || null
+		});
+		return sendResponse(res, 201, ApiResponse.success(token, 'Tạo mã QR động thành công'));
+	} catch (error: any) {
+		return sendResponse(res, error?.statusCode || 500, ApiResponse.error(error?.message || 'Không tạo được mã QR động'));
+	}
+});
+
+router.post('/activities/:id/attendance/session/:sessionId/close', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), async (req, res) => {
+	try {
+		const userId = (req as any).user?.sub || (req as any).user?.id;
+		if (!userId) return sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập', 401));
+		const session = await qrAttendanceTokenService.closeSession(req.params.id, req.params.sessionId, userId);
+		return sendResponse(res, 200, ApiResponse.success(session, 'Đóng phiên QR thành công'));
+	} catch (error: any) {
+		return sendResponse(res, error?.statusCode || 500, ApiResponse.error(error?.message || 'Không đóng được phiên QR'));
+	}
+});
+
+router.post('/activities/:id/attendance/scan', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), (req, res) => {
+	return activitiesFallbackController.scanAttendance(req as any, res);
+});
+
 router.use('/core/activities', authenticate, validateAndInjectSemester(), applyScope('activities'), activitiesV2.routes);
 
 // Legacy activities routes (backward compatibility) - maps /activities to /core/activities
@@ -136,6 +195,10 @@ router.use('/core/notification-types', authenticate, validateAndInjectSemester()
 // Roles V2 - Role and permission management
 import * as rolesV2 from '../modules/roles';
 router.use('/core/roles', authenticate, validateAndInjectSemester(), rolesV2.routes);
+
+// Audit Integrity V2 - Admin-only tamper verification
+import * as auditIntegrityV2 from '../modules/audit-integrity';
+router.use('/core/admin/audit-integrity', authenticate, validateAndInjectSemester(), auditIntegrityV2.routes);
 
 // Search V2 - Global search functionality
 import * as searchV2 from '../modules/search';

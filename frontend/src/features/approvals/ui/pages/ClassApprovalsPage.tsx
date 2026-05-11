@@ -2,12 +2,11 @@ import React, { useState, useMemo } from 'react';
 
 // Refactored imports (3-Tier Architecture)
 import { useClassApprovals } from '../../model/hooks/useClassApprovals';
-import {
-  ApprovalHeader,
-  ApprovalFilters,
-  ApprovalCard,
-  BulkActionToolbar
-} from '../shared';
+import { getStoredApprovalSemester } from '../../model/utils';
+import ApprovalHeader from '../shared/ApprovalHeader';
+import ApprovalFilters from '../shared/ApprovalFilters';
+import ApprovalCard from '../shared/ApprovalCard';
+import BulkActionToolbar from '../shared/BulkActionToolbar';
 
 // Shared components
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
@@ -15,7 +14,7 @@ import { useSemesterData } from '../../../../shared/hooks';
 import { LoadingSpinner, ErrorMessage, EmptyState, Pagination } from '../../../../shared/components/common';
 
 export default function ClassApprovalsPage() {
-    const initialSemester = useMemo(() => sessionStorage.getItem('current_semester') || '', []);
+    const initialSemester = useMemo(() => getStoredApprovalSemester(), []);
     const { isWritable } = useSemesterData(initialSemester);
 
     const {

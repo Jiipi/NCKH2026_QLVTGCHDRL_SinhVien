@@ -1,29 +1,65 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, Calendar, Clock, Activity, AlertCircle, Trophy, MapPin, Filter, Zap, Target, Star
-} from 'lucide-react';
-import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
-import SemesterClosureWidget from '../../../shared/components/semester/SemesterClosureWidget';
-import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import useMonitorDashboard from '../model/hooks/useMonitorDashboard';
-import DashboardProfileHeader from './components/Dashboard/DashboardProfileHeader';
-import DashboardPointsCard from './components/Dashboard/DashboardPointsCard';
-import DashboardStatsCard from './components/Dashboard/DashboardStatsCard';
-import ActivityListItem from './components/Dashboard/ActivityListItem';
-import TopStudentItem from './components/Dashboard/TopStudentItem';
+import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import ActivitySummaryModal from './components/Dashboard/ActivitySummaryModal';
+
+// Shared Components
+import DashboardHero from '../../student/ui/components/Dashboard/DashboardHero';
+import UpcomingActivities from '../../student/ui/components/Dashboard/UpcomingActivities';
+import RecentActivities from '../../student/ui/components/Dashboard/RecentActivities';
+import MonitorClassStats from './components/Dashboard/MonitorClassStats';
+import MonitorTopStudents from './components/Dashboard/MonitorTopStudents';
+import MonitorChartsSection from './components/Dashboard/MonitorChartsSection';
+
+// Page entry animation
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: 'easeOut' as const,
+      staggerChildren: 0.12,
+    }
+  },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } }
+} as const;
+
+const sectionVariants = {
+  initial: { opacity: 0, y: 16 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: 'easeOut' as const }
+  }
+} as const;
+
+// Loading spinner animation
+const spinnerVariants = {
+  initial: { opacity: 0, scale: 0.8 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.3 }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    transition: { duration: 0.2 }
+  }
+} as const;
 
 export default function MonitorDashboardPage() {
   const navigate = useNavigate();
   const {
     semester,
     setSemester,
-    activeTab,
-    setActiveTab,
     recentFilter,
     setRecentFilter,
-    recentCounts,
     filteredRecent,
     selectedActivity,
     setSelectedActivity,
@@ -42,16 +78,7 @@ export default function MonitorDashboardPage() {
     userProfile,
     topStudents,
     classSummary,
-    approvals,
     loading,
-    monitorName,
-    monitorMssv,
-    monitorPoints,
-    activitiesJoined,
-    classRank,
-    goalPoints,
-    goalText,
-    totalPointsProgress,
     totalStudents,
     pendingApprovals,
     totalActivities,
@@ -59,249 +86,118 @@ export default function MonitorDashboardPage() {
     formatNumber,
   } = useMonitorDashboard();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50" data-ref="monitor-dashboard-refactored">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Đang tải dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50" data-ref="monitor-dashboard-refactored">
-      <div className="mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <DashboardProfileHeader
-              userProfile={userProfile}
-              monitorName={monitorName}
-              monitorMssv={monitorMssv}
-              summary={summary}
-              classSummary={classSummary}
-              classification={classification}
+    <motion.div
+      data-ref="monitor-dashboard-refactored"
+      className="space-y-6"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {/* ===== SECTION 1: Monitor Hero (Điểm RL, Xếp loại, Thống kê cá nhân) ===== */}
+      <motion.div variants={sectionVariants}>
+        <DashboardHero
+          summary={summary}
+          userProfile={userProfile}
+          studentInfo={{
+            mssv: userProfile?.mssv || '',
+            ten_lop: classSummary?.className || 'N/A'
+          }}
+          classification={classification}
+          semester={semester}
+          onSemesterChange={setSemester}
+          loading={loading}
+          formatNumber={formatNumber}
+        />
+      </motion.div>
+
+      {/* Loading state */}
+      <AnimatePresence mode="wait">
+        {loading && (
+          <motion.div
+            key="loading"
+            className="flex flex-col items-center justify-center py-16"
+            variants={spinnerVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
+            </motion.div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải dữ liệu lớp học...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {!loading && (
+          <motion.div
+            key="content"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            {/* ===== SECTION 2: Class Stats ===== */}
+            <MonitorClassStats
+              totalStudents={totalStudents}
+              totalActivities={totalActivities}
+              pendingApprovals={pendingApprovals}
+              formatNumber={(n) => formatNumber(n).toString()}
             />
 
-            {!loading && (
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-3xl"></div>
-                <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 border-4 border-black p-4 rounded-3xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Filter className="h-5 w-5 text-black font-bold" />
-                    <h3 className="text-base font-black text-black uppercase tracking-wider">BỘ LỌC HỌC KỲ</h3>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 border-2 border-black shadow-lg mb-3">
-                    <SemesterFilter value={semester} onChange={setSemester} label="" />
-                  </div>
-                  <div className="bg-white/90 rounded-xl p-3 border-2 border-black">
-                    <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} allowProposeWithoutClass={true} className="!p-0 !bg-transparent !border-0" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+            {/* ===== SECTION 2.5: Charts ===== */}
+            <MonitorChartsSection
+              myActivities={{
+                all: myActivities?.all || [],
+                pending: myActivities?.pending || [],
+                approved: myActivities?.approved || [],
+                joined: myActivities?.joined || [],
+                rejected: myActivities?.rejected || []
+              }}
+              topStudents={topStudents}
+              totalStudents={totalStudents}
+            />
 
-          {!loading && (
-            <div className="grid grid-cols-3 gap-3">
-              <DashboardPointsCard
-                monitorPoints={monitorPoints}
-                totalPointsProgress={totalPointsProgress}
-                formatNumber={formatNumber}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Cột trái (2/3): Hoạt động */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* ===== SECTION 3: Hoạt động sắp tới ===== */}
+                <UpcomingActivities
+                  upcoming={upcomingActivities}
+                  formatNumber={formatNumber}
+                  onViewAll={() => navigate('/monitor/activities')}
+                  onSelectActivity={handleActivityClick}
+                />
 
-              <DashboardStatsCard
-                icon={Users}
-                value={totalStudents}
-                subLabel="SINH VIÊN"
-                bgColor="bg-blue-400"
-                textColor="text-white"
-                badgeText="LỚP HỌC"
-                badgeColor="bg-black"
-              />
-
-              <DashboardStatsCard
-                icon={Calendar}
-                value={activitiesJoined}
-                subLabel="HOẠT ĐỘNG"
-                bgColor="bg-yellow-400"
-                textColor="text-black"
-                badgeText="THAM GIA"
-                badgeColor="bg-black"
-              />
-
-              <DashboardStatsCard
-                icon={AlertCircle}
-                value={pendingApprovals}
-                subLabel="CHỜ DUYỆT"
-                bgColor="bg-orange-400"
-                textColor="text-black"
-                badge={pendingApprovals > 0 && <div className="bg-white/20 backdrop-blur-sm px-1.5 py-0.5 rounded-md"><span className="text-red-600 font-black text-xs animate-pulse">!</span></div>}
-              />
-
-              <DashboardStatsCard
-                icon={Activity}
-                value={totalActivities}
-                subLabel="HOẠT ĐỘNG LỚP"
-                bgColor="bg-purple-400"
-                textColor="text-white"
-                badgeText="ĐÃ DUYỆT"
-                badgeColor="bg-black"
-              />
-
-              <DashboardStatsCard
-                icon={Clock}
-                value={upcomingActivities?.length || 0}
-                subLabel="HOẠT ĐỘNG"
-                bgColor="bg-pink-400"
-                textColor="text-black"
-                badgeText="SẮP TỚI"
-                badgeColor="bg-black"
-              />
-
-              <DashboardStatsCard
-                icon={Trophy}
-                value={`${classRank}/${totalStudents}`}
-                subLabel="HẠNG CỦA TÔI"
-                bgColor="bg-blue-500"
-                textColor="text-white"
-                badge={<Star className="w-4 h-4 text-white" />}
-              />
-
-              <DashboardStatsCard
-                icon={Target}
-                goalPoints={goalPoints}
-                goalText={goalText}
-                bgColor="bg-green-400"
-                textColor="text-black"
-                badgeText="MỤC TIÊU"
-                badgeColor="bg-black"
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="relative inline-block mb-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-blue-600 border-r-indigo-600 absolute inset-0"></div>
-            <Zap className="absolute inset-0 m-auto h-6 w-6 text-blue-600 animate-pulse" />
-          </div>
-          <p className="text-gray-700 font-semibold text-lg">Đang tải dữ liệu...</p>
-        </div>
-      )}
-
-      {!loading && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex gap-2">
-                  <button onClick={() => setActiveTab('upcoming')} className={`px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm transition-all ${activeTab === 'upcoming' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    <Calendar className="w-5 h-5" />
-                    Hoạt động sắp diễn ra
-                  </button>
-                  <button onClick={() => setActiveTab('recent')} className={`px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm transition-all ${activeTab === 'recent' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    <Clock className="w-5 h-5" />
-                    Hoạt động gần đây
-                  </button>
-                </div>
-                <button onClick={() => navigate('/class/activities')} className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">Xem tất cả →</button>
+                {/* ===== SECTION 4: Hoạt động gần đây ===== */}
+                <RecentActivities
+                  recentActivities={filteredRecent}
+                  recentFilter={recentFilter}
+                  onFilterChange={setRecentFilter}
+                  myActivities={myActivities}
+                  formatNumber={formatNumber}
+                  onViewAll={() => navigate('/monitor/my-activities')}
+                  onSelectActivity={handleActivityClick}
+                />
               </div>
 
-              <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
-                {activeTab === 'upcoming' ? (
-                  <>
-                    {upcomingActivities?.length ? (
-                      <>
-                        {upcomingActivities.map(activity => (
-                          <ActivityListItem
-                            key={activity.id}
-                            activity={activity}
-                            onClick={() => handleActivityClick(activity)}
-                            formatNumber={formatNumber}
-                            variant="upcoming"
-                          />
-                        ))}
-                      </>
-                    ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                        <p className="mb-2">Chưa có hoạt động sắp diễn ra</p>
-                        <button onClick={() => navigate('/class/activities/create')} className="mt-2 text-purple-600 hover:text-purple-700 font-medium text-sm">Tạo hoạt động đầu tiên →</button>
-                      </div>
-                    )}
-                  </>
-                ) : activeTab === 'recent' ? (
-                  <>
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      {[
-                        { label: 'Tất cả', value: 'all', count: recentCounts.all },
-                        { label: 'Chờ duyệt', value: 'cho_duyet', count: recentCounts.cho_duyet },
-                        { label: 'Đã duyệt', value: 'da_duyet', count: recentCounts.da_duyet },
-                        { label: 'Đã tham gia', value: 'da_tham_gia', count: recentCounts.da_tham_gia },
-                        { label: 'Bị từ chối', value: 'tu_choi', count: recentCounts.tu_choi },
-                      ].map(f => (
-                        <button key={f.value} onClick={() => setRecentFilter(f.value)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 border ${recentFilter === f.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
-                          {f.label}
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${recentFilter === f.value ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>{f.count}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {filteredRecent?.length ? (
-                      <>
-                        {filteredRecent.map((activity: any, idx) => {
-                          const activityId = (activity.activity || activity.hoat_dong || activity)?.id || activity.id;
-                          return (
-                            <ActivityListItem
-                              key={activity.id || idx}
-                              activity={activity}
-                              onClick={() => activityId && handleActivityClick(activity)}
-                              formatNumber={formatNumber}
-                              variant="recent"
-                            />
-                          );
-                        })}
-                      </>
-                    ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <Clock className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                        <p className="mb-2">Không có hoạt động nào khớp với bộ lọc</p>
-                      </div>
-                    )}
-                  </>
-                ) : null}
+              {/* Cột phải (1/3): Top Sinh Viên */}
+              <div className="lg:col-span-1">
+                <MonitorTopStudents topStudents={topStudents} />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm">
-                  <Trophy className="w-5 h-5" />
-                  Danh Sách Sinh Viên
-                </div>
-                <span className="bg-purple-100 text-purple-800 text-xs font-medium px-3 py-1 rounded-full">{topStudents?.length || 0} SV</span>
-              </div>
-              <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
-                {topStudents && topStudents.length > 0 ? (
-                  topStudents.map((student, index) => (
-                    <TopStudentItem key={student.id} student={student} index={index} />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Trophy className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p className="text-sm">Chưa có dữ liệu</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Modals */}
       <ActivitySummaryModal
         isOpen={showSummaryModal}
         activity={selectedActivity}
@@ -309,7 +205,11 @@ export default function MonitorDashboardPage() {
         formatNumber={formatNumber}
       />
 
-      <ActivityDetailModal activityId={selectedActivityId} isOpen={showDetailModal} onClose={handleCloseDetailModal} />
-    </div>
+      <ActivityDetailModal 
+        activityId={selectedActivityId} 
+        isOpen={showDetailModal} 
+        onClose={handleCloseDetailModal} 
+      />
+    </motion.div>
   );
 }

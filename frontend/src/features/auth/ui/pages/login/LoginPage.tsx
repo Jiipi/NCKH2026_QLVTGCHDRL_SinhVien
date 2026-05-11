@@ -10,15 +10,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useLogin from '../../../model/hooks/useLogin';
 import '../../shared/AuthModern.css';
-import {
-  AuthLayout,
-  AuthPanel,
-  AuthInput,
-  AuthPasswordInput,
-  AuthButton,
-  AuthErrorMessage,
-  AuthLink
-} from '../../shared';
+import AuthLayout, { AuthPanel } from '../../shared/AuthLayout';
+import AuthInput from '../../shared/AuthInput';
+import AuthPasswordInput from '../../shared/AuthPasswordInput';
+import AuthButton from '../../shared/AuthButton';
+import AuthErrorMessage from '../../shared/AuthErrorMessage';
+import AuthLink from '../../shared/AuthLink';
 
 export default function LoginPage() {
   const navigate = useNavigate();

@@ -4,15 +4,13 @@ import ActivityDetailModal from '../../../../../entities/activity/ui/ActivityDet
 import SemesterClosureBanner from '../../../../../shared/components/semester/SemesterClosureBanner';
 import { useAdminActivitiesList } from '../../../model';
 import { Activity } from '../../../types';
-import {
-  AdminActivitiesHero,
-  AdminActivitiesToolbar,
-  AdminActivitiesFiltersPanel,
-  AdminActivitiesLoading,
-  AdminActivitiesError,
-  AdminActivitiesEmpty,
-  AdminActivitiesResults,
-} from '../../shared';
+import AdminActivitiesHero from '../../shared/ActivitiesList/AdminActivitiesHero';
+import AdminActivitiesToolbar from '../../shared/ActivitiesList/AdminActivitiesToolbar';
+import AdminActivitiesFiltersPanel from '../../shared/ActivitiesList/AdminActivitiesFiltersPanel';
+import AdminActivitiesLoading from '../../shared/ActivitiesList/AdminActivitiesLoading';
+import AdminActivitiesError from '../../shared/ActivitiesList/AdminActivitiesError';
+import AdminActivitiesEmpty from '../../shared/ActivitiesList/AdminActivitiesEmpty';
+import AdminActivitiesResults from '../../shared/ActivitiesList/AdminActivitiesResults';
 
 interface Stats {
   total: number;
@@ -107,9 +105,8 @@ const AdminActivitiesPage: React.FC = () => {
   const shouldShowResults = !loading && !error && allItems.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <SemesterClosureBanner />
+    <div className="space-y-6">
+      <SemesterClosureBanner />
 
         <AdminActivitiesHero
           totalActivities={stats.total}
@@ -182,12 +179,11 @@ const AdminActivitiesPage: React.FC = () => {
           />
         )}
 
-        <ActivityDetailModal
-          activityId={selectedActivityId}
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-        />
-      </div>
+      <ActivityDetailModal
+        activityId={selectedActivityId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

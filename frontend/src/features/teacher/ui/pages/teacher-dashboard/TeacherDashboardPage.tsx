@@ -1,95 +1,95 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users,
-  Calendar,
-  Award,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Activity,
-  Target,
-  Zap
+  Users, Calendar, Award, Clock, CheckCircle, AlertCircle,
+  Activity, Target, Loader2
 } from 'lucide-react';
-import http from '../../../../../shared/api/http';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
-import { SemesterClosureWidget } from '../../../../../shared/components/semester';
-import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../../shared/hooks/useSemesterData';
 import useTeacherDashboard from '../../../model/hooks/useTeacherDashboard';
 import useTeacherRegistrationActions from '../../../model/hooks/useTeacherRegistrationActions';
+import { teacherDashboardApi } from '../../../services';
 import { getUserAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 
-// Activity Card Component (kept for approval actions)
-function ActivityCard({ activity, onSelect, onApprove, onReject }: { activity: any; onSelect?: any; onApprove: any; onReject: any }) {
-  const statusColors = {
-    'cho_duyet': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    'da_duyet': 'bg-green-100 text-green-800 border-green-200', 
-    'tu_choi': 'bg-red-100 text-red-800 border-red-200',
-    'hoan_thanh': 'bg-blue-100 text-blue-800 border-blue-200'
-  };
+// --- Framer Motion Variants ---
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const, staggerChildren: 0.12 } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } }
+} as const;
 
-  const statusLabels = {
-    'cho_duyet': 'Chờ duyệt',
-    'da_duyet': 'Đã duyệt',
-    'tu_choi': 'Từ chối',
-    'hoan_thanh': 'Hoàn thành'
+const sectionVariants = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' as const } }
+} as const;
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } }
+} as const;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.15 } }
+} as const;
+
+// --- Activity Card (Clean Design) ---
+function DashboardMetric({ icon: Icon, value, label, tone, bg }: { icon: any; value: any; label: string; tone: string; bg: string }) {
+  return (
+    <motion.div variants={cardVariants} className="rounded-[1.75rem] border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
+      <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-2xl ${bg}`}>
+        <Icon className={`h-5 w-5 ${tone}`} />
+      </div>
+      <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{value}</p>
+      <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{label}</p>
+    </motion.div>
+  );
+}
+
+function ActivityCard({ activity, onApprove, onReject }: { activity: any; onApprove: any; onReject: any }) {
+  const statusMap: Record<string, { label: string; cls: string }> = {
+    'cho_duyet': { label: 'Chờ duyệt', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    'da_duyet': { label: 'Đã duyệt', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    'tu_choi': { label: 'Từ chối', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+    'hoan_thanh': { label: 'Hoàn thành', cls: 'bg-blue-50 text-blue-700 border-blue-200' }
   };
+  const status = statusMap[activity.trang_thai] || { label: activity.trang_thai, cls: 'bg-slate-50 text-slate-700 border-slate-200' };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 text-lg mb-2">{activity.ten_hd}</h3>
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{activity.mo_ta}</p>
+    <motion.div variants={cardVariants} className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-1 truncate">{activity.ten_hd}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{activity.mo_ta}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[activity.trang_thai]}`}>
-          {statusLabels[activity.trang_thai]}
-        </span>
+        <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-medium border ${status.cls}`}>{status.label}</span>
       </div>
-      
-      <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-        <div className="flex items-center gap-2">
-          <Award className="w-4 h-4 text-yellow-500" />
-          <span className="text-gray-600">Điểm:</span>
-          <span className="font-medium">{activity.diem_rl}</span>
+      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <Award className="w-4 h-4 text-amber-500" /><span>Điểm: <b>{activity.diem_rl}</b></span>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-blue-500" />
-          <span className="text-gray-600">Ngày:</span>
-          <span className="font-medium">{new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}</span>
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <Calendar className="w-4 h-4 text-blue-500" /><span>{new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-green-500" />
-          <span className="text-gray-600">Sức chứa:</span>
-          <span className="font-medium">{activity.sl_toi_da}</span>
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <Users className="w-4 h-4 text-emerald-500" /><span>Sức chứa: <b>{activity.sl_toi_da}</b></span>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-purple-500" />
-          <span className="text-gray-600">Tạo:</span>
-          <span className="font-medium">{new Date(activity.ngay_tao).toLocaleDateString('vi-VN')}</span>
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <Clock className="w-4 h-4 text-purple-500" /><span>{new Date(activity.ngay_tao).toLocaleDateString('vi-VN')}</span>
         </div>
       </div>
-
       {activity.trang_thai === 'cho_duyet' && (
         <div className="flex gap-2">
-          <button
-            onClick={() => onApprove(activity.id)}
-            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Phê duyệt
+          <button onClick={() => onApprove(activity.id)} className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
+            <CheckCircle className="w-4 h-4" /> Phê duyệt
           </button>
-          <button
-            onClick={() => onReject(activity.id)}
-            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <AlertCircle className="w-4 h-4" />
-            Từ chối
+          <button onClick={() => onReject(activity.id)} className="flex-1 bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium">
+            <AlertCircle className="w-4 h-4" /> Từ chối
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -97,548 +97,224 @@ export default function TeacherDashboardPage() {
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useNotification();
 
-  // Load từ global semester (đồng bộ giữa các form)
-  const [semester, setSemesterState] = useState(() => {
-    try {
-      return getGlobalSemester() || null;
-    } catch {
-      return null;
-    }
-  });
+  const [semester, setSemesterState] = useState(() => { try { return getGlobalSemester() || null; } catch { return null; } });
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [teacherName, setTeacherName] = useState('Giảng viên');
   const [teacherInitials, setTeacherInitials] = useState('GV');
-  const [teacherProfile, setTeacherProfile] = useState(null);
+  const [teacherProfile, setTeacherProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('activities');
 
   const { options: semesterOptions, currentSemester, loading: semesterLoading } = useSemesterData();
-
-  // Sync với global semester changes từ các form khác
   useGlobalSemesterSync(semester, setSemesterState);
 
-  // Re-sync on mount (in case sessionStorage was updated while unmounted)
-  useEffect(() => {
-    const stored = getGlobalSemester();
-    if (stored && stored !== semester) {
-      setSemesterState(stored);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const stored = getGlobalSemester(); if (stored && stored !== semester) setSemesterState(stored); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (semesterLoading) return;
     if (semesterOptions.length === 0 && !currentSemester) return;
-
     const hasSemesterInOptions = semester && semesterOptions.some(opt => opt.value === semester);
     const fallbackSemester = (() => {
-      if (currentSemester && semesterOptions.some(opt => opt.value === currentSemester)) {
-        return currentSemester;
-      }
+      if (currentSemester && semesterOptions.some(opt => opt.value === currentSemester)) return currentSemester;
       return semesterOptions[0]?.value || null;
     })();
-
     if ((!semester || !hasSemesterInOptions) && fallbackSemester && fallbackSemester !== semester) {
       setSemesterState(fallbackSemester);
       setGlobalSemester(fallbackSemester);
     }
   }, [semester, semesterLoading, currentSemester, semesterOptions]);
 
-  // Wrapper để broadcast global khi thay đổi semester
-  const handleSetSemester = useCallback((value) => {
-    setSemesterState(value);
-    setGlobalSemester(value);
-  }, []);
+  const handleSetSemester = useCallback((value) => { setSemesterState(value); setGlobalSemester(value); }, []);
 
-  const {
-    stats,
-    recentActivities,
-    pendingRegistrations,
-    classes,
-    students,
-    loading,
-    error,
-    refresh,
-    approve: approveActivity,
-    reject: rejectActivity
-  } = useTeacherDashboard({ semester, classId: selectedClassId });
-
+  const { stats, recentActivities, pendingRegistrations, classes, students, loading, error, refresh, approve: approveActivity, reject: rejectActivity } = useTeacherDashboard({ semester, classId: selectedClassId });
   const { approveRegistration, rejectRegistration } = useTeacherRegistrationActions();
 
-  useEffect(() => {
-    if (!selectedClassId && classes?.length) {
-      setSelectedClassId(classes[0].id);
-    }
-  }, [classes, selectedClassId]);
+  useEffect(() => { if (!selectedClassId && classes?.length) setSelectedClassId(classes[0].id); }, [classes, selectedClassId]);
 
   useEffect(() => {
     let cancelled = false;
-    const updateProfileData = (profile) => {
-      setTeacherProfile(profile);
-      const name = profile.ho_ten || profile.name || 'Giảng viên';
+    const updateProfile = (p: any) => {
+      setTeacherProfile(p);
+      const name = p.ho_ten || p.name || 'Giảng viên';
       setTeacherName(name);
-      const initials = String(name)
-        .split(' ')
-        .filter(Boolean)
-        .map((part) => part[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase();
-      setTeacherInitials(initials || 'GV');
+      setTeacherInitials(String(name).split(' ').filter(Boolean).map(s => s[0]).join('').slice(0, 2).toUpperCase() || 'GV');
     };
-
     (async () => {
       try {
-        const res = await http.get('/core/profile');
-        const profile = res.data?.data || {};
-        if (cancelled) return;
-        updateProfileData(profile);
-      } catch (_) {
-        // ignore
-      }
+        const result = await teacherDashboardApi.getProfile();
+        if (!cancelled && result.success) updateProfile(result.data || {});
+      } catch {}
     })();
-
-    // Listen for profile updates
-    const handleProfileUpdate = (event) => {
-      if (event.detail?.profile) {
-        updateProfileData(event.detail.profile);
-      }
-    };
-    window.addEventListener('profileUpdated', handleProfileUpdate);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('profileUpdated', handleProfileUpdate);
-    };
+    const handler = (e: any) => { if (e.detail?.profile) updateProfile(e.detail.profile); };
+    window.addEventListener('profileUpdated', handler);
+    return () => { cancelled = true; window.removeEventListener('profileUpdated', handler); };
   }, []);
 
-  const handleApproveActivity = useCallback(async (id) => {
-    try {
-      await approveActivity(id);
-      showSuccess('Đã phê duyệt hoạt động');
-    } catch (err) {
-      console.error(err);
-      showError('Không thể phê duyệt hoạt động');
-    }
-  }, [approveActivity, showError, showSuccess]);
+  const handleApproveActivity = useCallback(async (id) => { try { await approveActivity(id); showSuccess('Đã phê duyệt hoạt động'); } catch { showError('Không thể phê duyệt'); } }, [approveActivity, showError, showSuccess]);
+  const handleRejectActivity = useCallback(async (id) => { const r = window.prompt('Nhập lý do từ chối:'); if (!r?.trim()) { showWarning('Vui lòng nhập lý do'); return; } try { await rejectActivity(id, r.trim()); showSuccess('Đã từ chối'); } catch { showError('Không thể từ chối'); } }, [rejectActivity, showError, showSuccess, showWarning]);
+  const handleApproveRegistration = useCallback(async (reg) => { try { const result = await approveRegistration(reg.id); if (!result.success && 'error' in result) throw new Error(result.error); showSuccess('Đã phê duyệt đăng ký'); refresh(); } catch { showError('Không thể phê duyệt đăng ký'); } }, [approveRegistration, refresh, showError, showSuccess]);
+  const handleRejectRegistration = useCallback(async (reg) => { const r = window.prompt('Nhập lý do từ chối:', 'Không đáp ứng yêu cầu'); if (!r?.trim()) { showWarning('Vui lòng nhập lý do'); return; } try { const result = await rejectRegistration(reg.id, r.trim()); if (!result.success && 'error' in result) throw new Error(result.error); showSuccess('Đã từ chối đăng ký'); refresh(); } catch { showError('Không thể từ chối'); } }, [rejectRegistration, refresh, showError, showSuccess, showWarning]);
 
-  const handleRejectActivity = useCallback(async (id) => {
-    const reason = window.prompt('Nhập lý do từ chối:');
-    if (!reason || !reason.trim()) {
-      showWarning('Vui lòng nhập lý do hợp lệ');
-      return;
-    }
-    try {
-      await rejectActivity(id, reason.trim());
-      showSuccess('Đã từ chối hoạt động');
-    } catch (err) {
-      console.error(err);
-      showError('Không thể từ chối hoạt động');
-    }
-  }, [rejectActivity, showError, showSuccess, showWarning]);
-
-  const handleApproveRegistration = useCallback(async (registration) => {
-    try {
-      const result = await approveRegistration(registration.id);
-      if (!result.success && 'error' in result) {
-        throw new Error(result.error || 'Không thể phê duyệt');
-      }
-      showSuccess('Đã phê duyệt đăng ký');
-      refresh();
-    } catch (err) {
-      console.error(err);
-      showError('Không thể phê duyệt đăng ký');
-    }
-  }, [approveRegistration, refresh, showError, showSuccess]);
-
-  const handleRejectRegistration = useCallback(async (registration) => {
-    const reason = window.prompt('Nhập lý do từ chối:', 'Không đáp ứng yêu cầu');
-    if (!reason || !reason.trim()) {
-      showWarning('Vui lòng nhập lý do hợp lệ');
-      return;
-    }
-    try {
-      const result = await rejectRegistration(registration.id, reason.trim());
-      if (!result.success && 'error' in result) {
-        throw new Error(result.error || 'Không thể từ chối');
-      }
-      showSuccess('Đã từ chối đăng ký');
-      refresh();
-    } catch (err) {
-      console.error(err);
-      showError('Không thể từ chối đăng ký');
-    }
-  }, [rejectRegistration, refresh, showError, showSuccess, showWarning]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Đang tải dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white border border-red-200 rounded-xl p-8 text-center shadow">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={refresh}
-            className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
-          >
-            Thử lại
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Avatar
+  const avatarData = teacherProfile ? getUserAvatar(teacherProfile) : null;
+  const avatarSrc = avatarData?.hasValidAvatar ? avatarData.src : null;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="space-y-4">
-          {/* Greeting + Avatar */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-shrink-0">
-                <svg className="absolute inset-0 w-20 h-20 -rotate-90 transform -translate-x-2 -translate-y-2" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="4" />
-                  <circle cx="40" cy="40" r="36" fill="none" stroke="url(#teacherGradient)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 36}`} strokeDashoffset={`${2 * Math.PI * 36 * (1 - Math.min(100,100) / 100)}`} className="transition-all duration-1000 ease-out" />
-                  <defs>
-                    <linearGradient id="teacherGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="50%" stopColor="#a855f7" />
-                      <stop offset="100%" stopColor="#3b82f6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarGradient(teacherName)} border-4 border-white flex items-center justify-center shadow-lg overflow-hidden`}>
-                  {teacherProfile && (() => {
-                    const avatar = getUserAvatar(teacherProfile);
-                    return avatar.hasValidAvatar ? (
-                      <img
-                        src={avatar.src}
-                        alt={avatar.alt}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          img.style.display = 'none';
-                          const next = img.nextSibling as HTMLElement | null;
-                          if (next) next.style.display = 'flex';
-                        }}
-                      />
-                    ) : null;
-                  })()}
-                  <span className={`text-2xl font-black text-white ${teacherProfile && getUserAvatar(teacherProfile).hasValidAvatar ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
-                    {teacherInitials}
-                  </span>
-                </div>
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
-              </div>
-              <div className="flex-1">
-                <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-2 mb-1">
-                  Xin chào, {teacherName}!
-                  <Zap className="h-6 w-6 text-yellow-400 animate-pulse" />
-                </h1>
-                <p className="text-gray-600 text-sm mb-2">Chào mừng bạn quay trở lại với hệ thống điểm rèn luyện</p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="px-4 py-1.5 rounded-full text-sm font-black border-2 bg-blue-50 text-blue-700 border-blue-300">
-                    Giảng viên
-                  </span>
-                  {classes.length > 0 && (
-                    <select
-                      value={selectedClassId || ''}
-                      onChange={(e) => setSelectedClassId(e.target.value || null)}
-                      className="px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      {classes.map(c => (
-                        <option key={c.id} value={c.id}>{c.ten_lop}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Semester Filter + Closure Widget */}
-          <div className="group relative">
-            <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-3xl"></div>
-            <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 border-4 border-black p-4 rounded-3xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="h-5 w-5 text-black font-bold" />
-                <h3 className="text-base font-black text-black uppercase tracking-wider">BỘ LỌC HỌC KỲ</h3>
-              </div>
-              <div className="bg-white rounded-xl p-3 border-2 border-black shadow-lg mb-3">
-                <SemesterFilter value={semester} onChange={handleSetSemester} />
-              </div>
-              <div className="bg-white/90 rounded-xl p-3 border-2 border-black">
-                <SemesterClosureWidget compact enableSoftLock={false} enableHardLock={false} allowProposeWithoutClass={true} className="!p-0 !bg-transparent !border-0" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col h-full">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3 grid-rows-2 h-full">
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-yellow-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <Clock className="w-5 h-5 text-black" />
-                </div>
-                <p className="text-3xl font-black text-black mb-0.5">{stats.pendingApprovals}</p>
-                <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">Chờ phê duyệt</p>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-purple-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <Activity className="w-5 h-5 text-white" />
-                </div>
-                <p className="text-3xl font-black text-white mb-0.5">{stats.totalActivities}</p>
-                <p className="text-[10px] font-black text-white/80 uppercase tracking-wider">Tổng hoạt động</p>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-blue-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <p className="text-3xl font-black text-white mb-0.5">{stats.totalStudents}</p>
-                <p className="text-[10px] font-black text-white/80 uppercase tracking-wider">Tổng sinh viên</p>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-green-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <Award className="w-5 h-5 text-black" />
-                </div>
-                <p className="text-3xl font-black text-black mb-0.5">{stats.avgClassScore}</p>
-                <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">Điểm TB lớp</p>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-pink-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <CheckCircle className="w-5 h-5 text-black" />
-                </div>
-                <p className="text-3xl font-black text-black mb-0.5">{stats.approvedThisWeek}</p>
-                <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">Duyệt tuần này</p>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-              <div className="relative bg-orange-400 border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <Target className="w-5 h-5 text-black" />
-                </div>
-                <p className="text-3xl font-black text-black mb-0.5">{stats.participationRate}%</p>
-                <p className="text-[10px] font-black text-black/70 uppercase tracking-wider">Tỉ lệ tham gia</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-md p-4">
-            {/* Tabs */}
-            <div className="flex items-center gap-3 mb-6 border-b border-gray-200">
-              <button
-                onClick={() => setActiveTab('activities')}
-                className={`px-4 py-2 font-bold text-sm transition-all duration-200 border-b-2 ${
-                  activeTab === 'activities'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  Hoạt động chờ duyệt
-                  {recentActivities?.length > 0 && (
-                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                      {recentActivities.length}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('registrations')}
-                className={`px-4 py-2 font-bold text-sm transition-all duration-200 border-b-2 ${
-                  activeTab === 'registrations'
-                    ? 'border-purple-600 text-purple-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Đăng ký chờ duyệt
-                  {pendingRegistrations?.length > 0 && (
-                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                      {pendingRegistrations.length}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <div className="ml-auto">
-                <button
-                  onClick={() => navigate(activeTab === 'activities' ? '/teacher/approve' : '/teacher/registrations')}
-                  className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
-                >
-                  Xem tất cả →
-                </button>
-              </div>
-            </div>
-            {/* Tab Content */}
-            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}>
-              {activeTab === 'activities' ? (
-                recentActivities?.length ? (
-                  recentActivities.map((activity) => (
-                    <ActivityCard key={activity.id} activity={activity} onApprove={handleApproveActivity} onReject={handleRejectActivity} />
-                  ))
+    <motion.div className="space-y-6" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      <motion.section variants={sectionVariants} className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.15),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(20,184,166,0.14),transparent_28%)]" />
+        <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${getAvatarGradient(teacherName)} text-white shadow-lg ring-1 ring-white/70 dark:ring-white/10`}>
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={teacherName} className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
-                  <div className="text-center py-10 text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>Chưa có hoạt động chờ duyệt</p>
-                  </div>
-                )
-              ) : (
-                pendingRegistrations?.length ? (
-                  pendingRegistrations.map((reg) => (
-                    <div key={reg.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-1">
-                            {reg.hoat_dong?.ten_hd || 'Hoạt động không xác định'}
-                          </h4>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Users className="w-4 h-4" />
-                            <span>{reg.sinh_vien?.nguoi_dung?.ho_ten || 'N/A'}</span>
-                            <span className="text-gray-400">•</span>
-                            <span className="font-mono text-xs">{reg.sinh_vien?.mssv}</span>
-                          </div>
-                        </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium border bg-yellow-100 text-yellow-800 border-yellow-200">
-                          Chờ duyệt
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveRegistration(reg)}
-                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Phê duyệt
-                        </button>
-                        <button
-                          onClick={() => handleRejectRegistration(reg)}
-                          className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <AlertCircle className="w-4 h-4" />
-                          Từ chối
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-10 text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>Chưa có đăng ký chờ duyệt</p>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Student List */}
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-gray-900">Danh sách sinh viên</h3>
-            </div>
-            <span className="text-sm text-gray-500">
-              {students?.length || 0} sinh viên
-            </span>
-          </div>
-          <div className="max-h-[400px] overflow-y-auto space-y-2">
-            {students?.length ? (
-              students
-                .slice()
-                .sort((a, b) => (Number(b.diem_rl) || 0) - (Number(a.diem_rl) || 0))
-                .map((student) => (
-                <div
-                  key={student.id}
-                  className="rounded-lg p-3 border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="relative flex-shrink-0">
-                      {student.avatar ? (
-                        <img
-                          src={student.avatar}
-                          alt={student.ho_ten}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                          onError={(e) => {
-                            const img = e.target as HTMLImageElement;
-                            img.onerror = null;
-                            img.style.display = 'none';
-                            const fallback = img.nextSibling as HTMLElement | null;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-indigo-500 text-white font-bold text-sm"
-                        style={{ display: student.avatar ? 'none' : 'flex' }}
-                      >
-                        {student.ho_ten?.split(' ').pop()?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm mb-1">{student.ho_ten}</h4>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs text-gray-600">{student.mssv}</span>
-                        <span className="text-xs text-gray-500">•</span>
-                        <span className="text-xs text-gray-600">{student.lop}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Award className="w-3 h-3 text-yellow-500" />
-                        <span className="text-xs text-gray-700">
-                          Điểm RL: <span className="font-semibold text-indigo-600">{student.diem_rl}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">Chưa có sinh viên</p>
+                  <span className="text-xl font-black">{teacherInitials}</span>
+                )}
               </div>
+              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-950" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian giảng viên</p>
+              <h1 className="mt-1 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Xin chào, {teacherName}!</h1>
+              <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Theo dõi hoạt động, đăng ký, sinh viên và điểm rèn luyện theo học kỳ.</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+            <span className="inline-flex items-center justify-center rounded-2xl border border-indigo-200/70 bg-indigo-50/70 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-indigo-700 shadow-sm backdrop-blur-xl dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-200">Giảng viên</span>
+            {classes.length > 0 && (
+              <select value={selectedClassId || ''} onChange={(e) => setSelectedClassId(e.target.value || null)}
+                className="rounded-2xl border border-white/70 bg-white/55 px-3 py-2 text-xs font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                {classes.map(c => (<option key={c.id} value={c.id}>{c.ten_lop}</option>))}
+              </select>
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </motion.section>
+
+      {/* Loading */}
+      <AnimatePresence mode="wait">
+        {loading && (
+          <motion.div key="loading" className="flex flex-col items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 py-16 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+              <Loader2 className="mb-3 h-8 w-8 text-indigo-600 dark:text-indigo-300" />
+            </motion.div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">Đang tải dữ liệu...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="rounded-[2rem] border border-rose-200/70 bg-rose-50/70 p-8 text-center shadow-sm backdrop-blur-2xl dark:border-rose-400/20 dark:bg-rose-950/20">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-rose-500" />
+          <h3 className="mb-2 text-lg font-black text-rose-800 dark:text-rose-200">Có lỗi xảy ra</h3>
+          <p className="mb-4 text-sm font-semibold text-rose-600 dark:text-rose-300">{error}</p>
+          <button onClick={refresh} className="rounded-2xl bg-rose-600 px-5 py-2 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-rose-700">Thử lại</button>
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
+        {!loading && !error && (
+          <motion.div key="content" className="space-y-6" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <DashboardMetric icon={Clock} value={stats.pendingApprovals} label="Việc cần duyệt" tone="text-amber-600 dark:text-amber-300" bg="bg-amber-50 dark:bg-amber-400/10" />
+              <DashboardMetric icon={Activity} value={stats.totalActivities} label="Hoạt động học kỳ" tone="text-indigo-600 dark:text-indigo-300" bg="bg-indigo-50 dark:bg-indigo-400/10" />
+              <DashboardMetric icon={Users} value={stats.totalStudents} label="Sinh viên phụ trách" tone="text-sky-600 dark:text-sky-300" bg="bg-sky-50 dark:bg-sky-400/10" />
+              <DashboardMetric icon={Target} value={`${stats.participationRate}%`} label="Tỉ lệ tham gia" tone="text-emerald-600 dark:text-emerald-300" bg="bg-emerald-50 dark:bg-emerald-400/10" />
+            </motion.div>
+
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
+              <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+                <div className="mb-5 flex flex-col gap-3 border-b border-white/60 pb-4 dark:border-white/10 sm:flex-row sm:items-center">
+                  <button onClick={() => setActiveTab('activities')} className={`flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-all ${activeTab === 'activities' ? 'bg-indigo-50/80 text-indigo-700 shadow-sm ring-1 ring-indigo-100 dark:bg-indigo-400/10 dark:text-indigo-200 dark:ring-indigo-400/20' : 'text-slate-500 hover:bg-white/60 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'}`}>
+                    <Clock className="w-4 h-4" /> HĐ chờ duyệt
+                    {recentActivities?.length > 0 && <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-black text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200">{recentActivities.length}</span>}
+                  </button>
+                  <button onClick={() => setActiveTab('registrations')} className={`flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-all ${activeTab === 'registrations' ? 'bg-purple-50/80 text-purple-700 shadow-sm ring-1 ring-purple-100 dark:bg-purple-400/10 dark:text-purple-200 dark:ring-purple-400/20' : 'text-slate-500 hover:bg-white/60 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'}`}>
+                    <Users className="w-4 h-4" /> ĐK chờ duyệt
+                    {pendingRegistrations?.length > 0 && <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-black text-purple-700 dark:bg-purple-400/20 dark:text-purple-200">{pendingRegistrations.length}</span>}
+                  </button>
+                  <button onClick={() => navigate(activeTab === 'activities' ? '/teacher/approve' : '/teacher/registrations')} className="text-sm font-bold text-slate-500 transition-colors hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-200 sm:ml-auto">Xem tất cả →</button>
+                </div>
+
+                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-h-[440px] space-y-3 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' as const }}>
+                  {activeTab === 'activities' ? (
+                    recentActivities?.length ? recentActivities.map(a => (
+                      <ActivityCard key={a.id} activity={a} onApprove={handleApproveActivity} onReject={handleRejectActivity} />
+                    )) : (
+                      <div className="rounded-[2rem] border border-dashed border-white/70 bg-white/45 py-12 text-center text-slate-400 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"><Calendar className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-500" /><p className="text-sm font-semibold dark:text-slate-300">Chưa có hoạt động chờ duyệt</p></div>
+                    )
+                  ) : (
+                    pendingRegistrations?.length ? pendingRegistrations.map(reg => (
+                      <motion.div key={reg.id} variants={cardVariants} className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
+                        <div className="mb-3 flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="mb-1 truncate text-sm font-bold text-slate-900 dark:text-white">{reg.hoat_dong?.ten_hd || 'Hoạt động'}</h4>
+                            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-300">
+                              <Users className="h-3.5 w-3.5" /><span>{reg.sinh_vien?.nguoi_dung?.ho_ten || 'N/A'}</span>
+                              <span className="text-slate-300 dark:text-slate-600">•</span><span className="font-mono">{reg.sinh_vien?.mssv}</span>
+                            </div>
+                          </div>
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200">Chờ duyệt</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleApproveRegistration(reg)} className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-700">
+                            <CheckCircle className="h-3.5 w-3.5" /> Phê duyệt
+                          </button>
+                          <button onClick={() => handleRejectRegistration(reg)} className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-rose-700">
+                            <AlertCircle className="h-3.5 w-3.5" /> Từ chối
+                          </button>
+                        </div>
+                      </motion.div>
+                    )) : (
+                      <div className="rounded-[2rem] border border-dashed border-white/70 bg-white/45 py-12 text-center text-slate-400 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"><Users className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-500" /><p className="text-sm font-semibold dark:text-slate-300">Chưa có đăng ký chờ duyệt</p></div>
+                    )
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Student List */}
+              <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-2xl bg-indigo-50/80 p-2 shadow-sm ring-1 ring-indigo-100 dark:bg-indigo-400/10 dark:ring-indigo-400/20"><Users className="h-4 w-4 text-indigo-600 dark:text-indigo-200" /></div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Sinh viên lớp</h3>
+                  </div>
+                  <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-bold text-slate-500 shadow-sm ring-1 ring-white/70 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10">{students?.length || 0} SV</span>
+                </div>
+                <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' as const }}>
+                  {students?.length ? (
+                    students.slice().sort((a, b) => (Number(b.diem_rl) || 0) - (Number(a.diem_rl) || 0)).map((student, idx) => (
+                      <div key={student.id} className="rounded-2xl border border-transparent p-3 transition-all hover:border-white/70 hover:bg-white/55 hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br ${getAvatarGradient(student.ho_ten || student.mssv)} shadow-sm`}>
+                            {student.ho_ten?.split(' ').pop()?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{student.ho_ten}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="font-mono text-[10px] text-slate-500">{student.mssv}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-[10px] text-slate-500">{student.lop}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-sm text-indigo-600 dark:text-indigo-400">{student.diem_rl}</p>
+                            <p className="text-[10px] text-slate-400">điểm RL</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[2rem] border border-dashed border-white/70 bg-white/45 py-8 text-center text-slate-400 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"><Users className="mx-auto mb-2 h-10 w-10 text-slate-300 dark:text-slate-500" /><p className="text-sm font-semibold dark:text-slate-300">Chưa có sinh viên</p></div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
-

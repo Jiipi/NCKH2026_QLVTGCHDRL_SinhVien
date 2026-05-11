@@ -5,6 +5,7 @@
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { ValidationError } from '../../../../core/errors/AppError';
+import { auditIntegrityService } from '../../../audit-integrity/services/auditIntegrity.service';
 import type { DangKyHoatDong, Prisma, HocKy, TrangThaiDangKy } from '@prisma/client';
 import type { 
   IRegistrationRepository, 
@@ -350,19 +351,42 @@ class RegistrationsRepository implements IRegistrationRepository {
     return { count: result.count };
   }
 
-  async checkIn<T = unknown>(id: string, checkInTime?: Date): Promise<T> {
+  async checkIn<T = unknown>(id: string, checkInTime?: Date, audit?: { actorId?: string | null; requestId?: string | null; ipAddress?: string | null; userAgent?: string | null }): Promise<T> {
     // id là UUID (String), không parse
-    const updated = await prisma.dangKyHoatDong.update({
-      where: { id: String(id) }, // UUID - giữ nguyên string
-      data: {
-        trang_thai_dk: 'da_tham_gia',
-        // Note: ngay_tham_gia is not in schema, store in ghi_chu or another field
-      },
-      include: {
-        hoat_dong: true,
-        sinh_vien: { include: { nguoi_dung: true, lop: true } }
-      }
+    const updated = await prisma.$transaction(async (tx) => {
+      const registration = await tx.dangKyHoatDong.update({
+        where: { id: String(id) }, // UUID - giữ nguyên string
+        data: {
+          trang_thai_dk: 'da_tham_gia',
+          // Note: ngay_tham_gia is not in schema, store in ghi_chu or another field
+        },
+        include: {
+          hoat_dong: true,
+          sinh_vien: { include: { nguoi_dung: true, lop: true } }
+        }
+      });
+
+      await auditIntegrityService.appendEvent(tx, {
+        chainScope: 'registration',
+        entityType: 'dang_ky_hoat_dong',
+        entityId: registration.id,
+        action: 'registration_marked_attended_manual',
+        actorId: audit?.actorId || null,
+        requestId: audit?.requestId || null,
+        ipAddress: audit?.ipAddress || null,
+        userAgent: audit?.userAgent || null,
+        payload: {
+          registrationId: registration.id,
+          sinhVienId: registration.sv_id,
+          hoatDongId: registration.hd_id,
+          trangThaiDk: registration.trang_thai_dk,
+          checkInTime: checkInTime || null
+        }
+      });
+
+      return registration;
     });
+
     return this.normalize(updated as unknown as Record<string, unknown>) as T;
   }
 

@@ -9,7 +9,8 @@ import { activityApi, activityTypeApi } from '../../../../shared/api/repositorie
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
 import { buildSemesterValue, parseSemesterString, isSameSemester } from '../../../../shared/lib/semester';
-import type { ActivityType, CreateActivityDto } from '../../../../shared/types';
+import { formatDateTimeLocal, toISOWithTimezone } from '../../../../shared/lib/dateTime';
+import type { ActivityType } from '../../../../shared/types';
 
 // ============ TYPES ============
 export interface ActivityFormData {
@@ -24,6 +25,11 @@ export interface ActivityFormData {
     sl_toi_da: string;
     nam_hoc: string;
     hoc_ky: string;
+    yeu_cau_gps: boolean;
+    cho_phep_fallback: boolean;
+    geo_latitude: string;
+    geo_longitude: string;
+    geo_radius_meters: string;
 }
 
 export interface FormStatus {
@@ -77,20 +83,6 @@ const getInitialSemester = (): { hoc_ky: string; nam_hoc: string } => {
     return { hoc_ky: getDefaultSemester(), nam_hoc: getDefaultYear() };
 };
 
-const formatDateTimeLocal = (value: string | Date | null | undefined): string => {
-    if (!value) return '';
-    try {
-        const dt = new Date(value);
-        if (isNaN(dt.getTime())) return '';
-        const year = dt.getFullYear();
-        const month = String(dt.getMonth() + 1).padStart(2, '0');
-        const day = String(dt.getDate()).padStart(2, '0');
-        const hours = String(dt.getHours()).padStart(2, '0');
-        const minutes = String(dt.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch (e) { return ''; }
-};
-
 /**
  * useManageActivity - Hook tạo/sửa hoạt động
  */
@@ -114,6 +106,11 @@ export function useManageActivity(): UseManageActivityReturn {
         sl_toi_da: '',
         nam_hoc: initialSemester.nam_hoc,
         hoc_ky: initialSemester.hoc_ky,
+        yeu_cau_gps: false,
+        cho_phep_fallback: true,
+        geo_latitude: '',
+        geo_longitude: '',
+        geo_radius_meters: '100',
     });
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
     const [status, setStatus] = useState<FormStatus>({ loading: isEditMode, submitting: false });
@@ -155,7 +152,7 @@ export function useManageActivity(): UseManageActivityReturn {
         const fetchActivityDetails = async (): Promise<void> => {
             setStatus(s => ({ ...s, loading: true }));
             try {
-                const d = await activityApi.getActivityById(activityId);
+                const d = await activityApi.getActivityById(activityId) as any;
                 setForm({
                     ten_hd: d.ten_hd || '',
                     loai_hd_id: d.loai_hd_id || '',
@@ -168,6 +165,11 @@ export function useManageActivity(): UseManageActivityReturn {
                     sl_toi_da: d.so_luong_toi_da?.toString() || '',
                     nam_hoc: d.nam_hoc || getDefaultYear(),
                     hoc_ky: d.hoc_ky?.toString() || getDefaultSemester(),
+                    yeu_cau_gps: Boolean(d.yeu_cau_gps),
+                    cho_phep_fallback: d.cho_phep_fallback !== false,
+                    geo_latitude: d.geo_latitude?.toString() || '',
+                    geo_longitude: d.geo_longitude?.toString() || '',
+                    geo_radius_meters: d.geo_radius_meters?.toString() || '100',
                 });
             } catch (err) {
                 showError('Không thể tải chi tiết hoạt động.');
@@ -181,8 +183,9 @@ export function useManageActivity(): UseManageActivityReturn {
     const handleFormChange = useCallback((
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ): void => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        const checked = 'checked' in e.target ? e.target.checked : false;
+        setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
         if (fieldErrors[name]) {
             setFieldErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
         }
@@ -207,6 +210,14 @@ export function useManageActivity(): UseManageActivityReturn {
         }
         const diem = parseFloat(form.diem_rl);
         if (form.diem_rl !== '' && (isNaN(diem) || diem < 0)) errs.diem_rl = 'Điểm không hợp lệ';
+        if (form.yeu_cau_gps) {
+            const lat = Number(form.geo_latitude);
+            const lng = Number(form.geo_longitude);
+            const radius = Number(form.geo_radius_meters);
+            if (!form.geo_latitude || !Number.isFinite(lat) || lat < -90 || lat > 90) errs.geo_latitude = 'Vĩ độ không hợp lệ';
+            if (!form.geo_longitude || !Number.isFinite(lng) || lng < -180 || lng > 180) errs.geo_longitude = 'Kinh độ không hợp lệ';
+            if (!Number.isFinite(radius) || radius < 50 || radius > 1000) errs.geo_radius_meters = 'Bán kính từ 50 đến 1000m';
+        }
         return errs;
     };
 
@@ -219,20 +230,35 @@ export function useManageActivity(): UseManageActivityReturn {
 
         setStatus(s => ({ ...s, submitting: true }));
 
+        const ngayBatDauIso = toISOWithTimezone(form.ngay_bd);
+        const ngayKetThucIso = toISOWithTimezone(form.ngay_kt);
+        const hanDangKyIso = toISOWithTimezone(form.han_dk);
+
+        if (!ngayBatDauIso || !ngayKetThucIso) {
+            showError('Thời gian bắt đầu/kết thúc không hợp lệ');
+            setStatus(s => ({ ...s, submitting: false }));
+            return;
+        }
+
         const payload: any = {
             // Backend validators expect legacy field names
             ten_hoat_dong: form.ten_hd,
             loai_hoat_dong_id: form.loai_hd_id,
             mo_ta: form.mo_ta || undefined,
-            ngay_bat_dau: form.ngay_bd,
-            ngay_ket_thuc: form.ngay_kt,
-            han_dk: form.han_dk || undefined,
+            ngay_bat_dau: ngayBatDauIso,
+            ngay_ket_thuc: ngayKetThucIso,
+            han_dk: hanDangKyIso || undefined,
             diem_ren_luyen: form.diem_rl === '' ? 0 : Number(form.diem_rl),
             dia_diem: form.dia_diem || undefined,
             so_luong_toi_da: form.sl_toi_da === '' ? undefined : Number(form.sl_toi_da),
             pham_vi: 'lop',
             hoc_ky: form.hoc_ky,
             nam_hoc: form.nam_hoc,
+            yeu_cau_gps: form.yeu_cau_gps,
+            cho_phep_fallback: form.cho_phep_fallback,
+            geo_latitude: form.yeu_cau_gps ? Number(form.geo_latitude) : undefined,
+            geo_longitude: form.yeu_cau_gps ? Number(form.geo_longitude) : undefined,
+            geo_radius_meters: form.yeu_cau_gps ? Number(form.geo_radius_meters || 100) : undefined,
         };
 
         try {

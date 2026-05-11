@@ -2,8 +2,24 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import qrAttendanceApi from '../../services/qrAttendanceApi';
+import qrApi from '../../services/qrApi';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
-import http from '../../../../shared/api/http';
+
+function getCurrentLocationForAttendance(): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+  if (!navigator.geolocation) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+}
 
 export function useQRScanner() {
   const [isScanning, setIsScanning] = useState(false);
@@ -70,20 +86,14 @@ export function useQRScanner() {
     }
 
     try {
-      // Validate token via backend QR data
-      const qrInfo = await qrAttendanceApi.getQrData(payload.activityId);
-      if (!qrInfo.success) throw new Error('error' in qrInfo ? qrInfo.error : 'Không thể xác thực mã QR');
-
-      const server = 'data' in qrInfo ? (qrInfo.data || {}) : {};
-      const serverToken = server.qr_token || server.token;
-      if (!serverToken || serverToken !== payload.token) {
-        throw new Error('Mã QR không khớp hoặc đã hết hạn');
+      const server: any = {};
+      if (payload.expiresAt && new Date(payload.expiresAt).getTime() <= Date.now()) {
+        throw new Error('Mã QR đã hết hạn, vui lòng quét mã mới');
       }
 
       // Kiểm tra học kỳ đang kích hoạt: Lấy thông tin hoạt động để kiểm tra học kỳ
       try {
-        const activityRes = await http.get(`/activities/${payload.activityId}`);
-        const activity = activityRes?.data?.data || activityRes?.data || {};
+        const activity = await qrApi.fetchActivity(payload.activityId);
         const activitySemester = activity.semester || activity.semesterValue || activity.hoc_ky;
         
         // Nếu có học kỳ đang kích hoạt và hoạt động không thuộc học kỳ đó, từ chối
@@ -98,9 +108,13 @@ export function useQRScanner() {
         // Nếu lỗi khác (không tìm thấy hoạt động), vẫn tiếp tục (backend sẽ xử lý)
       }
 
-      // Submit attendance with token
-      const checkin = await qrAttendanceApi.scanAttendance(payload.activityId, payload.token);
-      if (!checkin.success) throw new Error('error' in checkin ? checkin.error : 'Điểm danh thất bại');
+      const location = await getCurrentLocationForAttendance();
+      const checkin = await qrAttendanceApi.scanAttendance(payload.activityId, payload.token, payload.sessionId, location);
+      if (!checkin.success) {
+        const scanError = new Error('error' in checkin ? checkin.error : 'Điểm danh thất bại') as Error & { details?: unknown };
+        scanError.details = 'details' in checkin ? checkin.details : undefined;
+        throw scanError;
+      }
 
       const data = 'data' in checkin ? (checkin.data || {}) : {};
       const result = {
@@ -121,7 +135,7 @@ export function useQRScanner() {
     } catch (e) {
       // Ưu tiên lấy message từ backend response trước, sau đó là error.message
       const msg = e?.response?.data?.message || e?.message || 'Không thể xác thực mã QR. Vui lòng thử lại.';
-      setScanResult({ success: false, message: msg });
+      setScanResult({ success: false, message: msg, details: e?.response?.data?.errors || e?.details });
       setError(msg);
     } finally {
       setIsProcessing(false);

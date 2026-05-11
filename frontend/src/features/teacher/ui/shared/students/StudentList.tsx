@@ -56,23 +56,23 @@ export function StudentList({
     students.every(s => selectedStudents.includes(s.id));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md">
+    <div className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 border border-white/60 dark:border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-black/30">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
+      <div className="px-6 py-4 border-b border-white/50 dark:border-white/10 bg-gradient-to-r from-white/50 to-indigo-500/10 dark:from-white/5 dark:to-indigo-400/10">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-600" />
             Danh sách sinh viên
           </h3>
           <div className="flex items-center gap-4">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
+            <div className="flex items-center bg-white/50 dark:bg-white/10 rounded-xl p-1 border border-white/60 dark:border-white/10 backdrop-blur-sm">
               <button
                 onClick={() => onViewModeChange('grid')}
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   viewMode === 'grid'
-                    ? 'bg-white shadow-md text-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white/90 dark:bg-white/15 shadow-md text-indigo-600 dark:text-indigo-300'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
                 title="Xem dạng lưới"
               >
@@ -82,8 +82,8 @@ export function StudentList({
                 onClick={() => onViewModeChange('list')}
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   viewMode === 'list'
-                    ? 'bg-white shadow-md text-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white/90 dark:bg-white/15 shadow-md text-indigo-600 dark:text-indigo-300'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
                 title="Xem dạng danh sách"
               >
@@ -98,9 +98,9 @@ export function StudentList({
                   type="checkbox"
                   checked={allSelected}
                   onChange={() => onSelectAll(students)}
-                  className="w-4 h-4 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-indigo-600 border-2 border-white/60 dark:border-white/10 rounded focus:ring-indigo-500"
                 />
-                <span className="text-sm text-gray-600 font-medium">Chọn tất cả</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">Chọn tất cả</span>
               </label>
             )}
           </div>
@@ -126,7 +126,7 @@ export function StudentList({
           </div>
         ) : (
           /* List View */
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-white/50 dark:divide-white/10">
             {students.map(student => (
               <StudentListItem
                 key={student.id}
@@ -143,11 +143,11 @@ export function StudentList({
       ) : (
         /* Empty State */
         <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-            <UserX className="w-10 h-10 text-gray-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/50 dark:bg-white/10 rounded-full mb-4 backdrop-blur-sm">
+            <UserX className="w-10 h-10 text-slate-400 dark:text-slate-500" />
           </div>
-          <h3 className="text-xl font-bold text-gray-500 mb-2">Không có sinh viên nào</h3>
-          <p className="text-gray-400 mb-6">
+          <h3 className="text-xl font-bold text-slate-500 dark:text-slate-300 mb-2">Không có sinh viên nào</h3>
+          <p className="text-slate-400 dark:text-slate-500 mb-6">
             {searchTerm 
               ? 'Không tìm thấy sinh viên phù hợp với bộ lọc' 
               : 'Chưa có sinh viên nào trong lớp này'
@@ -165,9 +165,9 @@ export function StudentList({
       
       {/* Pagination */}
       {pagination.total > 0 && (
-        <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-t-2 border-gray-200">
+        <div className="bg-gradient-to-r from-white/50 to-indigo-500/10 dark:from-white/5 dark:to-indigo-400/10 border-t border-white/50 dark:border-white/10">
           <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-gray-600 font-medium">
+            <div className="text-sm text-slate-600 dark:text-slate-300 font-medium">
               Hiển thị <span className="font-bold text-indigo-600">{displayFrom} - {displayTo}</span> của <span className="font-bold">{pagination.total}</span> sinh viên
             </div>
             <Pagination

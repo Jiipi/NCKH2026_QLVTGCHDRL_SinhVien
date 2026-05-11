@@ -7,6 +7,3 @@
 
 export { default as AdminProfilePage } from './admin-profile/AdminProfilePage';
 export { default as AdminRolesPage } from './admin-roles/AdminRolesPage';
-export { default as MonitorProfilePage } from './monitor-profile/MonitorProfilePage';
-export { default as StudentCertificatesPage } from './student-certificates/StudentCertificatesPage';
-export { default as StudentPointsPage } from './student-points/StudentPointsPage';

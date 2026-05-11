@@ -1,6 +1,5 @@
 import React from 'react';
-import { Search, Calendar, Users, Grid3X3, List } from 'lucide-react';
-import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
+import { Search, Users, Grid3X3, List } from 'lucide-react';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả' },
@@ -41,11 +40,6 @@ export default function RegistrationApprovalsControls({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-              <Calendar className="h-4 w-4 text-indigo-600" />
-              <SemesterFilter value={semester} onChange={onSemesterChange} label="" />
-            </div>
-
             <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-blue-200 rounded-xl">
               <Users className="h-4 w-4 text-blue-600" />
               <select

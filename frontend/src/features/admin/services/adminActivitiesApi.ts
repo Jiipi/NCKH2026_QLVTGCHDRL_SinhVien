@@ -34,6 +34,20 @@ const adminActivitiesApi = {
     return res?.data?.data || res?.data || {};
   },
 
+  async listCoreClasses() {
+    const res = await http.get('/core/classes');
+    const payload = res.data?.data;
+    return Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload)
+          ? payload
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+  },
+
   async deleteActivity(id: string): Promise<AxiosResponse> {
     const res = await http.delete(`/core/activities/${id}`);
     emitActivitiesChange({ action: 'delete', id });

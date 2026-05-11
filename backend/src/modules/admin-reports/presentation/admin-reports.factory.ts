@@ -5,6 +5,7 @@
 import adminReportsRepository from '../data/repositories/admin-reports.repository';
 import GetUserPointsReportUseCase from '../business/services/GetUserPointsReportUseCase';
 import GetAttendanceReportUseCase from '../business/services/GetAttendanceReportUseCase';
+import GetAttendanceAuditReportUseCase from '../business/services/GetAttendanceAuditReportUseCase';
 import GetClassesListUseCase from '../business/services/GetClassesListUseCase';
 import GetOverviewUseCase from '../business/services/GetOverviewUseCase';
 import ExportActivitiesUseCase from '../business/services/ExportActivitiesUseCase';
@@ -19,6 +20,7 @@ function createAdminReportsController(): AdminReportsController {
   const useCases = {
     getUserPointsReport: new GetUserPointsReportUseCase(repo),
     getAttendanceReport: new GetAttendanceReportUseCase(repo),
+    getAttendanceAuditReport: new GetAttendanceAuditReportUseCase(repo),
     getClassesList: new GetClassesListUseCase(repo),
     getOverview: new GetOverviewUseCase(repo),
     exportActivities: new ExportActivitiesUseCase(repo),

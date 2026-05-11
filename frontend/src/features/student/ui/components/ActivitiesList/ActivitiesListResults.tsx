@@ -1,6 +1,20 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ActivitiesListCard from './ActivitiesListCard';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring' as const, stiffness: 350, damping: 25 } }
+};
 
 export default function ActivitiesListResults({
   filteredItems = [],
@@ -16,77 +30,79 @@ export default function ActivitiesListResults({
   onLimitChange
 }) {
   return (
-    <div
-      ref={activitiesGridRef}
-      className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
-    >
-      {isTransitioning && (
-        <div className="flex items-center justify-center py-4 mb-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-            <span className="text-sm text-blue-700 font-medium">Đang tải...</span>
-          </div>
-        </div>
-      )}
+    <div ref={activitiesGridRef} className="relative flex flex-col flex-1">
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </motion.div>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Đang tải danh sách...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-gray-700 font-semibold">
-            Có <span className="text-green-600 font-bold">{filteredItems.length}</span> hoạt động lớp của bạn
+          <span className="text-slate-600 dark:text-slate-400 text-sm">
+            Tìm thấy <span className="text-slate-900 dark:text-white font-bold">{filteredItems.length}</span> hoạt động
           </span>
-          {filteredItems.length <= pagination.limit && filteredItems.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Hiển thị đầy đủ
-            </span>
-          )}
         </div>
       </div>
 
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
-        {filteredItems.map((activity, idx) => (
-          <ActivitiesListCard
-            key={activity.id || idx}
-            activity={activity}
-            mode={viewMode}
-            role={role}
-            isWritable={isWritable}
-            onRegister={onRegister}
-            onViewDetail={onViewDetail}
-          />
-        ))}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={viewMode}
+          className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+        >
+          {filteredItems.map((activity, idx) => (
+            <motion.div
+              key={activity.id || idx}
+              variants={itemVariants}
+            >
+              <ActivitiesListCard
+                activity={activity}
+                mode={viewMode}
+                role={role}
+                isWritable={isWritable}
+                onRegister={onRegister}
+                onViewDetail={onViewDetail}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
 
       {pagination.total > 0 && (
-        <div className="mt-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            {pagination.total > 10 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 whitespace-nowrap">Hiển thị mỗi trang:</span>
-                <select
-                  value={pagination.limit}
-                  onChange={(e) => onLimitChange(parseInt(e.target.value, 10))}
-                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 hover:border-blue-300 text-sm font-medium"
-                >
-                  {[10, 20, 50, 100].map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <Pagination
-              pagination={pagination}
-              onPageChange={onPageChange}
-            />
+        <div className="mt-auto pt-6 flex items-center justify-center gap-4 flex-wrap border-t border-slate-200 dark:border-slate-800">
+          <Pagination
+            pagination={pagination}
+            onPageChange={onPageChange}
+          />
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Hiển thị:</span>
+            <select
+              value={pagination.limit}
+              onChange={(e) => onLimitChange(parseInt(e.target.value, 10))}
+              className="bg-transparent text-xs font-semibold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+            >
+              {[10, 20, 50, 100].map((size) => (
+                <option key={size} value={size} className="text-slate-900">
+                  {size}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}
@@ -95,19 +111,19 @@ export default function ActivitiesListResults({
 }
 
 function Pagination({ pagination, onPageChange }) {
-  const totalPages = Math.ceil(pagination.total / pagination.limit);
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
   const currentPage = pagination.page;
   const pageNumbers = getPageNumbers(currentPage, totalPages);
 
   return (
-    <div className="flex items-center justify-center gap-2 flex-wrap">
+    <div className="flex items-center justify-center gap-1.5 flex-wrap">
       <IconButton
         disabled={currentPage === 1}
         onClick={() => onPageChange(1)}
         title="Trang đầu"
       >
         <ChevronLeft className="h-4 w-4" />
-        <ChevronLeft className="h-4 w-4 -ml-3" />
+        <ChevronLeft className="h-4 w-4 -ml-2" />
       </IconButton>
 
       <IconButton
@@ -115,34 +131,36 @@ function Pagination({ pagination, onPageChange }) {
         onClick={() => onPageChange(currentPage - 1)}
       >
         <ChevronLeft className="h-4 w-4" />
-        Trước
       </IconButton>
 
-      {pageNumbers.map((pageNum) =>
-        typeof pageNum === 'string' ? (
-          <span key={pageNum} className="px-2 text-gray-400 font-bold">
-            ...
-          </span>
-        ) : (
-          <button
-            key={`page-${pageNum}`}
-            onClick={() => onPageChange(pageNum)}
-            className={`min-w-[44px] px-4 py-2.5 rounded-xl font-bold transition-all duration-200 ${
-              pageNum === currentPage
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg scale-110 ring-2 ring-blue-300'
-                : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-2 border-gray-200 hover:border-blue-300 hover:shadow-md'
-            }`}
-          >
-            {pageNum}
-          </button>
-        )
-      )}
+      <div className="flex items-center gap-1.5 px-2">
+        {pageNumbers.map((pageNum, idx) =>
+          typeof pageNum === 'string' ? (
+            <span key={`${pageNum}-${idx}`} className="px-2 text-slate-400 font-medium">
+              ...
+            </span>
+          ) : (
+            <motion.button
+              key={`page-${pageNum}`}
+              onClick={() => onPageChange(pageNum)}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className={`min-w-[40px] h-10 px-2 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+                pageNum === currentPage
+                  ? 'bg-blue-600 text-white border border-blue-600'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              {pageNum}
+            </motion.button>
+          )
+        )}
+      </div>
 
       <IconButton
         disabled={currentPage >= totalPages}
         onClick={() => onPageChange(currentPage + 1)}
       >
-        Sau
         <ChevronRight className="h-4 w-4" />
       </IconButton>
 
@@ -152,7 +170,7 @@ function Pagination({ pagination, onPageChange }) {
         title="Trang cuối"
       >
         <ChevronRight className="h-4 w-4" />
-        <ChevronRight className="h-4 w-4 -ml-3" />
+        <ChevronRight className="h-4 w-4 -ml-2" />
       </IconButton>
     </div>
   );
@@ -167,24 +185,26 @@ interface IconButtonProps {
 
 function IconButton({ children, disabled, onClick, title }: IconButtonProps) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
+      whileHover={!disabled ? { scale: 1.05, y: -2 } : {}}
+      whileTap={!disabled ? { scale: 0.95 } : {}}
+      className={`flex items-center justify-center h-10 w-10 rounded-lg font-semibold transition-colors shadow-sm ${
         disabled
-          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-2 border-gray-200 shadow-md hover:shadow-lg'
+          ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border border-transparent cursor-not-allowed'
+          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 cursor-pointer'
       }`}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }
 
 function getPageNumbers(currentPage, totalPages) {
   const pages = [];
-  const maxVisible = 7;
+  const maxVisible = 5;
 
   if (totalPages <= maxVisible) {
     for (let i = 1; i <= totalPages; i += 1) {
@@ -194,13 +214,13 @@ function getPageNumbers(currentPage, totalPages) {
   }
 
   pages.push(1);
-  const leftSiblings = 2;
-  const rightSiblings = 2;
-  const leftBound = Math.max(2, currentPage - leftSiblings);
-  const rightBound = Math.min(totalPages - 1, currentPage + rightSiblings);
+  const leftBound = Math.max(2, currentPage - 1);
+  const rightBound = Math.min(totalPages - 1, currentPage + 1);
+  
   if (leftBound > 2) pages.push('ellipsis-left');
   for (let i = leftBound; i <= rightBound; i += 1) pages.push(i);
   if (rightBound < totalPages - 1) pages.push('ellipsis-right');
+  
   pages.push(totalPages);
   return pages;
 }

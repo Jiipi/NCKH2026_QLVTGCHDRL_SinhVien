@@ -6,8 +6,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
-import http from '../../../../shared/api/http';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { approvalAdminApi } from '../../services';
 
 const STATUS_MAP = {
   pending: 'cho_duyet',
@@ -138,17 +138,16 @@ export function useAdminApprovals(initialSemester) {
       });
 
       console.log('[AdminApprovals] Loading registrations with params:', params, 'semester:', semester);
-      const res = await http.get('/admin/registrations', { params });
-      const data = res?.data?.data || res?.data || {};
-      
-      // Map registrations to include approvedByRole and approvedByName
-      const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
-      setRegistrations(items.map(mapRegistrationWithApprover));
+      const result = await approvalAdminApi.getRegistrations(params);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách đăng ký.');
+      const data = result.data;
+
+      setRegistrations(data.items.map(mapRegistrationWithApprover));
       setPagination(prev => ({
         ...prev,
-        total: parseInt(data.total || 0)
+        total: Number(data.total || 0)
       }));
-      
+
       if (data.counts) {
         setCounts(data.counts);
       }
@@ -164,9 +163,8 @@ export function useAdminApprovals(initialSemester) {
 
   const loadActivities = useCallback(async () => {
     try {
-      const res = await http.get('/admin/activities', { params: { semester } });
-      const list = res?.data?.data?.activities || res?.data?.data || res?.data || [];
-      setActivities(Array.isArray(list) ? list : []);
+      const result = await approvalAdminApi.getActivities({ semester });
+      setActivities(result.success ? result.data : []);
     } catch (err) {
       console.error('Lỗi khi tải hoạt động:', err);
       setActivities([]);
@@ -175,10 +173,8 @@ export function useAdminApprovals(initialSemester) {
 
   const loadClasses = useCallback(async () => {
     try {
-      // Use correct API endpoint for admin classes
-      const res = await http.get('/admin/reports/classes');
-      const list = Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data) ? res.data : []);
-      setClasses(list);
+      const result = await approvalAdminApi.getClasses();
+      setClasses(result.success ? result.data : []);
     } catch (err) {
       console.error('Lỗi khi tải lớp:', err);
       setClasses([]);
@@ -215,7 +211,8 @@ export function useAdminApprovals(initialSemester) {
 
     setProcessing(true);
     try {
-      await http.post(`/admin/registrations/${registration.id}/approve`);
+      const result = await approvalAdminApi.approveRegistration(registration.id);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể phê duyệt đăng ký.');
       showSuccess('Phê duyệt thành công.');
       await loadRegistrations();
     } catch (err) {
@@ -234,7 +231,8 @@ export function useAdminApprovals(initialSemester) {
 
     setProcessing(true);
     try {
-      await http.post(`/admin/registrations/${registration.id}/reject`, { reason: reason.trim() });
+      const result = await approvalAdminApi.rejectRegistration(registration.id, reason.trim());
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể từ chối đăng ký.');
       showSuccess('Đã từ chối đăng ký.');
       await loadRegistrations();
     } catch (err) {
@@ -258,7 +256,8 @@ export function useAdminApprovals(initialSemester) {
 
     setProcessing(true);
     try {
-      await http.post('/admin/registrations/bulk', { ids: selectedIds, action: 'approve' });
+      const result = await approvalAdminApi.bulkAction(selectedIds, 'approve');
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Lỗi khi phê duyệt hàng loạt.');
       showSuccess(`Đã phê duyệt ${selectedIds.length} đăng ký.`);
       setSelectedIds([]);
       await loadRegistrations();

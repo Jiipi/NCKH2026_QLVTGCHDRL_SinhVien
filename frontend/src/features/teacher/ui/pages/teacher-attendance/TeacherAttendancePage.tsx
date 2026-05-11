@@ -72,7 +72,7 @@ export default function TeacherAttendancePage() {
     <div className="space-y-6" data-ref="teacher-attendance-page">
       <AttendanceHero total={records.length} />
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -112,7 +112,7 @@ export default function TeacherAttendancePage() {
       </div>
 
       {filteredRecords.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
+        <div className="text-center py-16 rounded-[2rem] border border-dashed border-white/60 bg-white/60 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
           <Users className="h-14 w-14 text-gray-300 mx-auto mb-3" />
           <p className="text-lg font-semibold text-gray-600">Không tìm thấy điểm danh nào phù hợp</p>
           <p className="text-sm text-gray-500">Thay đổi bộ lọc hoặc kiểm tra lại thời gian.</p>
@@ -135,43 +135,33 @@ export default function TeacherAttendancePage() {
 
 function AttendanceHero({ total }) {
   return (
-    <div className="relative mb-2 rounded-3xl overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600" />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px)`,
-          backgroundSize: '50px 50px'
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
-      <div className="relative z-10 px-6 sm:px-10 py-8 sm:py-12">
-        <div className="backdrop-blur-md bg-white/5 border border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div>
-            <p className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-2">Điểm danh hoạt động</p>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-              Theo dõi và cập nhật trạng thái tham gia
-            </h1>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-white/70">Tổng lượt điểm danh</p>
-            <p className="text-4xl font-black text-white">{total}</p>
-          </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
+      <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Điểm danh hoạt động</p>
+          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
+            Theo dõi trạng thái tham gia
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+            Cập nhật trạng thái điểm danh và rà soát lượt tham gia hoạt động của sinh viên.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/60 bg-white/55 p-4 text-right shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Tổng lượt điểm danh</p>
+          <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-indigo-600 dark:text-indigo-300">{total}</p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
-
 function AttendanceRecordCard({ record, updating, onUpdateStatus }) {
   const activity = record.hoat_dong || {};
   const student = record.sinh_vien || {};
   const config = STATUS_CONFIG[record.status] || STATUS_CONFIG.present;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all" data-ref="attendance-record-card">
+    <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] hover:bg-white/75 transition-all dark:border-white/10 dark:bg-slate-900/60" data-ref="attendance-record-card">
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1 min-w-[200px]">
           <div className="flex items-center gap-3 mb-2">

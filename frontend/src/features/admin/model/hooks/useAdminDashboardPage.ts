@@ -6,8 +6,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useAdminDashboard from './useAdminDashboard';
 import { semesterApi, classApi } from '../../../../shared/api';
-import http from '../../../../shared/api/http';
-import { API_ENDPOINTS } from '../../../../shared/api/endpoints';
+import adminRegistrationsApi from '../../services/adminRegistrationsApi';
+import userManagementApi from '../../services/userManagementApi';
 
 interface Activity {
   id: string;
@@ -248,12 +248,8 @@ export default function useAdminDashboardPage() {
   const loadPendingRegistrations = useCallback(async () => {
     setLoadingRegistrations(true);
     try {
-      // Use admin registrations API with pending status
-      const response = await http.get('/core/admin/registrations', { 
-        params: { status: 'cho_duyet', limit: 50 } 
-      });
-      // API returns { success: true, data: { items: [...], total, page, limit, counts } }
-      const rawData = response.data?.data?.items || response.data?.data || response.data?.items || response.data || [];
+      const data = await adminRegistrationsApi.listCoreRegistrations({ status: 'cho_duyet', limit: 50 });
+      const rawData = data.items || data || [];
       // Ensure data is an array
       const registrationList = Array.isArray(rawData) ? rawData : [];
       setPendingRegistrations(registrationList);
@@ -305,12 +301,9 @@ export default function useAdminDashboardPage() {
   const loadTeachers = useCallback(async () => {
     setLoadingTeachers(true);
     try {
-      // Add limit to get more teachers, sorted by name
-      const response = await http.get(API_ENDPOINTS.users.list, { 
-        params: { role: 'GIANG_VIEN', limit: 100 } 
-      });
-      // API returns { success: true, data: { users: [...], pagination: {...} } }
-      const rawData = response.data?.data?.users || response.data?.data || response.data?.users || response.data || [];
+      const result = await userManagementApi.fetchUsers({ role: 'GIANG_VIEN', limit: 100 });
+      const data = result.success ? result.data : {};
+      const rawData = (data as { users?: TeacherData[] })?.users || data || [];
       // Ensure data is an array and filter out test users
       let teacherList = Array.isArray(rawData) ? rawData : [];
       // Filter out test users (ten_dn contains 'test')
@@ -333,9 +326,10 @@ export default function useAdminDashboardPage() {
   // Load user profile
   const loadUserProfile = useCallback(async () => {
     try {
-      const response = await http.get(API_ENDPOINTS.users.profile);
-      const data = response.data?.data || response.data;
-      setUserProfile(data);
+      const result = await userManagementApi.fetchUserProfile();
+      if (result.success) {
+        setUserProfile(result.data);
+      }
     } catch (err) {
       console.error('Failed to load user profile:', err);
     }

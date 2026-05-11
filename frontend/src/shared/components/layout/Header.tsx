@@ -1,7 +1,7 @@
 ﻿import { Link, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { Bell } from 'lucide-react';
-import http from '../../api/http';
+import layoutApi from '../../../widgets/layout/services/layoutApi';
 import { useAppStore } from '../../store/useAppStore';
 import { useMultiSession } from '../../hooks/useMultiSession';
 import MultiSessionIndicator from '../session/MultiSessionIndicator';
@@ -68,10 +68,9 @@ export default function Header() {
     // If we still need fresh profile (no user yet) but we have a token
     const token = sessionStorageManager.getToken();
     if (token && (!session || !session.user)) {
-      http.get('/auth/profile')
-        .then(res => {
-          const payload = (res?.data?.data || res?.data) || null;
-          setProfile(payload);
+      layoutApi.getAuthProfile()
+        .then(payload => {
+          setProfile(payload || null);
           // Persist inside this tab's session only
           if (payload) {
             sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.role || payload?.roleCode });
@@ -174,8 +173,7 @@ export default function Header() {
 
   const loadNotifications = async () => {
     try {
-      const response = await http.get('/core/notifications?limit=10');
-      const data = response?.data?.data || response?.data || {};
+      const data = await layoutApi.getNotifications(10);
 
       if (data.notifications && Array.isArray(data.notifications)) {
         // Transform API data to match frontend format
@@ -263,7 +261,7 @@ export default function Header() {
       setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, unread: false } : n
       ));
-      await http.patch(`/core/notifications/${notificationId}/read`);
+      await layoutApi.markNotificationRead(notificationId);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       setNotifications(prev => prev.map(n =>
@@ -275,7 +273,7 @@ export default function Header() {
   const markAllAsRead = async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-      await http.patch('/core/notifications/mark-all-read');
+      await layoutApi.markAllNotificationsRead();
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       loadNotifications();
@@ -284,8 +282,7 @@ export default function Header() {
 
   const openDetail = async (id) => {
     try {
-      const res = await http.get(`/core/notifications/${id}`);
-      const d = res?.data?.data || res?.data || null;
+      const d = await layoutApi.getNotificationDetail(id);
       if (d) {
         setDetail({
           id: d.id,

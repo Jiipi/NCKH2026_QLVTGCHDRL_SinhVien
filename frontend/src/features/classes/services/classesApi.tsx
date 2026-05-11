@@ -17,11 +17,11 @@ const classesApi = {
   /**
    * Get students of a class
    */
-  getClassStudents: async (classId) => {
+  getClassStudents: async (classId, params = {}) => {
     const response = await http.get('/teacher/students', {
-      params: { classFilter: classId, classId }
+      params: { classFilter: classId, classId, ...params }
     });
-    return response.data?.data?.students || [];
+    return response.data?.data || response.data || { students: [] };
   },
 
   /**
@@ -43,16 +43,58 @@ const classesApi = {
   },
 
   /**
-   * Import students to a class
+   * Import students from previewed job
    */
-  importStudents: async (classId, file) => {
+  importStudents: async (_classId: string | null, jobId: string) => {
+    const response = await http.post('/teacher/students/import', { jobId });
+    return response.data;
+  },
+
+  previewImportStudents: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('classId', classId);
-    const response = await http.post('/teacher/students/import', formData, {
+    const response = await http.post('/teacher/students/preview', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
+  },
+
+  getImportJobs: async () => {
+    const response = await http.get('/teacher/students/import/jobs');
+    return response.data;
+  },
+
+  getImportJob: async (jobId: string) => {
+    const response = await http.get(`/teacher/students/import/jobs/${jobId}`);
+    return response.data;
+  },
+
+  deleteTeacherStudent: async (studentId) => {
+    const response = await http.delete(`/teacher/students/${studentId}`);
+    return response.data;
+  },
+
+  updateTeacherStudent: async (studentId, studentData) => {
+    const response = await http.put(`/teacher/students/${studentId}`, studentData);
+    return response.data;
+  },
+
+  createTeacherStudent: async (studentData) => {
+    const response = await http.post('/teacher/students', studentData);
+    return response.data;
+  },
+
+  exportTeacherStudents: async (params) => {
+    const response = await http.get('/teacher/students/export', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  getStudentsByEndpoint: async (endpoint, params = {}) => {
+    const response = await http.get(endpoint, { params });
+    return response.data?.data || response.data || {};
   },
 
   /**

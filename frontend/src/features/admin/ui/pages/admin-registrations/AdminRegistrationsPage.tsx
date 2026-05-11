@@ -10,14 +10,12 @@ import React from 'react';
 import ActivityDetailModal from '../../../../../entities/activity/ui/ActivityDetailModal';
 import ConfirmModal from '../../../../../shared/components/common/ConfirmModal';
 import { useAdminRegistrations } from '../../../model';
-import {
-  AdminRegistrationsHero,
-  AdminRegistrationsStats,
-  AdminRegistrationsFilters,
-  AdminRegistrationsLoading,
-  AdminRegistrationsEmpty,
-  AdminRegistrationsResults,
-} from '../../shared';
+import AdminRegistrationsHero from '../../shared/Registrations/AdminRegistrationsHero';
+import AdminRegistrationsStats from '../../shared/Registrations/AdminRegistrationsStats';
+import AdminRegistrationsFilters from '../../shared/Registrations/AdminRegistrationsFilters';
+import AdminRegistrationsLoading from '../../shared/Registrations/AdminRegistrationsLoading';
+import AdminRegistrationsEmpty from '../../shared/Registrations/AdminRegistrationsEmpty';
+import AdminRegistrationsResults from '../../shared/Registrations/AdminRegistrationsResults';
 
 interface Activity {
   id: string;
@@ -135,7 +133,7 @@ const AdminRegistrationsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50/30 p-6">
+    <div className="space-y-6">
       <AdminRegistrationsHero
         onExport={exportExcel}
         exporting={exporting}
@@ -162,13 +160,13 @@ const AdminRegistrationsPage: React.FC = () => {
       />
 
       {viewMode === 'pending' && selectedIds.length > 0 && (
-        <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4 flex items-center justify-between">
-          <span className="text-orange-800 font-medium">
+        <div className="mb-4 flex items-center justify-between rounded-[1.5rem] border border-amber-200/70 bg-amber-50/70 p-4 shadow-sm backdrop-blur-2xl dark:border-amber-400/20 dark:bg-amber-400/10">
+          <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
             Đã chọn {selectedIds.length} đăng ký
           </span>
           <button
             onClick={() => setConfirmBulkApproveOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-md"
+            className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-emerald-700 hover:shadow-md"
           >
             Phê duyệt hàng loạt ({selectedIds.length})
           </button>

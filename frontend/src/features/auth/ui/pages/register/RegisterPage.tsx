@@ -10,15 +10,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useRegister from '../../../model/hooks/useRegister';
 import '../../shared/AuthModern.css';
-import {
-  AuthLayout,
-  AuthInput,
-  AuthPasswordInput,
-  AuthButton,
-  AuthErrorMessage,
-  AuthFormGroup,
-  AuthLink
-} from '../../shared';
+import AuthLayout from '../../shared/AuthLayout';
+import AuthInput from '../../shared/AuthInput';
+import AuthPasswordInput from '../../shared/AuthPasswordInput';
+import AuthButton from '../../shared/AuthButton';
+import AuthErrorMessage from '../../shared/AuthErrorMessage';
+import AuthFormGroup from '../../shared/AuthFormGroup';
+import AuthLink from '../../shared/AuthLink';
 
 export default function RegisterPage() {
   const navigate = useNavigate();

@@ -8,8 +8,11 @@
 import { ValidationError, NotFoundError, ConflictError } from '../../../../core/errors/AppError';
 import { faceRecognitionClient } from '../../services';
 import type { IFaceDataRepository } from '../interfaces';
+import type { AuditIntegrityActor } from '../../../audit-integrity/services/auditIntegrity.service';
+import { CURRENT_CONSENT_VERSION } from './ConsentUseCases';
+import { prisma } from '../../../../data/infrastructure/prisma/client';
 
-interface RegisterFaceInput {
+interface RegisterFaceInput extends AuditIntegrityActor {
   userId: string;        // nguoi_dung_id
   imageBuffer?: Buffer;  // Ảnh khuôn mặt đơn (backwards-compatible)
   imageBuffers?: Buffer[]; // Nhiều ảnh khuôn mặt (multi-image registration)
@@ -39,6 +42,15 @@ function calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+function toImageDataUrl(imageBase64: string | null | undefined): string | undefined {
+  if (!imageBase64) return undefined;
+  return imageBase64.startsWith('data:image/') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+}
+
+function bufferToImageDataUrl(buffer: Buffer): string {
+  return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+}
+
 class RegisterFaceUseCase {
   private faceDataRepository: IFaceDataRepository;
 
@@ -47,7 +59,7 @@ class RegisterFaceUseCase {
   }
 
   async execute(input: RegisterFaceInput): Promise<RegisterFaceResult> {
-    const { userId, imageBuffer, imageBuffers, updateIfExists = false } = input;
+    const { userId, imageBuffer, imageBuffers, updateIfExists = false, requestId, ipAddress, userAgent } = input;
 
     // 1. Tìm sinh viên theo nguoi_dung_id
     const sinhVien = await this.faceDataRepository.findStudentByUserId(userId);
@@ -63,6 +75,22 @@ class RegisterFaceUseCase {
       throw new ConflictError('Sinh viên đã đăng ký khuôn mặt. Sử dụng updateIfExists=true để cập nhật.');
     }
 
+    // 2.5 Kiểm tra consent sinh trắc học
+    const latestConsent = await prisma.dongYSinhTracHoc.findFirst({
+      where: {
+        sinh_vien_id: sinhVien.id,
+        consent_version: CURRENT_CONSENT_VERSION,
+        revoked_at: null
+      }
+    });
+
+    if (!latestConsent) {
+      throw new ValidationError(
+        'Bạn cần đồng ý chính sách sinh trắc học trước khi đăng ký khuôn mặt.',
+        { errorCode: 'CONSENT_REQUIRED' }
+      );
+    }
+
     // 3. Xác định dùng multi-image hay single-image
     const buffers = imageBuffers && imageBuffers.length > 0 ? imageBuffers : (imageBuffer ? [imageBuffer] : []);
 
@@ -71,6 +99,8 @@ class RegisterFaceUseCase {
     }
 
     let embedding: number[];
+    let facePreviewImage: string | null | undefined;
+    let facePreviewImages: string[] = [];
     let imagesProcessed = 0;
     let imagesTotal = buffers.length;
 
@@ -88,6 +118,8 @@ class RegisterFaceUseCase {
       }
 
       embedding = faceResult.embedding;
+      facePreviewImages = buffers.slice(0, faceResult.images_processed).map(bufferToImageDataUrl);
+      facePreviewImage = facePreviewImages[0];
       imagesProcessed = faceResult.images_processed;
     } else {
       // Single-image registration
@@ -107,6 +139,8 @@ class RegisterFaceUseCase {
       }
 
       embedding = faceResult.embedding;
+      facePreviewImage = toImageDataUrl(faceResult.aligned_face_base64) || bufferToImageDataUrl(buffers[0]);
+      facePreviewImages = [facePreviewImage];
       imagesProcessed = 1;
     }
 
@@ -122,9 +156,28 @@ class RegisterFaceUseCase {
     }
 
     // 5. Lưu hoặc cập nhật embedding vào database (atomic upsert - tránh race condition)
+    // Lấy model info từ AI service health
+    let modelName = 'buffalo_l';
+    let modelVersion = '1.0.0';
+    try {
+      const health = await faceRecognitionClient.healthCheck();
+      if ((health as any).model_name) modelName = (health as any).model_name;
+      if ((health as any).model_version) modelVersion = (health as any).model_version;
+    } catch (_) { /* use defaults */ }
+
     const upsertResult = await this.faceDataRepository.upsertBySinhVienId(sinhVien.id, {
       vector_dac_trung: embedding,
-      so_anh_dang_ky: imagesProcessed
+      anh_khuon_mat: facePreviewImage,
+      anh_khuon_mat_ds: facePreviewImages,
+      so_anh_dang_ky: imagesProcessed,
+      model_name: modelName,
+      model_version: modelVersion,
+      audit: {
+        actorId: userId,
+        requestId,
+        ipAddress,
+        userAgent
+      }
     });
 
     const faceData = upsertResult.data;

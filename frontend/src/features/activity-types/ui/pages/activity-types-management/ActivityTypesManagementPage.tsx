@@ -9,15 +9,13 @@ import type { FC, FormEvent, ReactNode } from 'react';
 import { useActivityTypes } from '../../../model';
 import type { ActivityTypeItem, ActivityTypePayload } from '../../../model';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
-import {
-  ActivityTypeHeader,
-  ActivityTypeFilters,
-  ActivityTypeGrid,
-  ActivityTypeList,
-  ActivityTypeEmptyState,
-  ActivityTypeModal,
-  ActivityTypeLoadingState
-} from '../../shared';
+import ActivityTypeHeader from '../../shared/ActivityTypeHeader';
+import ActivityTypeFilters from '../../shared/ActivityTypeFilters';
+import ActivityTypeGrid from '../../shared/ActivityTypeGrid';
+import ActivityTypeList from '../../shared/ActivityTypeList';
+import ActivityTypeEmptyState from '../../shared/ActivityTypeEmptyState';
+import ActivityTypeModal from '../../shared/ActivityTypeModal';
+import ActivityTypeLoadingState from '../../shared/ActivityTypeLoadingState';
 
 interface ActivityTypesManagementPageProps {
   showHeader?: boolean;

@@ -140,6 +140,13 @@ export interface BulkUpdateResult {
   count: number;
 }
 
+export interface RegistrationAuditContext {
+  actorId?: string | null;
+  requestId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
 /**
  * IRegistrationRepository Interface
  */
@@ -152,7 +159,7 @@ export interface IRegistrationRepository {
   delete(id: string): Promise<DangKyHoatDong>;
   bulkApprove(ids: string[], approverId?: string): Promise<BulkUpdateResult>;
   bulkReject(ids: string[], reason?: string, approverId?: string): Promise<BulkUpdateResult>;
-  checkIn<T = unknown>(id: string, checkInTime?: Date): Promise<T>;
+  checkIn<T = unknown>(id: string, checkInTime?: Date, audit?: RegistrationAuditContext): Promise<T>;
   findByUser(userId: string, filters?: UserRegistrationFilters): Promise<DangKyHoatDong[]>;
   getActivityStats(activityId: string): Promise<ActivityStats>;
   findStudentByUserId(userId: string): Promise<StudentIdentity | null>;
@@ -197,7 +204,7 @@ export abstract class BaseRegistrationRepository implements IRegistrationReposit
     throw new Error('Must implement bulkReject()');
   }
 
-  async checkIn<T = unknown>(_id: string, _checkInTime?: Date): Promise<T> {
+  async checkIn<T = unknown>(_id: string, _checkInTime?: Date, _audit?: RegistrationAuditContext): Promise<T> {
     throw new Error('Must implement checkIn()');
   }
 

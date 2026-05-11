@@ -1,48 +1,120 @@
-import React from 'react';
-import { Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { History, ChevronDown, Award, ExternalLink } from 'lucide-react';
 import ScoreCard from './ScoreCard';
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
+};
+
 export default function ScoresActivities({ activities = [] }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  const totalPoints = activities.reduce((sum, a) => sum + (a.diem || a.diem_rl || a.points || 0), 0);
+  const INITIAL_SHOW = 5;
+  const displayItems = showAll ? activities : activities.slice(0, INITIAL_SHOW);
+  const hasMore = activities.length > INITIAL_SHOW;
+
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <details className="group" open>
-        <summary className="flex items-center justify-between p-6 cursor-pointer select-none hover:bg-gray-50 transition-colors rounded-t-xl">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-indigo-600" />
-            Lịch sử hoạt động đã tham gia
-          </h3>
-          <div className="flex items-center gap-3">
-            {activities.length > 0 && (
-              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                {activities.length} hoạt động
-              </span>
-            )}
-            <svg className="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden"
+    >
+      {/* Header — clickable to toggle */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+            <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
-        </summary>
-        <div className="px-6 pb-6">
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-            {activities.length > 0 ? (
-              activities.map((activity, index) => <ScoreCard key={activity.id || index} activity={activity} />)
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-600 font-medium">Chưa có hoạt động nào trong kỳ này</p>
-                <p className="text-sm text-gray-400 mt-2">Các hoạt động bạn đã tham gia sẽ hiển thị ở đây</p>
-              </div>
-            )}
+          <div className="text-left">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Lịch sử hoạt động đã tham gia
+            </h3>
           </div>
-          <style>{`
-            .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-          `}</style>
         </div>
-      </details>
-    </section>
+
+        <div className="flex items-center gap-3">
+          {activities.length > 0 && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
+              {activities.length} hoạt động • Tổng +{totalPoints} điểm
+            </span>
+          )}
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <ChevronDown className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+          </motion.div>
+        </div>
+      </button>
+
+      {/* Content */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-700/50">
+              {activities.length > 0 ? (
+                <>
+                  <motion.div
+                    className="space-y-3 mt-4"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {displayItems.map((activity, index) => (
+                      <motion.div key={activity.id || index} variants={itemVariants}>
+                        <ScoreCard activity={activity} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  {/* Show more / Show less */}
+                  {hasMore && (
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); }}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {showAll ? 'Thu gọn' : `Xem tất cả lịch sử (${activities.length})`}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 mb-4">
+                    <Award className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Chưa có hoạt động nào trong kỳ này</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Các hoạt động bạn đã tham gia sẽ hiển thị ở đây</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 }
-

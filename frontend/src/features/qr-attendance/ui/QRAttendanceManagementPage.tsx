@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Users, Eye, CheckCircle, QrCode, RefreshCw } from 'lucide-react';
-import http from '../../../shared/api/http';
+import qrApi from '../services/qrApi';
 import ClassManagementLayout from '../../../shared/components/layout/ClassManagementLayout';
 import AdminStudentLayout from '../../../shared/components/layout/AdminStudentLayout';
 import { useAppStore } from '../../../shared/store';
@@ -34,8 +34,7 @@ export default function QRAttendanceManagement() {
   const loadActivities = async () => {
     try {
       setLoading(true);
-      const response = await http.get('/activities');
-      const data = response.data?.data || response.data || [];
+      const data = await qrApi.fetchActivities();
       setActivities(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách hoạt động');
@@ -45,8 +44,7 @@ export default function QRAttendanceManagement() {
 
   const loadAttendanceList = async (activityId) => {
     try {
-      const response = await http.get(`/activities/${activityId}/attendance`);
-      const data = response.data?.data || response.data || [];
+      const data = await qrApi.fetchActivityAttendance(activityId);
       setAttendances(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách điểm danh');
@@ -56,8 +54,7 @@ export default function QRAttendanceManagement() {
 
   const loadQrForActivity = async (activityId) => {
     try {
-      const response = await http.get(`/activities/${activityId}/qr`, { params: { image: 1 } });
-      const img = response.data?.data?.image || '';
+      const img = await qrApi.fetchActivityQRImage(activityId);
       setQrDataUrl(img);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tạo mã QR');
@@ -68,7 +65,7 @@ export default function QRAttendanceManagement() {
     if (!selectedActivity) return;
     try {
       setLoading(true);
-      await http.post(`/activities/${selectedActivity.id}/attendance`);
+      await qrApi.markActivityAttendance(selectedActivity.id);
       await loadAttendanceList(selectedActivity.id);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể điểm danh');

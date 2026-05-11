@@ -2,8 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { usePermissions } from '../../hooks/usePermissions';
-import http from '../../api/http';
+import layoutApi from '../../../widgets/layout/services/layoutApi';
 import '../../styles/teacher-sidebar.css';
+import sessionStorageManager from '../../api/sessionStorageManager';
+import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
+import useSemesterData, { getGlobalSemester, setGlobalSemester, useGlobalSemesterSync } from '../../hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../lib/semester';
 import {
   Users,
   Activity,
@@ -15,7 +19,9 @@ import {
   Menu,
   ChevronsLeft,
   User,
-  QrCode
+  QrCode,
+  Award,
+  ShieldAlert
 } from 'lucide-react';
 
 interface MenuItemProps {
@@ -61,14 +67,14 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
         ${collapsed && !inDropdown ? 'justify-center p-3' : 'px-4 py-2.5'}
         ${inDropdown ? 'mx-2' : ''}
         ${active
-          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/50'
-          : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+          ? 'bg-blue-800 text-white shadow-sm dark:bg-blue-700'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white'
         }
       `}
       onClick={onClick}
       title={collapsed && !inDropdown ? label : ''}
     >
-      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'}`}>
         {icon || <span className="w-2 h-2 rounded-full bg-current" />}
       </div>
       {(!collapsed || inDropdown) && (
@@ -96,9 +102,9 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
     return (
       <div className="relative group">
         {content}
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
           {label}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800" />
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
         </div>
       </div>
     );
@@ -144,7 +150,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
         }}
       >
         <div
-          className="w-full flex items-center justify-center p-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center p-3 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer"
           onClick={() => setFlyoutOpen(v => !v)}
         >
           <div className="flex items-center justify-center w-5 h-5">
@@ -152,15 +158,15 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
           </div>
         </div>
         <div
-          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-gray-800 rounded-lg shadow-2xl transition-all duration-200 z-[100] border border-gray-700 ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
+          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 transition-all duration-200 z-[100] ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
           onMouseEnter={() => { if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); } setFlyoutOpen(true); }}
           onMouseLeave={() => {
             if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
             hoverTimerRef.current = setTimeout(() => setFlyoutOpen(false), 150);
           }}
         >
-          <div className="px-4 py-2 border-b border-gray-700">
-            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</span>
+          <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</span>
           </div>
           <div className="py-2">{children}</div>
         </div>
@@ -173,7 +179,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200"
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200"
         aria-expanded={open}
       >
         <div className="flex items-center justify-center w-5 h-5">{icon}</div>
@@ -189,10 +195,39 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   );
 }
 
+function SidebarSemesterPicker() {
+  const [semester, setSemesterState] = useState(() => getGlobalSemester() || getCurrentSemesterValue(true));
+  const { options } = useSemesterData(semester);
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  const handleChange = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
+
+  return (
+    <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+      <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Học kỳ</label>
+      <SemesterFilter value={semester} onChange={handleChange} label="" options={options} />
+    </div>
+  );
+}
+
 export default function MonitorSidebar() {
   const location = useLocation();
   const path = location.pathname;
   const asideRef = React.useRef(null);
+  const [profile, setProfile] = React.useState(null);
+
+  React.useEffect(() => {
+    const session = sessionStorageManager.getSession();
+    if (session?.user) setProfile(session.user);
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.profile) setProfile(event.detail.profile);
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
 
   // Permission checking
   const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
@@ -208,7 +243,7 @@ export default function MonitorSidebar() {
     const updateVar = () => {
       const el = asideRef.current;
       if (!el) return;
-      const w = el.offsetWidth || (sidebarCollapsed ? 64 : 280);
+      const w = el.offsetWidth || (sidebarCollapsed ? 80 : 288);
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
     };
     updateVar();
@@ -241,10 +276,8 @@ export default function MonitorSidebar() {
   React.useEffect(() => {
     const fetchCount = async () => {
       try {
-        // ✅ Sử dụng CORE endpoint
-        const res = await http.get('/core/monitor/registrations/pending-count');
-        const count = res.data?.data?.count || res.data?.count || 0;
-        setPendingApprovalsCount(count);
+        const data = await layoutApi.getMonitorPendingRegistrationCount();
+        setPendingApprovalsCount(data.count || 0);
       } catch (err) {
         console.error('Error fetching pending count:', err);
         setPendingApprovalsCount(0);
@@ -263,7 +296,8 @@ export default function MonitorSidebar() {
     if (!menuPath) return false;
     const cleanMenuPath = menuPath.replace(/\/$/, '');
     const cleanCurrentPath = path.replace(/\/$/, '');
-    return cleanCurrentPath === cleanMenuPath;
+    if (cleanMenuPath === '/monitor') return cleanCurrentPath === '/monitor';
+    return cleanCurrentPath === cleanMenuPath || cleanCurrentPath.startsWith(cleanMenuPath + '/');
   };
 
   // Monitor menu with permission filtering
@@ -280,6 +314,9 @@ export default function MonitorSidebar() {
     }
     if (hasAnyPermission(['attendance.write', 'attendance.view', 'attendance.mark'])) {
       personalItems.push({ key: 'qr-scanner', to: '/monitor/qr-scanner', label: 'Quét QR điểm danh', icon: <QrCode className="w-4 h-4" />, active: getActiveState('/monitor/qr-scanner') });
+    }
+    if (hasAnyPermission(['registrations.view', 'registrations.read'])) {
+      personalItems.push({ key: 'my-certificates', to: '/monitor/my-certificates', label: 'Chứng nhận của tôi', icon: <Award className="w-4 h-4" />, active: getActiveState('/monitor/my-certificates') });
     }
     if (personalItems.length > 0) {
       menu.push({
@@ -328,6 +365,7 @@ export default function MonitorSidebar() {
     // Báo cáo
     if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
       menu.push({ key: 'reports', to: '/monitor/reports', label: 'Báo cáo & Thống kê', icon: <BarChart3 className="w-5 h-5" />, active: getActiveState('/monitor/reports') });
+      menu.push({ key: 'attendance-audit', to: '/monitor/attendance-audit', label: 'Audit điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: getActiveState('/monitor/attendance-audit') });
     }
     
     // Thông báo
@@ -371,56 +409,80 @@ export default function MonitorSidebar() {
     });
   }, [sidebarCollapsed]);
 
+  const initials = (() => {
+    const name = profile?.ho_ten || profile?.ten_dn || '';
+    if (!name) return 'LT';
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0][0]?.toUpperCase() || 'LT';
+  })();
+
   return (
     <aside
       ref={asideRef}
       className={`
         fixed left-0 top-0 h-screen z-30 transition-all duration-300 ease-in-out
         ${sidebarCollapsed ? 'w-20' : 'w-72'}
-        bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900
-        border-r border-gray-700/50 shadow-2xl
+        bg-white dark:bg-slate-800
+        border-r border-slate-200 dark:border-slate-700
+        shadow-sm
+        flex flex-col
       `}
     >
-      <div className={`h-16 flex items-center border-b border-gray-700/50 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 relative ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+      <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         {sidebarCollapsed ? (
           <button
             onClick={toggleSidebar}
-            className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-900 dark:hover:bg-blue-600 transition-colors cursor-pointer"
             title="Mở rộng sidebar"
           >
-            <Menu className="w-6 h-6 text-white" />
+            <Users className="w-5 h-5 text-white" />
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm">
+                <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Lớp trưởng</div>
-                <div className="text-gray-400 text-xs">Quản lý lớp</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white">DLU Rèn Luyện</div>
+                <div className="text-[11px] text-slate-400 dark:text-slate-500">Lớp trưởng</div>
               </div>
             </div>
             <button
               onClick={toggleSidebar}
-              className="relative p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110 transition-all duration-300 group ring-2 ring-white/20 hover:ring-white/40"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
-              <ChevronsLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <ChevronsLeft className="w-4 h-4" />
             </button>
           </>
         )}
       </div>
 
-      <nav className={`flex-1 py-6 space-y-2 ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible', overflowY: 'visible' }}>
-        {!sidebarCollapsed && (
-          <div className="px-4 mb-4">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu chính</div>
-          </div>
-        )}
+      <nav role="navigation" aria-label="Monitor sidebar navigation" className={`flex-1 py-4 space-y-1 overflow-y-auto ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible' }}>
         {renderMenuItems(monitorMenu)}
       </nav>
+
+      {!sidebarCollapsed && <SidebarSemesterPicker />}
+
+      {!sidebarCollapsed && profile && (
+        <div className="border-t border-slate-200 dark:border-slate-700 p-3">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+            <div className="w-9 h-9 rounded-full bg-blue-800 dark:bg-blue-700 flex items-center justify-center text-white font-semibold text-xs shadow-sm flex-shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {profile?.ho_ten || profile?.ten_dn || 'Lớp trưởng'}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                {profile?.ma_sv || profile?.mssv || ''}{profile?.ma_sv || profile?.mssv ? ' - ' : ''}{profile?.ten_lop || profile?.lop || 'Lớp trưởng'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

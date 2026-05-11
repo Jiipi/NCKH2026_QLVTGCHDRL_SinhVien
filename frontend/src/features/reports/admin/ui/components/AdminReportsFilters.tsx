@@ -1,21 +1,10 @@
 import React from 'react';
-import { Calendar, Download } from 'lucide-react';
-import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
+import { Download } from 'lucide-react';
 
 export default function AdminReportsFilters({ semester, onSemesterChange, onExportActivities, onExportRegistrations }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Semester Filter */}
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-            <Calendar className="w-5 h-5 text-indigo-600" />
-          </div>
-          <div className="w-64">
-            <SemesterFilter value={semester} onChange={onSemesterChange} label="" />
-          </div>
-        </div>
-
         {/* Export Buttons */}
         <div className="flex gap-3">
           <button 

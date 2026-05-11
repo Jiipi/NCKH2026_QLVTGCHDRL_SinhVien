@@ -7,13 +7,22 @@
  */
 
 import http from '../../../shared/api/http';
-import { 
-  handleApiError, 
-  createSuccessResponse, 
+import {
+  handleApiError,
+  createSuccessResponse,
   createValidationError,
   extractApiData,
   extractArrayItems
 } from './apiErrorHandler';
+import { teacherStudentsApi } from './teacherStudentsApi';
+
+const classifyScore = (score: number) => {
+  if (score >= 90) return 'Xuất sắc';
+  if (score >= 80) return 'Tốt';
+  if (score >= 65) return 'Khá';
+  if (score >= 50) return 'Trung bình';
+  return 'Yếu';
+};
 
 /**
  * Teacher Student Scores API
@@ -25,11 +34,34 @@ export const teacherStudentScoresApi = {
    */
   async list(params = {}) {
     try {
-      const response = await http.get('/api/teacher/student-scores', { params });
-      const payload = extractApiData<Record<string, unknown>>(response, {});
-      const items = extractArrayItems(payload);
+      const response = await teacherStudentsApi.getStudents(params);
+      const payload = response?.data ?? response ?? {};
+      const rawItems = Array.isArray(payload)
+        ? payload
+        : (Array.isArray(payload.students) ? payload.students : extractArrayItems(payload));
+      const items = rawItems.map((student) => {
+        const studentInfo = student.sinh_vien || student;
+        const user = student.nguoi_dung || student.user || {};
+        const score = Number(student.tong_diem ?? student.diem_rl ?? student.score ?? studentInfo.diem_rl ?? 0);
+        const activities = student.hoat_dong || student.activities || [];
+
+        return {
+          id: student.id || studentInfo.id,
+          sinh_vien: {
+            id: studentInfo.id || student.id,
+            mssv: studentInfo.mssv || student.mssv,
+            ho_ten: user.ho_ten || student.ho_ten || student.name,
+            lop: studentInfo.lop || student.lop || { ten_lop: student.className || student.ten_lop },
+            ten_lop: student.className || student.ten_lop
+          },
+          tong_diem: score,
+          tong_hoat_dong: Number(student.tong_hoat_dong ?? student.totalActivities ?? student.total_activities ?? activities.length ?? 0),
+          xep_loai: student.xep_loai || classifyScore(score),
+          hoat_dong: activities
+        };
+      });
       const pagination = (payload.pagination || {}) as Record<string, unknown>;
-      
+
       return createSuccessResponse({
         items,
         total: typeof pagination.total === 'number' ? pagination.total : items.length,
@@ -52,7 +84,7 @@ export const teacherStudentScoresApi = {
     
     try {
       const params = semester ? { semester } : {};
-      const response = await http.get(`/api/teacher/student-scores/${studentId}`, { params });
+      const response = await http.get(`/teacher/students/${studentId}`, { params });
       return createSuccessResponse(extractApiData(response, null));
     } catch (error) {
       return handleApiError(error, 'StudentScores.getDetail');

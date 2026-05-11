@@ -49,10 +49,10 @@ export default function TeacherStudentScoresPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex min-h-[60vh] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Đang tải bảng điểm...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600 dark:border-indigo-400/20 dark:border-t-indigo-300" />
+          <p className="font-semibold text-slate-500 dark:text-slate-300">Đang tải bảng điểm...</p>
         </div>
       </div>
     );
@@ -60,9 +60,9 @@ export default function TeacherStudentScoresPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
-        <p className="text-lg font-semibold text-red-600">{error}</p>
-        <button onClick={handleRefresh} className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4 rounded-[2rem] border border-rose-200/70 bg-rose-50/70 text-center shadow-sm backdrop-blur-2xl dark:border-rose-400/20 dark:bg-rose-950/20">
+        <p className="text-lg font-black text-rose-700 dark:text-rose-200">{error}</p>
+        <button onClick={handleRefresh} className="rounded-2xl bg-rose-600 px-5 py-2 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-rose-700">
           Thử lại
         </button>
       </div>
@@ -73,26 +73,26 @@ export default function TeacherStudentScoresPage() {
     <div className="space-y-6" data-ref="teacher-student-scores-page">
       <ScoresHero total={scores.length} />
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+      <div className="space-y-4 rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <Search className="h-5 w-5 text-slate-400" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên, MSSV hoặc lớp..."
-              className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              className="block w-full rounded-2xl border border-white/70 bg-white/55 py-3 pl-12 pr-4 text-sm font-semibold text-slate-800 shadow-inner shadow-white/40 backdrop-blur-xl transition-all placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+            <Filter className="h-4 w-4 text-slate-400" />
             <select
               value={classification}
               onChange={(e) => setClassification(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-purple-500"
+              className="rounded-2xl border border-white/70 bg-white/55 px-3 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
             >
               <option value="all">Tất cả xếp loại</option>
               {['xuất sắc', 'tốt', 'khá', 'trung bình', 'yếu'].map((type) => (
@@ -101,11 +101,11 @@ export default function TeacherStudentScoresPage() {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-gray-400" />
+            <ArrowUpDown className="h-4 w-4 text-slate-400" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-purple-500"
+              className="rounded-2xl border border-white/70 bg-white/55 px-3 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
             >
               <option value="score-desc">Điểm giảm dần</option>
               <option value="score-asc">Điểm tăng dần</option>
@@ -116,7 +116,7 @@ export default function TeacherStudentScoresPage() {
           </div>
           <button
             onClick={handleRefresh}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold border border-gray-200 hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
           >
             <RefreshCw className="h-4 w-4" />
             Làm mới
@@ -124,42 +124,44 @@ export default function TeacherStudentScoresPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sinh viên</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lớp</th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Điểm RL</th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Hoạt động</th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Xếp loại</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {filteredScores.map((score, index) => (
-              <tr key={score.id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">
-                  <RankBadge rank={index + 1} />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-bold text-gray-900">{score.ho_ten}</div>
-                  <div className="text-xs font-mono text-gray-500">{score.mssv}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{score.ten_lop || '—'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-lg font-black text-indigo-600">{Number(score.tong_diem || 0).toFixed(1)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-gray-700">{score.tong_hoat_dong || 0}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
-                    {score.xep_loai?.toUpperCase() || '—'}
-                  </span>
-                </td>
+      <div className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-white/60 dark:divide-white/10">
+            <thead className="bg-white/45 dark:bg-white/5">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">#</th>
+                <th className="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">Sinh viên</th>
+                <th className="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">Lớp</th>
+                <th className="px-6 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">Điểm RL</th>
+                <th className="px-6 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">Hoạt động</th>
+                <th className="px-6 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">Xếp loại</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/50 dark:divide-white/10">
+              {filteredScores.map((score, index) => (
+                <tr key={score.id} className="transition hover:bg-white/55 dark:hover:bg-white/5">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <RankBadge rank={index + 1} />
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <div className="text-sm font-black text-slate-900 dark:text-white">{score.ho_ten}</div>
+                    <div className="font-mono text-xs text-slate-500 dark:text-slate-400">{score.mssv}</div>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">{score.ten_lop || '—'}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center text-lg font-black text-indigo-600 dark:text-indigo-300">{Number(score.tong_diem || 0).toFixed(1)}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-bold text-slate-700 dark:text-slate-200">{score.tong_hoat_dong || 0}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center">
+                    <span className="inline-flex items-center rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-black text-purple-700 dark:border-purple-400/20 dark:bg-purple-400/10 dark:text-purple-200">
+                      {score.xep_loai?.toUpperCase() || '—'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {filteredScores.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="m-5 rounded-[2rem] border border-dashed border-white/70 bg-white/45 py-12 text-center text-sm font-semibold text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             <p>Không có dữ liệu phù hợp với bộ lọc hiện tại.</p>
           </div>
         )}
@@ -170,33 +172,24 @@ export default function TeacherStudentScoresPage() {
 
 function ScoresHero({ total }) {
   return (
-    <div className="relative rounded-3xl overflow-hidden mb-2">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600" />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px)`,
-          backgroundSize: '60px 60px'
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
-      <div className="relative z-10 px-6 sm:px-10 py-8 sm:py-12">
-        <div className="backdrop-blur-md bg-white/5 border border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-wrap items-center gap-6">
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-2">Bảng điểm rèn luyện</p>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-              Theo dõi thành tích và xếp loại của sinh viên
-            </h1>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-white/70">Tổng số sinh viên</p>
-            <p className="text-4xl font-black text-white">{total}</p>
-          </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
+      <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Bảng điểm rèn luyện</p>
+          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
+            Theo dõi thành tích và xếp loại của sinh viên
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+            Tra cứu điểm rèn luyện, số hoạt động tham gia và xếp loại theo từng lớp phụ trách.
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-white/70 bg-white/55 px-5 py-4 text-right shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Tổng số sinh viên</p>
+          <p className="mt-1 text-4xl font-black tracking-[-0.05em] text-indigo-600 dark:text-indigo-300">{total}</p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

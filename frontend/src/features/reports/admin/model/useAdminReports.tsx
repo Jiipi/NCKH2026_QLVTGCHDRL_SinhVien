@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import http from '../../../../shared/api/http';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import reportsApi from '../../services/reportsApi';
 
 export default function useAdminReports() {
   const [semester, setSemester] = useState('');
@@ -21,8 +21,7 @@ export default function useAdminReports() {
     try {
       setLoading(true);
       setError('');
-      const res = await http.get('/admin/reports/overview', { params: { semester: semester || undefined } });
-      const data = res?.data?.data || { byStatus: [], topActivities: [], dailyRegs: [] };
+      const data = await reportsApi.getAdminOverview(semester);
       setOverview({
         byStatus: Array.isArray(data.byStatus) ? data.byStatus : [],
         topActivities: Array.isArray(data.topActivities) ? data.topActivities : [],
@@ -50,13 +49,9 @@ export default function useAdminReports() {
     }
     
     try {
-      const res = await http.get(`/admin/reports/export/${kind}`, {
-        params: { semester: semester || undefined },
-        responseType: 'arraybuffer'
-      });
-      // Ensure UTF-8 BOM for Excel compatibility
+      const data = await reportsApi.exportAdminReport(kind, semester);
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-      const blob = new Blob([bom, res.data], { type: 'text/csv;charset=utf-8' });
+      const blob = new Blob([bom, data], { type: 'text/csv;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

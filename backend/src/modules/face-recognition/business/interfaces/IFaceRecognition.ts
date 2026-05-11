@@ -105,6 +105,7 @@ export interface DuLieuKhuonMatData {
   sinh_vien_id: string;
   vector_dac_trung: number[];
   anh_khuon_mat: string | null;
+  anh_khuon_mat_ds: string[] | null;
   da_xac_minh: boolean;
   so_anh_dang_ky: number;
   ngay_tao: Date;
@@ -123,6 +124,11 @@ export interface FaceActivitySnapshot {
   ngay_bd: Date;
   ngay_kt: Date;
   trang_thai: string;
+  yeu_cau_gps?: boolean;
+  geo_latitude?: { toString(): string } | string | number | null;
+  geo_longitude?: { toString(): string } | string | number | null;
+  geo_radius_meters?: number | null;
+  cho_phep_fallback?: boolean;
 }
 
 export interface FaceRegistrationSnapshot {
@@ -133,6 +139,25 @@ export interface FaceRegistrationSnapshot {
 export interface FaceAttendanceSnapshot {
   id: string;
   tg_diem_danh: Date;
+}
+
+export interface ClassFaceDataSnapshot {
+  id: string;
+  sinh_vien_id: string;
+  vector_dac_trung: number[];
+  sinh_vien: {
+    id: string;
+    mssv: string;
+    lop_id: string;
+    ho_ten: string;
+  };
+}
+
+export interface FaceAuditContext {
+  actorId?: string | null;
+  requestId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 /**
@@ -159,6 +184,7 @@ export interface IFaceDataRepository {
     sinh_vien_id: string;
     vector_dac_trung: number[];
     anh_khuon_mat?: string;
+    anh_khuon_mat_ds?: string[];
     so_anh_dang_ky?: number;
   }): Promise<DuLieuKhuonMatData>;
 
@@ -168,6 +194,7 @@ export interface IFaceDataRepository {
   update(id: string, data: {
     vector_dac_trung?: number[];
     anh_khuon_mat?: string;
+    anh_khuon_mat_ds?: string[];
     da_xac_minh?: boolean;
     so_anh_dang_ky?: number;
   }): Promise<DuLieuKhuonMatData>;
@@ -177,13 +204,16 @@ export interface IFaceDataRepository {
    */
   upsertBySinhVienId(sinhVienId: string, data: {
     vector_dac_trung: number[];
+    anh_khuon_mat?: string | null;
+    anh_khuon_mat_ds?: string[] | null;
     so_anh_dang_ky?: number;
+    audit?: FaceAuditContext;
   }): Promise<{ data: DuLieuKhuonMatData; isUpdate: boolean }>;
 
   /**
    * Xóa dữ liệu khuôn mặt
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, audit?: FaceAuditContext): Promise<void>;
 
   createFaceAttendance(data: {
     nguoi_diem_danh_id: string;
@@ -191,14 +221,33 @@ export interface IFaceDataRepository {
     hd_id: string;
     do_tin_cay_nhan_dien: number;
     ghi_chu: string;
+    vi_tri_gps?: string | null;
+    gps_latitude?: number | null;
+    gps_longitude?: number | null;
+    gps_accuracy_m?: number | null;
+    khoang_cach_m?: number | null;
+    ket_qua_geofence?: string | null;
+    audit?: FaceAuditContext;
   }): Promise<FaceAttendanceSnapshot>;
 
-  markRegistrationAsAttended(registrationId: string): Promise<void>;
+  createFaceAttendanceAndMarkRegistration(data: {
+    registrationId: string;
+    nguoi_diem_danh_id: string;
+    sv_id: string;
+    hd_id: string;
+    do_tin_cay_nhan_dien: number;
+    ghi_chu: string;
+    audit?: FaceAuditContext;
+  }): Promise<FaceAttendanceSnapshot>;
+
+  markRegistrationAsAttended(registrationId: string, audit?: FaceAuditContext & { attendanceId?: string | null; svId?: string; activityId?: string }): Promise<void>;
 
   /**
    * Kiểm tra sinh viên đã đăng ký khuôn mặt chưa
    */
   existsBySinhVienId(sinhVienId: string): Promise<boolean>;
+
+  findFaceDataByClassId(classId: string): Promise<ClassFaceDataSnapshot[]>;
 
   /**
    * Lấy toàn bộ dữ liệu vector khuôn mặt để kiểm tra trùng lặp

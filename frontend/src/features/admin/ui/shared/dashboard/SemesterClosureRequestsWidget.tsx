@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, Unlock, Bell, RefreshCw, Check, User } from 'lucide-react';
-import http from '../../../../../shared/api/http';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
+import adminApi from '../../../services/adminApi';
 
 /**
  * Widget nhỏ gọn hiển thị các yêu cầu đóng học kỳ từ GV/LT
@@ -18,17 +18,11 @@ export default function SemesterClosureRequestsWidget() {
     try {
       setLoading(true);
       
-      // Lấy học kỳ hiện tại
-      const currentRes = await http.get('/semesters/current');
-      const current = currentRes.data?.data;
+      const current = await adminApi.getCurrentSemester();
       setCurrentSemester(current);
-      
-      // Lấy closure requests qua API mới
+
       try {
-        const reqRes = await http.get('/semesters/closure-requests');
-        const data = reqRes.data?.data || [];
-        
-        // Chỉ lấy các request chưa đọc
+        const data = await adminApi.getSemesterClosureRequests();
         const pendingRequests = data.filter(r => !r.isRead);
         setRequests(pendingRequests);
       } catch (e) {
@@ -64,7 +58,7 @@ export default function SemesterClosureRequestsWidget() {
   // Đánh dấu đã xử lý
   const handleDismiss = async (request) => {
     try {
-      await http.patch(`/core/notifications/${request.id}/read`);
+      await adminApi.markNotificationRead(request.id);
       showSuccess('Đã xử lý yêu cầu');
       await loadRequests();
     } catch (e) {
@@ -73,8 +67,8 @@ export default function SemesterClosureRequestsWidget() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-      <div className="flex items-center justify-between mb-2">
+    <div className="rounded-[1.5rem] border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Lock className="w-4 h-4 text-amber-600" />
           <span className="font-semibold text-gray-900 text-sm">Yêu cầu đóng học kỳ</span>
@@ -87,7 +81,7 @@ export default function SemesterClosureRequestsWidget() {
         <button 
           onClick={loadRequests}
           disabled={loading}
-          className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
+          className="rounded-xl border border-white/60 bg-white/45 p-1.5 transition-colors hover:bg-white/75 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
           title="Làm mới"
         >
           <RefreshCw className={`w-3 h-3 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
@@ -95,7 +89,7 @@ export default function SemesterClosureRequestsWidget() {
       </div>
 
       {currentSemester && (
-        <div className="mb-2 px-2 py-1 rounded-md bg-blue-50 text-[11px] text-blue-700 flex items-center gap-1">
+        <div className="mb-3 flex items-center gap-1 rounded-2xl border border-sky-200/70 bg-sky-50/70 px-3 py-2 text-[11px] font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300">
           <Unlock className="w-3 h-3" />
           Học kỳ hiện tại: <strong>{formatSemester(currentSemester)}</strong>
         </div>
@@ -115,7 +109,7 @@ export default function SemesterClosureRequestsWidget() {
           {requests.map((req) => (
             <div 
               key={req.id} 
-              className="p-2 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
+              className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-3 shadow-sm backdrop-blur-xl transition-colors hover:bg-amber-100/70 dark:border-amber-400/20 dark:bg-amber-400/10 dark:hover:bg-amber-400/15"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">

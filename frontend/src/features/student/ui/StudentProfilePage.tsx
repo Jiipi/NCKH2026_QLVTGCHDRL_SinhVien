@@ -1,12 +1,17 @@
-import React from 'react';
+import { Camera, Edit3, GraduationCap, Key, User } from 'lucide-react';
 import useStudentProfile from '../model/hooks/useStudentProfile';
-import ProfileHero from './components/Profile/ProfileHero';
-import ProfileDetails from './components/Profile/ProfileDetails';
-import ProfileEditForm from './components/Profile/ProfileEditForm';
-import PasswordChangeModal from './components/Profile/PasswordChangeModal';
 import ProfileLoading from './components/Profile/ProfileLoading';
 import ProfileEmpty from './components/Profile/ProfileEmpty';
 import { FaceRegistrationPageContent } from '../../face-recognition/ui/pages/FaceRegistrationPage';
+import {
+  ProfileEditCard,
+  ProfileHeroCard,
+  ProfileInfoGrid,
+  ProfilePasswordModal,
+  ProfileShell,
+  ProfileTabs,
+  profileThemes
+} from '../../profile';
 
 export default function StudentProfilePage() {
   const {
@@ -33,6 +38,8 @@ export default function StudentProfilePage() {
     formatDateVN
   } = useStudentProfile();
 
+  const theme = profileThemes.student;
+
   if (loading) {
     return <ProfileLoading />;
   }
@@ -41,24 +48,39 @@ export default function StudentProfilePage() {
     return <ProfileEmpty />;
   }
 
+  const infoItems = [
+    { label: 'Họ và tên', value: profile.ho_ten, icon: <User className="h-5 w-5" /> },
+    { label: 'MSSV', value: profile.mssv || profile.maso, icon: <GraduationCap className="h-5 w-5" /> },
+    { label: 'Lớp', value: profile.lop?.ten_lop || profile.ten_lop || profile.lop, icon: <User className="h-5 w-5" /> },
+    { label: 'Khoa', value: profile.khoa?.ten_khoa || profile.ten_khoa || profile.khoa, icon: <GraduationCap className="h-5 w-5" /> },
+    { label: 'Niên khóa', value: profile.nienkhoa || profile.nien_khoa, icon: <GraduationCap className="h-5 w-5" /> },
+    { label: 'Ngày sinh', value: profile.ngaysinh || profile.ngay_sinh ? formatDateVN(profile.ngaysinh || profile.ngay_sinh) : '', icon: <User className="h-5 w-5" /> },
+    { label: 'Giới tính', value: getGenderDisplay(profile.gt), icon: <User className="h-5 w-5" /> },
+    { label: 'Email', value: profile.email, icon: <Key className="h-5 w-5" /> },
+    { label: 'Số điện thoại', value: profile.sdt, icon: <User className="h-5 w-5" /> },
+    { label: 'Địa chỉ', value: profile.dia_chi, icon: <User className="h-5 w-5" /> },
+    { label: 'Tên đăng nhập', value: profile.ten_dn, icon: <User className="h-5 w-5" /> },
+    { label: 'Vai trò', value: profile.vai_tro?.ten_vt || 'Sinh viên', icon: <GraduationCap className="h-5 w-5" /> },
+    { label: 'Trạng thái', value: getStatusText(profile.trang_thai), icon: <User className="h-5 w-5" /> },
+    { label: 'Ngày tạo', value: profile.ngay_tao ? formatDateVN(profile.ngay_tao) : '', icon: <GraduationCap className="h-5 w-5" /> },
+    { label: 'Lần đăng nhập cuối', value: profile.lan_cuoi_dn ? formatDateVN(profile.lan_cuoi_dn) : '', icon: <GraduationCap className="h-5 w-5" /> }
+  ];
+
   const renderContent = editing ? (
-    <ProfileEditForm
-      formData={formData}
-      setFormData={setFormData}
-      profile={profile}
-      formatDateVN={formatDateVN}
-      getGenderDisplay={getGenderDisplay}
+    <ProfileEditCard
+      formData={formData as Record<string, any>}
+      setFormData={setFormData as unknown as (data: Record<string, any>) => void}
       onSubmit={handleUpdateProfile}
       onCancel={() => setEditing(false)}
+      theme={theme}
     />
   ) : (
-    <ProfileDetails
-      profile={profile}
-      canDisplayImage={canDisplayImage}
-      directImageUrl={directImageUrl}
-      formatDateVN={formatDateVN}
-      getGenderDisplay={getGenderDisplay}
-      getStatusText={getStatusText}
+    <ProfileInfoGrid
+      title="Thông tin sinh viên"
+      description="Thông tin học vụ, liên hệ và tài khoản sinh viên."
+      items={infoItems}
+      theme={theme}
+      columns={2}
     />
   );
 
@@ -66,67 +88,56 @@ export default function StudentProfilePage() {
   if (activeTab === 'face') {
     tabContent = (
       <div className="py-2">
-        <FaceRegistrationPageContent />
+        <FaceRegistrationPageContent embedded />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" data-ref="student-profile-refactored">
-      <ProfileHero
+    <ProfileShell theme={theme} className="flex-1">
+      <ProfileHeroCard
         profile={profile}
-        canDisplayImage={canDisplayImage}
-        directImageUrl={directImageUrl}
-        editing={editing}
-        changingPassword={changingPassword}
-        onEdit={() => setEditing(true)}
-        onChangePassword={() => setChangingPassword(true)}
+        theme={theme}
+        title={profile.ho_ten || 'Sinh viên'}
+        subtitle={profile.email || profile.mssv}
+        roleLabel={theme.label}
+        statusLabel={getStatusText(profile.trang_thai)}
+        statusActive={profile.trang_thai !== 'khoa' && profile.trang_thai !== 'khong_hoat_dong'}
+        avatarUrl={canDisplayImage ? directImageUrl : null}
+        metaItems={[
+          { label: 'MSSV', value: profile.mssv || '—', icon: <GraduationCap className="h-4 w-4" /> },
+          { label: 'Lớp', value: profile.lop?.ten_lop || profile.ten_lop || '—', icon: <User className="h-4 w-4" /> }
+        ]}
+        actions={!editing ? [
+          { label: 'Đổi mật khẩu', onClick: () => setChangingPassword(true), icon: <Key className="h-4 w-4" />, variant: 'secondary' },
+          { label: 'Chỉnh sửa', onClick: () => setEditing(true), icon: <Edit3 className="h-4 w-4" /> }
+        ] : []}
       />
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            <button
-              onClick={() => setActiveTab('info')}
-              className={`flex flex-col items-center gap-1 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'info'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500'
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">👤</span>
-                <span>Thông tin cơ bản</span>
-              </div>
-              <span className="text-xs text-gray-400 font-normal">Họ tên, MSSV, lớp, khoa</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('face')}
-              className={`flex flex-col items-center gap-1 py-4 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'face'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📷</span>
-                <span>Nhận diện khuôn mặt</span>
-              </div>
-              <span className="text-xs text-gray-400 font-normal">Đăng ký điểm danh</span>
-            </button>
-          </nav>
-        </div>
-        <div className="p-6">{tabContent}</div>
+      <ProfileTabs
+        theme={theme}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabs={[
+          { key: 'info', label: 'Thông tin cơ bản', description: 'Hồ sơ, lớp, khoa', icon: <User className="h-5 w-5" /> },
+          { key: 'face', label: 'Nhận diện khuôn mặt', description: 'Đăng ký điểm danh', icon: <Camera className="h-5 w-5" /> }
+        ]}
+      />
+
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md">
+        {tabContent}
       </div>
 
-      <PasswordChangeModal
-        visible={changingPassword}
-        passwordData={passwordData}
-        setPasswordData={setPasswordData}
-        showPasswords={showPasswords}
-        setShowPasswords={setShowPasswords}
+      <ProfilePasswordModal
+        open={changingPassword}
         onClose={() => setChangingPassword(false)}
         onSubmit={handleChangePassword}
+        passwordData={passwordData as Record<string, string>}
+        setPasswordData={setPasswordData as unknown as (data: Record<string, string>) => void}
+        showPasswords={showPasswords as Record<string, boolean>}
+        setShowPasswords={setShowPasswords as unknown as (data: Record<string, boolean>) => void}
+        theme={theme}
       />
-    </div>
+    </ProfileShell>
   );
 }
-

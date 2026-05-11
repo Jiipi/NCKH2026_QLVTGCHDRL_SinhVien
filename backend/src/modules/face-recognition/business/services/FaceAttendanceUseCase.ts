@@ -5,17 +5,20 @@
  */
 
 import { ValidationError, NotFoundError, ForbiddenError } from '../../../../core/errors/AppError';
+import { evaluateGeofence, normalizeAttendanceLocation } from '../../../../core/utils/geofence';
+import type { AttendanceLocationInput } from '../../../../core/utils/geofence';
 import { faceRecognitionClient } from '../../services';
-import type { IFaceDataRepository } from '../interfaces';
+import type { IFaceDataRepository, FaceAuditContext } from '../interfaces';
 
 // Ngưỡng similarity mặc định
 const DEFAULT_THRESHOLD = 0.68;
 
-interface FaceAttendanceInput {
+interface FaceAttendanceInput extends FaceAuditContext {
   userId: string;           // nguoi_dung_id
   activityId: string;       // hoat_dong_id
   imageBuffer: Buffer;      // Ảnh khuôn mặt
   threshold?: number;       // Ngưỡng nhận diện (mặc định 0.68)
+  location?: AttendanceLocationInput | null; // Vị trí GPS khi điểm danh
 }
 
 interface FaceAttendanceResult {
@@ -37,7 +40,7 @@ class FaceAttendanceUseCase {
   }
 
   async execute(input: FaceAttendanceInput): Promise<FaceAttendanceResult> {
-    const { userId, activityId, imageBuffer, threshold = DEFAULT_THRESHOLD } = input;
+    const { userId, activityId, imageBuffer, threshold = DEFAULT_THRESHOLD, location, requestId, ipAddress, userAgent } = input;
 
     // 1. Tìm sinh viên theo nguoi_dung_id
     const sinhVien = await this.faceDataRepository.findStudentByUserId(userId);
@@ -51,6 +54,14 @@ class FaceAttendanceUseCase {
 
     if (!savedFaceData) {
       throw new ValidationError('Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi điểm danh.');
+    }
+
+    // 2.5 Kiểm tra khuôn mặt đã được xác minh bởi admin/giảng viên
+    if (!savedFaceData.da_xac_minh) {
+      throw new ValidationError(
+        'Dữ liệu khuôn mặt của bạn chưa được xác minh. Vui lòng chờ quản trị viên hoặc giảng viên xác minh.',
+        { errorCode: 'NOT_VERIFIED' }
+      );
     }
 
     // 3. Kiểm tra hoạt động tồn tại và đang diễn ra
@@ -88,6 +99,30 @@ class FaceAttendanceUseCase {
       throw new ValidationError('Bạn đã điểm danh hoạt động này rồi');
     }
 
+    // 5.5. Kiểm tra vị trí GPS (geofence) — tương tự QR attendance
+    const normalizedLocation = normalizeAttendanceLocation(location);
+    const geofence = evaluateGeofence({
+      latitude: activity.geo_latitude?.toString(),
+      longitude: activity.geo_longitude?.toString(),
+      radiusMeters: activity.geo_radius_meters,
+      required: activity.yeu_cau_gps
+    }, location);
+
+    if (!geofence.allowed) {
+      const canRequestFallback = Boolean(activity.cho_phep_fallback);
+      const message = geofence.reason === 'low_gps_accuracy'
+        ? 'GPS có sai số quá lớn, vui lòng thử lại hoặc gửi yêu cầu điểm danh thủ công'
+        : geofence.reason === 'outside_geofence'
+          ? 'Bạn đang ở ngoài khu vực điểm danh cho phép'
+          : 'Thiếu vị trí GPS để điểm danh hoạt động này';
+
+      throw new ValidationError(message, {
+        reason: geofence.reason || geofence.result,
+        canRequestFallback,
+        geofence
+      });
+    }
+
     // 6. Trích xuất embedding từ ảnh hiện tại
 
     const embedResult = await faceRecognitionClient.extractEmbedding(imageBuffer);
@@ -109,17 +144,37 @@ class FaceAttendanceUseCase {
       );
     }
 
-    // 8. Tạo bản ghi điểm danh
+    // 8. Tạo bản ghi điểm danh (bao gồm dữ liệu GPS)
+    const gpsText = normalizedLocation ? `${normalizedLocation.latitude},${normalizedLocation.longitude}` : null;
+    const audit = {
+      actorId: userId,
+      requestId,
+      ipAddress,
+      userAgent
+    };
+
     const attendance = await this.faceDataRepository.createFaceAttendance({
       nguoi_diem_danh_id: userId,
       sv_id: sinhVien.id,
       hd_id: activityId,
       do_tin_cay_nhan_dien: verifyResult.similarity,
-      ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(verifyResult.similarity * 100).toFixed(1)}%)`
+      ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(verifyResult.similarity * 100).toFixed(1)}%)`,
+      vi_tri_gps: gpsText,
+      gps_latitude: normalizedLocation?.latitude ?? null,
+      gps_longitude: normalizedLocation?.longitude ?? null,
+      gps_accuracy_m: geofence.accuracyMeters ?? normalizedLocation?.accuracy ?? null,
+      khoang_cach_m: geofence.distanceMeters ?? null,
+      ket_qua_geofence: geofence.result,
+      audit
     });
 
     // 9. Cập nhật trạng thái đăng ký thành "đã tham gia"
-    await this.faceDataRepository.markRegistrationAsAttended(registration.id);
+    await this.faceDataRepository.markRegistrationAsAttended(registration.id, {
+      ...audit,
+      attendanceId: attendance.id,
+      svId: sinhVien.id,
+      activityId
+    });
 
     // Log attendance success đã được ghi vào database qua ghi_chu field
 

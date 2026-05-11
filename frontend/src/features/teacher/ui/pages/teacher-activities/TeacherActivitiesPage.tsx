@@ -102,7 +102,7 @@ export default function TeacherActivitiesPage() {
       ) : (
         <>
           {/* Filters */}
-          <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+          <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60">
             <div className="p-6">
               {/* Thanh tìm kiếm */}
               <div className="relative mb-6">
@@ -121,25 +121,6 @@ export default function TeacherActivitiesPage() {
               {/* Bộ lọc và Actions */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* Semester Filter */}
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-                    <Calendar className="h-4 w-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
-                    <select
-                      value={semester}
-                      onChange={(e) => setSemester(e.target.value)}
-                      className="border-none bg-transparent text-sm font-semibold text-gray-900 focus:ring-0 focus:outline-none cursor-pointer"
-                    >
-                      {semesterOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
-
                   {/* Advanced Filter Toggle */}
                   <button
                     onClick={() => setShowFilters(!showFilters)}
@@ -328,7 +309,7 @@ export default function TeacherActivitiesPage() {
           {/* Status Filter Section */}
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-            <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+            <div className="relative rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] p-5 dark:border-white/10 dark:bg-slate-900/60">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-purple-600" />
@@ -485,7 +466,7 @@ export default function TeacherActivitiesPage() {
           </div>
 
           {/* Activities List */}
-          <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg">
+          <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60">
             <div className="p-6">
               {filteredActivities.length === 0 ? (
                 <div className="text-center py-16">
@@ -532,7 +513,7 @@ export default function TeacherActivitiesPage() {
           </div>
 
           {effectiveTotal > limit && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mt-4">
+            <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] p-4 mt-4 dark:border-white/10 dark:bg-slate-900/60">
               <div className="text-sm text-gray-600 mb-3">
                 Đang hiển thị {startItem}-{endItem} / {effectiveTotal} hoạt động
               </div>

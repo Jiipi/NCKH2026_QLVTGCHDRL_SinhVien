@@ -2,10 +2,10 @@ import React from 'react';
 import { Sparkles } from 'lucide-react';
 
 const CHIP_CONFIG = [
-  { key: '', label: (counts) => `Tất cả (${counts.total})`, classes: 'bg-gray-100 border-gray-200 text-gray-900', dot: 'bg-gray-600' },
-  { key: 'hoat_dong', label: (counts) => `Phiên hoạt động (${counts.active})`, classes: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
-  { key: 'khoa', label: (counts) => `Bị khóa (${counts.locked})`, classes: 'bg-rose-50 border-rose-200 text-rose-700', dot: 'bg-rose-500' },
-  { key: 'khong_hoat_dong', label: (counts) => `Không hoạt động (${counts.inactive})`, classes: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500' }
+  { key: '', label: (counts) => `Tất cả (${counts.total})`, classes: 'border-slate-200/70 bg-slate-50/70 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300', dot: 'bg-slate-500' },
+  { key: 'hoat_dong', label: (counts) => `Phiên hoạt động (${counts.active})`, classes: 'border-emerald-200/70 bg-emerald-50/70 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  { key: 'khoa', label: (counts) => `Bị khóa (${counts.locked})`, classes: 'border-rose-200/70 bg-rose-50/70 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300', dot: 'bg-rose-500' },
+  { key: 'khong_hoat_dong', label: (counts) => `Không hoạt động (${counts.inactive})`, classes: 'border-amber-200/70 bg-amber-50/70 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300', dot: 'bg-amber-500' }
 ];
 
 export default function AdminUsersStatusChips({
@@ -24,22 +24,22 @@ export default function AdminUsersStatusChips({
   };
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm">
-      <div className="px-6 pt-4 text-sm font-semibold text-gray-700 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-purple-500" />
+    <div className="rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+      <div className="flex items-center gap-2 px-6 pt-4 text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
+        <Sparkles className="h-4 w-4 text-indigo-500 dark:text-indigo-300" />
         Trạng thái tài khoản
       </div>
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         {CHIP_CONFIG.map((chip) => (
           <button
             key={chip.key || 'all'}
             onClick={() => onStatusChange(chip.key)}
-            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl font-semibold border-2 transition-all hover:-translate-y-0.5 ${chip.classes} ${
-              statusFilter === chip.key ? 'shadow-[0_8px_30px_rgba(0,0,0,0.12)] ring-2 ring-offset-2 ring-white/70' : ''
+            className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 font-bold transition-all hover:-translate-y-0.5 ${chip.classes} ${
+              statusFilter === chip.key ? 'shadow-lg ring-2 ring-indigo-100/70 dark:ring-indigo-400/20' : 'shadow-sm'
             }`}
           >
             <span className="text-sm">{chip.label(counts)}</span>
-            <div className={`w-2 h-2 rounded-full ${chip.dot}`} />
+            <div className={`h-2 w-2 rounded-full ${chip.dot}`} />
           </button>
         ))}
       </div>

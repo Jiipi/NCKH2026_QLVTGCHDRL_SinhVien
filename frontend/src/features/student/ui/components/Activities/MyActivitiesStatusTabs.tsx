@@ -11,16 +11,16 @@ export default function MyActivitiesStatusTabs({
 }) {
   return (
     <div className="relative group">
-      <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-      <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-indigo-400/20 to-teal-400/20 blur opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+      <div className="relative rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-600" />
-            <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
+            <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Trạng thái</h3>
           </div>
           <button
             onClick={onStatusViewModeChange}
-            className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/60 hover:text-indigo-600 dark:hover:bg-white/10 dark:hover:text-indigo-300"
             title="Chuyển chế độ hiển thị"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -33,19 +33,15 @@ export default function MyActivitiesStatusTabs({
               <button
                 key={config.key}
                 onClick={() => onTabChange(config.key)}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${
+                className={`relative flex items-center gap-2 rounded-2xl border px-4 py-2 font-bold transition-all duration-200 ${
                   activeTab === config.key
-                    ? `bg-gradient-to-r ${config.gradient} text-white shadow-md`
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-purple-300'
+                    ? 'border-indigo-200/70 bg-indigo-50/80 text-indigo-700 shadow-sm dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-300'
+                    : 'border-white/60 bg-white/40 text-slate-600 hover:bg-white/65 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                 }`}
               >
                 <config.icon className="h-4 w-4" />
                 <span className="text-sm">{config.title}</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-bold min-w-[24px] text-center ${
-                    activeTab === config.key ? 'bg-white/30 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
+                <span className={`min-w-[24px] rounded-full px-2 py-0.5 text-center text-xs font-black ${activeTab === config.key ? 'bg-white/65 text-indigo-700 dark:bg-white/10 dark:text-indigo-200' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300'}`}>
                   {config.count}
                 </span>
               </button>
@@ -58,7 +54,7 @@ export default function MyActivitiesStatusTabs({
             <select
               value={activeTab}
               onChange={(e) => onTabChange(e.target.value)}
-              className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
+              className="flex-1 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
             >
               {tabs.map((config) => (
                 <option key={config.key} value={config.key}>
@@ -70,13 +66,9 @@ export default function MyActivitiesStatusTabs({
               const currentConfig = tabs.find((c) => c.key === activeTab);
               const CurrentIcon = currentConfig?.icon || Clock;
               return (
-                <div
-                  className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${
-                    currentConfig?.gradient || 'from-gray-400 to-gray-500'
-                  } text-white rounded-xl shadow-md`}
-                >
+                <div className="flex items-center gap-2 rounded-2xl border border-indigo-200/70 bg-indigo-50/80 px-4 py-2.5 text-indigo-700 shadow-sm dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-300">
                   <CurrentIcon className="h-4 w-4" />
-                  <span className="font-bold text-sm">{currentConfig?.count || 0}</span>
+                  <span className="text-sm font-black">{currentConfig?.count || 0}</span>
                 </div>
               );
             })()}
@@ -84,20 +76,20 @@ export default function MyActivitiesStatusTabs({
         )}
 
         {statusViewMode === 'compact' && (
-          <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             {tabs.map((config) => {
               const isActive = activeTab === config.key;
               return (
                 <button
                   key={config.key}
                   onClick={() => onTabChange(config.key)}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
-                    isActive ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
+                  className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all duration-200 ${
+                    isActive ? 'bg-white/80 text-indigo-700 shadow-sm scale-105 dark:bg-white/15 dark:text-indigo-300' : 'text-slate-500 hover:bg-white/45 dark:text-slate-400 dark:hover:bg-white/10'
                   }`}
                   title={config.title}
                 >
-                  <config.icon className={`h-5 w-5 ${isActive ? 'text-purple-600' : 'text-gray-500'}`} />
-                  <span className={`text-xs font-bold ${isActive ? 'text-purple-600' : 'text-gray-600'}`}>{config.count}</span>
+                  <config.icon className="h-5 w-5" />
+                  <span className="text-xs font-black">{config.count}</span>
                 </button>
               );
             })}
@@ -105,9 +97,9 @@ export default function MyActivitiesStatusTabs({
         )}
 
         {showQrHint && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-            <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0" />
-            <span className="text-xs text-blue-700">
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-blue-200/70 bg-blue-50/70 px-3 py-2 dark:border-blue-400/20 dark:bg-blue-400/10">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-300" />
+            <span className="text-xs font-medium text-blue-700 dark:text-blue-200">
               <strong>Mẹo:</strong> Click "QR" để lấy mã điểm danh
             </span>
           </div>
@@ -116,4 +108,3 @@ export default function MyActivitiesStatusTabs({
     </div>
   );
 }
-

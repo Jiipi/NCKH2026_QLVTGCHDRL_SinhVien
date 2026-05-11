@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { Plus, Search, Filter, AlertCircle, SlidersHorizontal, RefreshCw, Grid3X3, List, Calendar, Clock, Award, Activity as ActivityIcon, CheckCircle, XCircle, UserPlus, Sparkles, X } from 'lucide-react';
+import React from 'react';
+import { Plus, Search, Filter, SlidersHorizontal, Grid3X3, List, Calendar, Clock, Award, Activity as ActivityIcon, CheckCircle, XCircle, UserPlus, X, Sparkles } from 'lucide-react';
 import ActivityQRModal from '../../qr-attendance/ui/components/ActivityQRModal';
 import ActivityDetailModal from '../../../entities/activity/ui/ActivityDetailModal';
 import Pagination from '../../../shared/components/common/Pagination';
@@ -7,13 +7,72 @@ import ActivityCard from './components/Activities/ActivityCard';
 import ActivityEditModal from './components/Activities/ActivityEditModal';
 import { useMonitorActivityOversight } from '../model/hooks/useMonitorActivityOversight';
 import ActivitySortBar from '../../activities/ui/shared/ActivitySortBar';
+import MonitorBulkFaceAttendanceModal from './components/FaceAttendance/MonitorBulkFaceAttendanceModal';
+
+const statusConfig = {
+  co_san: { label: 'Có sẵn', icon: UserPlus, tone: 'teal', countKey: 'availableCount' },
+  cho_duyet: { label: 'Chờ duyệt', icon: Clock, tone: 'amber', countKey: 'cho_duyet' },
+  da_duyet: { label: 'Đã duyệt', icon: CheckCircle, tone: 'emerald', countKey: 'da_duyet' },
+  ket_thuc: { label: 'Kết thúc', icon: Award, tone: 'indigo', countKey: 'ket_thuc' },
+  tu_choi: { label: 'Bị từ chối', icon: XCircle, tone: 'rose', countKey: 'tu_choi' }
+} as const;
+
+const toneClasses = {
+  teal: {
+    icon: 'bg-teal-50 text-teal-600 dark:bg-teal-400/10 dark:text-teal-300',
+    active: 'border-teal-200/80 bg-teal-50/80 text-teal-800 shadow-teal-100/70 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-200'
+  },
+  amber: {
+    icon: 'bg-amber-50 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300',
+    active: 'border-amber-200/80 bg-amber-50/80 text-amber-800 shadow-amber-100/70 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200'
+  },
+  emerald: {
+    icon: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300',
+    active: 'border-emerald-200/80 bg-emerald-50/80 text-emerald-800 shadow-emerald-100/70 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200'
+  },
+  indigo: {
+    icon: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300',
+    active: 'border-indigo-200/80 bg-indigo-50/80 text-indigo-800 shadow-indigo-100/70 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-200'
+  },
+  rose: {
+    icon: 'bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-300',
+    active: 'border-rose-200/80 bg-rose-50/80 text-rose-800 shadow-rose-100/70 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200'
+  }
+};
+
+function MetricCard({ icon: Icon, label, value, tone }: { icon: React.ElementType; label: string; value: number; tone: keyof typeof toneClasses }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/45 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{label}</span>
+        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses[tone].icon}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <p className="text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">{value}</p>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-56 animate-pulse rounded-[2rem] border border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" />
+      <div className="h-40 animate-pulse rounded-[2rem] border border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={index} className="h-64 animate-pulse rounded-2xl border border-white/60 bg-white/55 dark:border-white/10 dark:bg-slate-950/55" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function MonitorActivityOversightPage() {
+  const [showFaceAttendanceModal, setShowFaceAttendanceModal] = React.useState(false);
+
   const {
-    activities,
-    availableActivities,
     activityTypes,
-    dashboardStats,
     loading,
     error,
     searchTerm,
@@ -27,21 +86,16 @@ export default function MonitorActivityOversightPage() {
     showDetailModal,
     setShowDetailModal,
     showEditModal,
-    setShowEditModal,
     editMode,
     setEditMode,
     displayViewMode,
     setDisplayViewMode,
-    statusViewMode,
-    setStatusViewMode,
     showFilters,
     setShowFilters,
     filters,
     setFilters,
     pagination,
     setPagination,
-    availablePagination,
-    setAvailablePagination,
     semester,
     setSemester,
     semesterOptions,
@@ -50,10 +104,7 @@ export default function MonitorActivityOversightPage() {
     statusColors,
     getActiveFilterCount,
     clearAllFilters,
-    parseDateSafe,
-    hasEndedByTime,
     getDisplayStatus,
-    isAvailable,
     formatDate,
     filteredActivities,
     paginatedActivities,
@@ -75,595 +126,283 @@ export default function MonitorActivityOversightPage() {
     setSortBy
   } = useMonitorActivityOversight();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6">
-        <div className="flex justify-center items-center h-96">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent absolute top-0 left-0"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSkeleton />;
+
+  const selectedStatus = statusConfig[statusFilter as keyof typeof statusConfig] || statusConfig.cho_duyet;
+  const selectedLabel = selectedStatus.label;
+  const hasActiveFilters = Boolean(searchTerm || getActiveFilterCount() > 0);
+
+  const getStatusCount = (key: keyof typeof statusConfig) => {
+    if (key === 'co_san') return availableCount;
+    return tabCounts[key as keyof typeof tabCounts] || 0;
+  };
+
+  const handleShowFaceAttendance = (activity) => {
+    setSelectedActivity(activity);
+    setShowFaceAttendanceModal(true);
+  };
+
+  const handleCloseFaceAttendance = () => {
+    setShowFaceAttendanceModal(false);
+    setSelectedActivity(null);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
-      <div className="relative min-h-[280px]">
-        {/* Animated Background Grid */}
-        <div className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}></div>
-        </div>
-
-        {/* Floating Geometric Shapes */}
-        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-        {/* Main Content Container with Glassmorphism */}
-        <div className="relative z-10 p-8">
-          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-
-            {/* Top Bar with Badge */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-blue-400 blur-xl opacity-50 animate-pulse"></div>
-                  <div className="relative bg-black text-blue-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-blue-400">
-                    ⚡ QUẢN LÝ LỚP
-                  </div>
-                </div>
-                <div className="h-8 w-1 bg-white/40"></div>
-                <div className="text-white/90 font-bold text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    {totalActivitiesCount} HOẠT ĐỘNG
-                  </div>
-                </div>
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.15),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(20,184,166,0.14),transparent_28%)]" />
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-lg shadow-indigo-500/20 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950">
+                <ActivityIcon className="h-7 w-7" />
               </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian lớp trưởng</p>
+                <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý hoạt động lớp</h1>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+                  Theo dõi đề xuất, đăng ký và trạng thái hoạt động theo học kỳ với giao diện quản trị gọn, rõ và dễ thao tác.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-2xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                {semesterOptions.find(option => option.value === semester)?.label || 'Học kỳ hiện tại'}
+              </span>
+              <span className={`rounded-2xl border px-3 py-2 text-xs font-bold shadow-sm backdrop-blur-xl ${isWritable ? 'border-emerald-200/70 bg-emerald-50/80 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300' : 'border-slate-200/70 bg-slate-50/80 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400'}`}>
+                {isWritable ? 'Có quyền tạo/sửa' : 'Chỉ xem học kỳ'}
+              </span>
               <button
                 onClick={handleCreateActivity}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all duration-200 font-semibold ${isWritable ? 'bg-white text-indigo-600 hover:bg-indigo-50 shadow-xl hover:shadow-2xl hover:scale-105' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 disabled={!isWritable}
+                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950' : 'cursor-not-allowed border border-white/60 bg-white/40 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'}`}
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-4 w-4" />
                 Tạo hoạt động
               </button>
             </div>
+          </div>
 
-            {/* Main Title Section */}
-            <div className="mb-8">
-              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">O</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ạ</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
-                <span className="inline-block mx-2">•</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Đ</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ộ</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">G</span>
-                <br />
-                <span className="relative inline-block mt-2">
-                  <span className="relative z-10 text-blue-400 drop-shadow-[0_0_30px_rgba(96,165,250,0.5)]">
-                    LỚP HỌC
-                  </span>
-                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-blue-400/30 blur-sm"></div>
-                </span>
-              </h1>
-
-              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-                Tổ chức và quản lý các hoạt động của lớp, theo dõi sinh viên tham gia
-              </p>
-            </div>
-
-            {/* Stats Bar with Brutalist Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1 - Total */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-gradient-to-br from-cyan-400 to-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <ActivityIcon className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{totalActivitiesCount}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG HOẠT ĐỘNG</p>
-                </div>
-              </div>
-
-              {/* Card 2 - Pending */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Clock className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{pendingCount}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">CHỜ DUYỆT</p>
-                </div>
-              </div>
-
-              {/* Card 3 - Approved */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <CheckCircle className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{approvedCount}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ DUYỆT</p>
-                </div>
-              </div>
-
-              {/* Card 4 - Completed */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-purple-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Award className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{endedCount}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">KẾT THÚC</p>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <MetricCard icon={ActivityIcon} label="Tổng hoạt động" value={totalActivitiesCount} tone="indigo" />
+            <MetricCard icon={Clock} label="Chờ duyệt" value={pendingCount} tone="amber" />
+            <MetricCard icon={CheckCircle} label="Đã duyệt" value={approvedCount} tone="emerald" />
+            <MetricCard icon={Award} label="Kết thúc" value={endedCount} tone="teal" />
           </div>
         </div>
+      </section>
 
-        {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes grid-move {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(50px); }
-          }
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0) rotate(45deg); }
-            50% { transform: translateY(-20px) rotate(45deg); }
-          }
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .animate-bounce-slow {
-            animation: bounce-slow 3s ease-in-out infinite;
-          }
-          .animate-spin-slow {
-            animation: spin-slow 8s linear infinite;
-          }
-        `}} />
-      </div>
-
-      {/* Tìm kiếm và Bộ lọc */}
-      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
-        <div className="p-6">
-          {/* Thanh tìm kiếm */}
-          <div className="relative mb-6">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:border-blue-300"
-              placeholder="Tìm kiếm hoạt động..."
+              className="block w-full rounded-2xl border border-white/70 bg-white/55 py-3 pl-12 pr-4 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white/75 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
+              placeholder="Tìm kiếm hoạt động theo tên hoặc mô tả..."
             />
           </div>
 
-          {/* Bộ lọc và Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Semester Filter */}
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                <Calendar className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  className="border-none bg-transparent text-sm font-semibold text-gray-900 focus:ring-0 focus:outline-none cursor-pointer"
-                >
-                  {semesterOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
-
-              {/* Advanced Filter Toggle */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium border-2 border-gray-200 hover:border-gray-300"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="text-sm">Lọc nâng cao</span>
-                {getActiveFilterCount() > 0 && (
-                  <span className="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded-full min-w-[20px] text-center">
-                    {getActiveFilterCount()}
-                  </span>
-                )}
-                <span className={`text-xs transform transition-transform ${showFilters ? 'rotate-180' : ''}`}>▼</span>
-              </button>
-
-              {/* Clear filters button */}
-              {getActiveFilterCount() > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="flex items-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 font-medium border-2 border-red-200 hover:border-red-300"
-                  title="Xóa tất cả bộ lọc"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span className="text-sm">Xóa lọc</span>
-                </button>
-              )}
-            </div>
-
-            {/* Right side: View mode toggle */}
-            <div className="flex flex-wrap items-center gap-4 justify-end w-full lg:w-auto">
-              <ActivitySortBar sortBy={sortBy} onSortChange={(v) => setSortBy(v as typeof sortBy)} />
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                  <button
-                    onClick={() => setDisplayViewMode('grid')}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid'
-                        ? 'bg-white shadow-md text-blue-600 border border-blue-200'
-                        : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    title="Hiển thị dạng lưới"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Lưới</span>
-                  </button>
-                  <button
-                    onClick={() => setDisplayViewMode('list')}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list'
-                        ? 'bg-white shadow-md text-blue-600 border border-blue-200'
-                        : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    title="Hiển thị dạng danh sách"
-                  >
-                    <List className="h-4 w-4" />
-                    <span className="hidden sm:inline">Danh sách</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="mt-6 p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-blue-600" />
-                  Bộ lọc nâng cao
-                </h3>
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Đóng"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Loại hoạt động */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Loại hoạt động
-                  </label>
-                  <select
-                    value={filters.type}
-                    onChange={e => setFilters({ ...filters, type: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-                  >
-                    <option value="">Tất cả loại</option>
-                    {Array.isArray(activityTypes) && activityTypes.map(type => {
-                      const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
-                      // Always use ID as value for consistent filtering
-                      const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
-                      const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
-                      return (
-                        <option key={typeKey} value={typeValue}>{typeName}</option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* Từ ngày */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Từ ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.from}
-                    onChange={e => setFilters({ ...filters, from: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-                  />
-                </div>
-
-                {/* Đến ngày */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Đến ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.to}
-                    onChange={e => setFilters({ ...filters, to: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Status Tabs - Multiple View Modes */}
-      <div className="relative group">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-
-        <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
-          {/* Header với View Mode Toggle */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Toggle view mode button */}
-              <button
-                onClick={() => setStatusViewMode(statusViewMode === 'pills' ? 'dropdown' : statusViewMode === 'dropdown' ? 'compact' : 'pills')}
-                className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
-                title="Chuyển chế độ hiển thị"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Pills Mode (Default) */}
-          {statusViewMode === 'pills' && (
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setStatusFilter('co_san')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'co_san'
-                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-              >
-                <UserPlus className="h-4 w-4" />
-                Có sẵn
-                {availableCount > 0 && (
-                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {availableCount}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setStatusFilter('cho_duyet')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'cho_duyet'
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-              >
-                <Clock className="h-4 w-4" />
-                Chờ duyệt
-                {tabCounts.cho_duyet > 0 && (
-                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {tabCounts.cho_duyet}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setStatusFilter('da_duyet')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'da_duyet'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-              >
-                <CheckCircle className="h-4 w-4" />
-                Đã duyệt
-                {tabCounts.da_duyet > 0 && (
-                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {tabCounts.da_duyet}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setStatusFilter('ket_thuc')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'ket_thuc'
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-              >
-                <Award className="h-4 w-4" />
-                Kết thúc
-                {tabCounts.ket_thuc > 0 && (
-                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {tabCounts.ket_thuc}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setStatusFilter('tu_choi')}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${statusFilter === 'tu_choi'
-                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-              >
-                <XCircle className="h-4 w-4" />
-                Bị từ chối
-                {tabCounts.tu_choi > 0 && (
-                  <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                    {tabCounts.tu_choi}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Dropdown Mode */}
-          {statusViewMode === 'dropdown' && (
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <Calendar className="h-4 w-4 text-indigo-500 dark:text-indigo-300" />
               <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="border-none bg-transparent text-sm font-bold text-slate-800 focus:outline-none focus:ring-0 dark:text-white"
               >
-                <option value="co_san">Có sẵn ({availableCount})</option>
-                <option value="cho_duyet">Chờ duyệt ({tabCounts.cho_duyet})</option>
-                <option value="da_duyet">Đã duyệt ({tabCounts.da_duyet})</option>
-                <option value="ket_thuc">Kết thúc ({tabCounts.ket_thuc})</option>
-                {/* Label corrected to Kết thúc */}
-                {/* Keeping option order and value same */}
-                <option value="tu_choi">Bị từ chối ({tabCounts.tu_choi})</option>
+                {semesterOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
-              {(() => {
-                const configs = {
-                  co_san: { icon: UserPlus, gradient: 'from-emerald-500 to-green-500', count: availableCount },
-                  cho_duyet: { icon: Clock, gradient: 'from-amber-500 to-orange-500', count: tabCounts.cho_duyet },
-                  da_duyet: { icon: CheckCircle, gradient: 'from-emerald-500 to-teal-500', count: tabCounts.da_duyet },
-                  ket_thuc: { icon: Award, gradient: 'from-violet-500 to-purple-500', count: tabCounts.ket_thuc },
-                  tu_choi: { icon: XCircle, gradient: 'from-red-500 to-rose-500', count: tabCounts.tu_choi }
-                };
-                const currentConfig = configs[statusFilter] || configs.cho_duyet;
-                const CurrentIcon = currentConfig?.icon || Clock;
-                return (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${currentConfig?.gradient || 'from-gray-400 to-gray-500'} text-white rounded-xl shadow-md`}>
-                    <CurrentIcon className="h-4 w-4" />
-                    <span className="font-bold text-sm">{currentConfig?.count || 0}</span>
-                  </div>
-                );
-              })()}
             </div>
-          )}
 
-          {/* Compact Mode - Horizontal bar with badges */}
-          {statusViewMode === 'compact' && (
-            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
-              <button
-                onClick={() => setStatusFilter('co_san')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'co_san' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                  }`}
-                title="Có sẵn"
-              >
-                <UserPlus className={`h-5 w-5 ${statusFilter === 'co_san' ? 'text-emerald-600' : 'text-gray-500'}`} />
-                <span className={`text-xs font-bold ${statusFilter === 'co_san' ? 'text-emerald-600' : 'text-gray-600'}`}>
-                  {availableCount}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('cho_duyet')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'cho_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                  }`}
-                title="Chờ duyệt"
-              >
-                <Clock className={`h-5 w-5 ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
-                <span className={`text-xs font-bold ${statusFilter === 'cho_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {tabCounts.cho_duyet}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('da_duyet')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'da_duyet' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                  }`}
-                title="Đã duyệt"
-              >
-                <CheckCircle className={`h-5 w-5 ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-500'}`} />
-                <span className={`text-xs font-bold ${statusFilter === 'da_duyet' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {tabCounts.da_duyet}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('ket_thuc')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'ket_thuc' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                  }`}
-                title="Đã tham gia"
-              >
-                <Award className={`h-5 w-5 ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-500'}`} />
-                <span className={`text-xs font-bold ${statusFilter === 'ket_thuc' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {tabCounts.ket_thuc}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setStatusFilter('tu_choi')}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${statusFilter === 'tu_choi' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'
-                  }`}
-                title="Bị từ chối"
-              >
-                <XCircle className={`h-5 w-5 ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-500'}`} />
-                <span className={`text-xs font-bold ${statusFilter === 'tu_choi' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  {tabCounts.tu_choi}
-                </span>
-              </button>
-            </div>
-          )}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Lọc nâng cao
+              {getActiveFilterCount() > 0 && <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs text-white">{getActiveFilterCount()}</span>}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Activities Grid/List */}
-      {filteredActivities.length > 0 ? (
-        <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
-          {paginatedActivities.map(activity => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              displayViewMode={displayViewMode}
-              statusFilter={statusFilter}
-              statusLabels={statusLabels}
-              statusColors={statusColors}
-              isWritable={isWritable}
-              formatDate={formatDate}
-              getDisplayStatus={getDisplayStatus}
-              onViewDetails={handleViewDetails}
-              onEdit={handleEditActivity}
-              onDelete={handleDeleteActivity}
-              onShowQR={handleShowQR}
-              onRegister={handleRegister}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-300 p-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Calendar className="h-12 w-12 text-indigo-600" />
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <ActivitySortBar sortBy={sortBy} onSortChange={(v) => setSortBy(v as typeof sortBy)} />
+          <div className="flex flex-wrap items-center gap-3">
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/70 px-4 py-2.5 text-sm font-bold text-rose-600 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+              >
+                <X className="h-4 w-4" />
+                Xóa lọc
+              </button>
+            )}
+            <div className="flex items-center gap-1 rounded-2xl border border-white/70 bg-white/45 p-1 shadow-inner shadow-white/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <button
+                onClick={() => setDisplayViewMode('grid')}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-all ${displayViewMode === 'grid' ? 'border border-white/80 bg-white/85 text-indigo-600 shadow-sm dark:border-white/10 dark:bg-white/15 dark:text-indigo-200' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Lưới</span>
+              </button>
+              <button
+                onClick={() => setDisplayViewMode('list')}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-all ${displayViewMode === 'list' ? 'border border-white/80 bg-white/85 text-indigo-600 shadow-sm dark:border-white/10 dark:bg-white/15 dark:text-indigo-200' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'}`}
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Danh sách</span>
+              </button>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              {searchTerm || statusFilter !== 'all' ? 'Không tìm thấy hoạt động' : 'Chưa có hoạt động nào'}
+          </div>
+        </div>
+
+        {showFilters && (
+          <div className="mt-5 rounded-[1.5rem] border border-white/60 bg-white/45 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-slate-700 dark:text-slate-200">
+                <Filter className="h-4 w-4 text-indigo-500" />
+                Bộ lọc nâng cao
+              </h3>
+              <button onClick={() => setShowFilters(false)} className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/60 hover:text-slate-600 dark:hover:bg-white/10">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Loại hoạt động</span>
+                <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none">
+                  <option value="">Tất cả loại</option>
+                  {Array.isArray(activityTypes) && activityTypes.map(type => {
+                    const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
+                    const typeValue = typeof type === 'string' ? type : (type?.id?.toString() || type?.name || type?.ten_loai_hd || '');
+                    const typeKey = typeof type === 'string' ? type : (type?.id || type?.name || type?.ten_loai_hd || '');
+                    return <option key={typeKey} value={typeValue}>{typeName}</option>;
+                  })}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Từ ngày</span>
+                <input type="date" value={filters.from} onChange={e => setFilters({ ...filters, from: e.target.value })} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Đến ngày</span>
+                <input type="date" value={filters.to} onChange={e => setFilters({ ...filters, to: e.target.value })} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" />
+              </label>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-indigo-500" />
+            <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-700 dark:text-slate-200">Trạng thái</h3>
+          </div>
+          <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{filteredActivities.length} hoạt động</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {(Object.keys(statusConfig) as Array<keyof typeof statusConfig>).map(key => {
+            const config = statusConfig[key];
+            const Icon = config.icon;
+            const active = statusFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                className={`flex min-w-fit items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black shadow-sm transition-all duration-200 ${active ? toneClasses[config.tone].active : 'border-white/60 bg-white/45 text-slate-500 hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'}`}
+              >
+                <Icon className="h-4 w-4" />
+                {config.label}
+                <span className="rounded-full bg-white/65 px-2 py-0.5 text-xs dark:bg-white/10">{getStatusCount(key)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {error && (
+        <div className="rounded-2xl border border-rose-200/70 bg-rose-50/80 p-4 text-sm font-bold text-rose-700 shadow-sm backdrop-blur-xl dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
+      <section className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Kết quả</p>
+            <h2 className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">{selectedLabel}</h2>
+          </div>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Hiển thị {paginatedActivities.length} / {filteredActivities.length} hoạt động
+          </p>
+        </div>
+
+        {filteredActivities.length > 0 ? (
+          <div className={displayViewMode === 'grid' ? 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'space-y-3'}>
+            {paginatedActivities.map(activity => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                displayViewMode={displayViewMode}
+                statusFilter={statusFilter}
+                statusLabels={statusLabels}
+                statusColors={statusColors}
+                isWritable={isWritable}
+                formatDate={formatDate}
+                getDisplayStatus={getDisplayStatus}
+                onViewDetails={handleViewDetails}
+                onEdit={handleEditActivity}
+                onDelete={handleDeleteActivity}
+                onShowQR={handleShowQR}
+                onRegister={handleRegister}
+                onShowFaceAttendance={handleShowFaceAttendance}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-white/70 bg-white/60 p-12 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 sm:p-16">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.7rem] bg-indigo-50 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+              <Calendar className="h-10 w-10" />
+            </div>
+            <h3 className="text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">
+              {hasActiveFilters ? 'Không tìm thấy hoạt động' : 'Chưa có hoạt động nào'}
             </h3>
-            <p className="text-gray-600 mb-8 text-lg">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác'
-                : 'Bắt đầu bằng cách tạo hoạt động đầu tiên cho lớp của bạn'}
+            <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+              {hasActiveFilters ? 'Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác.' : 'Bắt đầu bằng cách tạo hoạt động đầu tiên cho lớp của bạn.'}
             </p>
-            {!searchTerm && statusFilter === 'all' && (
+            {!hasActiveFilters && (
               <button
                 onClick={handleCreateActivity}
                 disabled={!isWritable}
-                className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 font-semibold text-lg ${isWritable ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`mt-7 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all ${isWritable ? 'bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950' : 'cursor-not-allowed border border-white/60 bg-white/40 text-slate-400 dark:border-white/10 dark:bg-white/5'}`}
               >
-                <Plus className="h-6 w-6" />
+                <Plus className="h-4 w-4" />
                 Tạo hoạt động đầu tiên
               </button>
             )}
           </div>
+        )}
+      </section>
+
+      {filteredActivities.length > 0 && (
+        <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+          <Pagination
+            pagination={pagination}
+            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
+            itemLabel="hoạt động"
+            showLimitSelector={true}
+          />
         </div>
       )}
 
-      {/* Edit Activity Modal */}
       <ActivityEditModal
         isOpen={showEditModal}
         activity={selectedActivity}
@@ -674,7 +413,6 @@ export default function MonitorActivityOversightPage() {
         onActivityChange={setSelectedActivity}
       />
 
-      {/* Activity Detail Modal */}
       {showDetailModal && selectedActivity && (
         <ActivityDetailModal
           activityId={selectedActivity}
@@ -686,7 +424,6 @@ export default function MonitorActivityOversightPage() {
         />
       )}
 
-      {/* QR Code Modal */}
       {showQRModal && selectedActivity && (
         <ActivityQRModal
           activityId={selectedActivity.id}
@@ -699,19 +436,12 @@ export default function MonitorActivityOversightPage() {
         />
       )}
 
-      {/* Pagination Controls - Pattern từ trang sinh viên */}
-      {filteredActivities.length > 0 && (
-        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 mt-6">
-          <Pagination
-            pagination={pagination}
-            onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
-            onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))}
-            itemLabel="hoạt động"
-            showLimitSelector={true}
-          />
-        </div>
-      )}
+      <MonitorBulkFaceAttendanceModal
+        isOpen={showFaceAttendanceModal}
+        activity={selectedActivity}
+        onClose={handleCloseFaceAttendance}
+        onCompleted={() => setPagination(prev => ({ ...prev }))}
+      />
     </div>
   );
 }
-

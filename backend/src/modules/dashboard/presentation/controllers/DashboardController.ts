@@ -12,6 +12,7 @@ import type GetActivityStatsUseCase from '../../business/services/GetActivitySta
 import type GetAdminDashboardUseCase from '../../business/services/GetAdminDashboardUseCase';
 import type GetMyActivitiesUseCase from '../../business/services/GetMyActivitiesUseCase';
 import type GetDetailedScoresUseCase from '../../business/services/GetDetailedScoresUseCase';
+import type GetAdminChartStatsUseCase from '../../business/services/GetAdminChartStatsUseCase';
 import type { StudentDashboardQuery } from '../../business/services/GetStudentDashboardUseCase';
 import type { DetailedScoresQuery } from '../../business/services/GetDetailedScoresUseCase';
 
@@ -21,6 +22,7 @@ export interface DashboardUseCases {
   getAdminDashboard: GetAdminDashboardUseCase;
   getMyActivities: GetMyActivitiesUseCase;
   getDetailedScores: GetDetailedScoresUseCase;
+  getAdminChartStats: GetAdminChartStatsUseCase;
 }
 
 interface AuthenticatedRequest extends Request {
@@ -139,6 +141,17 @@ class DashboardController {
     } catch (error) {
       logError('Get detailed scores error', error);
       return sendResponse(res, 500, ApiResponse.error('Lỗi lấy chi tiết điểm'));
+    }
+  }
+
+  async getAdminChartStats(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const semester = req.semester;
+      const data = await this.useCases.getAdminChartStats.execute(semester);
+      return sendResponse(res, 200, ApiResponse.success(data, 'Dữ liệu biểu đồ admin'));
+    } catch (error) {
+      logError('Get admin chart stats error', error);
+      return sendResponse(res, 500, ApiResponse.error('Lỗi lấy dữ liệu biểu đồ'));
     }
   }
 }

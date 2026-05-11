@@ -56,5 +56,6 @@ router.get('/dashboard', auth, isClassMonitor, getMonitorClass, (req: Request, r
  * @access  Private (Class Monitor)
  */
 router.get('/reports', auth, isClassMonitor, getMonitorClass, (req: Request, res: Response) => monitorController.getClassReports(req, res));
+router.get('/reports/attendance-audit', auth, isClassMonitor, getMonitorClass, (req: Request, res: Response) => monitorController.getAttendanceAuditReport(req, res));
 
 export default router;

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Calendar, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, RefreshCw } from 'lucide-react';
 
 export default function MyActivitiesFiltersPanel({
   visible,
@@ -9,90 +10,80 @@ export default function MyActivitiesFiltersPanel({
   onClearAll,
   activeFilterCount = 0
 }) {
-  if (!visible) return null;
-
   const safeTypes = Array.isArray(activityTypes) ? activityTypes : [];
 
   return (
-    <div className="mt-6 p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">Bộ lọc nâng cao</h3>
-        {activeFilterCount > 0 && (
-          <span className="text-sm text-gray-600">
-            Đang áp dụng <span className="font-bold text-blue-600">{activeFilterCount}</span> bộ lọc
-          </span>
-        )}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div>
-          <Label iconColor="text-blue-600" text="Loại hoạt động" />
-          <select
-            value={filters.type}
-            onChange={(e) => onFilterChange('type', e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 hover:border-blue-300"
-          >
-            <option value="">Tất cả loại</option>
-            {safeTypes.map((type) => {
-              const typeName = typeof type === 'string' ? type : type?.ten_loai_hd || type?.name || '';
-              const typeValue = typeof type === 'string' ? type : type?.id || '';
-              const typeKey = typeof type === 'string' ? type : type?.id || typeName;
-              return (
-                <option key={typeKey} value={typeValue}>
-                  {typeName}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        <div>
-          <Label iconColor="text-green-600" text="Từ ngày" />
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) => onFilterChange('from', e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 hover:border-blue-300"
-          />
-        </div>
-        <div>
-          <Label iconColor="text-red-600" text="Đến ngày" />
-          <input
-            type="date"
-            value={filters.to}
-            onChange={(e) => onFilterChange('to', e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 hover:border-blue-300"
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600">
-          {activeFilterCount > 0 ? (
-            <span>
-              ✓ Đã áp dụng <strong>{activeFilterCount}</strong> bộ lọc
-            </span>
-          ) : (
-            <span>Chưa có bộ lọc nào được áp dụng</span>
-          )}
-        </div>
-        {activeFilterCount > 0 && (
-          <button
-            onClick={onClearAll}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all duration-200"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Xóa tất cả
-          </button>
-        )}
-      </div>
-    </div>
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Bộ lọc nâng cao</span>
+                {activeFilterCount > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">
+                    {activeFilterCount} đang áp dụng
+                  </span>
+                )}
+              </div>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={onClearAll}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Xóa lọc
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="flex-1 min-w-[140px]">
+                <label className="block text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Loại</label>
+                <select
+                  value={filters.type}
+                  onChange={(e) => onFilterChange('type', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-all"
+                >
+                  <option value="">Tất cả loại</option>
+                  {safeTypes.map((type) => (
+                    <option key={type.id || type.ten_loai_hd} value={String(type.id || '')}>
+                      {type.ten_loai_hd || type.name || 'Chưa có tên'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1 min-w-[130px]">
+                <label className="block text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Từ ngày</label>
+                <input
+                  type="date"
+                  value={filters.from || ''}
+                  onChange={(e) => onFilterChange('from', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-all"
+                />
+              </div>
+
+              <div className="flex-1 min-w-[130px]">
+                <label className="block text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Đến ngày</label>
+                <input
+                  type="date"
+                  value={filters.to || ''}
+                  onChange={(e) => onFilterChange('to', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-all"
+                />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
-
-function Label({ iconColor, text }) {
-  return (
-    <label className={`inline-flex text-sm font-semibold text-gray-700 mb-2 items-center gap-2`}>
-      <Calendar className={`h-4 w-4 ${iconColor}`} />
-      {text}
-    </label>
-  );
-}
-

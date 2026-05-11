@@ -1,141 +1,49 @@
 import React from 'react';
-import { Clock, CheckCircle, XCircle, UserCheck } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, UserCheck, ClipboardList } from 'lucide-react';
 
 export default function RegistrationApprovalsHeroInline({ stats }) {
+  const safeStats = {
+    total: stats?.total || 0,
+    pending: stats?.pending || 0,
+    approved: stats?.approved || 0,
+    joined: stats?.joined || 0,
+    rejected: stats?.rejected || 0
+  };
+
   return (
-    <div className="relative min-h-[280px]">
-      {/* Animated Background Grid */}
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-600"></div>
-        <div className="absolute inset-0" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px',
-          animation: 'grid-move 20s linear infinite'
-        }}></div>
-      </div>
-
-      {/* Floating Geometric Shapes */}
-      <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-      <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-      {/* Main Content Container with Glassmorphism */}
-      <div className="relative z-10 p-8">
-        <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-          
-          {/* Top Bar with Badge */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-400 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-black text-indigo-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-indigo-400">
-                  ✓ PHÊ DUYỆT
-                </div>
-              </div>
-              <div className="h-8 w-1 bg-white/40"></div>
-              <div className="text-white/90 font-bold text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                  {stats.total} ĐĂNG KÝ
-                </div>
-              </div>
-            </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
+      <div className="relative z-10 space-y-6">
+        <div>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+            <ClipboardList className="h-4 w-4" />
+            Phê duyệt đăng ký
           </div>
+          <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
+            Phê duyệt đăng ký tham gia hoạt động
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+            Quản lý đăng ký, duyệt sinh viên đủ điều kiện và theo dõi trạng thái tham gia.
+          </p>
+        </div>
 
-          {/* Main Title Section */}
-          <div className="mb-8">
-            <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">P</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ê</span>
-              <span className="inline-block mx-2">•</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">D</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Y</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ệ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
-              <br />
-              <span className="relative inline-block mt-2">
-                <span className="relative z-10 text-indigo-300 drop-shadow-[0_0_30px_rgba(165,180,252,0.5)]">
-                  ĐĂNG KÝ
-                </span>
-                <div className="absolute -bottom-2 left-0 right-0 h-4 bg-indigo-300/30 blur-sm"></div>
-              </span>
-            </h1>
-            
-            <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-              Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên
-            </p>
-          </div>
-
-          {/* Stats Bar with Brutalist Cards - 4 cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Card 1 - Pending */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <Clock className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.pending}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">CHỜ DUYỆT</p>
-              </div>
-            </div>
-
-            {/* Card 2 - Approved */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-emerald-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <CheckCircle className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.approved}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ DUYỆT</p>
-              </div>
-            </div>
-
-            {/* Card 3 - Joined (ĐÃ THAM GIA) */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-cyan-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <UserCheck className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.joined || 0}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ THAM GIA</p>
-              </div>
-            </div>
-
-            {/* Card 4 - Rejected */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-rose-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <XCircle className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{stats.rejected}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỪ CHỐI</p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard icon={Clock} label="Chờ duyệt" value={safeStats.pending} tone="text-amber-600 dark:text-amber-300" />
+          <StatCard icon={CheckCircle} label="Đã duyệt" value={safeStats.approved} tone="text-emerald-600 dark:text-emerald-300" />
+          <StatCard icon={UserCheck} label="Đã tham gia" value={safeStats.joined} tone="text-cyan-600 dark:text-cyan-300" />
+          <StatCard icon={XCircle} label="Từ chối" value={safeStats.rejected} tone="text-rose-600 dark:text-rose-300" />
         </div>
       </div>
-
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes grid-move {
-          0% { background-position: 0 0; }
-          100% { background-position: 50px 50px; }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0) rotate(45deg); }
-          50% { transform: translateY(-20px) rotate(45deg); }
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-bounce-slow {
-          animation: bounce-slow 3s ease-in-out infinite;
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
-    </div>
+    </section>
   );
 }
 
+function StatCard({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <Icon className={`mb-3 h-5 w-5 ${tone}`} />
+      <p className={`text-3xl font-black tracking-[-0.04em] ${tone}`}>{value}</p>
+      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{label}</p>
+    </div>
+  );
+}

@@ -10,78 +10,42 @@ export default function RegistrationApprovalsHero({ counts, total, selectedCount
   };
 
   return (
-    <div className="relative mb-6 rounded-3xl overflow-hidden" data-ref="registration-approvals-hero">
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600" />
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px),
-                              linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px)`,
-            backgroundSize: '50px 50px'
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-      </div>
-
-      <div className="relative z-10 px-6 sm:px-10 py-8 sm:py-10">
-        <div className="backdrop-blur-md bg-white/5 border border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-1">
-                Quản lý đăng ký
-              </p>
-              <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                Phê duyệt tham gia hoạt động
-              </h1>
-            </div>
-            <div className="bg-white/10 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 border border-white/20">
+    <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20" data-ref="registration-approvals-hero">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(45,212,191,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.12),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(20,184,166,0.10),transparent_26%)]" />
+      <div className="relative z-10 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-indigo-700 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
               <ClipboardList className="h-4 w-4" />
-              Đang chọn: {selectedCount}
+              Quản lý đăng ký
             </div>
+            <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Phê duyệt tham gia hoạt động</h1>
           </div>
+          <div className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 px-4 py-2 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            <ClipboardList className="h-4 w-4" />
+            Đang chọn: {selectedCount}
+          </div>
+        </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={Users}
-              label="Tổng đăng ký"
-              value={total || safeCounts.cho_duyet + safeCounts.da_duyet + safeCounts.tu_choi + safeCounts.da_tham_gia}
-              className="bg-white/15"
-            />
-            <StatCard
-              icon={UserCheck}
-              label="Chờ duyệt"
-              value={safeCounts.cho_duyet}
-              className="bg-yellow-400"
-            />
-            <StatCard
-              icon={UserCheck}
-              label="Đã duyệt"
-              value={safeCounts.da_duyet}
-              className="bg-green-400"
-            />
-            <StatCard
-              icon={UserX}
-              label="Từ chối"
-              value={safeCounts.tu_choi}
-              className="bg-red-400"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard icon={Users} label="Tổng đăng ký" value={total || safeCounts.cho_duyet + safeCounts.da_duyet + safeCounts.tu_choi + safeCounts.da_tham_gia} tone="text-cyan-600 dark:text-cyan-300" />
+          <StatCard icon={UserCheck} label="Chờ duyệt" value={safeCounts.cho_duyet} tone="text-amber-600 dark:text-amber-300" />
+          <StatCard icon={UserCheck} label="Đã duyệt" value={safeCounts.da_duyet} tone="text-emerald-600 dark:text-emerald-300" />
+          <StatCard icon={UserX} label="Từ chối" value={safeCounts.tu_choi} tone="text-rose-600 dark:text-rose-300" />
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, className }) {
+function StatCard({ icon: Icon, label, value, tone }) {
   return (
-    <div className="group relative">
-      <div className="absolute inset-0 bg-black/40 transform translate-x-2 translate-y-2 rounded-2xl" />
-      <div className={`relative ${className} text-black border border-black/10 rounded-2xl px-4 py-5 flex flex-col gap-1`}>
-        <Icon className="h-5 w-5" />
-        <span className="text-3xl font-black">{value}</span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-black/60">{label}</span>
+    <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{label}</span>
+        <Icon className={`h-5 w-5 ${tone}`} />
       </div>
+      <span className={`text-3xl font-black tracking-[-0.04em] ${tone}`}>{value}</span>
     </div>
   );
 }

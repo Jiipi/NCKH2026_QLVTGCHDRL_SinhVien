@@ -6,8 +6,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
-import http from '../../../../shared/api/http';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { approvalTeacherApi } from '../../services';
 
 const STATUS_MAP = {
   pending: 'cho_duyet',
@@ -86,21 +86,21 @@ export function useTeacherApprovals(initialSemester: string, options: UseTeacher
         }
       });
 
-      const endpoint = mode === 'activities' 
-        ? '/teacher/pending-activities' 
-        : '/teacher/activity-registrations';
-      
-      const res = await http.get(endpoint, { params });
-      const data = res?.data?.data || res?.data || {};
-      
-      setRegistrations(Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []));
+      const result = mode === 'activities'
+        ? await approvalTeacherApi.getPendingActivities(params)
+        : await approvalTeacherApi.getActivityRegistrations(params);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách.');
+      const data = result.data;
+
+      setRegistrations(data.items);
       setPagination(prev => ({
         ...prev,
-        total: parseInt(data.total || 0)
+        total: Number(data.total || 0)
       }));
-      
-      if (data.counts) {
-        setCounts(data.counts);
+
+      const nextCounts = (data as { counts?: typeof counts }).counts;
+      if (nextCounts) {
+        setCounts(nextCounts);
       }
     } catch (err) {
       console.error('Lỗi khi tải danh sách:', err);
@@ -114,9 +114,8 @@ export function useTeacherApprovals(initialSemester: string, options: UseTeacher
 
   const loadActivities = useCallback(async () => {
     try {
-      const res = await http.get('/teacher/activities', { params: { semester } });
-      const list = res?.data?.data?.activities || res?.data?.data || res?.data || [];
-      setActivities(Array.isArray(list) ? list : []);
+      const result = await approvalTeacherApi.getTeacherActivities({ semester });
+      setActivities(result.success ? result.data : []);
     } catch (err) {
       console.error('Lỗi khi tải hoạt động:', err);
       setActivities([]);
@@ -152,11 +151,10 @@ export function useTeacherApprovals(initialSemester: string, options: UseTeacher
 
     setProcessing(true);
     try {
-      const endpoint = mode === 'activities'
-        ? `/teacher/activities/${item.id}/approve`
-        : `/teacher/registrations/${item.id}/approve`;
-      
-      await http.post(endpoint);
+      const result = mode === 'activities'
+        ? await approvalTeacherApi.approveActivity(item.id)
+        : await approvalTeacherApi.approveRegistration(item.id);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể phê duyệt.');
       showSuccess('Phê duyệt thành công.');
       await loadRegistrations();
     } catch (err) {
@@ -175,11 +173,10 @@ export function useTeacherApprovals(initialSemester: string, options: UseTeacher
 
     setProcessing(true);
     try {
-      const endpoint = mode === 'activities'
-        ? `/teacher/activities/${item.id}/reject`
-        : `/teacher/registrations/${item.id}/reject`;
-      
-      await http.post(endpoint, { reason: reason.trim() });
+      const result = mode === 'activities'
+        ? await approvalTeacherApi.rejectActivity(item.id, reason.trim())
+        : await approvalTeacherApi.rejectRegistration(item.id, reason.trim());
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể từ chối.');
       showSuccess('Đã từ chối.');
       await loadRegistrations();
     } catch (err) {
@@ -203,7 +200,8 @@ export function useTeacherApprovals(initialSemester: string, options: UseTeacher
 
     setProcessing(true);
     try {
-      await http.post('/teacher/registrations/bulk-approve', { ids: selectedIds });
+      const result = await approvalTeacherApi.bulkApproveRegistrations(selectedIds);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Lỗi khi phê duyệt hàng loạt.');
       showSuccess(`Đã phê duyệt ${selectedIds.length} mục.`);
       setSelectedIds([]);
       await loadRegistrations();

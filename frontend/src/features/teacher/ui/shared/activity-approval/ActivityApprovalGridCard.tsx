@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Users, Clock, Eye, CheckCircle, XCircle, Award, CalendarClock, CalendarCheck, CalendarX, MapPin } from 'lucide-react';
+import { Calendar, Eye, CheckCircle, XCircle, Award, CalendarClock, CalendarCheck, CalendarX, MapPin } from 'lucide-react';
 import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
+import { formatDisplayDateTime } from '../../../../../shared/lib/dateTime';
 
 export default function ActivityApprovalGridCard({
   activity,
@@ -15,12 +16,12 @@ export default function ActivityApprovalGridCard({
 }) {
   if (!activity) return null;
 
-  const statusClass = statusColors[activity.trang_thai] || 'bg-gray-100 text-gray-600 border-gray-200';
+  const statusClass = statusColors[activity.trang_thai] || 'bg-gray-100 text-slate-600 dark:text-slate-300 border-gray-200';
   const statusLabel = statusLabels[activity.trang_thai] || 'Không xác định';
 
   return (
     <div className="group relative h-full" data-ref="teacher-approval-grid-card">
-      <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col h-full">
+      <div className="relative backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 border border-white/60 dark:border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-black/30 hover:border-indigo-300/70 transition-all duration-300 flex flex-col h-full">
         <div className="relative w-full h-36 overflow-hidden">
           <ActivityImageSlideshow
             images={activity.hinh_anh}
@@ -48,11 +49,11 @@ export default function ActivityApprovalGridCard({
 
         <div className="flex-1 p-4 space-y-3 relative z-10">
           <div>
-            <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
               {activity.ten_hd}
             </h3>
             {activity.loai_hd?.ten_loai_hd && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded border border-blue-200/60 dark:border-blue-300/20">
                 <Calendar className="h-3 w-3" />
                 {activity.loai_hd.ten_loai_hd}
               </span>
@@ -60,14 +61,14 @@ export default function ActivityApprovalGridCard({
           </div>
 
           {activity.nguoi_tao && (
-            <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+            <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-200/60 dark:border-indigo-300/20 backdrop-blur-sm">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-1 ring-white">
                 {activity.nguoi_tao.ho_ten?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-900 truncate">{activity.nguoi_tao.ho_ten || 'Không rõ tên'}</p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{activity.nguoi_tao.ho_ten || 'Không rõ tên'}</p>
                 {activity.nguoi_tao.sinh_vien?.lop?.ten_lop && (
-                  <p className="text-xs text-gray-600 truncate">Lớp: {activity.nguoi_tao.sinh_vien.lop.ten_lop}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 truncate">Lớp: {activity.nguoi_tao.sinh_vien.lop.ten_lop}</p>
                 )}
               </div>
             </div>
@@ -77,31 +78,31 @@ export default function ActivityApprovalGridCard({
             {activity.ngay_bd && (
               <div className="flex items-center gap-1.5">
                 <CalendarClock className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-                <span className="font-medium text-gray-900">
-                  Bắt đầu: {new Date(activity.ngay_bd).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_bd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                <span className="font-medium text-slate-900 dark:text-white">
+                  Bắt đầu: {formatDisplayDateTime(activity.ngay_bd)}
                 </span>
               </div>
             )}
             {activity.ngay_kt && (
               <div className="flex items-center gap-1.5">
                 <CalendarCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                <span className="font-medium text-gray-900">
-                  Kết thúc: {new Date(activity.ngay_kt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.ngay_kt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                <span className="font-medium text-slate-900 dark:text-white">
+                  Kết thúc: {formatDisplayDateTime(activity.ngay_kt)}
                 </span>
               </div>
             )}
             {activity.han_dk && (
               <div className="flex items-center gap-1.5">
                 <CalendarX className={`h-3.5 w-3.5 flex-shrink-0 ${new Date(activity.han_dk) < new Date() ? 'text-red-500' : 'text-orange-500'}`} />
-                <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
-                  Hạn ĐK: {new Date(activity.han_dk).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(activity.han_dk).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                <span className={`font-medium ${new Date(activity.han_dk) < new Date() ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
+                  Hạn ĐK: {formatDisplayDateTime(activity.han_dk)}
                 </span>
               </div>
             )}
             {activity.dia_diem && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                <span className="text-slate-600 dark:text-slate-300 truncate">{activity.dia_diem}</span>
               </div>
             )}
           </div>
@@ -141,5 +142,4 @@ export default function ActivityApprovalGridCard({
     </div>
   );
 }
-
 

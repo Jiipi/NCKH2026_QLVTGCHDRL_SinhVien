@@ -8,5 +8,4 @@
  * - monitor/ui/MonitorMyActivitiesPage.js
  */
 export { default as ActivityDetailPage } from './activity-detail/ActivityDetailPage';
-export { default as ClassActivitiesPage } from './class-activities/ClassActivitiesPage';
 export { default as ManageActivityPage } from './manage-activity/ManageActivityPage';

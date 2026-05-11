@@ -10,6 +10,7 @@ export { default as SessionTrackingService } from './session-tracking.service';
 export { default as BroadcastService } from './broadcast.service';
 export { default as SemesterClosureService, SemesterInfo, SemesterState, StatusResult } from './semesterClosure.service';
 export { default as QrAttendanceService } from './qr-attendance.service';
+export { default as QrAttendanceTokenService, qrAttendanceTokenService } from './qr-attendance-token.service';
 export { default as ReferenceDataService, ClassInfo, UserInfo, RoleInfo, DemoUserInfo } from './reference-data.service';
 
 // Re-export types for convenience

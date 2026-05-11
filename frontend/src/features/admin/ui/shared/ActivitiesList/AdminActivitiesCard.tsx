@@ -108,8 +108,8 @@ export default function AdminActivitiesCard({
   if (mode === 'list') {
     return (
       <div className="group relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-        <div className="relative bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-indigo-300 transition-all duration-200">
+        <div className="absolute inset-0 rounded-[1.5rem] bg-indigo-500/5 opacity-0 blur transition-opacity duration-200 group-hover:opacity-100"></div>
+        <div className="relative rounded-[1.5rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200/70 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-white/10">
           <div className="flex items-stretch gap-4 p-4">
             {/* Image */}
             <div className="relative w-40 h-32 flex-shrink-0 rounded-lg overflow-hidden">
@@ -250,9 +250,9 @@ export default function AdminActivitiesCard({
   // Grid mode
   return (
     <div className="group relative h-full">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-      <div className={`relative bg-white border-2 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full ${
-        isOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : 'border-gray-200 hover:border-indigo-200'
+      <div className="absolute inset-0 rounded-[1.5rem] bg-indigo-500/5 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100"></div>
+      <div className={`relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:bg-slate-900/60 dark:hover:bg-white/10 ${
+        isOpen ? 'border-emerald-200/70 dark:border-emerald-400/20' : 'border-white/60 hover:border-indigo-200/70 dark:border-white/10 dark:hover:border-indigo-400/20'
       }`}>
         {/* Image */}
         <div className="relative w-full h-40 overflow-hidden">
@@ -291,7 +291,7 @@ export default function AdminActivitiesCard({
         {/* Content */}
         <div className="flex-1 p-4 space-y-3">
           <div>
-            <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
+            <h3 className="mb-1.5 line-clamp-2 text-sm font-bold leading-tight text-slate-950 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-300">
               {activity.ten_hd || 'Hoạt động'}
             </h3>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded border border-indigo-200">
@@ -454,7 +454,7 @@ function InfoRow({ icon: Icon, label, subLabel }: InfoRowProps): React.ReactElem
 }
 
 function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth, disabled = false, disabledTitle }: ActionButtonProps): React.ReactElement {
-  const baseClasses = "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm shadow-sm transition-all duration-200 whitespace-nowrap";
+  const baseClasses = "flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-sm font-bold shadow-sm transition-all duration-200 whitespace-nowrap";
   
   if (disabled) {
     return (
@@ -473,7 +473,7 @@ function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth
     return (
       <button
         onClick={onClick}
-        className={`${baseClasses} bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:shadow-md ${fullWidth ? 'flex-1' : ''}`}
+        className={`${baseClasses} border border-white/60 bg-white/55 text-slate-700 backdrop-blur-xl hover:bg-white/80 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 ${fullWidth ? 'flex-1' : ''}`}
       >
         <Icon className="h-4 w-4" />
         <span>{label}</span>
@@ -485,7 +485,7 @@ function ActionButton({ onClick, icon: Icon, label, gradient, variant, fullWidth
     return (
       <button
         onClick={onClick}
-        className={`${baseClasses} bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 hover:shadow-md ${fullWidth ? 'flex-1' : ''}`}
+        className={`${baseClasses} border border-rose-200/70 bg-rose-50/70 text-rose-700 backdrop-blur-xl hover:bg-rose-100/70 hover:shadow-md dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300 ${fullWidth ? 'flex-1' : ''}`}
       >
         <Icon className="h-4 w-4" />
         <span>{label}</span>

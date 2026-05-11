@@ -17,9 +17,16 @@ import {
   Package,
   ChevronsLeft,
   QrCode,
-  FileText
+  FileText,
+  ShieldAlert,
+  User,
+  ScanFace
 } from 'lucide-react';
 import '../../styles/teacher-sidebar.css';
+import sessionStorageManager from '../../api/sessionStorageManager';
+import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
+import useSemesterData, { getGlobalSemester, setGlobalSemester, useGlobalSemesterSync } from '../../hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../lib/semester';
 
 interface MenuItemProps {
   to: string;
@@ -63,15 +70,15 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
         flex items-center gap-3 rounded-lg transition-all duration-200 relative group
         ${collapsed && !inDropdown ? 'justify-center p-3' : 'px-4 py-2.5'}
         ${inDropdown ? 'mx-2' : ''}
-        ${active 
-          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/50' 
-          : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+        ${active
+          ? 'bg-blue-800 text-white shadow-sm dark:bg-blue-700'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white'
         }
       `}
       onClick={onClick}
       title={collapsed && !inDropdown ? label : ''}
     >
-      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'}`}>
         {icon || <span className="w-2 h-2 rounded-full bg-current" />}
       </div>
       {(!collapsed || inDropdown) && (
@@ -99,9 +106,9 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
     return (
       <div className="relative group">
         {content}
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
           {label}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800" />
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
         </div>
       </div>
     );
@@ -147,7 +154,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
         }}
       >
         <div
-          className="w-full flex items-center justify-center p-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center p-3 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer"
           onClick={() => setFlyoutOpen(v => !v)}
         >
           <div className="flex items-center justify-center w-5 h-5">
@@ -155,15 +162,15 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
           </div>
         </div>
         <div
-          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-gray-800 rounded-lg shadow-2xl transition-all duration-200 z-[100] border border-gray-700 ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
+          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 transition-all duration-200 z-[100] ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
           onMouseEnter={() => { if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); } setFlyoutOpen(true); }}
           onMouseLeave={() => {
             if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
             hoverTimerRef.current = setTimeout(() => setFlyoutOpen(false), 150);
           }}
         >
-          <div className="px-4 py-2 border-b border-gray-700">
-            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</span>
+          <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</span>
           </div>
           <div className="py-2">
             {children}
@@ -178,7 +185,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200"
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200"
         aria-expanded={open}
       >
         <div className="flex items-center justify-center w-5 h-5">
@@ -201,10 +208,39 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   );
 }
 
+function SidebarSemesterPicker() {
+  const [semester, setSemesterState] = useState(() => getGlobalSemester() || getCurrentSemesterValue(true));
+  const { options } = useSemesterData(semester);
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  const handleChange = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
+
+  return (
+    <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+      <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Học kỳ</label>
+      <SemesterFilter value={semester} onChange={handleChange} label="" options={options} />
+    </div>
+  );
+}
+
 function AdminStudentSidebar() {
   const location = useLocation();
   const path = location.pathname;
   const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
+  const [profile, setProfile] = React.useState(null);
+
+  React.useEffect(() => {
+    const session = sessionStorageManager.getSession();
+    if (session?.user) setProfile(session.user);
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.profile) setProfile(event.detail.profile);
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('admin-sidebar-collapsed');
@@ -216,7 +252,7 @@ function AdminStudentSidebar() {
     const updateVar = () => {
       const el = asideRef.current;
       if (!el) return;
-      const w = el.offsetWidth || (sidebarCollapsed ? 64 : 280);
+      const w = el.offsetWidth || (sidebarCollapsed ? 80 : 288);
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
     };
     updateVar();
@@ -237,7 +273,7 @@ function AdminStudentSidebar() {
     setSidebarCollapsed(prev => {
       const newState = !prev;
       localStorage.setItem('admin-sidebar-collapsed', newState.toString());
-      const w = newState ? 64 : 280;
+      const w = newState ? 80 : 288;
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
       try { window.dispatchEvent(new Event('admin-sidebar-toggle')); } catch(_) {}
       return newState;
@@ -248,7 +284,8 @@ function AdminStudentSidebar() {
     if (!menuPath) return false;
     const cleanMenuPath = menuPath.replace(/\/$/, '');
     const cleanCurrentPath = path.replace(/\/$/, '');
-    return cleanCurrentPath === cleanMenuPath;
+    if (cleanMenuPath === '/admin') return cleanCurrentPath === '/admin';
+    return cleanCurrentPath === cleanMenuPath || cleanCurrentPath.startsWith(cleanMenuPath + '/');
   };
 
   // Admin menu với permission filtering
@@ -289,6 +326,8 @@ function AdminStudentSidebar() {
     if (hasAnyPermission(['system.settings', 'system.manage'])) {
       activitiesItems.push({ key: 'admin-semesters', to: '/admin/semesters', label: 'Quản lý học kỳ', icon: <Calendar className="w-4 h-4" />, active: isActive('/admin/semesters') });
     }
+    // Face management - luôn hiển cho admin
+    activitiesItems.push({ key: 'admin-face-management', to: '/admin/face-management', label: 'Quản lý khuôn mặt', icon: <ScanFace className="w-4 h-4" />, active: isActive('/admin/face-management') });
     if (activitiesItems.length > 0) {
       menu.push({
         type: 'group', key: 'activities', title: 'Hoạt động', groupKey: 'activities', icon: <Activity className="w-5 h-5" />, defaultOpen: true,
@@ -299,11 +338,23 @@ function AdminStudentSidebar() {
     // Reports
     if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
       menu.push({ key: 'reports', to: '/admin/reports', label: 'Báo cáo', icon: <FileText className="w-5 h-5" />, active: isActive('/admin/reports') });
+      menu.push({ key: 'attendance-audit', to: '/admin/attendance-audit', label: 'Audit điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: isActive('/admin/attendance-audit') });
     }
 
     // Notifications
     if (hasAnyPermission(['notifications.view', 'notifications.read', 'notifications.write', 'notifications.create'])) {
       menu.push({ key: 'notifications', to: '/admin/notifications', label: 'Thông báo', icon: <Bell className="w-5 h-5" />, active: isActive('/admin/notifications') });
+    }
+
+    const systemItems = [];
+    if (hasAnyPermission(['system.settings', 'system.configure', 'system.manage'])) {
+      systemItems.push({ key: 'admin-settings', to: '/admin/settings', label: 'Cài đặt hệ thống', icon: <Settings className="w-4 h-4" />, active: isActive('/admin/settings') });
+    }
+    if (systemItems.length > 0) {
+      menu.push({
+        type: 'group', key: 'system', title: 'Hệ thống', groupKey: 'system', icon: <Settings className="w-5 h-5" />, defaultOpen: false,
+        items: systemItems
+      });
     }
 
     return menu;
@@ -350,39 +401,49 @@ function AdminStudentSidebar() {
     });
   }, [sidebarCollapsed]);
 
+  const initials = (() => {
+    const name = profile?.ho_ten || profile?.ten_dn || '';
+    if (!name) return 'AD';
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0][0]?.toUpperCase() || 'AD';
+  })();
+
   return (
     <aside 
       ref={asideRef}
       className={`
         fixed left-0 top-0 h-screen z-30 transition-all duration-300
         ${sidebarCollapsed ? 'w-20' : 'w-72'}
-        bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900
-        border-r border-gray-700/50 shadow-2xl
+        bg-white dark:bg-slate-800
+        border-r border-slate-200 dark:border-slate-700
+        shadow-sm
+        flex flex-col
       `}
     >
-      <div className={`h-16 flex items-center border-b border-gray-700/50 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 relative ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+      <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         {sidebarCollapsed ? (
           <button
             onClick={toggleSidebar}
-            className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg hover:shadow-blue-500/50 hover:scale-105 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-900 dark:hover:bg-blue-600 transition-colors cursor-pointer"
             title="Mở rộng sidebar"
           >
-            <Menu className="w-6 h-6 text-white" />
+            <Activity className="w-5 h-5 text-white" />
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Activity className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm">
+                <Activity className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Quản trị viên</div>
-                <div className="text-gray-400 text-xs">Quản lý hệ thống</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white">DLU Rèn Luyện</div>
+                <div className="text-[11px] text-slate-400 dark:text-slate-500">Quản trị viên</div>
               </div>
             </div>
-            <button 
+            <button
               onClick={toggleSidebar}
-              className="relative p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110 transition-all duration-300 group ring-2 ring-white/20 hover:ring-white/40"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -391,16 +452,36 @@ function AdminStudentSidebar() {
         )}
       </div>
 
-      <nav className={`flex-1 py-6 space-y-2 ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible', overflowY: 'visible' }}>
+      <nav className={`flex-1 py-4 space-y-1 overflow-y-auto ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible' }}>
         {!sidebarCollapsed && (
           <div className="px-4 mb-4">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Menu quản trị
             </div>
           </div>
         )}
         {renderMenuItems(adminMenu)}
       </nav>
+
+      {!sidebarCollapsed && <SidebarSemesterPicker />}
+
+      {!sidebarCollapsed && profile && (
+        <div className="border-t border-slate-200 dark:border-slate-700 p-3">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+            <div className="w-9 h-9 rounded-full bg-blue-800 dark:bg-blue-700 flex items-center justify-center text-white font-semibold text-xs shadow-sm flex-shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {profile?.ho_ten || profile?.ten_dn || 'Quản trị viên'}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                {profile?.email || profile?.ten_dn || 'Quản trị viên'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

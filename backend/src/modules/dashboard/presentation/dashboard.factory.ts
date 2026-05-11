@@ -8,6 +8,7 @@ import GetActivityStatsUseCase from '../business/services/GetActivityStatsUseCas
 import GetAdminDashboardUseCase from '../business/services/GetAdminDashboardUseCase';
 import GetMyActivitiesUseCase from '../business/services/GetMyActivitiesUseCase';
 import GetDetailedScoresUseCase from '../business/services/GetDetailedScoresUseCase';
+import GetAdminChartStatsUseCase from '../business/services/GetAdminChartStatsUseCase';
 import DashboardController from './controllers/DashboardController';
 
 export function createDashboardController(): DashboardController {
@@ -18,7 +19,8 @@ export function createDashboardController(): DashboardController {
     getActivityStats: new GetActivityStatsUseCase(repo),
     getAdminDashboard: new GetAdminDashboardUseCase(repo),
     getMyActivities: new GetMyActivitiesUseCase(repo),
-    getDetailedScores: new GetDetailedScoresUseCase(repo)
+    getDetailedScores: new GetDetailedScoresUseCase(repo),
+    getAdminChartStats: new GetAdminChartStatsUseCase(repo)
   };
 
   return new DashboardController(useCases);

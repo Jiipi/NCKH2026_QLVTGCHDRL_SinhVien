@@ -72,7 +72,7 @@ export default function AdminTable({
 
   if (error) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/60">
         <div className="text-center">
           <div className="text-red-600 text-lg font-medium mb-2">Lỗi tải dữ liệu</div>
           <div className="text-gray-600 mb-4">{error}</div>
@@ -88,9 +88,9 @@ export default function AdminTable({
   }
 
   return (
-    <div className={`bg-white shadow rounded-lg ${className}`}>
+    <div className={`overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/60 ${className}`}>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="border-b border-slate-200/60 px-6 py-4 dark:border-white/10">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">{title}</h3>
           <div className="flex items-center space-x-4">
@@ -101,7 +101,7 @@ export default function AdminTable({
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="rounded-xl border border-white/60 bg-white/60 py-2 pl-10 pr-4 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@ export default function AdminTable({
             <select
               value={pagination.limit}
               onChange={onPageSizeChange}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="rounded-xl border border-white/60 bg-white/60 px-3 py-2 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white"
             >
               <option value={10}>10 / trang</option>
               <option value={20}>20 / trang</option>
@@ -149,8 +149,8 @@ export default function AdminTable({
       {!loading && data && (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-slate-200/60 dark:divide-white/10">
+              <thead className="bg-slate-50/70 dark:bg-white/5">
                 <tr>
                   {columns.map((column, index) => (
                     <th
@@ -162,10 +162,10 @@ export default function AdminTable({
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-200/60 bg-white/45 dark:divide-white/10 dark:bg-transparent">
                 {data.users && data.users.length > 0 ? (
                   data.users.map((item, index) => (
-                    <tr key={item.id || index} className="hover:bg-gray-50">
+                    <tr key={item.id || index} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/5">
                       {renderRow ? renderRow(item, index) : (
                         columns.map((column, colIndex) => (
                           <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

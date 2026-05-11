@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, RefreshCw, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
-import http from '../../../../../shared/api/http';
 import { getStudentAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
+import classesApi from '../../../services/classesApi';
 import useSemesterData from '../../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../../shared/lib/semester';
 
@@ -48,14 +48,14 @@ export default function ClassStudents() {
 
       for (const ep of endpoints) {
         try {
-          response = await http.get(ep, { params });
-          if (response.data) break;
+          response = await classesApi.getStudentsByEndpoint(ep, params);
+          if (response) break;
         } catch (e) {
           continue;
         }
       }
 
-      const responseData = response?.data?.data || response?.data || {};
+      const responseData = response || {};
       const raw = responseData.students || responseData.items || responseData || [];
       const total = responseData.total || (Array.isArray(raw) ? raw.length : 0);
 

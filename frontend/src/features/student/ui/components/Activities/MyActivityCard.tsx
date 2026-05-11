@@ -104,9 +104,9 @@ export default function MyActivityCard({
     return (
       <div className="group relative">
         <div
-          className={`absolute inset-0 bg-gradient-to-r ${config.gradient} rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200`}
+          className={`absolute inset-0 bg-gradient-to-r ${config.gradient} rounded-[2rem] blur opacity-10 group-hover:opacity-20 transition-opacity duration-200`}
         ></div>
-        <div className={`relative bg-white border-2 ${config.border} rounded-xl hover:shadow-lg transition-all duration-200`}>
+        <div className={`relative rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55`}>
           <div className="flex items-stretch gap-4 p-4">
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
               <ActivityImageSlideshow
@@ -208,9 +208,9 @@ export default function MyActivityCard({
   return (
     <div className="group relative h-full">
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${config.gradient} rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300`}
+        className={`absolute inset-0 bg-gradient-to-br ${config.gradient} rounded-[2rem] blur opacity-5 group-hover:opacity-15 transition-opacity duration-300`}
       ></div>
-      <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-purple-300 transition-all duration-300 flex flex-col h-full">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
         <div className="relative w-full h-36 overflow-hidden">
           <ActivityImageSlideshow
             images={activityData.hinh_anh}

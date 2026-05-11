@@ -3,44 +3,7 @@ import {
   Settings, Save, RefreshCw, Database, Shield, 
   Globe, Mail, Bell, Users, Calendar, Activity
 } from 'lucide-react';
-import http from '../../../shared/api/http';
-
-// ============ SETTINGS TYPES ============
-interface SystemSettings {
-  // General
-  system_name?: string;
-  system_description?: string;
-  logo_url?: string;
-  support_phone?: string;
-  support_email?: string;
-  // Email
-  smtp_host?: string;
-  smtp_port?: string | number;
-  from_email?: string;
-  from_name?: string;
-  email_enabled?: boolean;
-  // Notifications
-  notify_new_activity?: boolean;
-  notify_approval?: boolean;
-  notify_deadline?: boolean;
-  reminder_hours?: number;
-  // Activities
-  max_activity_points?: number;
-  min_registration_hours?: number;
-  auto_approve?: boolean;
-  activity_rules?: string;
-  // Users
-  allow_registration?: boolean;
-  default_role?: string;
-  min_password_length?: number;
-  session_timeout?: number;
-  // Security
-  enable_2fa?: boolean;
-  force_https?: boolean;
-  log_user_activity?: boolean;
-  max_login_attempts?: number;
-  lockout_duration?: number;
-}
+import settingsApi, { SystemSettings } from '../services/settingsApi';
 
 interface TabItem {
   id: string;
@@ -61,9 +24,8 @@ const SimpleAdminSettings: React.FC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await http.get('/admin/settings');
-  // settings response
-      setSettings(response.data?.data || response.data || {});
+      const data = await settingsApi.getSettings();
+      setSettings(data || {});
     } catch (error) {
       console.error('Lỗi khi tải cài đặt:', error);
       setSettings({});
@@ -75,7 +37,7 @@ const SimpleAdminSettings: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await http.post('/admin/settings', settings);
+      await settingsApi.updateSettings(settings);
       alert('Cài đặt đã được lưu thành công!');
     } catch (error) {
       console.error('Lỗi khi lưu cài đặt:', error);

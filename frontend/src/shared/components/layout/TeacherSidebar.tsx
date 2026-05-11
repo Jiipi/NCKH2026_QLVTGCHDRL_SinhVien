@@ -2,9 +2,13 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { usePermissions } from '../../hooks/usePermissions';
-import http from '../../api/http';
+import layoutApi from '../../../widgets/layout/services/layoutApi';
 import '../../styles/teacher-sidebar.css';
-import { 
+import sessionStorageManager from '../../api/sessionStorageManager';
+import SemesterFilter from '../../../widgets/semester/ui/SemesterSwitcher';
+import useSemesterData, { getGlobalSemester, setGlobalSemester, useGlobalSemesterSync } from '../../hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../lib/semester';
+import {
   Users, 
   Calendar, 
   BarChart3, 
@@ -28,7 +32,10 @@ import {
   ChevronsLeft,
   ChevronsRight,
   UserCheck,
-  QrCode
+  QrCode,
+  User,
+  Upload,
+  ScanFace
 } from 'lucide-react';
 
 interface MenuItemProps {
@@ -67,8 +74,6 @@ interface MenuItemData {
 
 // MenuItem component với modern design - REMOVED React.memo to allow active state updates
 function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdown }: MenuItemProps) {
-  console.log('[MenuItem] Rendering:', { to, label, active, collapsed, inDropdown });
-  
   const content = (
     <Link
       to={to}
@@ -76,15 +81,15 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
         flex items-center gap-3 rounded-lg transition-all duration-200 relative group
         ${collapsed && !inDropdown ? 'justify-center p-3' : 'px-4 py-2.5'}
         ${inDropdown ? 'mx-2' : ''}
-        ${active 
-          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/50' 
-          : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+        ${active
+          ? 'bg-blue-800 text-white shadow-sm dark:bg-blue-700'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white'
         }
       `}
       onClick={onClick}
       title={collapsed && !inDropdown ? label : ''}
     >
-      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+      <div className={`flex items-center justify-center w-4 h-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'}`}>
         {icon || <span className="w-2 h-2 rounded-full bg-current" />}
       </div>
       {(!collapsed || inDropdown) && (
@@ -113,9 +118,9 @@ function MenuItem({ to, icon, label, badge, active, onClick, collapsed, inDropdo
     return (
       <div className="relative group">
         {content}
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
           {label}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800" />
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
         </div>
       </div>
     );
@@ -164,7 +169,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
         }}
       >
         <div
-          className="w-full flex items-center justify-center p-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center p-3 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer"
           onClick={() => setFlyoutOpen(v => !v)}
         >
           <div className="flex items-center justify-center w-5 h-5">
@@ -173,7 +178,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
         </div>
         {/* Dropdown menu khi hover/click - đảm bảo click được */}
         <div
-          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-gray-800 rounded-lg shadow-2xl transition-all duration-200 z-[100] border border-gray-700 ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
+          className={`absolute left-full ml-2 top-0 min-w-[220px] max-w-[260px] bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 transition-all duration-200 z-[100] ${flyoutOpen ? 'opacity-100 visible pointer-events-auto' : 'opacity-0 invisible pointer-events-none'}`}
           onMouseEnter={() => { if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); } setFlyoutOpen(true); }}
           onMouseLeave={() => {
             if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -181,8 +186,8 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
           }}
         >
           {/* Header */}
-          <div className="px-4 py-2 border-b border-gray-700">
-            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</span>
+          <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</span>
           </div>
           {/* Menu items */}
           <div className="py-2">
@@ -198,7 +203,7 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200"
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200"
         aria-expanded={open}
       >
         <div className="flex items-center justify-center w-5 h-5">
@@ -224,6 +229,24 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   );
 }
 
+function SidebarSemesterPicker() {
+  const [semester, setSemesterState] = useState(() => getGlobalSemester() || getCurrentSemesterValue(true));
+  const { options } = useSemesterData(semester);
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  const handleChange = useCallback((value) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
+
+  return (
+    <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+      <label className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Học kỳ</label>
+      <SemesterFilter value={semester} onChange={handleChange} label="" options={options} />
+    </div>
+  );
+}
+
 // Remove React.memo to allow re-render when location changes
 function TeacherSidebar(props) {
   const storeRole = useAppStore(s => s.role);
@@ -232,6 +255,17 @@ function TeacherSidebar(props) {
   const location = useLocation();
   const path = location.pathname;
   const roleUpper = role.toUpperCase();
+  const [profile, setProfile] = React.useState(null);
+
+  React.useEffect(() => {
+    const session = sessionStorageManager.getSession();
+    if (session?.user) setProfile(session.user);
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.profile) setProfile(event.detail.profile);
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
   
   // Permission checking
   const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
@@ -254,7 +288,7 @@ function TeacherSidebar(props) {
     const updateVar = () => {
       const el = asideRef.current;
       if (!el) return;
-      const w = el.offsetWidth || (sidebarCollapsed ? 64 : 280);
+      const w = el.offsetWidth || (sidebarCollapsed ? 80 : 288);
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
     };
     updateVar();
@@ -278,7 +312,7 @@ function TeacherSidebar(props) {
       localStorage.setItem('teacher-sidebar-collapsed', newState.toString());
       
       // Update CSS variable immediately with the new state
-      const w = newState ? 64 : 280;
+      const w = newState ? 80 : 288;
       document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
       
       // dispatch a custom event so layout in same tab can react immediately
@@ -294,8 +328,8 @@ function TeacherSidebar(props) {
   useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        const response = await http.get('/teacher/registrations/pending');
-        const data = response.data?.data?.items || response.data?.items || response.data?.data || response.data || [];
+        const response = await layoutApi.getTeacherPendingRegistrations();
+        const data = response.items || response.data || response || [];
         const pendingRegs = Array.isArray(data) ? data.filter(r => r.trang_thai_dk === 'cho_duyet') : [];
         setPendingCount(pendingRegs.length);
       } catch (err) {
@@ -390,6 +424,14 @@ function TeacherSidebar(props) {
       });
     }
     // Đã xóa mục Điểm danh theo yêu cầu - Giảng viên không cần chức năng này
+    // Thêm mục Quản lý khuôn mặt
+    activityItems.push({
+      key: 'face-management',
+      to: '/teacher/face-management',
+      label: 'Duyệt khuôn mặt SV',
+      icon: <ScanFace className="w-4 h-4" />,
+      active: getActiveState('/teacher/face-management')
+    });
     if (activityItems.length > 0) {
       menu.push({
         type: 'group',
@@ -411,6 +453,24 @@ function TeacherSidebar(props) {
         label: 'Danh sách sinh viên',
         icon: <Users className="w-4 h-4" />,
         active: getActiveState('/teacher/students')
+      });
+    }
+    if (hasAnyPermission(['points.view_all', 'scores.read', 'students.read'])) {
+      studentItems.push({
+        key: 'student-scores',
+        to: '/teacher/student-scores',
+        label: 'Điểm sinh viên',
+        icon: <TrendingUp className="w-4 h-4" />,
+        active: getActiveState('/teacher/student-scores')
+      });
+    }
+    if (hasAnyPermission(['students.update', 'users.write'])) {
+      studentItems.push({
+        key: 'student-import',
+        to: '/teacher/students/import',
+        label: 'Import sinh viên',
+        icon: <Upload className="w-4 h-4" />,
+        active: getActiveState('/teacher/students/import')
       });
     }
     if (studentItems.length > 0) {
@@ -515,75 +575,86 @@ function TeacherSidebar(props) {
     );
   }, [sidebarCollapsed]);
 
+  const initials = (() => {
+    const name = profile?.ho_ten || profile?.ten_dn || '';
+    if (!name) return 'GV';
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0][0]?.toUpperCase() || 'GV';
+  })();
+
   return (
     <aside ref={asideRef} className={`
       fixed left-0 top-0 h-screen z-30 transition-all duration-300
       ${sidebarCollapsed ? 'w-20' : 'w-72'}
-      bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900
-      border-r border-gray-700/50 shadow-2xl
+      bg-white dark:bg-slate-800
+      border-r border-slate-200 dark:border-slate-700
+      shadow-sm
+      flex flex-col
     `}>
       {/* Brand Header với gradient */}
-      <div className={`h-16 flex items-center border-b border-gray-700/50 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 relative ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+      <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         {sidebarCollapsed ? (
-          // Khi thu nhỏ: Icon chính là nút toggle
           <button
             onClick={toggleSidebar}
-            className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg hover:shadow-indigo-500/50 hover:scale-105 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-900 dark:hover:bg-blue-600 transition-colors cursor-pointer"
             title="Mở rộng sidebar"
           >
-            <Menu className="w-6 h-6 text-white" />
+            <Users className="w-5 h-5 text-white" />
           </button>
         ) : (
-          // Khi mở rộng: Hiển thị info và nút toggle riêng
           <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-800 dark:bg-blue-700 flex items-center justify-center shadow-sm">
+                <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Giảng viên</div>
-                <div className="text-gray-400 text-xs">Quản lý lớp học</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white">DLU Rèn Luyện</div>
+                <div className="text-[11px] text-slate-400 dark:text-slate-500">Giảng viên</div>
               </div>
             </div>
-            
-            {/* Toggle Button - Only visible when expanded */}
-            <button 
+            <button
               onClick={toggleSidebar}
-              className="
-                relative p-2 rounded-xl
-                bg-gradient-to-br from-indigo-500 to-purple-600
-                hover:from-indigo-600 hover:to-purple-700
-                text-white
-                shadow-lg shadow-indigo-500/30
-                hover:shadow-indigo-500/50 hover:scale-110
-                transition-all duration-300
-                group
-                ring-2 ring-white/20 hover:ring-white/40
-              "
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
-              <ChevronsLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <ChevronsLeft className="w-4 h-4" />
             </button>
           </>
         )}
       </div>
       
       {/* Navigation Menu */}
-      <nav className={`flex-1 py-6 space-y-2 ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible', overflowY: 'visible' }}>
+      <nav className={`flex-1 py-4 space-y-1 overflow-y-auto ${sidebarCollapsed ? 'px-2' : 'px-3'}`} style={{ overflowX: 'visible' }}>
         {!sidebarCollapsed && (
           <div className="px-4 mb-4">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Menu chính
             </div>
-            {/* Debug: Show current path (disabled in production) */}
-            {/* <div className="mt-2 px-2 py-1 bg-yellow-500/10 rounded text-xs text-yellow-400 font-mono">
-              Path: {path}
-            </div> */}
           </div>
         )}
         {teacherMenu.map(renderMenuItem)}
       </nav>
+
+      {!sidebarCollapsed && <SidebarSemesterPicker />}
+
+      {!sidebarCollapsed && profile && (
+        <div className="border-t border-slate-200 dark:border-slate-700 p-3">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+            <div className="w-9 h-9 rounded-full bg-blue-800 dark:bg-blue-700 flex items-center justify-center text-white font-semibold text-xs shadow-sm flex-shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {profile?.ho_ten || profile?.ten_dn || 'Giảng viên'}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                {profile?.email || profile?.ma_gv || profile?.ma_cb || 'Giảng viên'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
     </aside>
   );

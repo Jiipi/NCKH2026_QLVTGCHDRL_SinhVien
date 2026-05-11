@@ -7,81 +7,57 @@ export default function AdminStatsGrid({ stats }) {
       icon: Users,
       value: stats.totalUsers || 0,
       label: 'Tổng người dùng',
-      badge: 'USER',
-      bgColor: 'bg-gradient-to-br from-blue-400 to-indigo-500',
-      badgeColor: 'bg-black text-blue-400',
-      textColor: 'text-white',
-      labelColor: 'text-white/80'
+      tone: 'text-indigo-600 dark:text-indigo-300',
+      bg: 'bg-indigo-50 dark:bg-indigo-400/10'
     },
     {
       icon: Activity,
       value: stats.totalActivities || 0,
       label: 'Hoạt động',
-      badge: 'ACTIVITY',
-      bgColor: 'bg-green-400',
-      badgeColor: 'bg-black text-green-400',
-      textColor: 'text-black',
-      labelColor: 'text-black/70'
+      tone: 'text-emerald-600 dark:text-emerald-300',
+      bg: 'bg-emerald-50 dark:bg-emerald-400/10'
     },
     {
       icon: Clock,
       value: stats.pendingApprovals || 0,
       label: 'Chờ duyệt',
-      badge: 'PENDING',
-      bgColor: 'bg-yellow-400',
-      badgeColor: 'bg-black text-yellow-400',
-      textColor: 'text-black',
-      labelColor: 'text-black/70'
+      tone: 'text-amber-600 dark:text-amber-300',
+      bg: 'bg-amber-50 dark:bg-amber-400/10'
     },
     {
       icon: UserCheck,
       value: stats.activeUsers || 0,
       label: 'Đang hoạt động',
-      badge: 'ACTIVE',
-      bgColor: 'bg-purple-400',
-      badgeColor: 'bg-black text-purple-400',
-      textColor: 'text-white',
-      labelColor: 'text-white/80'
+      tone: 'text-sky-600 dark:text-sky-300',
+      bg: 'bg-sky-50 dark:bg-sky-400/10'
     },
     {
       icon: CheckCircle,
       value: stats.todayApprovals || 0,
       label: 'Duyệt hôm nay',
-      badge: 'TODAY',
-      bgColor: 'bg-pink-400',
-      badgeColor: 'bg-black text-pink-400',
-      textColor: 'text-black',
-      labelColor: 'text-black/70'
+      tone: 'text-rose-600 dark:text-rose-300',
+      bg: 'bg-rose-50 dark:bg-rose-400/10'
     },
     {
       icon: TrendingUp,
       value: `+${stats.newUsersThisMonth || 0}`,
       label: 'User tháng này',
-      badge: 'GROWTH',
-      bgColor: 'bg-orange-400',
-      badgeColor: 'bg-black text-orange-400',
-      textColor: 'text-black',
-      labelColor: 'text-black/70'
+      tone: 'text-orange-600 dark:text-orange-300',
+      bg: 'bg-orange-50 dark:bg-orange-400/10'
     }
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
       {statItems.map((item, index) => {
         const Icon = item.icon;
         return (
-          <div key={index} className="group relative">
-            <div className="absolute inset-0 bg-black transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-            <div className={`relative ${item.bgColor} border-4 border-black p-3 rounded-xl transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col`}>
-              <div className="flex items-center justify-between mb-2">
-                <Icon className={`w-5 h-5 ${item.textColor}`} />
-                <div className={`${item.badgeColor} px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-wider`}>
-                  {item.badge}
-                </div>
-              </div>
-              <p className={`text-3xl font-black ${item.textColor} mb-0.5`}>{item.value}</p>
-              <p className={`text-[10px] font-black ${item.labelColor} uppercase tracking-wider`}>{item.label}</p>
+          <div key={index} className="group rounded-[1.5rem] border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
+            <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg}`}>
+              <Icon className={`h-5 w-5 ${item.tone}`} />
             </div>
+            <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{item.value}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{item.label}</p>
           </div>
         );
       })}

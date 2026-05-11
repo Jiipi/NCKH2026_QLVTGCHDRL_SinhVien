@@ -20,7 +20,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/backups:/backups
     ports:
-      - "127.0.0.1:5432:5432"  # Only expose to localhost
+      - "127.0.0.1:5433:5432"  # Only expose to localhost
     networks:
       - app_network
     healthcheck:

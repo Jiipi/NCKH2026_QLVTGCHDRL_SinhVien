@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import http from '../../../../shared/api/http';
 import sessionStorageManager from '../../../../shared/api/sessionStorageManager';
 import { useAppStore } from '../../../../shared/store/useAppStore';
+import { userProfileApi } from '../../services';
 
 export function useUserProfile() {
   const [profile, setProfile] = useState(null);
@@ -14,9 +14,8 @@ export function useUserProfile() {
     } else {
       const token = sessionStorageManager.getToken();
       if (token) {
-        http.get('/auth/profile')
-          .then(res => {
-            const payload = res.data?.data || res.data;
+        userProfileApi.getAuthProfile()
+          .then(payload => {
             if (payload) {
               setProfile(payload);
               setAuth({ token, user: payload, role: payload.role || payload.roleCode });

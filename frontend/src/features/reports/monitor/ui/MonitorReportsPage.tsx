@@ -8,7 +8,6 @@ import React from 'react';
 import useMonitorReports from '../model/useMonitorReports';
 import {
   ReportsHeader,
-  ReportsSemesterFilter,
   ReportsChartSelector,
   ParticipationChart,
   ActivitiesChart,
@@ -48,13 +47,6 @@ export default function ClassReports() {
         overview={overview} 
         onExportExcel={handleExportExcel} 
         onExportPDF={handleExportPDF} 
-      />
-
-      <ReportsSemesterFilter
-        semester={semester}
-        semesterOptions={semesterOptions}
-        onSemesterChange={setSemester}
-        onRefresh={loadReportData}
       />
 
       <ReportsChartSelector

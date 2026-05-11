@@ -10,8 +10,8 @@ import {
   BookOpen,
   Award
 } from 'lucide-react';
-import http from '../../../../../shared/api/http';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
+import { teacherClassesApi, teacherStudentsApi } from '../../../services';
 
 export default function ClassManagementPage() {
   const { showSuccess, showError, showWarning } = useNotification();
@@ -44,8 +44,8 @@ export default function ClassManagementPage() {
   const loadClasses = async () => {
     try {
       setLoading(true);
-      const response = await http.get('/teacher/classes');
-      const classesData = response.data?.data?.classes || [];
+      const response = await teacherClassesApi.getClasses();
+      const classesData = response.data?.classes || [];
       setClasses(classesData);
       if (classesData.length > 0) {
         setSelectedClass(classesData[0]);
@@ -60,9 +60,9 @@ export default function ClassManagementPage() {
 
   const loadClassStudents = async (classId) => {
     try {
-      const response = await http.get(`/teacher/students`, { params: { classFilter: classId, classId } });
-      console.log('[ClassManagement] Students API response:', response.data);
-      const rawStudents = response.data?.data?.students || response.data?.data || [];
+      const response = await teacherStudentsApi.getStudents({ classFilter: classId, classId });
+      console.log('[ClassManagement] Students API response:', response);
+      const rawStudents = response.data?.students || response.data || [];
       // Normalize students: API may return {name, className} vs {ho_ten, sinh_vien.lop.ten_lop}
       const studentsData = rawStudents.map((s) => ({
         ...s,
@@ -93,8 +93,8 @@ export default function ClassManagementPage() {
 
   const loadClassStatistics = async (classId) => {
     try {
-      const response = await http.get(`/teacher/classes/${classId}/statistics`);
-      const stats = response.data?.data || {};
+      const response = await teacherClassesApi.getClassStatistics(classId);
+      const stats = response.data || {};
       setStatistics({
         totalStudents: stats.totalStudents || 0,
         totalActivities: stats.totalActivities || 0,
@@ -115,9 +115,7 @@ export default function ClassManagementPage() {
 
     setAssigningMonitor(true);
     try {
-      await http.patch(`/teacher/classes/${selectedClass.id}/monitor`, {
-        sinh_vien_id: selectedMonitorId
-      });
+      await teacherClassesApi.assignMonitor(selectedClass.id, selectedMonitorId);
       showSuccess('GĂ¡n lá»›p trÆ°á»Ÿng thĂ nh cĂ´ng');
       // Refresh current class and students/statistics without losing selection
       await Promise.all([
@@ -152,7 +150,7 @@ export default function ClassManagementPage() {
   if (classes.length === 0) {
     return (
       <div className="p-8">
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
+        <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl p-12 text-center dark:border-white/10 dark:bg-slate-900/60">
           <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-500 mb-2">KhĂ´ng cĂ³ lá»›p phá»¥ trĂ¡ch</h3>
           <p className="text-gray-400">Báº¡n chÆ°a Ä‘Æ°á»£c gĂ¡n lĂ m chá»§ nhiá»‡m lá»›p nĂ o</p>
@@ -162,17 +160,20 @@ export default function ClassManagementPage() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quáº£n lĂ½ lá»›p</h1>
-        <p className="text-gray-600">Xem vĂ  quáº£n lĂ½ cĂ¡c lá»›p phá»¥ trĂ¡ch</p>
-      </div>
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
+        <div className="relative z-10">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Quản lý lớp</p>
+          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý lớp</h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Xem và quản lý các lớp phụ trách, danh sách sinh viên và thông tin lớp trưởng.</p>
+        </div>
+      </section>
 
       <div className="grid grid-cols-12 gap-6">
         {/* Classes Sidebar */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
               <h3 className="font-semibold text-gray-900">Danh sĂ¡ch lá»›p</h3>
               <p className="text-sm text-gray-600">{classes.length} lá»›p phá»¥ trĂ¡ch</p>
@@ -209,7 +210,7 @@ export default function ClassManagementPage() {
           {selectedClass && (
             <div className="space-y-6">
               {/* Class Info Card */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedClass.ten_lop}</h2>
@@ -242,7 +243,7 @@ export default function ClassManagementPage() {
 
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Tá»•ng SV</p>
@@ -252,7 +253,7 @@ export default function ClassManagementPage() {
                     <Users className="w-8 h-8 text-indigo-600 opacity-20" />
                   </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Hoáº¡t Ä‘á»™ng</p>
@@ -262,7 +263,7 @@ export default function ClassManagementPage() {
                     <BookOpen className="w-8 h-8 text-green-600 opacity-20" />
                   </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Tham gia</p>
@@ -272,7 +273,7 @@ export default function ClassManagementPage() {
                     <TrendingUp className="w-8 h-8 text-purple-600 opacity-20" />
                   </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Äiá»ƒm TB</p>
@@ -285,7 +286,7 @@ export default function ClassManagementPage() {
               </div>
 
               {/* Assign Monitor */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <UserCheck className="w-5 h-5 text-indigo-600" />
                   <h3 className="text-lg font-semibold text-gray-900">GĂ¡n lá»›p trÆ°á»Ÿng</h3>
@@ -314,7 +315,7 @@ export default function ClassManagementPage() {
               </div>
 
               {/* Students List */}
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                   <h3 className="font-semibold text-gray-900">Danh sĂ¡ch sinh viĂªn</h3>
                 </div>

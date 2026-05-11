@@ -48,6 +48,15 @@ router.get('/admin', requireAdmin, asyncHandler((req: Request, res: Response) =>
 ));
 
 /**
+ * GET /api/core/dashboard/admin/chart-stats
+ * Get admin dashboard chart data (activities by type, registrations by status, monthly trend)
+ * Requires: ADMIN role
+ */
+router.get('/admin/chart-stats', requireAdmin, asyncHandler((req: Request, res: Response) =>
+  dashboardController.getAdminChartStats(req as unknown as Parameters<typeof dashboardController.getAdminChartStats>[0], res)
+));
+
+/**
  * GET /api/core/dashboard/activities/me
  * Get my registered activities (ALL, not just recent 5)
  * Query params: semester (optional)

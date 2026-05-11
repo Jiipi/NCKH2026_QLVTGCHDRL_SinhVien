@@ -8,6 +8,7 @@ import type {
   IAdminReportsRepository,
   AttendanceRecord,
   AttendanceStats,
+  AttendanceAuditSummary,
   ClassInfo,
   StudentRegistration,
   StudentAttendance,
@@ -204,6 +205,57 @@ class AdminReportsRepository implements IAdminReportsRepository {
       prisma.diemDanh.count({ where: { trang_thai_tham_gia: 've_som' } }),
     ]);
     return { total, coMat, vangMat, muon, veSom };
+  }
+
+  async findAttendanceAuditWithFilters(
+    whereCondition: Prisma.NhatKyDiemDanhWhereInput,
+    skip: number,
+    take: number
+  ): Promise<{ items: unknown[]; total: number }> {
+    const [items, total] = await Promise.all([
+      prisma.nhatKyDiemDanh.findMany({
+        where: whereCondition,
+        include: {
+          nguoi_thuc_hien: { select: { id: true, ho_ten: true, ten_dn: true, email: true } },
+          sinh_vien: { include: { nguoi_dung: { select: { id: true, ho_ten: true, email: true } }, lop: true } },
+          hoat_dong: { include: { loai_hd: true, lop: true } },
+          phien_qr: true,
+          ma_qr: { select: { id: true, phien_id: true, het_han_luc: true, da_su_dung_luc: true, ngay_tao: true } },
+          diem_danh: true
+        },
+        skip,
+        take,
+        orderBy: { thoi_gian: 'desc' }
+      }),
+      prisma.nhatKyDiemDanh.count({ where: whereCondition })
+    ]);
+
+    return { items, total };
+  }
+
+  async getAttendanceAuditSummary(whereCondition: Prisma.NhatKyDiemDanhWhereInput): Promise<AttendanceAuditSummary> {
+    const [totalEvents, failedScans, successfulScans, duplicateAttemptCount, tokenIssueCount, suspiciousIps] = await Promise.all([
+      prisma.nhatKyDiemDanh.count({ where: whereCondition }),
+      prisma.nhatKyDiemDanh.count({ where: { ...whereCondition, hanh_dong: 'SCAN_FAILED' } }),
+      prisma.nhatKyDiemDanh.count({ where: { ...whereCondition, hanh_dong: 'SCAN_SUCCESS' } }),
+      prisma.nhatKyDiemDanh.count({ where: { ...whereCondition, ly_do: 'duplicate_attendance' } }),
+      prisma.nhatKyDiemDanh.count({ where: { ...whereCondition, ly_do: { in: ['invalid_token', 'expired_token', 'token_mismatch', 'missing_token'] } } }),
+      prisma.nhatKyDiemDanh.groupBy({
+        by: ['dia_chi_ip'],
+        where: { ...whereCondition, hanh_dong: 'SCAN_FAILED', dia_chi_ip: { not: null } },
+        _count: { _all: true },
+        having: { dia_chi_ip: { _count: { gte: 5 } } }
+      })
+    ]);
+
+    return {
+      totalEvents,
+      failedScans,
+      successfulScans,
+      duplicateAttemptCount,
+      tokenIssueCount,
+      suspiciousIpCount: suspiciousIps.length
+    };
   }
 }
 

@@ -124,6 +124,28 @@ const teacherStudentsApi = {
     });
     return response.data;
   },
+
+  previewImport: async (formData: FormData) => {
+    const response = await http.post('/teacher/students/preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  importStudents: async (jobId: string) => {
+    const response = await http.post('/teacher/students/import', { jobId });
+    return response.data;
+  },
+
+  getImportJobs: async () => {
+    const response = await http.get('/teacher/students/import/jobs');
+    return response.data;
+  },
+
+  getImportJob: async (jobId: string) => {
+    const response = await http.get(`/teacher/students/import/jobs/${jobId}`);
+    return response.data;
+  },
 };
 
 /**

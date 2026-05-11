@@ -1,7 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-import http from '../../../../shared/api/http';
+import { BrowserQRCodeReader } from '@zxing/browser';
+import qrAttendanceApi from '../../services/qrAttendanceApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
+
+function getCurrentLocationForAttendance() {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+}
 
 export function useLegacyQRScanner() {
   const { showSuccess, showError } = useNotification();
@@ -205,7 +221,6 @@ export function useLegacyQRScanner() {
   async function setupZXing() {
     if (!scanningActiveRef.current) return;
     try {
-      const { BrowserQRCodeReader } = await import('@zxing/browser');
       const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 50 });
       zxingReaderRef.current = reader;
       const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
@@ -319,49 +334,19 @@ export function useLegacyQRScanner() {
         tokenLength: payload.token?.length
       });
       
-      const qrRes = await http.get(`/activities/${payload.activityId}/qr-data`);
-      const serverQR = qrRes?.data?.data || qrRes?.data || {};
-      const serverToken = serverQR.qr_token || serverQR.token;
-      
-      console.log('[QR Scanner] Server QR data:', {
-        activityId: serverQR.activity_id,
-        token: serverToken ? serverToken.substring(0, 10) + '...' : 'null',
-        tokenLength: serverToken?.length
-      });
-      
-      // Normalize tokens for comparison
-      let normalizedPayloadToken = String(payload.token || '').trim();
-      const normalizedServerToken = String(serverToken || '').trim();
-      
-      // Backward compatibility: Nếu token trong QR code là 64 chars (token cũ) và server token là 32 chars (token mới)
-      // Chỉ so sánh 32 chars đầu của token trong QR code với token trong server
-      if (normalizedPayloadToken.length === 64 && normalizedServerToken.length === 32) {
-        console.log('[QR Scanner] Detected old 64-char token in QR, comparing first 32 chars');
-        normalizedPayloadToken = normalizedPayloadToken.substring(0, 32);
+      if (payload.expiresAt && new Date(payload.expiresAt).getTime() <= Date.now()) {
+        throw { status: 400, message: 'Mã QR đã hết hạn, vui lòng quét mã mới' };
       }
-      
-      console.log('[QR Scanner] Token comparison:', {
-        payloadToken: normalizedPayloadToken.substring(0, 10) + '...',
-        serverToken: normalizedServerToken.substring(0, 10) + '...',
-        match: normalizedPayloadToken === normalizedServerToken,
-        payloadLength: normalizedPayloadToken.length,
-        serverLength: normalizedServerToken.length
-      });
-      
-      if (!serverToken) {
-        console.error('[QR Scanner] Server token is missing');
-        throw { status: 400, message: 'Hoạt động chưa có mã QR. Vui lòng liên hệ quản trị viên.' };
+
+      const serverQR: any = {};
+      console.log('[QR Scanner] Calling backend QR verification...');
+      const location = await getCurrentLocationForAttendance();
+      const checkinRes = await qrAttendanceApi.scanAttendance(payload.activityId, payload.token, payload.sessionId, location as any);
+      if (!checkinRes.success) {
+        const failed = checkinRes as { code?: number | null; error?: string; details?: unknown };
+        throw { status: failed.code || 400, message: failed.error, details: failed.details, activityId: payload.activityId };
       }
-      
-      if (normalizedServerToken !== normalizedPayloadToken) {
-        console.error('[QR Scanner] Token mismatch!');
-        throw { status: 400, message: 'Mã QR không khớp hoặc đã hết hạn. Vui lòng tạo QR code mới.' };
-      }
-      
-      console.log('[QR Scanner] Tokens match, calling scan attendance...');
-      const checkinRes = await http.post(`/activities/${payload.activityId}/attendance/scan`, { token: payload.token });
-      const checkinData = checkinRes?.data?.data || checkinRes?.data || {};
-      setScanResult({ success: true, message: 'Điểm danh thành công!', data: { activityId: checkinData.activityId || payload.activityId, activityName: checkinData.activityName || serverQR.activity_name || '', sessionName: checkinData.sessionName || 'Mặc định', timestamp: checkinData.timestamp || new Date().toISOString() } });
+      const checkinData = checkinRes.data || {};      setScanResult({ success: true, message: 'Điểm danh thành công!', data: { activityId: checkinData.activityId || payload.activityId, activityName: checkinData.activityName || serverQR.activity_name || '', sessionName: checkinData.sessionName || 'Mặc định', timestamp: checkinData.timestamp || new Date().toISOString() } });
       try { showSuccess('Điểm danh thành công'); } catch (_) {}
       try { window.dispatchEvent(new CustomEvent('attendance:updated', { detail: { activityId: payload.activityId }})); } catch (_) {}
       try { window.localStorage.setItem('ATTENDANCE_UPDATED_AT', String(Date.now())); } catch (_) {}
@@ -372,12 +357,12 @@ export function useLegacyQRScanner() {
       const errorCode = err?.response?.data?.errors?.code;
       if (statusCode === 409 && errorCode === 'ALREADY_CHECKED_IN') {
         const userMessage = 'Bạn đã điểm danh hoạt động này rồi';
-        setScanResult({ success: false, message: userMessage, details: backendMessage });
+        setScanResult({ success: false, message: userMessage, details: err?.details || backendMessage, activityId: err?.activityId });
         setError(userMessage);
         stopCamera();
       } else {
         const userMessage = backendMessage || 'Không thể xác thực mã QR. Vui lòng thử lại.';
-        setScanResult({ success: false, message: userMessage, details: backendMessage });
+        setScanResult({ success: false, message: userMessage, details: err?.details || backendMessage, activityId: err?.activityId });
         setError(userMessage);
         try { showError(userMessage, statusCode ? `Lỗi ${statusCode}` : undefined); } catch (_) {}
         stopCamera();

@@ -37,7 +37,7 @@ export default function AdminRegistrationsResults({
         />
       ))}
       {total > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
+        <div className="rounded-[2rem] border border-white/60 bg-white/60 p-3 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
           <Pagination
             pagination={{ page, limit, total }}
             onPageChange={onPageChange}

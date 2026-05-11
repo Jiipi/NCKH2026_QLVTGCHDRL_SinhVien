@@ -10,5 +10,5 @@ export * from './model';
 // Services Layer
 export * from './services';
 
-// UI Layer - Pages
-export { default as SemesterManagementPage } from './ui/SemesterManagementPage';
+// UI Layer
+export * from './ui';

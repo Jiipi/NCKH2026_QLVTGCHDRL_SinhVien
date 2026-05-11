@@ -3,29 +3,20 @@ import { AlertCircle, RefreshCcw } from 'lucide-react';
 
 export default function AdminReportsErrorState({ error }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center p-8">
-      <div className="group relative">
-        <div className="absolute inset-0 bg-red-800 transform translate-x-3 translate-y-3 rounded-2xl" />
-        <div className="relative bg-red-100 border-4 border-red-800 rounded-2xl p-12 max-w-lg text-center">
-          <div className="relative mb-6 inline-block">
-            <div className="absolute inset-0 bg-red-400 blur-xl opacity-50 rounded-full" />
-            <div className="relative bg-red-400 border-4 border-red-800 p-4 rounded-full">
-              <AlertCircle className="h-12 w-12 text-red-800" />
-            </div>
-          </div>
-          <h3 className="text-2xl font-black text-red-800 mb-3 uppercase tracking-wide">Có lỗi xảy ra</h3>
-          <p className="text-red-700 font-bold mb-6">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="group/btn relative inline-flex"
-          >
-            <div className="absolute inset-0 bg-red-800 transform translate-x-1 translate-y-1 rounded-xl" />
-            <div className="relative flex items-center gap-2 px-6 py-3 bg-red-400 text-red-900 border-3 border-red-800 rounded-xl hover:bg-red-500 transition-all font-black transform group-hover/btn:-translate-x-0.5 group-hover/btn:-translate-y-0.5">
-              <RefreshCcw className="h-5 w-5" />
-              Tải lại trang
-            </div>
-          </button>
+    <div className="flex min-h-[420px] items-center justify-center rounded-[2rem] border border-rose-200/70 bg-rose-50/70 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-rose-400/20 dark:bg-rose-400/10">
+      <div className="max-w-lg text-center">
+        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-rose-200/70 bg-white/65 shadow-sm backdrop-blur-xl dark:border-rose-400/20 dark:bg-white/5">
+          <AlertCircle className="h-8 w-8 text-rose-600 dark:text-rose-300" />
         </div>
+        <h3 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">Có lỗi xảy ra</h3>
+        <p className="mt-3 text-sm font-bold leading-6 text-rose-700 dark:text-rose-200">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-rose-700 hover:shadow-md"
+        >
+          <RefreshCcw className="h-5 w-5" />
+          Tải lại trang
+        </button>
       </div>
     </div>
   );

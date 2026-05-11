@@ -54,22 +54,22 @@ export default function AdminActivitiesResults({
       className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
     >
       {isTransitioning && (
-        <div className="flex items-center justify-center py-4 mb-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
-            <span className="text-sm text-indigo-700 font-medium">Đang tải...</span>
+        <div className="mb-4 flex items-center justify-center py-4">
+          <div className="flex items-center gap-2 rounded-2xl border border-indigo-200/70 bg-indigo-50/70 px-4 py-2 shadow-sm backdrop-blur-xl dark:border-indigo-400/20 dark:bg-indigo-400/10">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-300 dark:border-t-transparent"></div>
+            <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">Đang tải...</span>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-gray-700 font-semibold">
-            Có <span className="text-indigo-600 font-bold">{filteredItems.length}</span> hoạt động
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+            Có <span className="text-indigo-600 dark:text-indigo-300">{filteredItems.length}</span> hoạt động
             {scopeTab === 'all' ? ' trong hệ thống' : ' của lớp'}
           </span>
           {filteredItems.length <= pagination.limit && filteredItems.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -104,11 +104,11 @@ export default function AdminActivitiesResults({
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             {pagination.total > 10 && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 whitespace-nowrap">Hiển thị mỗi trang:</span>
+                <span className="whitespace-nowrap text-sm font-semibold text-slate-500 dark:text-slate-400">Hiển thị mỗi trang:</span>
                 <select
                   value={pagination.limit}
                   onChange={(e) => onLimitChange(parseInt(e.target.value, 10))}
-                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-200 hover:border-indigo-300 text-sm font-medium"
+                  className="rounded-2xl border border-white/70 bg-white/55 px-3 py-2 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                 >
                   {[10, 20, 50, 100].map((size) => (
                     <option key={size} value={size}>
@@ -156,17 +156,17 @@ function Pagination({ pagination, onPageChange }: PaginationProps): React.ReactE
 
       {pageNumbers.map((pageNum) =>
         typeof pageNum === 'string' ? (
-          <span key={pageNum} className="px-2 text-gray-400 font-bold">
+          <span key={pageNum} className="px-2 font-bold text-slate-400 dark:text-slate-500">
             ...
           </span>
         ) : (
           <button
             key={`page-${pageNum}`}
             onClick={() => onPageChange(pageNum)}
-            className={`min-w-[44px] px-4 py-2.5 rounded-xl font-bold transition-all duration-200 ${
+            className={`min-w-[44px] rounded-2xl px-4 py-2.5 font-bold transition-all duration-200 ${
               pageNum === currentPage
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-110 ring-2 ring-indigo-300'
-                : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                ? 'scale-105 bg-indigo-600 text-white shadow-md ring-4 ring-indigo-100/70 dark:ring-indigo-400/20'
+                : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 hover:text-indigo-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-indigo-300'
             }`}
           >
             {pageNum}
@@ -200,10 +200,10 @@ function IconButton({ children, disabled, onClick, title }: IconButtonProps): Re
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
+      className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 font-semibold transition-all duration-200 ${
         disabled
-          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 border-2 border-gray-200 shadow-md hover:shadow-lg'
+          ? 'cursor-not-allowed border border-white/50 bg-white/35 text-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+          : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 hover:text-indigo-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-indigo-300'
       }`}
     >
       {children}

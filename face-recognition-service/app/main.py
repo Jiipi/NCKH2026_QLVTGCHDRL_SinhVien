@@ -31,6 +31,26 @@ logger = logging.getLogger(__name__)
 # Global model instances (lazy loaded)
 insightface_app = None
 
+# Model metadata
+MODEL_NAME = 'buffalo_l'
+MODEL_VERSION = '1.0.0'
+EMBEDDING_DIM = 512
+
+# In-memory metrics
+import time as _time
+_metrics = {
+    'start_time': _time.time(),
+    'detect_count': 0,
+    'embed_count': 0,
+    'verify_count': 0,
+    'register_count': 0,
+    'register_multi_count': 0,
+    'liveness_fail_count': 0,
+    'mismatch_count': 0,
+    'total_latency_ms': 0.0,
+    'request_count': 0,
+}
+
 # ============== Pydantic Models ==============
 
 class DetectResponse(BaseModel):
@@ -91,6 +111,9 @@ class HealthResponse(BaseModel):
     models_loaded: bool
     detector: str
     embedder: str
+    model_name: str = 'buffalo_l'
+    model_version: str = '1.0.0'
+    embedding_dim: int = 512
 
 # Environment config
 LIVENESS_THRESHOLD = float(os.environ.get("LIVENESS_THRESHOLD", "0.5"))
@@ -246,8 +269,31 @@ async def health_check():
         status="healthy" if models_loaded else "starting",
         models_loaded=models_loaded,
         detector="InsightFace_RetinaFace" if models_loaded else "not_loaded",
-        embedder="InsightFace_ArcFace" if models_loaded else "not_loaded"
+        embedder="InsightFace_ArcFace" if models_loaded else "not_loaded",
+        model_name=MODEL_NAME,
+        model_version=MODEL_VERSION,
+        embedding_dim=EMBEDDING_DIM
     )
+
+@app.get("/metrics")
+async def get_metrics():
+    """Metrics endpoint for monitoring"""
+    uptime_seconds = _time.time() - _metrics['start_time']
+    avg_latency = (_metrics['total_latency_ms'] / _metrics['request_count']) if _metrics['request_count'] > 0 else 0
+    return {
+        "uptime_seconds": round(uptime_seconds, 1),
+        "total_requests": _metrics['request_count'],
+        "detect_count": _metrics['detect_count'],
+        "embed_count": _metrics['embed_count'],
+        "verify_count": _metrics['verify_count'],
+        "register_count": _metrics['register_count'],
+        "register_multi_count": _metrics['register_multi_count'],
+        "liveness_fail_count": _metrics['liveness_fail_count'],
+        "mismatch_count": _metrics['mismatch_count'],
+        "avg_latency_ms": round(avg_latency, 1),
+        "model_name": MODEL_NAME,
+        "model_version": MODEL_VERSION
+    }
 
 @app.post("/detect", response_model=DetectResponse)
 async def detect_faces(file: UploadFile = File(...)):
@@ -258,6 +304,7 @@ async def detect_faces(file: UploadFile = File(...)):
     - **Returns**: Danh sách khuôn mặt với bounding box và landmarks
     """
     try:
+        _start = _time.time()
         load_models()
         
         # Read and decode image
@@ -266,6 +313,9 @@ async def detect_faces(file: UploadFile = File(...)):
         
         # Detect faces using InsightFace
         faces = insightface_app.get(image_array)
+        _metrics['detect_count'] += 1
+        _metrics['request_count'] += 1
+        _metrics['total_latency_ms'] += (_time.time() - _start) * 1000
         
         if not faces or len(faces) == 0:
             return DetectResponse(
@@ -307,6 +357,7 @@ async def extract_embedding(file: UploadFile = File(...)):
     - **Returns**: Vector embedding 512 chiều
     """
     try:
+        _start = _time.time()
         load_models()
         
         # Read and decode image
@@ -316,6 +367,10 @@ async def extract_embedding(file: UploadFile = File(...)):
         # Liveness check
         liveness = check_liveness(image_array)
         if not liveness["passed"]:
+            _metrics['liveness_fail_count'] += 1
+            _metrics['embed_count'] += 1
+            _metrics['request_count'] += 1
+            _metrics['total_latency_ms'] += (_time.time() - _start) * 1000
             return EmbedResponse(
                 success=False,
                 message=f"Ảnh không đạt kiểm tra liveness (score: {liveness['score']}). Vui lòng sử dụng ảnh chụp trực tiếp.",
@@ -342,6 +397,9 @@ async def extract_embedding(file: UploadFile = File(...)):
         faces = sorted(faces, key=lambda f: (f.bbox[2]-f.bbox[0])*(f.bbox[3]-f.bbox[1]), reverse=True)
         
         embedding = [float(x) for x in faces[0].normed_embedding]
+        _metrics['embed_count'] += 1
+        _metrics['request_count'] += 1
+        _metrics['total_latency_ms'] += (_time.time() - _start) * 1000
         
         return EmbedResponse(
             success=True,
@@ -384,6 +442,10 @@ async def verify_embeddings(request: VerifyRequest):
         
         similarity = cosine_similarity(request.embedding1, request.embedding2)
         is_match = similarity >= request.threshold
+        _metrics['verify_count'] += 1
+        _metrics['request_count'] += 1
+        if not is_match:
+            _metrics['mismatch_count'] += 1
         
         return VerifyResponse(
             success=True,

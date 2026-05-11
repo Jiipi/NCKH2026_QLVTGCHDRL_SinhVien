@@ -32,6 +32,7 @@ interface UseCases {
   rejectRegistration: { execute: (registrationId: string, userId: string, userRole: string, reason?: string | null) => Promise<boolean> };
   getMonitorDashboard: { execute: (classId: string, className: string, semester?: string) => Promise<unknown> };
   getClassReports: { execute: (classId: string, options: { semester?: string; timeRange?: string }) => Promise<unknown> };
+  getAttendanceAuditReport: { execute: (query: Record<string, string>, forcedClassId?: string) => Promise<unknown> };
 }
 
 interface RegistrationWithImages {
@@ -203,6 +204,21 @@ class MonitorController {
     } catch (error) {
       logError('Get class reports error', error);
       return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy dữ liệu báo cáo lớp'));
+    }
+  }
+
+  async getAttendanceAuditReport(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const classId = req.classMonitor?.lop_id;
+      if (!classId) {
+        return sendResponse(res, 403, ApiResponse.error('Bạn chưa được gán vào lớp nào'));
+      }
+
+      const report = await this.useCases.getAttendanceAuditReport.execute(req.query as Record<string, string>, classId);
+      return sendResponse(res, 200, ApiResponse.success(report, 'Lấy lịch sử điểm danh lớp thành công'));
+    } catch (error) {
+      logError('Get monitor attendance audit error', error);
+      return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy lịch sử điểm danh lớp'));
     }
   }
 }

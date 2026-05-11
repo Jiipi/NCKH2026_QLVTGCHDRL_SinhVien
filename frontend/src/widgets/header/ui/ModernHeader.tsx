@@ -1,24 +1,25 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
-  Search,
   Sun,
   Moon,
   User,
-  Settings,
   LogOut,
   HelpCircle,
   Menu,
   X,
   ChevronDown,
-  GraduationCap,
+  QrCode,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
   Clock,
   MapPin,
-  Users,
-  BookOpen,
-  Building2,
-  Loader2
+  CalendarDays,
+  Sparkles,
+  BookOpenCheck
 } from 'lucide-react';
 import http from '../../../shared/api/http';
 import { useAppStore } from '../../../shared/store';
@@ -28,9 +29,11 @@ import SessionMonitor from '../../../shared/components/session/SessionMonitor';
 import sessionStorageManager from '../../../shared/api/sessionStorageManager';
 import { getUserAvatar, getAvatarGradient } from '../../../shared/lib/avatar';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
+import { getCurrentSemesterValue, getSemesterLabel } from '../../../shared/lib/semester';
 
 export default function ModernHeader({ isMobile, onMenuClick }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { clearSession } = useMultiSession();
   const [profile, setProfile] = React.useState(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
@@ -43,19 +46,19 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   const [avatarError, setAvatarError] = React.useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [theme, setTheme] = React.useState(() => {
-    // Mỗi tab có theme riêng, không đồng bộ giữa các tab
     return sessionStorage.getItem('theme') || 'light';
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [detail, setDetail] = React.useState(null);
+  const [selectedSemester, setSelectedSemester] = React.useState(() => {
+    return sessionStorage.getItem('selected_semester') || sessionStorage.getItem('backend_current_semester') || getCurrentSemesterValue(true);
+  });
 
   const dropdownRef = React.useRef(null);
   const buttonRef = React.useRef(null);
   const notifRef = React.useRef(null);
   const searchRef = React.useRef(null);
-  const searchInputRef = React.useRef(null);
 
-  // Lấy role từ store (ưu tiên role từ store để tránh nhầm hiển thị)
+  // Lấy role từ store
   const { user } = useAppStore();
   const storeRole = useAppStore(s => s.role);
   const tokenInStore = useAppStore(s => s.token);
@@ -78,7 +81,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     normalizedRole.includes('LOP') ||
     normalizedRole.includes('LỚP');
 
-  // Theme toggle - Mỗi tab độc lập, không đồng bộ giữa các tab
+  // Theme toggle
   React.useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -86,7 +89,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     } else {
       root.classList.remove('dark');
     }
-    // Lưu vào sessionStorage thay vì localStorage để mỗi tab riêng biệt
     sessionStorage.setItem('theme', theme);
   }, [theme]);
 
@@ -94,32 +96,21 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // Load profile (tab-specific) - ALWAYS fetch fresh from API
+  // Load profile
   React.useEffect(() => {
     const token = sessionStorageManager.getToken();
     if (token) {
-      // ALWAYS fetch fresh profile from API (không lấy từ session cũ)
       http.get('/core/profile')
         .then(response => {
           const payload = (response?.data?.data || response?.data) || null;
-          console.log('✅ ModernHeader profile loaded from /core/profile:', {
-            ho_ten: payload?.ho_ten,
-            ten_dn: payload?.ten_dn,
-            email: payload?.email,
-            anh_dai_dien: payload?.anh_dai_dien,
-            vai_tro: payload?.vai_tro
-          });
           setProfile(payload);
           if (payload) {
-            // Clear localStorage cache cũ (nếu có)
             localStorage.removeItem('profile');
-            // Update session with fresh data
             sessionStorageManager.saveSession({ token, user: payload, role: sessionStorageManager.getRole() || payload?.vai_tro?.ten_vt || payload?.role || payload?.roleCode });
           }
         })
         .catch(error => {
-          console.error('Failed to load from /core/profile:', error?.response?.status);
-          // Clear invalid session
+          console.error('Failed to load profile:', error?.response?.status);
           if (error?.response?.status === 401) {
             sessionStorageManager.clearSession();
             localStorage.removeItem('profile');
@@ -128,35 +119,25 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
         });
       loadNotifications();
     } else {
-      // No token, clear profile
       setProfile(null);
       localStorage.removeItem('profile');
     }
   }, []);
 
-  // Listen for profile updates (when avatar is changed)
+  // Listen for profile updates
   React.useEffect(() => {
     const handleProfileUpdate = (event) => {
-      console.log('📢 ModernHeader received profileUpdated event:', event.detail);
       if (event.detail?.profile) {
-        console.log('🔄 Updating ModernHeader profile from:', profile?.ho_ten, 'to:', event.detail.profile.ho_ten);
         setProfile(event.detail.profile);
-        setAvatarError(false); // Reset avatar error when profile updates
-        // Also update session storage
+        setAvatarError(false);
         const currentSession = sessionStorageManager.getSession();
         if (currentSession) {
           sessionStorageManager.saveSession({ ...currentSession, user: event.detail.profile });
         }
       }
     };
-
-    // Listen for custom profile update events
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    console.log('🎧 ModernHeader event listener added for profileUpdated');
-
-    return () => {
-      window.removeEventListener('profileUpdated', handleProfileUpdate);
-    };
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, [profile]);
 
   // Keep in sync with session events
@@ -172,34 +153,23 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
   // Handle click outside to close dropdowns
   React.useEffect(() => {
     const handleClickOutside = (event) => {
-      // Close notification dropdown if click outside
       if (notificationOpen && notifRef.current && !notifRef.current.contains(event.target)) {
         setNotificationOpen(false);
       }
-
-      // Close profile dropdown if click outside
       if (profileOpen && dropdownRef.current && buttonRef.current) {
         if (!dropdownRef.current.contains(event.target) && !buttonRef.current.contains(event.target)) {
           setProfileOpen(false);
         }
       }
-
-      // Close search dropdown if click outside
       if (searchOpen && searchRef.current && !searchRef.current.contains(event.target)) {
         setSearchOpen(false);
       }
     };
-
-    // Add event listener
     document.addEventListener('mousedown', handleClickOutside);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [notificationOpen, profileOpen, searchOpen]);
 
-  // Debounced search effect
+  // Debounced search
   React.useEffect(() => {
     if (debouncedSearch && debouncedSearch.trim().length >= 2) {
       performSearch(debouncedSearch);
@@ -208,6 +178,22 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       setSearchOpen(false);
     }
   }, [debouncedSearch]);
+
+  React.useEffect(() => {
+    const syncSemester = (event?: Event) => {
+      const changedSemester = event instanceof CustomEvent ? event.detail?.semester : null;
+      setSelectedSemester(changedSemester || sessionStorage.getItem('selected_semester') || sessionStorage.getItem('backend_current_semester') || getCurrentSemesterValue(true));
+    };
+
+    window.addEventListener('semester_changed', syncSemester);
+    window.addEventListener('semester_selection_changed', syncSemester);
+    window.addEventListener('storage', syncSemester);
+    return () => {
+      window.removeEventListener('semester_changed', syncSemester);
+      window.removeEventListener('semester_selection_changed', syncSemester);
+      window.removeEventListener('storage', syncSemester);
+    };
+  }, []);
 
   const performSearch = async (query) => {
     try {
@@ -230,7 +216,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     try {
       const response = await http.get('/core/notifications?limit=10');
       const data = response?.data?.data || response?.data || {};
-
       if (data.notifications && Array.isArray(data.notifications)) {
         const transformedNotifications = data.notifications.map(notification => ({
           id: notification.id,
@@ -246,7 +231,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
-      // Fallback placeholder
       const placeholderNotifications = [
         {
           id: 'n1',
@@ -273,11 +257,23 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'warning': return '⚠️';
-      case 'success': return '✅';
+      case 'warning': return AlertTriangle;
+      case 'success': return CheckCircle2;
       case 'info':
-      default: return 'ℹ️';
+      default: return Info;
     }
+  };
+
+  const getHomePath = () => {
+    if (isAdminContext) return '/admin';
+    if (isTeacherContext) return '/teacher';
+    if (isMonitorContext) return '/monitor';
+    return '/student';
+  };
+
+  const getAttendancePath = () => {
+    if (isMonitorContext) return '/monitor/qr-scanner';
+    return '/student/qr-scanner';
   };
 
   const formatTimeAgo = (timestamp) => {
@@ -285,16 +281,9 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       const now = new Date();
       const time = new Date(timestamp);
       const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-
-      if (diffInMinutes < 60) {
-        return `${diffInMinutes} phút trước`;
-      } else if (diffInMinutes < 1440) {
-        const hours = Math.floor(diffInMinutes / 60);
-        return `${hours} giờ trước`;
-      } else {
-        const days = Math.floor(diffInMinutes / 1440);
-        return `${days} ngày trước`;
-      }
+      if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+      else if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} giờ trước`;
+      else return `${Math.floor(diffInMinutes / 1440)} ngày trước`;
     } catch (error) {
       return 'Vừa xong';
     }
@@ -307,8 +296,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       ));
       await http.patch(`/core/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-      // Rollback on error
       setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, unread: true } : n
       ));
@@ -321,8 +308,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
       await http.patch('/core/notifications/mark-all-read');
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-      // Rollback on error
       setNotifications(previousNotifications);
     }
   };
@@ -350,7 +335,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const handleLogout = async () => {
     try {
-      // Gọi API để xóa session trên server trước
       await sessionStorageManager.sendSessionPing('logout');
     } catch (err) {
       console.warn('[Logout] Failed to notify server:', err);
@@ -358,7 +342,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     try {
       clearSession();
       sessionStorageManager.clearSession();
-      // Clear localStorage cache
       localStorage.removeItem('profile');
       localStorage.removeItem('tab_id_temp');
     } catch (_) { }
@@ -368,9 +351,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Search is handled by debounced effect, form submit just focuses first result
     if (searchOpen && searchResults && searchResults.total > 0) {
-      // Close dropdown and clear search
       setSearchOpen(false);
       setSearchQuery('');
     }
@@ -384,13 +365,6 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     return parts[0][0].toUpperCase();
   };
 
-  const getRoleColor = () => {
-    if (isAdminContext) return 'from-red-500 to-orange-500';
-    if (isTeacherContext) return 'from-purple-500 to-indigo-500';
-    if (isMonitorContext) return 'from-green-500 to-teal-500';
-    return 'from-blue-500 to-cyan-500';
-  };
-
   const getRoleLabel = () => {
     if (isAdminContext) return 'Quản trị viên';
     if (isTeacherContext) return 'Giảng viên';
@@ -398,319 +372,126 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     return 'Sinh viên';
   };
 
-  return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-      {/* Top gradient line */}
-      <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+  const getProfilePath = () => {
+    if (isAdminContext) return '/admin/profile';
+    if (isTeacherContext) return '/teacher/profile';
+    if (isMonitorContext) return '/monitor/my-profile';
+    return '/student/profile';
+  };
 
-      <div className="w-full px-2 sm:px-4">
-        <div className="relative flex h-16 items-center justify-between">
-          {/* Left: Mobile Menu + Logo - BÁM SÁT góc trái */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+  const getPageTitle = () => {
+    const path = location.pathname;
+    
+    // Dashboard pages -> Show Greeting
+    if (path === '/' || path === '/student' || path === '/monitor' || path === '/teacher' || path === '/admin') {
+      return profile ? `Chào mừng trở lại, ${profile?.ho_ten || profile?.ten_dn || 'bạn'}!` : 'Trang chủ';
+    }
+
+    // Role-agnostic or specific pages
+    if (path.includes('/my-activities')) return 'Hoạt động của tôi';
+    if (path.includes('/activities')) return 'Khám phá hoạt động';
+    if (path.includes('/scores')) return 'Điểm rèn luyện';
+    if (path.includes('/qr-scanner') || path.includes('/qr')) return 'Điểm danh';
+    if (path.includes('/profile') || path.includes('/my-profile')) return 'Hồ sơ cá nhân';
+    if (path.includes('/verify') || path.includes('/teacher/verify')) return 'Phê duyệt hoạt động';
+    if (path.includes('/manage-students') || path.includes('/students')) return 'Quản lý sinh viên';
+    if (path.includes('/reports')) return 'Báo cáo & Thống kê';
+    if (path.includes('/users')) return 'Quản lý người dùng';
+    if (path.includes('/settings')) return 'Cài đặt hệ thống';
+
+    return 'Hệ thống Quản lý Rèn luyện';
+  };
+
+  const pageTitle = getPageTitle();
+  const semesterLabel = getSemesterLabel(selectedSemester) || profile?.nam_hoc || 'Năm học hiện tại';
+  const headerStats = [
+    { icon: CalendarDays, label: 'Học kỳ', value: semesterLabel },
+    { icon: BookOpenCheck, label: 'Không gian', value: getRoleLabel() },
+    { icon: Sparkles, label: 'Trạng thái', value: isAuthenticated ? 'Đang hoạt động' : 'Chưa đăng nhập' }
+  ];
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 shadow-[0_10px_40px_rgba(15,23,42,0.06)] backdrop-blur-2xl transition-colors duration-200 dark:border-white/10 dark:bg-slate-950/75 dark:shadow-black/20">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-300/20" />
+      <div className="w-full px-3 sm:px-5">
+        <div className="relative flex h-16 items-center justify-between gap-3">
+          {/* Left: Mobile menu + Greeting text */}
+          <div className="flex min-w-0 items-center gap-3 lg:flex-[0_1_48%] xl:flex-[0_1_42%]">
             {/* Mobile Menu Button */}
             {isMobile && onMenuClick && (
               <button
                 onClick={onMenuClick}
-                className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors touch-target"
+                className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Open menu"
               >
-                <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <Menu className="h-5 w-5 text-slate-600 dark:text-slate-300" />
               </button>
             )}
 
-            {/* Logo & Brand */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className={`relative p-2 bg-gradient-to-br ${getRoleColor()} rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105`}>
-                <GraduationCap className="h-6 w-6 text-white" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">Điểm Rèn Luyện</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Quản lý chuyên nghiệp</p>
-              </div>
-            </Link>
+            {/* Page Title / Greeting with Animation */}
+            {profile && (
+              <Link to={getHomePath()} className="group relative flex min-w-[220px] max-w-full flex-1 items-center gap-3 rounded-2xl border border-white/60 bg-white/45 px-3 py-1.5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                <div className="hidden h-10 w-1 rounded-full bg-gradient-to-b from-indigo-500 via-teal-400 to-emerald-400 shadow-[0_0_20px_rgba(99,102,241,0.35)] sm:block" />
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={pageTitle}
+                    initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                    className="min-w-0"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <motion.h2
+                        className="truncate bg-[linear-gradient(110deg,#0f172a,45%,#4f46e5,55%,#0f766e,65%,#0f172a)] bg-[length:240%_100%] bg-clip-text text-[19px] font-black leading-tight tracking-[-0.025em] text-transparent antialiased dark:bg-[linear-gradient(110deg,#ffffff,45%,#c7d2fe,55%,#99f6e4,65%,#ffffff)]"
+                        style={{ fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+                        animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        {pageTitle}
+                      </motion.h2>
+                      <span className="hidden rounded-full border border-indigo-200/70 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-indigo-600 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-200 md:inline-flex">
+                        {getRoleLabel()}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 hidden text-[11px] font-bold text-slate-500 dark:text-slate-400 sm:block">
+                      {semesterLabel}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </Link>
+            )}
           </div>
 
-          {/* Center: Search bar - Desktop - CHÍNH GIỮA tuyệt đối */}
-          <div ref={searchRef} className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-2 pointer-events-none">
-            <div className="relative w-full">
-              <form onSubmit={handleSearch} className="w-full">
-                <div className="relative group">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
-                  {searchLoading && (
-                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-500 animate-spin pointer-events-none" />
-                  )}
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => { if (searchResults && searchResults.total > 0) setSearchOpen(true); }}
-                    placeholder="Tìm kiếm hoạt động..."
-                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 pointer-events-auto"
-                  />
+          {isAuthenticated && (
+            <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex">
+              {headerStats.map(({ icon: Icon, label, value }) => (
+                <div key={label} className="group/stat flex min-w-fit items-center gap-2 rounded-2xl border border-white/60 bg-white/45 px-3 py-2 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-teal-50 text-indigo-600 ring-1 ring-white/70 transition-transform group-hover/stat:scale-105 dark:from-indigo-400/10 dark:to-teal-400/10 dark:text-indigo-300 dark:ring-white/10">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="whitespace-nowrap">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{label}</p>
+                    <p className="text-xs font-black text-slate-800 dark:text-white">{value}</p>
+                  </div>
                 </div>
-              </form>
-
-              {/* Search Results Dropdown */}
-              {searchOpen && searchResults && searchResults.total > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden max-h-[500px] overflow-y-auto pointer-events-auto z-50">
-
-                  {/* Activities */}
-                  {searchResults.activities && searchResults.activities.length > 0 && (
-                    <div className="border-b border-gray-200 dark:border-slate-700">
-                      <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <BookOpen className="h-4 w-4" />
-                          Hoạt động ({searchResults.activities.length})
-                        </h3>
-                      </div>
-                      {searchResults.activities.map((activity) => (
-                        <div
-                          key={activity.id}
-                          onClick={() => {
-                            // Điều hướng theo ngữ cảnh tab tương ứng
-                            if (activity.isMine) {
-                              if (isTeacherContext) {
-                                navigate('/teacher/activities');
-                              } else if (isAdminContext) {
-                                navigate('/admin/activities');
-                              } else if (isMonitorContext) {
-                                navigate('/monitor/my-activities');
-                              } else {
-                                navigate('/student/my-activities');
-                              }
-                            } else {
-                              // Không thuộc "của tôi": mở trang danh sách hoạt động đúng theo vai trò
-                              if (isTeacherContext) {
-                                navigate('/teacher/activities');
-                              } else if (isAdminContext) {
-                                navigate('/admin/activities');
-                              } else {
-                                // Sinh viên/Lớp trưởng
-                                navigate('/student/activities');
-                              }
-                            }
-                            setSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
-                        >
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-2">
-                            {activity.ten_hd}
-                            {activity.isMine && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">Của tôi</span>
-                            )}
-                          </h4>
-                          {activity.mo_ta && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
-                              {activity.mo_ta}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            {activity.dia_diem && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {activity.dia_diem}
-                              </span>
-                            )}
-                            {activity.ngay_bd && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(activity.ngay_bd).toLocaleDateString('vi-VN')}
-                              </span>
-                            )}
-                            {activity.diem_rl && (
-                              <span className="font-semibold text-green-600 dark:text-green-400">
-                                +{activity.diem_rl} điểm
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Students */}
-                  {searchResults.students && searchResults.students.length > 0 && (
-                    <div className="border-b border-gray-200 dark:border-slate-700">
-                      <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          Sinh viên ({searchResults.students.length})
-                        </h3>
-                      </div>
-                      {searchResults.students.map((student) => (
-                        <div
-                          key={student.id_nd}
-                          onClick={() => {
-                            if (isAdminContext) {
-                              navigate(`/admin/students/${student.id_nd}`);
-                            } else if (isTeacherContext || isMonitorContext) {
-                              navigate(`/teacher/students/${student.id_nd}`);
-                            }
-                            setSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            {(() => {
-                              const avatar = getUserAvatar(student.nguoi_dung);
-                              return avatar.hasValidAvatar ? (
-                                <img src={avatar.src} alt={avatar.alt} className="w-10 h-10 rounded-lg object-cover" />
-                              ) : (
-                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getAvatarGradient(student.nguoi_dung?.ho_ten || '')} flex items-center justify-center text-white font-bold text-sm`}>
-                                  {avatar.fallback}
-                                </div>
-                              );
-                            })()}
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                                {student.nguoi_dung?.ho_ten}
-                              </h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {student.ma_sv} • {student.lop?.ten_lop}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Classes */}
-                  {searchResults.classes && searchResults.classes.length > 0 && (
-                    <div className="border-b border-gray-200 dark:border-slate-700">
-                      <div className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          Lớp học ({searchResults.classes.length})
-                        </h3>
-                      </div>
-                      {searchResults.classes.map((cls) => (
-                        <div
-                          key={cls.id}
-                          onClick={() => {
-                            if (isAdminContext) {
-                              navigate(`/admin/classes/${cls.id}`);
-                            } else if (isTeacherContext) {
-                              navigate(`/teacher/classes/${cls.id}`);
-                            }
-                            setSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
-                        >
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                            {cls.ten_lop}
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {cls.khoa?.ten_khoa} • {cls._count?.sinh_vien || 0} sinh viên
-                          </p>
-                          {cls.gvcn?.ho_ten && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                              GVCN: {cls.gvcn.ho_ten}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Teachers */}
-                  {searchResults.teachers && searchResults.teachers.length > 0 && (
-                    <div className="border-b border-gray-200 dark:border-slate-700">
-                      <div className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          Giảng viên ({searchResults.teachers.length})
-                        </h3>
-                      </div>
-                      {searchResults.teachers.map((teacher) => (
-                        <div
-                          key={teacher.id}
-                          onClick={() => {
-                            navigate(`/admin/teachers/${teacher.id}`);
-                            setSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            {(() => {
-                              const avatar = getUserAvatar(teacher);
-                              return avatar.hasValidAvatar ? (
-                                <img src={avatar.src} alt={avatar.alt} className="w-10 h-10 rounded-lg object-cover" />
-                              ) : (
-                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getAvatarGradient(teacher.ho_ten || '')} flex items-center justify-center text-white font-bold text-sm`}>
-                                  {avatar.fallback}
-                                </div>
-                              );
-                            })()}
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                                {teacher.ho_ten}
-                              </h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {teacher.email}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Faculties */}
-                  {searchResults.faculties && searchResults.faculties.length > 0 && (
-                    <div>
-                      <div className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <Building2 className="h-4 w-4" />
-                          Khoa ({searchResults.faculties.length})
-                        </h3>
-                      </div>
-                      {searchResults.faculties.map((faculty) => (
-                        <div
-                          key={faculty.id}
-                          onClick={() => {
-                            navigate(`/admin/faculties/${faculty.id}`);
-                            setSearchOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-gray-100 dark:border-slate-700/50 last:border-0"
-                        >
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                            {faculty.ten_khoa}
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {faculty.ma_khoa} • {faculty._count?.lop_hoc || 0} lớp • {faculty._count?.sinh_vien || 0} sinh viên
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                </div>
-              )}
+              ))}
             </div>
-          </div>
+          )}
 
-          {/* Right: Actions + Avatar - BÁM SÁT góc phải */}
+          {/* Right: Actions */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 flex-shrink-0">
-
+            <div className="flex flex-shrink-0 items-center gap-2 rounded-[1.35rem] border border-white/60 bg-white/45 p-1.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                className="rounded-2xl border border-transparent p-2 transition-all hover:border-white/70 hover:bg-white/70 hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/10"
                 title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
               >
                 {theme === 'light' ? (
-                  <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-500 transition-colors" />
+                  <Moon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                 ) : (
-                  <Sun className="h-5 w-5 text-gray-300 group-hover:text-yellow-500 transition-colors" />
+                  <Sun className="h-5 w-5 text-slate-400" />
                 )}
               </button>
 
@@ -721,11 +502,11 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                     setNotificationOpen(!notificationOpen);
                     if (!notificationOpen) loadNotifications();
                   }}
-                  className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                  className="relative rounded-xl border border-transparent p-2 transition-colors hover:border-white/60 hover:bg-white/55 dark:hover:border-white/10 dark:hover:bg-white/10"
                 >
-                  <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-500 transition-colors" />
+                  <Bell className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -733,64 +514,58 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
                 {/* Notification Dropdown */}
                 {notificationOpen && (
-                  <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                    <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">Thông báo</h3>
-                        {unreadCount > 0 && (
-                          <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">
-                            {unreadCount} mới
-                          </span>
-                        )}
-                      </div>
+                  <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 dark:shadow-black/30 sm:w-96">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thông báo</h3>
+                      {unreadCount > 0 && (
+                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
+                          {unreadCount} mới
+                        </span>
+                      )}
                     </div>
-
-                    <div className="max-h-[400px] overflow-y-auto">
+                    <div className="max-h-[360px] overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-8 text-center">
-                          <Bell className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                          <p className="text-gray-500 dark:text-gray-400">Không có thông báo nào</p>
+                          <Bell className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                          <p className="text-sm text-slate-400">Không có thông báo nào</p>
                         </div>
                       ) : (
-                        notifications.map((notification) => (
+                        notifications.map((notification) => {
+                          const NotificationIcon = getNotificationIcon(notification.type);
+                          return (
                           <div
                             key={notification.id}
                             onClick={() => openDetail(notification.id)}
-                            className={`p-4 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${notification.unread ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            className={`p-3.5 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${notification.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                               }`}
                           >
-                            <div className="flex items-start gap-3">
-                              <div className="text-2xl flex-shrink-0">
-                                {getNotificationIcon(notification.type)}
-                              </div>
+                            <div className="flex items-start gap-2.5">
+                              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300"><NotificationIcon className="h-4 w-4" /></div>
                               <div className="flex-1 min-w-0">
-                                <h4 className={`text-sm font-semibold ${notification.unread
-                                    ? 'text-gray-900 dark:text-white'
-                                    : 'text-gray-700 dark:text-gray-300'
-                                  }`}>
+                                <h4 className={`text-sm font-medium ${notification.unread ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
                                   {notification.title}
                                 </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                                   {notification.message}
                                 </p>
-                                <span className="text-xs text-gray-500 dark:text-gray-500 mt-2 block">
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
                                   {notification.time}
                                 </span>
                               </div>
                               {notification.unread && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                               )}
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
-
                     {notifications.length > 0 && (
-                      <div className="p-3 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-200 dark:border-slate-700">
+                      <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30">
                         <button
                           onClick={markAllAsRead}
-                          className="w-full text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                          className="w-full text-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 transition-colors"
                         >
                           Đánh dấu tất cả đã đọc
                         </button>
@@ -800,198 +575,131 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                 )}
               </div>
 
+              {/* Quick attendance button — matches mockup "Điểm danh nhanh" */}
+              <button
+                onClick={() => navigate(getAttendancePath())}
+                className="hidden items-center gap-2 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-4 py-2 text-xs font-black text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 transition-all hover:-translate-y-0.5 hover:shadow-xl dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 sm:inline-flex"
+              >
+                <QrCode className="h-3.5 w-3.5" />
+                Điểm danh nhanh
+              </button>
+
               {/* Profile Dropdown */}
               <div className="relative">
                 <button
                   ref={buttonRef}
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-3 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 group"
+                  className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 p-1.5 pr-2 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                 >
                   {(() => {
                     const avatar = getUserAvatar(profile);
-                    console.log('🖼️ ModernHeader avatar info:', {
-                      profile_anh_dai_dien: profile?.anh_dai_dien,
-                      avatar_src: avatar.src,
-                      avatar_hasValid: avatar.hasValidAvatar,
-                      avatar_fallback: avatar.fallback
-                    });
                     return (avatar.hasValidAvatar && !avatarError) ? (
-                      <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all duration-200 group-hover:scale-105">
+                      <div className="h-9 w-9 overflow-hidden rounded-2xl shadow-sm ring-1 ring-white/70 dark:ring-white/10">
                         <img
                           src={avatar.src}
                           alt={avatar.alt}
                           className="w-full h-full object-cover"
                           onError={() => setAvatarError(true)}
                         />
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white dark:border-slate-900 rounded-full"></div>
                       </div>
                     ) : (
-                      <div className={`relative w-9 h-9 bg-gradient-to-br ${getAvatarGradient(profile?.ho_ten || profile?.ten_dn || '')} rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg group-hover:shadow-xl transition-all duration-200 group-hover:scale-105`}>
-                        {avatar.fallback}
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white dark:border-slate-900 rounded-full"></div>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-xs font-black text-white shadow-sm ring-1 ring-white/70 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 dark:ring-white/10">
+                        {getInitials()}
                       </div>
                     );
                   })()}
                   <div className="hidden lg:block text-left">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
                       {profile?.ho_ten || profile?.ten_dn || 'User'}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {getRoleLabel()}
                     </p>
                   </div>
-                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {profileOpen && (
                   <div
                     ref={dropdownRef}
-                    className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-top-2 duration-200"
+                    className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 dark:shadow-black/30"
                   >
                     {/* Profile Header */}
-                    <div className={`p-4 bg-gradient-to-r ${getRoleColor()} text-white`}>
+                    <div className="p-4 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950">
                       <div className="flex items-center gap-3">
                         {(() => {
                           const avatar = getUserAvatar(profile);
                           return (avatar.hasValidAvatar && !avatarError) ? (
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 backdrop-blur-sm">
-                              <img
-                                src={avatar.src}
-                                alt={avatar.alt}
-                                className="w-full h-full object-cover"
-                                onError={() => setAvatarError(true)}
-                              />
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/20">
+                              <img src={avatar.src} alt={avatar.alt} className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
                             </div>
                           ) : (
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm">
-                              {avatar.fallback}
+                            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                              {getInitials()}
                             </div>
                           );
                         })()}
                         <div>
-                          <p className="font-semibold">{profile?.ho_ten || profile?.ten_dn}</p>
-                          <p className="text-xs text-white/80">{profile?.email || getRoleLabel()}</p>
+                          <p className="font-semibold text-sm">{profile?.ho_ten || profile?.ten_dn}</p>
+                          <p className="text-xs text-white/70 dark:text-slate-600">{profile?.email || getRoleLabel()}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Menu Items */}
-                    <div className="py-2">
-                      {isAdminContext && (
-                        <>
-                          <Link
-                            to="/admin/profile"
-                            onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <User className="h-5 w-5 text-gray-400" />
-                            <span>Thông tin cá nhân</span>
-                          </Link>
-                          <Link
-                            to="/admin/settings"
-                            onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <Settings className="h-5 w-5 text-gray-400" />
-                            <span>Cài đặt</span>
-                          </Link>
-                        </>
-                      )}
-
-                      {isMonitorContext && (
-                        <Link
-                          to="/monitor/my-profile"
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          <User className="h-5 w-5 text-gray-400" />
-                          <span>Hồ sơ cá nhân</span>
-                        </Link>
-                      )}
-
-                      {isTeacherContext && (
-                        <Link
-                          to="/teacher/profile"
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          <User className="h-5 w-5 text-gray-400" />
-                          <span>Thông tin cá nhân</span>
-                        </Link>
-                      )}
-
-                      {!isAdminContext && !isMonitorContext && !isTeacherContext && (
-                        <Link
-                          to="/student/profile"
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          <User className="h-5 w-5 text-gray-400" />
-                          <span>Thông tin cá nhân</span>
-                        </Link>
-                      )}
+                    <div className="py-1.5">
+                      <Link
+                        to={getProfilePath()}
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <User className="h-4 w-4 text-slate-400" />
+                        <span>Hồ sơ cá nhân</span>
+                      </Link>
 
                       <Link
                         to="/support"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                       >
-                        <HelpCircle className="h-5 w-5 text-gray-400" />
+                        <HelpCircle className="h-4 w-4 text-slate-400" />
                         <span>Hỗ trợ</span>
                       </Link>
 
-                      <div className="my-2 border-t border-gray-200 dark:border-slate-700"></div>
+                      <div className="my-1 border-t border-slate-200 dark:border-slate-700"></div>
 
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full"
                       >
-                        <LogOut className="h-5 w-5" />
+                        <LogOut className="h-4 w-4" />
                         <span>Đăng xuất</span>
                       </button>
                     </div>
                   </div>
                 )}
               </div>
-
-              {/* Mobile Menu Button đã chuyển sang bên trái logo */}
             </div>
           ) : (
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2.5 text-sm font-semibold text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
             >
               Đăng nhập
             </Link>
           )}
         </div>
-
-        {/* Mobile Search */}
-        {profile && (
-          <div className="md:hidden pb-4">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
-              />
-            </form>
-          </div>
-        )}
       </div>
 
       {/* Notification Detail Modal */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
+            <div className="p-5 bg-blue-800 dark:bg-blue-900 text-white">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xl font-bold">{detail.title}</h3>
-                  <p className="text-sm text-white/80 mt-1">{detail.time} • {detail.sender}</p>
+                  <h3 className="text-lg font-bold">{detail.title}</h3>
+                  <p className="text-xs text-blue-200 mt-1">{detail.time} • {detail.sender}</p>
                 </div>
                 <button
                   onClick={() => setDetail(null)}
@@ -1002,26 +710,28 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
               </div>
             </div>
 
-            <div className="p-6">
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+            <div className="p-5">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {detail.message}
               </p>
 
               {detail.activity && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-xl border border-gray-200 dark:border-slate-600">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                    📅 Hoạt động liên quan
+                <div className="mt-4 p-3.5 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                    Hoạt động liên quan
                   </p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {detail.activity.ten_hd}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                    📍 {detail.activity.dia_diem || 'Chưa xác định'}
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {detail.activity.dia_diem || 'Chưa xác định'}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    🕐 {detail.activity.ngay_bd ? new Date(detail.activity.ngay_bd).toLocaleString('vi-VN') : 'Chưa xác định'}
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5" />
+                    {detail.activity.ngay_bd ? new Date(detail.activity.ngay_bd).toLocaleString('vi-VN') : 'Chưa xác định'}
                   </p>
-                  <p className="text-sm text-green-600 dark:text-green-400 font-semibold mt-2">
+                  <p className="text-sm text-blue-700 dark:text-blue-400 font-semibold mt-2">
                     +{Number(detail.activity.diem_rl || 0)} điểm RL
                   </p>
                 </div>

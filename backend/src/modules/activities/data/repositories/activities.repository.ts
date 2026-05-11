@@ -6,7 +6,8 @@
  */
 
 import type { PrismaClient, HoatDong, Prisma, DangKyHoatDong, SinhVien, Lop } from '@prisma/client';
-import IActivityRepository from '../../business/interfaces/IActivityRepository';
+import IActivityRepository, { ActivityAttendanceCreateData, ActivityFallbackRequestCreateData } from '../../business/interfaces/IActivityRepository';
+import { auditIntegrityService } from '../../../audit-integrity/services/auditIntegrity.service';
 
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 
@@ -290,24 +291,204 @@ class ActivitiesRepository extends IActivityRepository {
     });
   }
 
-  async createAttendance(data: { nguoi_diem_danh_id: string; sv_id: string; hd_id: string }) {
-    return this.prisma.diemDanh.create({
-      data: {
-        nguoi_diem_danh_id: data.nguoi_diem_danh_id,
-        sv_id: String(data.sv_id),
-        hd_id: String(data.hd_id),
-        phuong_thuc: 'qr',
-        trang_thai_tham_gia: 'co_mat',
-        xac_nhan_tham_gia: true
-      }
+  async createAttendance(data: ActivityAttendanceCreateData) {
+    return this.prisma.$transaction(async (tx) => {
+      const attendance = await tx.diemDanh.create({
+        data: {
+          nguoi_diem_danh_id: data.nguoi_diem_danh_id,
+          sv_id: String(data.sv_id),
+          hd_id: String(data.hd_id),
+          phuong_thuc: data.phuong_thuc || 'qr',
+          trang_thai_tham_gia: 'co_mat',
+          dia_chi_ip: data.dia_chi_ip || null,
+          vi_tri_gps: data.vi_tri_gps || null,
+          gps_latitude: data.gps_latitude ?? null,
+          gps_longitude: data.gps_longitude ?? null,
+          gps_accuracy_m: data.gps_accuracy_m ?? null,
+          khoang_cach_m: data.khoang_cach_m ?? null,
+          ket_qua_geofence: data.ket_qua_geofence || null,
+          fallback_request_id: data.fallback_request_id || null,
+          xac_nhan_tham_gia: true
+        }
+      });
+
+      await auditIntegrityService.appendEvent(tx, {
+        chainScope: 'attendance',
+        entityType: 'diem_danh',
+        entityId: attendance.id,
+        action: 'attendance_created_activity_repository',
+        actorId: data.nguoi_diem_danh_id,
+        payload: {
+          attendanceId: attendance.id,
+          nguoiDiemDanhId: attendance.nguoi_diem_danh_id,
+          sinhVienId: attendance.sv_id,
+          hoatDongId: attendance.hd_id,
+          thoiGianDiemDanh: attendance.tg_diem_danh,
+          phuongThuc: attendance.phuong_thuc,
+          trangThaiThamGia: attendance.trang_thai_tham_gia,
+          xacNhanThamGia: attendance.xac_nhan_tham_gia
+        }
+      });
+
+      return attendance;
     });
   }
 
   async markRegistrationAsAttended(studentId: string, activityId: string): Promise<void> {
-    await this.prisma.dangKyHoatDong.update({
-      where: { sv_id_hd_id: { sv_id: String(studentId), hd_id: String(activityId) } },
-      data: { trang_thai_dk: 'da_tham_gia' }
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.dangKyHoatDong.update({
+        where: { sv_id_hd_id: { sv_id: String(studentId), hd_id: String(activityId) } },
+        data: { trang_thai_dk: 'da_tham_gia' }
+      });
+
+      await auditIntegrityService.appendEvent(tx, {
+        chainScope: 'registration',
+        entityType: 'dang_ky_hoat_dong',
+        entityId: updated.id,
+        action: 'registration_marked_attended_activity_repository',
+        payload: {
+          registrationId: updated.id,
+          sinhVienId: updated.sv_id,
+          hoatDongId: updated.hd_id,
+          trangThaiDk: updated.trang_thai_dk
+        }
+      });
     });
+  }
+
+  async createFallbackRequest(data: ActivityFallbackRequestCreateData) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.create({
+      data: {
+        sv_id: String(data.sv_id),
+        hd_id: String(data.hd_id),
+        ly_do: data.ly_do,
+        minh_chung: data.minh_chung || [],
+        gps_latitude: data.gps_latitude ?? null,
+        gps_longitude: data.gps_longitude ?? null,
+        gps_accuracy_m: data.gps_accuracy_m ?? null,
+        dia_chi_ip: data.dia_chi_ip || null,
+        user_agent: data.user_agent || null
+      },
+      include: this.getFallbackRequestInclude()
+    });
+  }
+
+  async findFallbackRequestByStudentAndActivity(studentId: string, activityId: string) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.findUnique({
+      where: { sv_id_hd_id: { sv_id: String(studentId), hd_id: String(activityId) } },
+      include: this.getFallbackRequestInclude()
+    });
+  }
+
+  async listFallbackRequests(activityId?: string, studentId?: string) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.findMany({
+      where: {
+        ...(activityId ? { hd_id: String(activityId) } : {}),
+        ...(studentId ? { sv_id: String(studentId) } : {})
+      },
+      include: this.getFallbackRequestInclude(),
+      orderBy: { ngay_tao: 'desc' }
+    });
+  }
+
+  async findFallbackRequestById(requestId: string) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.findUnique({
+      where: { id: String(requestId) },
+      include: this.getFallbackRequestInclude()
+    });
+  }
+
+  async approveFallbackRequest(requestId: string, approverId: string, note?: string | null) {
+    return this.prisma.$transaction(async (tx) => {
+      const request = await (tx as any).yeuCauDiemDanhThuCong.update({
+        where: { id: String(requestId) },
+        data: {
+          trang_thai: 'da_duyet',
+          nguoi_duyet_id: String(approverId),
+          ghi_chu_duyet: note || null,
+          ngay_duyet: new Date()
+        }
+      });
+
+      const attendance = await tx.diemDanh.create({
+        data: {
+          nguoi_diem_danh_id: String(approverId),
+          sv_id: request.sv_id,
+          hd_id: request.hd_id,
+          phuong_thuc: 'thu_cong_fallback',
+          trang_thai_tham_gia: 'co_mat',
+          gps_latitude: request.gps_latitude,
+          gps_longitude: request.gps_longitude,
+          gps_accuracy_m: request.gps_accuracy_m,
+          dia_chi_ip: request.dia_chi_ip,
+          vi_tri_gps: request.gps_latitude && request.gps_longitude ? `${request.gps_latitude},${request.gps_longitude}` : null,
+          ket_qua_geofence: 'khong_co_gps',
+          fallback_request_id: request.id,
+          xac_nhan_tham_gia: true
+        }
+      });
+
+      await tx.dangKyHoatDong.update({
+        where: { sv_id_hd_id: { sv_id: request.sv_id, hd_id: request.hd_id } },
+        data: { trang_thai_dk: 'da_tham_gia' }
+      });
+
+      await auditIntegrityService.appendEvent(tx, {
+        chainScope: 'attendance',
+        entityType: 'diem_danh',
+        entityId: attendance.id,
+        action: 'attendance_created_fallback_repository',
+        actorId: String(approverId),
+        payload: {
+          attendanceId: attendance.id,
+          fallbackRequestId: request.id,
+          sinhVienId: request.sv_id,
+          hoatDongId: request.hd_id,
+          phuongThuc: attendance.phuong_thuc
+        }
+      });
+
+      return (tx as any).yeuCauDiemDanhThuCong.findUnique({
+        where: { id: String(requestId) },
+        include: this.getFallbackRequestInclude()
+      });
+    });
+  }
+
+  async rejectFallbackRequest(requestId: string, approverId: string, note: string) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.update({
+      where: { id: String(requestId) },
+      data: {
+        trang_thai: 'tu_choi',
+        nguoi_duyet_id: String(approverId),
+        ghi_chu_duyet: note,
+        ngay_duyet: new Date()
+      },
+      include: this.getFallbackRequestInclude()
+    });
+  }
+
+  async cancelFallbackRequest(requestId: string, studentId: string) {
+    return (this.prisma as any).yeuCauDiemDanhThuCong.update({
+      where: { id: String(requestId), sv_id: String(studentId) },
+      data: { trang_thai: 'da_huy' },
+      include: this.getFallbackRequestInclude()
+    });
+  }
+
+  private getFallbackRequestInclude() {
+    return {
+      sinh_vien: {
+        select: {
+          id: true,
+          mssv: true,
+          nguoi_dung: { select: { ho_ten: true, email: true } },
+          lop: { select: { id: true, ten_lop: true } }
+        }
+      },
+      hoat_dong: { select: { id: true, ten_hd: true, cho_phep_fallback: true } },
+      nguoi_duyet: { select: { id: true, ho_ten: true, email: true } }
+    };
   }
 
   /**

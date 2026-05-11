@@ -1,14 +1,12 @@
 import React from 'react';
 import {
   Search,
-  Calendar,
   SlidersHorizontal,
   RefreshCw,
   Grid3X3,
   List,
   ArrowUpDown
 } from 'lucide-react';
-import SemesterFilter from '../../../../../widgets/semester/ui/SemesterSwitcher';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Mới nhất' },
@@ -35,38 +33,28 @@ export default function RegistrationToolbar({
   onSortChange
 }) {
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6 space-y-4">
+    <div className="backdrop-blur-xl bg-white/80 dark:bg-slate-950/50/80 dark:bg-slate-900/70 rounded-2xl border border-white/60 dark:border-white/10 shadow-2xl shadow-slate-200/50 dark:shadow-black/30 p-6 space-y-4">
       <div className="flex flex-col xl:flex-row xl:items-center gap-4">
         <div className="flex-1 relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+            <Search className="h-5 w-5 text-slate-400 dark:text-slate-500" />
           </div>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Tìm sinh viên, MSSV hoặc tên hoạt động..."
-            className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+            className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-white/60 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-            <Calendar className="h-4 w-4 text-indigo-600" />
-            <SemesterFilter
-              value={semester}
-              onChange={onSemesterChange}
-              label=""
-              options={semesterOptions}
-            />
-          </div>
-
           <button
             onClick={onToggleFilters}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
               showFilters
                 ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                : 'bg-white/80 dark:bg-slate-950/50/50 dark:bg-white/80 dark:bg-slate-950/50/10 text-slate-700 dark:text-slate-200 border-white/60 dark:border-white/10 hover:border-indigo-300/60'
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -98,13 +86,13 @@ export default function RegistrationToolbar({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
+        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 font-medium">
           <ArrowUpDown className="h-4 w-4" />
           <span>Sắp xếp theo</span>
           <select
             value={sortBy}
             onChange={(e) => onSortChange?.(e.target.value)}
-            className="px-3 py-2 rounded-lg border-2 border-gray-200 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            className="px-3 py-2 rounded-lg border-2 border-white/60 dark:border-white/10 text-sm font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-slate-950/50"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -114,13 +102,13 @@ export default function RegistrationToolbar({
           </select>
         </div>
 
-        <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-white/10 rounded-xl p-1 border-2 border-white/60 dark:border-white/10">
           <button
             onClick={() => onDisplayViewModeChange?.('grid')}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
               displayViewMode === 'grid'
-                ? 'bg-white shadow text-indigo-600 border border-indigo-200'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white/80 dark:bg-slate-950/50 shadow text-indigo-600 border border-indigo-200'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
             }`}
           >
             <Grid3X3 className="h-4 w-4" />
@@ -130,8 +118,8 @@ export default function RegistrationToolbar({
             onClick={() => onDisplayViewModeChange?.('list')}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
               displayViewMode === 'list'
-                ? 'bg-white shadow text-indigo-600 border border-indigo-200'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white/80 dark:bg-slate-950/50 shadow text-indigo-600 border border-indigo-200'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'
             }`}
           >
             <List className="h-4 w-4" />

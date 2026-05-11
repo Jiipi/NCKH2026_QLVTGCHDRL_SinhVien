@@ -30,8 +30,8 @@ export default function StudentCard({
   const avatar = getStudentAvatar(student);
 
   return (
-    <div className={`group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden ${
-      isTopRanked ? 'border-amber-200 shadow-lg shadow-amber-100' : 'border-gray-200'
+    <div className={`group relative overflow-hidden rounded-2xl border bg-white/65 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-xl dark:bg-slate-950/50 ${
+      isTopRanked ? 'border-amber-200/80 shadow-amber-100/60 dark:border-amber-400/20' : 'border-white/60 dark:border-white/10'
     }`}>
       {/* Decorative gradient */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -83,7 +83,7 @@ export default function StudentCard({
         </div>
 
         {/* Points Display - Compact */}
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 mb-3 border border-indigo-100">
+        <div className="mb-3 rounded-2xl border border-white/60 bg-white/45 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-gray-600">Điểm rèn luyện</span>
             <span className={`text-2xl font-bold ${getPointsColor(student.totalPoints)}`}>
@@ -106,7 +106,7 @@ export default function StudentCard({
 
         {/* Stats Grid - Compact */}
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
+          <div className="rounded-xl border border-white/60 bg-white/45 p-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <div className="flex items-center gap-1.5 mb-1">
               <div className="p-1.5 bg-blue-50 rounded-md">
                 <Activity className="h-3 w-3 text-blue-600" />
@@ -116,7 +116,7 @@ export default function StudentCard({
             <p className="text-lg font-bold text-gray-900">{student.activitiesJoined}</p>
           </div>
 
-          <div className="bg-white/60 rounded-lg p-2 border border-gray-100">
+          <div className="rounded-xl border border-white/60 bg-white/45 p-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <div className="flex items-center gap-1.5 mb-1">
               <div className="p-1.5 bg-purple-50 rounded-md">
                 <Target className="h-3 w-3 text-purple-600" />
@@ -130,7 +130,7 @@ export default function StudentCard({
         {/* Action Button - Compact */}
         <button
           onClick={() => onViewDetails(student)}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-xs"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
         >
           <Eye className="h-3.5 w-3.5" />
           Xem chi tiết

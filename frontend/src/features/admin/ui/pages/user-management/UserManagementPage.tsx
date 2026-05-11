@@ -289,8 +289,8 @@ const UserManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         {/* Hero Section */}
         <AdminUsersHero
           totalAccounts={totalAccounts}
@@ -354,7 +354,7 @@ const UserManagementPage: React.FC = () => {
               getDisplayRoleName={getDisplayRoleName}
             />
             {(pagination as PaginationState)?.total > 0 && (
-              <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-6 mt-8">
+              <div className="mt-8 rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
                 <Pagination
                   pagination={{
                     page: (pagination as PaginationState).page,

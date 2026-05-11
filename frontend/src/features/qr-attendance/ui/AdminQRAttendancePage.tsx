@@ -3,7 +3,7 @@ import {
   QrCode, Download, Search, Filter, 
   Activity, CheckCircle, XCircle, Clock, AlertCircle, Eye,
   Users, Calendar, MapPin, Smartphone,
-  Zap, TrendingUp, GraduationCap
+  Zap, TrendingUp, GraduationCap, Sparkles, FileText
 } from 'lucide-react';
 import { useAdminQRAttendance } from '../model/hooks/useAdminQRAttendance';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
@@ -11,7 +11,7 @@ import { useSemesterData } from '../../../shared/hooks';
 import Pagination from '../../../shared/components/common/Pagination';
 import AdminQRModal from './components/AdminQRModal';
 import AdminDetailModal from './components/AdminDetailModal';
-import http from '../../../shared/api/http';
+import qrApi from '../services/qrApi';
 
 export default function AdminQRAttendancePage() {
   const { showSuccess, showError, showInfo } = useNotification();
@@ -26,6 +26,11 @@ export default function AdminQRAttendancePage() {
     fetchAttendanceRecords,
     getQRCodeData,
     updateAttendanceStatus,
+    fallbackRequests,
+    fallbackLoading,
+    fetchFallbackRequests,
+    approveFallbackRequest,
+    rejectFallbackRequest,
   } = useAdminQRAttendance();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +44,8 @@ export default function AdminQRAttendancePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit, setPageLimit] = useState(20);
   const [exporting, setExporting] = useState(false);
+  const [activeSection, setActiveSection] = useState<'attendance' | 'fallback'>('attendance');
+  const [fallbackNotes, setFallbackNotes] = useState<Record<string, string>>({});
   
   // Bộ lọc cho tạo QR
   const [qrSemester, setQrSemester] = useState('');
@@ -60,15 +67,7 @@ export default function AdminQRAttendancePage() {
   useEffect(() => {
     const loadClasses = async () => {
       try {
-        const res = await http.get('/core/classes');
-        const payload = res.data?.data;
-        const items = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.items)
-            ? payload.items
-            : Array.isArray(payload)
-              ? payload
-              : [];
+        const items = await qrApi.fetchCoreClasses();
         setClasses(items);
       } catch (err) {
         console.warn('Không thể tải danh sách lớp', err);
@@ -91,6 +90,12 @@ export default function AdminQRAttendancePage() {
   useEffect(() => {
     fetchWithFilters();
   }, [fetchWithFilters]);
+
+  useEffect(() => {
+    if (activeSection === 'fallback') {
+      fetchFallbackRequests(activityFilter || qrActivityId || '');
+    }
+  }, [activeSection, activityFilter, qrActivityId, fetchFallbackRequests]);
 
   // Lọc hoạt động theo học kỳ đã chọn (chỉ hoạt động đã duyệt)
   const filteredActivitiesForQR = useMemo(() => {
@@ -138,20 +143,43 @@ export default function AdminQRAttendancePage() {
     }
   };
 
+  const handleApproveFallback = async (requestId: string) => {
+    try {
+      await approveFallbackRequest(requestId, fallbackNotes[requestId] || '', activityFilter || qrActivityId || '');
+      showSuccess('Đã duyệt yêu cầu điểm danh thủ công', 'Thành công');
+      fetchWithFilters();
+    } catch (error: any) {
+      showError(error?.response?.data?.message || 'Không thể duyệt yêu cầu', 'Lỗi');
+    }
+  };
+
+  const handleRejectFallback = async (requestId: string) => {
+    const note = (fallbackNotes[requestId] || '').trim();
+    if (!note) {
+      showError('Vui lòng nhập ghi chú từ chối', 'Thiếu ghi chú');
+      return;
+    }
+    try {
+      await rejectFallbackRequest(requestId, note, activityFilter || qrActivityId || '');
+      showSuccess('Đã từ chối yêu cầu điểm danh thủ công', 'Thành công');
+    } catch (error: any) {
+      showError(error?.response?.data?.message || 'Không thể từ chối yêu cầu', 'Lỗi');
+    }
+  };
+
   const handleExport = async () => {
     try {
       setExporting(true);
       showInfo('Đang xuất báo cáo...', 'Đang xử lý');
       
-      // Lấy tất cả records để export (dùng http client để được rewrite URL)
-      const queryParams = new URLSearchParams({ limit: '5000' });
-      if (activityFilter) queryParams.append('activity_id', activityFilter);
-      if (statusFilter) queryParams.append('status', statusFilter);
-      if (searchTerm) queryParams.append('search', searchTerm);
-      
-      const response = await http.get(`/admin/reports/attendance?${queryParams.toString()}`);
-      const records = response.data?.data?.attendance || [];
-      
+      const queryParams: Record<string, string> = { limit: '5000' };
+      if (activityFilter) queryParams.activity_id = activityFilter;
+      if (statusFilter) queryParams.status = statusFilter;
+      if (searchTerm) queryParams.search = searchTerm;
+
+      const report = await qrApi.fetchAdminAttendanceReport(queryParams);
+      const records = report.attendance || [];
+
       if (records.length === 0) {
         showError('Không có dữ liệu để xuất', 'Lỗi');
         return;
@@ -271,7 +299,7 @@ export default function AdminQRAttendancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6">
+    <div className="space-y-6">
       <style>
         {`
           @keyframes spin {
@@ -282,94 +310,53 @@ export default function AdminQRAttendancePage() {
       </style>
 
       <div className="space-y-6">
-        {/* Header với neo-brutalism style */}
-        <div className="relative min-h-[280px]">
-          <div className="absolute inset-0 overflow-hidden rounded-3xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-            <div className="absolute inset-0" style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '50px 50px'
-            }}></div>
-          </div>
-
-          <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce"></div>
-          <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full"></div>
-
-          <div className="relative z-10 p-6 sm:p-8">
-            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-6 sm:p-8 shadow-2xl">
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-indigo-400 blur-xl opacity-50 animate-pulse"></div>
-                      <div className="relative bg-black text-indigo-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-indigo-400">
-                        📱 QR NEO ADMIN
-                      </div>
-                    </div>
-                    <div className="h-8 w-1 bg-white/40"></div>
-                    <div className="text-white/90 font-bold text-sm flex items-center gap-2">
-                      <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
-                      {stats.total} điểm danh
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleExport}
-                      disabled={exporting}
-                      className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 shadow-xl hover:shadow-white/50 hover:scale-105 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Download className="h-5 w-5" />
-                      {exporting ? 'Đang xuất...' : 'Xuất CSV'}
-                    </button>
-                  </div>
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(236,72,153,0.12),transparent_28%)]" />
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-3xl">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+                  <Sparkles className="h-4 w-4" />
+                  {stats.total} điểm danh
                 </div>
-
-                <div>
-                  <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight">
-                    Quản lý QR Điểm Danh
-                    <br />
-                    <span className="text-pink-200">TẬP TRUNG</span>
-                  </h1>
-                  <p className="text-white/80 text-lg font-medium max-w-2xl mt-3">
-                    Quản lý điểm danh bằng QR code, theo dõi trạng thái tham gia và phương thức điểm danh cho tất cả hoạt động.
-                  </p>
-                </div>
-
-                {/* Stats Cards với neo-brutalism */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {[
-                    { icon: QrCode, label: 'Tổng điểm danh', value: stats.total, accent: 'bg-gradient-to-br from-yellow-200 to-yellow-50' },
-                    { icon: CheckCircle, label: 'Có mặt', value: stats.coMat, accent: 'bg-gradient-to-br from-emerald-200 to-emerald-50' },
-                    { icon: XCircle, label: 'Vắng mặt', value: stats.vangMat, accent: 'bg-gradient-to-br from-rose-200 to-rose-50' },
-                    { icon: Clock, label: 'Muộn / Về sớm', value: stats.muon + stats.veSom, accent: 'bg-gradient-to-br from-amber-200 to-amber-50' },
-                    { icon: TrendingUp, label: 'Tỷ lệ có mặt', value: `${attendanceRate}%`, accent: 'bg-gradient-to-br from-blue-200 to-blue-50' }
-                  ].map((stat) => (
-                    <div key={stat.label} className="group relative">
-                      <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl transition-all duration-300 group-hover:translate-x-3 group-hover:translate-y-3"></div>
-                      <div className={`relative border-4 border-black ${stat.accent} p-4 rounded-2xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1`}>
-                        <stat.icon className="h-6 w-6 text-black mb-2" />
-                        <p className="text-3xl font-black text-black">{stat.value}</p>
-                        <p className="text-xs font-black text-black/70 uppercase tracking-wider">{stat.label}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                    <QrCode className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý QR điểm danh</h1>
+                    <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Quản lý điểm danh bằng QR code, theo dõi trạng thái tham gia và phương thức điểm danh cho tất cả hoạt động.</p>
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-5 w-5" />
+                {exporting ? 'Đang xuất...' : 'Xuất CSV'}
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { icon: QrCode, label: 'Tổng điểm danh', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300', bg: 'bg-indigo-50 dark:bg-indigo-400/10' },
+                { icon: CheckCircle, label: 'Có mặt', value: stats.coMat, tone: 'text-emerald-600 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-400/10' },
+                { icon: XCircle, label: 'Vắng mặt', value: stats.vangMat, tone: 'text-rose-600 dark:text-rose-300', bg: 'bg-rose-50 dark:bg-rose-400/10' },
+                { icon: Clock, label: 'Muộn / Về sớm', value: stats.muon + stats.veSom, tone: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-400/10' },
+                { icon: TrendingUp, label: 'Tỷ lệ có mặt', value: `${attendanceRate}%`, tone: 'text-blue-600 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-400/10' }
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl ${stat.bg}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.tone}`} />
+                  </div>
+                  <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{stat.value}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{stat.label}</p>
+                </div>
+              ))}
             </div>
           </div>
-
-          <style>{`
-            @keyframes bounce-slow {
-              0%, 100% { transform: translateY(0) rotate(45deg); }
-              50% { transform: translateY(-20px) rotate(45deg); }
-            }
-            .animate-bounce {
-              animation: bounce-slow 3s ease-in-out infinite;
-            }
-          `}</style>
-        </div>
+        </section>
 
         {/* Quick Actions - Style đơn giản */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-6">
@@ -480,6 +467,25 @@ export default function AdminQRAttendancePage() {
           </div>
         </div>
 
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSection('attendance')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold ${activeSection === 'attendance' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            <CheckCircle className="h-4 w-4" />
+            Bản ghi điểm danh
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('fallback')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold ${activeSection === 'fallback' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            <FileText className="h-4 w-4" />
+            Yêu cầu thủ công
+          </button>
+        </div>
+
         {/* Filters - Style đơn giản */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-6">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -548,8 +554,96 @@ export default function AdminQRAttendancePage() {
           </div>
         </div>
 
+        {activeSection === 'fallback' && (
+          <div className="bg-white rounded-2xl border-2 border-amber-200 shadow-lg overflow-hidden">
+            {!activityFilter && !qrActivityId ? (
+              <div className="p-10 text-center text-gray-600">
+                <FileText className="mx-auto mb-3 h-12 w-12 text-amber-500" />
+                <p className="font-bold">Chọn một hoạt động ở bộ lọc hoặc khu vực tạo QR để xem yêu cầu thủ công.</p>
+              </div>
+            ) : fallbackLoading ? (
+              <div className="p-10 text-center font-semibold text-gray-600">Đang tải yêu cầu thủ công...</div>
+            ) : fallbackRequests.length === 0 ? (
+              <div className="p-10 text-center text-gray-600">
+                <AlertCircle className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+                <p className="font-bold">Không có yêu cầu điểm danh thủ công nào</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gradient-to-r from-amber-600 to-orange-600">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Sinh viên</th>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Hoạt động</th>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Lý do / GPS</th>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Trạng thái</th>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Ghi chú duyệt</th>
+                      <th className="px-6 py-4 text-left text-white font-semibold text-sm uppercase">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fallbackRequests.map((request: any, index) => {
+                      const status = getFallbackStatusInfo(request.trang_thai);
+                      return (
+                        <tr key={request.id} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-amber-50/40'} hover:bg-amber-50`}>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-gray-900">{request.sinh_vien?.nguoi_dung?.ho_ten || 'N/A'}</div>
+                            <div className="text-sm text-gray-600">{request.sinh_vien?.mssv || 'N/A'}</div>
+                            <div className="text-xs text-gray-500">{request.sinh_vien?.lop?.ten_lop || ''}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-gray-900">{request.hoat_dong?.ten_hd || 'N/A'}</div>
+                            <div className="text-xs text-gray-500">{request.ngay_tao ? new Date(request.ngay_tao).toLocaleString('vi-VN') : ''}</div>
+                          </td>
+                          <td className="px-6 py-4 max-w-sm">
+                            <div className="text-sm font-medium text-gray-900 whitespace-pre-wrap">{request.ly_do}</div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              {request.gps_latitude && request.gps_longitude ? `${request.gps_latitude}, ${request.gps_longitude}` : 'Không có GPS'}
+                              {request.gps_accuracy_m ? ` • ±${Math.round(Number(request.gps_accuracy_m))}m` : ''}
+                              {request.dia_chi_ip ? ` • IP ${request.dia_chi_ip}` : ''}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-gray-300 font-medium text-xs" style={{ backgroundColor: status.bg, color: status.color }}>
+                              {status.icon}
+                              {status.text}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {request.trang_thai === 'cho_duyet' ? (
+                              <textarea
+                                value={fallbackNotes[request.id] || ''}
+                                onChange={(e) => setFallbackNotes(prev => ({ ...prev, [request.id]: e.target.value }))}
+                                rows={2}
+                                className="w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                                placeholder="Ghi chú duyệt/từ chối"
+                              />
+                            ) : (
+                              <div className="text-sm text-gray-700">{request.ghi_chu_duyet || '-'}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {request.trang_thai === 'cho_duyet' ? (
+                              <div className="flex gap-2">
+                                <button onClick={() => handleApproveFallback(request.id)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Duyệt</button>
+                                <button onClick={() => handleRejectFallback(request.id)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700">Từ chối</button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500">Đã xử lý</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Attendance Table - Style đơn giản */}
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
+        {activeSection === 'attendance' && <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
           {normalizedRecords.length === 0 ? (
             <div className="text-center" style={{ padding: '60px 24px' }}>
               <AlertCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -668,7 +762,7 @@ export default function AdminQRAttendancePage() {
               )}
             </>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* QR Modal */}
@@ -706,6 +800,21 @@ function getStatusInfo(status) {
   }
 }
 
+function getFallbackStatusInfo(status) {
+  switch (status) {
+    case 'cho_duyet':
+      return { bg: '#fef3c7', color: '#92400e', text: 'Chờ duyệt', icon: <Clock className="h-3 w-3" /> };
+    case 'da_duyet':
+      return { bg: '#dcfce7', color: '#15803d', text: 'Đã duyệt', icon: <CheckCircle className="h-3 w-3" /> };
+    case 'tu_choi':
+      return { bg: '#fef2f2', color: '#dc2626', text: 'Từ chối', icon: <XCircle className="h-3 w-3" /> };
+    case 'da_huy':
+      return { bg: '#f3f4f6', color: '#374151', text: 'Đã hủy', icon: <AlertCircle className="h-3 w-3" /> };
+    default:
+      return { bg: '#f3f4f6', color: '#374151', text: status || 'N/A', icon: <AlertCircle className="h-3 w-3" /> };
+  }
+}
+
 function getMethodInfo(method) {
   switch (method) {
     case 'qr':
@@ -714,6 +823,8 @@ function getMethodInfo(method) {
       return { bg: '#fef3c7', color: '#92400e', text: 'Mã vạch', icon: <QrCode className="h-3 w-3" /> };
     case 'truyen_thong':
       return { bg: '#e0e7ff', color: '#3730a3', text: 'Truyền thống', icon: <Users className="h-3 w-3" /> };
+    case 'thu_cong_fallback':
+      return { bg: '#ffedd5', color: '#c2410c', text: 'Thủ công fallback', icon: <FileText className="h-3 w-3" /> };
     default:
       return { bg: '#f3f4f6', color: '#374151', text: method || 'N/A', icon: <Smartphone className="h-3 w-3" /> };
   }

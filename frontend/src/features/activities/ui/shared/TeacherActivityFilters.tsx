@@ -1,7 +1,6 @@
 import React from 'react';
 import type { FC } from 'react';
-import { Search, Calendar, Filter } from 'lucide-react';
-import SemesterFilter from '../../../../shared/components/common/SemesterFilter';
+import { Search, Filter } from 'lucide-react';
 
 interface Pagination {
   limit: number;
@@ -27,7 +26,7 @@ export const TeacherActivityFilters: FC<TeacherActivityFiltersProps> = ({
 }: TeacherActivityFiltersProps) => {
   return (
     <div className="bg-white rounded-lg shadow p-4 md:p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -38,14 +37,6 @@ export const TeacherActivityFilters: FC<TeacherActivityFiltersProps> = ({
             onChange={(e) => onSearchTermChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
           />
-        </div>
-
-        {/* Semester Filter */}
-        <div className="relative flex items-center">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
-          <div className="w-full pl-10">
-            <SemesterFilter value={semester} onChange={onSemesterChange} label="" />
-          </div>
         </div>
 
         {/* Status Filter */}

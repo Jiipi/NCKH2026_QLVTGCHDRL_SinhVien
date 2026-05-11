@@ -1,110 +1,45 @@
 import React from 'react';
-import { Clock, CheckCircle, Trophy, Award } from 'lucide-react';
+import { Clock, CheckCircle, Trophy, Award, Sparkles } from 'lucide-react';
 
-/**
- * MyActivitiesHeader Component - Header với neo-brutalism design
- */
 export default function MyActivitiesHeader({ totalActivities, myRegistrations, totalPoints }) {
+  const pending = myRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length;
+  const approved = myRegistrations.filter(r => r.trang_thai_dk === 'da_duyet').length;
+  const joined = myRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia').length;
+
   return (
-    <div className="relative min-h-[280px]">
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-600 via-purple-600 to-blue-600"></div>
-        <div className="absolute inset-0" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px',
-          animation: 'grid-move 20s linear infinite'
-        }}></div>
-      </div>
-      <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-      <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-      <div className="relative z-10 p-8">
-        <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
-                  ⭐ CỦA TÔI
-                </div>
-              </div>
-              <div className="h-8 w-1 bg-white/40"></div>
-              <div className="text-white/90 font-bold text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  {totalActivities} HOẠT ĐỘNG
-                </div>
-              </div>
-            </div>
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(45,212,191,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.12),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(20,184,166,0.10),transparent_26%)]" />
+      <div className="relative z-10 space-y-6">
+        <div>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-indigo-700 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+            <Sparkles className="h-4 w-4" />
+            {totalActivities} hoạt động
           </div>
-          <div className="mb-8">
-            <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">O</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ạ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
-              <span className="inline-block mx-2">•</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Đ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ộ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">G</span>
-              <br />
-              <span className="relative inline-block mt-2">
-                <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
-                  CỦA TÔI
-                </span>
-                <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
-              </span>
-            </h1>
-            <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-              Theo dõi, quản lý và chinh phục các hoạt động rèn luyện bạn đã đăng ký
-            </p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <Clock className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{myRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">CHỜ DUYỆT</p>
-              </div>
-            </div>
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <CheckCircle className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{myRegistrations.filter(r => r.trang_thai_dk === 'da_duyet').length}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ DUYỆT</p>
-              </div>
-            </div>
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <Trophy className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{myRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia').length}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">HOÀN THÀNH</p>
-              </div>
-            </div>
-            <div className="group relative">
-              <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-              <div className="relative bg-purple-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                <Award className="h-6 w-6 text-black mb-2" />
-                <p className="text-3xl font-black text-black">{totalPoints.toFixed(1)}</p>
-                <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỔNG ĐIỂM</p>
-              </div>
-            </div>
-          </div>
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-5xl">Hoạt động của tôi</h1>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
+            Theo dõi, quản lý và chinh phục các hoạt động rèn luyện bạn đã đăng ký.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <GlassMetric icon={Clock} label="Chờ duyệt" value={pending} tone="text-amber-600 dark:text-amber-300" />
+          <GlassMetric icon={CheckCircle} label="Đã duyệt" value={approved} tone="text-emerald-600 dark:text-emerald-300" />
+          <GlassMetric icon={Trophy} label="Hoàn thành" value={joined} tone="text-cyan-600 dark:text-cyan-300" />
+          <GlassMetric icon={Award} label="Tổng điểm" value={totalPoints.toFixed(1)} tone="text-indigo-600 dark:text-indigo-300" />
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes grid-move { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
-        @keyframes bounce-slow { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
-        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-      `}} />
     </div>
   );
 }
 
+function GlassMetric({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{label}</span>
+        <Icon className={`h-5 w-5 ${tone}`} />
+      </div>
+      <p className={`text-3xl font-black tracking-[-0.04em] ${tone}`}>{value}</p>
+    </div>
+  );
+}

@@ -28,7 +28,7 @@ export const FACE_CONFIG = {
 
   // Registration
   registration: {
-    minImages: 1,
+    minImages: 3,
     maxImages: 5,
     recommendedImages: 3
   },

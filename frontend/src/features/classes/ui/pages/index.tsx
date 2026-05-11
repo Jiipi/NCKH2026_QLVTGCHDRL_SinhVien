@@ -6,6 +6,5 @@
  */
 
 export { default as ClassManagementPage } from './class-management/ClassManagementPage';
-export { default as ClassStudentsPage } from './class-students/ClassStudentsPage';
 export { default as ImportStudentsPage } from './import-students/ImportStudentsPage';
 export { default as StudentManagementPage } from './student-management/StudentManagementPage';

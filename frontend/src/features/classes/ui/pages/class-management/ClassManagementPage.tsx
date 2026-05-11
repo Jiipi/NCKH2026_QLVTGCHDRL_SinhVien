@@ -9,15 +9,13 @@
 import React from 'react';
 import { GraduationCap } from 'lucide-react';
 import { useClassManagement } from '../../../model/hooks/useClassManagement';
-import {
-  LoadingState,
-  EmptyState,
-  ClassesSidebar,
-  ClassInfoCard,
-  StatisticsCards,
-  AssignMonitorSection,
-  StudentsList
-} from '../../shared';
+import LoadingState from '../../shared/LoadingState';
+import EmptyState from '../../shared/EmptyState';
+import ClassesSidebar from '../../shared/ClassesSidebar';
+import ClassInfoCard from '../../shared/ClassInfoCard';
+import StatisticsCards from '../../shared/StatisticsCards';
+import AssignMonitorSection from '../../shared/AssignMonitorSection';
+import StudentsList from '../../shared/StudentsList';
 
 // Main Component
 export default function ClassManagementPage() {

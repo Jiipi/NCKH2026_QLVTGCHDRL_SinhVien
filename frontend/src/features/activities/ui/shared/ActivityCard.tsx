@@ -1,9 +1,9 @@
-import React from 'react';
 import type { FC } from 'react';
 import {
   Calendar, MapPin, Users, Clock, Eye, UserPlus, Trophy, AlertCircle
 } from 'lucide-react';
 import { getActivityImage } from '../../../../shared/lib/activityImages';
+import { formatDisplayDate } from '../../../../shared/lib/dateTime';
 
 interface ActivityType {
   id?: string;
@@ -76,13 +76,13 @@ const ActivityStatusBadge: FC<{ activity: Activity }> = ({ activity }: { activit
   );
 };
 
-export const ActivityCard: FC<ActivityCardProps> = ({ 
-  activity, 
-  mode = 'grid', 
-  onRegister, 
-  onViewDetail, 
-  isWritable, 
-  role 
+export const ActivityCard: FC<ActivityCardProps> = ({
+  activity,
+  mode = 'grid',
+  onRegister,
+  onViewDetail,
+  isWritable,
+  role
 }: ActivityCardProps) => {
   const startDate = parseDateSafe(activity.ngay_bd) || new Date();
   const endDate = parseDateSafe(activity.ngay_kt) || startDate;
@@ -92,13 +92,13 @@ export const ActivityCard: FC<ActivityCardProps> = ({
   const isDeadlinePast = deadline ? (deadline.getTime() < now.getTime()) : false;
   const isAfterStart = now.getTime() >= startDate.getTime();
 
-  const canRegister = activity.trang_thai === 'da_duyet' && 
-                      !isPast && 
-                      !isDeadlinePast && 
-                      !isAfterStart && 
-                      (!activity.is_registered || activity.registration_status === 'tu_choi') && 
-                      role !== 'giang_vien' && 
-                      role !== 'teacher' && 
+  const canRegister = activity.trang_thai === 'da_duyet' &&
+                      !isPast &&
+                      !isDeadlinePast &&
+                      !isAfterStart &&
+                      (!activity.is_registered || activity.registration_status === 'tu_choi') &&
+                      role !== 'giang_vien' &&
+                      role !== 'teacher' &&
                       isWritable;
 
   const activityType = activity.loai_hd?.ten_loai_hd || 'Chưa phân loại';
@@ -108,8 +108,8 @@ export const ActivityCard: FC<ActivityCardProps> = ({
       <div className="group relative bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-300 transition-all duration-200">
         <div className="flex items-stretch gap-4 p-4">
           <div className="relative w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden">
-            <img 
-              src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+            <img
+              src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
               alt={activity.ten_hd}
               loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -127,7 +127,7 @@ export const ActivityCard: FC<ActivityCardProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-xs">
-                <div className="flex items-start gap-1.5"><Clock className="h-4 w-4 text-gray-400 mt-0.5" /><p>{startDate.toLocaleDateString('vi-VN')}</p></div>
+                <div className="flex items-start gap-1.5"><Clock className="h-4 w-4 text-gray-400 mt-0.5" /><p>{formatDisplayDate(startDate)}</p></div>
                 <div className="flex items-start gap-1.5"><MapPin className="h-4 w-4 text-gray-400 mt-0.5" /><p>{activity.dia_diem || 'N/A'}</p></div>
                 <div className="flex items-start gap-1.5"><Users className="h-4 w-4 text-gray-400 mt-0.5" /><p>{activity.don_vi_to_chuc || 'N/A'}</p></div>
               </div>
@@ -156,8 +156,8 @@ export const ActivityCard: FC<ActivityCardProps> = ({
   return (
     <div className="group relative h-full bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col">
       <div className="relative w-full h-36 overflow-hidden">
-        <img 
-          src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)} 
+        <img
+          src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
           alt={activity.ten_hd}
           loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -175,10 +175,10 @@ export const ActivityCard: FC<ActivityCardProps> = ({
           {activity.ten_hd || 'Hoạt động'}
         </h3>
         <div className="space-y-1.5 text-xs">
-          <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gray-400" /><p>{startDate.toLocaleDateString('vi-VN')}</p></div>
+          <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gray-400" /><p>{formatDisplayDate(startDate)}</p></div>
           <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /><p>{activity.dia_diem || 'N/A'}</p></div>
         </div>
-        {(isDeadlinePast || isAfterStart) && (
+        {isDeadlinePast && (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 w-fit">
             <AlertCircle className="h-3 w-3" />
             Hết hạn ĐK

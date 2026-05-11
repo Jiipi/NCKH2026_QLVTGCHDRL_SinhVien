@@ -11,15 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import useForgotPassword from '../../../model/hooks/useForgotPassword';
 import '../../shared/AuthModern.css';
-import {
-  AuthLayout,
-  AuthPanel,
-  AuthInput,
-  AuthButton,
-  AuthErrorMessage,
-  AuthSuccessMessage,
-  AuthLink
-} from '../../shared';
+import AuthLayout, { AuthPanel } from '../../shared/AuthLayout';
+import AuthInput from '../../shared/AuthInput';
+import AuthButton from '../../shared/AuthButton';
+import AuthErrorMessage from '../../shared/AuthErrorMessage';
+import AuthSuccessMessage from '../../shared/AuthSuccessMessage';
+import AuthLink from '../../shared/AuthLink';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();

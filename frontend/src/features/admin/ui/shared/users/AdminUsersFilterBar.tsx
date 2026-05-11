@@ -35,8 +35,8 @@ export default function AdminUsersFilterBar({
   onViewModeChange
 }: AdminUsersFilterBarProps) {
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm">
-      <div className="p-6 space-y-4">
+    <div className="rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+      <div className="space-y-4 p-6">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
@@ -46,11 +46,11 @@ export default function AdminUsersFilterBar({
             placeholder="Tìm kiếm người dùng..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-indigo-300"
+            className="w-full rounded-2xl border border-white/70 bg-white/55 py-3 pl-12 pr-4 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:ring-indigo-400/20"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-3 bg-gray-100 border-2 border-gray-200 rounded-2xl px-4 py-2 text-sm font-semibold text-gray-700">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/70 bg-white/55 px-4 py-2 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
             <Filter className="h-4 w-4 text-gray-500" />
             <select
               value={roleFilter}
@@ -74,7 +74,7 @@ export default function AdminUsersFilterBar({
             <select
               value={sortBy || 'newest'}
               onChange={(e) => onSortChange(e.target.value)}
-              className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+              className="cursor-pointer rounded-2xl border border-white/70 bg-white/55 px-3 py-2 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
             >
               <option value="newest">Mới nhất</option>
               <option value="oldest">Cũ nhất</option>
@@ -83,15 +83,15 @@ export default function AdminUsersFilterBar({
             </select>
           </div>
 
- 	        <div className="w-px h-8 bg-gray-200" />
+ 	        <div className="h-8 w-px bg-white/60 dark:bg-white/10" />
 
-          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200 ml-auto">
+          <div className="ml-auto flex items-center gap-1 rounded-2xl border border-white/70 bg-white/55 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <button
               onClick={() => onViewModeChange('grid')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                 displayViewMode === 'grid'
-                  ? 'bg-white shadow-md text-violet-600 border border-violet-200'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'border border-indigo-200/70 bg-white text-indigo-600 shadow-sm dark:border-indigo-400/20 dark:bg-white/10 dark:text-indigo-300'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title="Hiển thị dạng lưới"
             >
@@ -102,8 +102,8 @@ export default function AdminUsersFilterBar({
               onClick={() => onViewModeChange('list')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                 displayViewMode === 'list'
-                  ? 'bg-white shadow-md text-violet-600 border border-violet-200'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'border border-indigo-200/70 bg-white text-indigo-600 shadow-sm dark:border-indigo-400/20 dark:bg-white/10 dark:text-indigo-300'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title="Hiển thị dạng danh sách"
             >

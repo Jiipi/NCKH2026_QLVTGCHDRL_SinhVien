@@ -16,8 +16,8 @@ export default function CertificateCard({
   const year = getAcademicYear(activity.ngay_bd);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
-      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b-2 border-amber-200 p-6">
+    <div className="overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/50">
+      <div className="border-b border-white/60 bg-white/45 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full p-3 shadow-lg">
@@ -75,10 +75,10 @@ export default function CertificateCard({
           </div>
         )}
       </div>
-      <div className="border-t bg-gray-50 p-4">
+      <div className="border-t border-white/60 bg-white/35 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
         <button 
-          onClick={() => onDownload(activity)} 
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold transition-all shadow-lg hover:shadow-xl"
+          onClick={() => onDownload(certificate)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-4 py-3 font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
         >
           <Download className="h-4 w-4" />Tải chứng nhận
         </button>

@@ -14,6 +14,11 @@ const semestersApi = {
     return response.data?.data || [];
   },
 
+  getSemesterList: async () => {
+    const response = await http.get('/semesters/list');
+    return response.data?.data || [];
+  },
+
   /**
    * Get current/active semester
    */
@@ -51,6 +56,21 @@ const semestersApi = {
    */
   setActiveSemester: async (semesterId) => {
     const response = await http.patch(`/admin/semesters/${semesterId}/activate`);
+    return response.data;
+  },
+
+  activateSemester: async (semester) => {
+    const response = await http.post('/semesters/activate', { semester });
+    return response.data;
+  },
+
+  createCurrentSemester: async () => {
+    const response = await http.post('/semesters/create');
+    return response.data;
+  },
+
+  createNextSemester: async () => {
+    const response = await http.post('/semesters/create-next');
     return response.data;
   },
 

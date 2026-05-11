@@ -316,22 +316,7 @@ export default function useMyActivities() {
     return currentItems.slice(start, end);
   }, [currentItems, pagination.page, pagination.limit]);
 
-  // Bỏ giới hạn hiển thị: luôn hiển thị tất cả hoạt động trên một trang
-  useEffect(() => {
-    setPagination(prev => {
-      if (!currentItems.length) {
-        return { ...prev, limit: 0, total: 0, page: 1 };
-      }
-      if (prev.limit === currentItems.length) return prev;
-      return {
-        ...prev,
-        limit: currentItems.length,
-        total: currentItems.length,
-        page: 1
-      };
-    });
-  }, [currentItems.length]);
-
+  // Reset page when filters/tab change
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }));
   }, [query, filters, tab]);

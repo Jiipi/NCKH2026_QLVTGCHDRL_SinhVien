@@ -4,6 +4,13 @@ interface QRErrorResponse {
   success: false;
   error: string;
   code: number | null;
+  details?: unknown;
+}
+
+interface AttendanceLocationPayload {
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
 }
 
 interface QRSuccessResponse<T = unknown> {
@@ -17,8 +24,9 @@ type QRResponse<T = unknown> = QRSuccessResponse<T> | QRErrorResponse;
 const handleError = (error: any): QRErrorResponse => {
   const message = error?.response?.data?.message || error?.message || 'Điểm danh thất bại. Vui lòng thử lại.';
   const code = error?.response?.status || null;
-  try { console.error('[QR Attendance API Error]', { message, code, error }); } catch (_) {}
-  return { success: false, error: message, code };
+  const details = error?.response?.data?.errors || null;
+  try { console.error('[QR Attendance API Error]', { message, code, details, error }); } catch (_) {}
+  return { success: false, error: message, code, details };
 };
 
 class QRAttendanceAPI {
@@ -34,9 +42,9 @@ class QRAttendanceAPI {
     }
   }
 
-  async scanAttendance(activityId: string, token: string): Promise<QRResponse<any>> {
+  async scanAttendance(activityId: string, token: string, sessionId?: string, location?: AttendanceLocationPayload | null): Promise<QRResponse<any>> {
     try {
-      const res = await http.post(`/activities/${activityId}/attendance/scan`, { token });
+      const res = await http.post(`/activities/${activityId}/attendance/scan`, { token, sessionId, location });
       return {
         success: true,
         data: res?.data?.data || res?.data || {},

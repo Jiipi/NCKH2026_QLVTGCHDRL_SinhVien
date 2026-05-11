@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Lock, CheckCircle, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Calendar, Lock, CheckCircle, AlertCircle, RefreshCw, Plus, Sparkles } from 'lucide-react';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
-import http from '../../../shared/api/http';
+import { invalidateSemesterCache } from '../model/semesterCache';
+import semestersApi from '../services/semestersApi';
 
 export default function SemesterManagement() {
   const { showSuccess, showError, confirm } = useNotification();
@@ -17,8 +18,8 @@ export default function SemesterManagement() {
     try {
       setLoading(true);
       setError('');
-      const res = await http.get('/semesters/list');
-      setSemesters(res.data?.data || []);
+      const list = await semestersApi.getSemesterList();
+      setSemesters(list);
     } catch (e) {
       setError(e?.response?.data?.message || 'Không thể tải danh sách học kỳ');
       showError('Không thể tải danh sách học kỳ', 'Lỗi');
@@ -34,15 +35,9 @@ export default function SemesterManagement() {
   const handleActivate = async (semester) => {
     try {
       setActivating(semester.value);
-      await http.post('/semesters/activate', { semester: semester.value });
+      await semestersApi.activateSemester(semester.value);
       
-      // Invalidate cache
-      try {
-        sessionStorage.removeItem('semester_options');
-        sessionStorage.removeItem('current_semester');
-        localStorage.setItem('semester_options_invalidate', Date.now().toString());
-        window.dispatchEvent(new Event('semester_options_bust'));
-      } catch (_) {}
+      invalidateSemesterCache();
 
       // Reload list
       await loadSemesters();
@@ -58,8 +53,11 @@ export default function SemesterManagement() {
   const handleCreateSemester = async (auto = false) => {
     try {
       setCreating(true);
-      const endpoint = auto ? '/semesters/create-next' : '/semesters/create';
-      await http.post(endpoint);
+      if (auto) {
+        await semestersApi.createNextSemester();
+      } else {
+        await semestersApi.createCurrentSemester();
+      }
       
       // Reload list
       await loadSemesters();
@@ -125,107 +123,50 @@ export default function SemesterManagement() {
   const lockedSemesters = semesters.filter(s => s.status === 'LOCKED_HARD').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header với neo-brutalism */}
-        <div className="relative min-h-[280px]">
-          <div className="absolute inset-0 overflow-hidden rounded-3xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"></div>
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                 linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                backgroundSize: '50px 50px',
-                animation: 'grid-move 20s linear infinite'
-              }}
-            ></div>
-          </div>
-
-          <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-          <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-          <div className="relative z-10 p-8">
-            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-400 blur-xl opacity-50 animate-pulse"></div>
-                    <div className="relative bg-black text-blue-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-blue-400">
-                      📅 QUẢN LÝ HỌC KỲ
-                    </div>
-                  </div>
-                  <div className="h-8 w-1 bg-white/40"></div>
-                  <div className="text-white/90 font-bold text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-pink-300 rounded-full animate-pulse"></div>
-                      {totalSemesters} học kỳ
-                    </div>
-                  </div>
+    <div className="space-y-6">
+      <div className="space-y-6">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(245,158,11,0.12),transparent_28%)]" />
+          <div className="relative z-10 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+                <Sparkles className="h-4 w-4" />
+                {totalSemesters} học kỳ
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                  <Calendar className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
                 </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 shadow-xl hover:shadow-white/50 hover:scale-105 font-bold"
-                  >
-                    <Plus className="h-5 w-5" />
-                    Tạo học kỳ mới
-                  </button>
+                <div>
+                  <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý học kỳ</h1>
+                  <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Kích hoạt học kỳ mới và quản lý trạng thái, chỉ có một học kỳ được kích hoạt tại một thời điểm.</p>
                 </div>
               </div>
-
-              <div className="mb-8">
-                <h1 className="text-5xl lg:text-6xl font-black text-white mb-4 leading-none tracking-tight">
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Q</span>
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ả</span>
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-                  <span className="inline-block mx-2">•</span>
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">L</span>
-                  <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ý</span>
-                  <br />
-                  <span className="relative inline-block mt-2">
-                    <span className="relative z-10 text-yellow-200 drop-shadow-[0_0_30px_rgba(251,207,232,0.5)]">
-                      HỌC KỲ
-                    </span>
-                    <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
-                  </span>
-                </h1>
-
-                <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-                  Kích hoạt học kỳ mới và quản lý trạng thái - chỉ có một học kỳ được kích hoạt tại một thời điểm
-                </p>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            </div>
+            <div className="space-y-4">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="ml-auto flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md"
+              >
+                <Plus className="h-5 w-5" />
+                Tạo học kỳ mới
+              </button>
+              <div className="grid grid-cols-3 gap-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
                 {[
-                  { icon: Calendar, label: 'Tổng học kỳ', value: totalSemesters, accent: 'bg-gradient-to-br from-blue-200 to-blue-50' },
-                  { icon: CheckCircle, label: 'Đang hoạt động', value: activeSemester ? 1 : 0, accent: 'bg-gradient-to-br from-emerald-200 to-emerald-50' },
-                  { icon: Lock, label: 'Đã khóa', value: lockedSemesters, accent: 'bg-gradient-to-br from-gray-200 to-gray-50' }
+                  { icon: Calendar, label: 'Tổng học kỳ', value: totalSemesters, tone: 'text-indigo-600 dark:text-indigo-300' },
+                  { icon: CheckCircle, label: 'Đang hoạt động', value: activeSemester ? 1 : 0, tone: 'text-emerald-600 dark:text-emerald-300' },
+                  { icon: Lock, label: 'Đã khóa', value: lockedSemesters, tone: 'text-slate-600 dark:text-slate-300' }
                 ].map((stat) => (
-                  <div key={stat.label} className="group relative">
-                    <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-2xl transition-all duration-300 group-hover:translate-x-3 group-hover:translate-y-3"></div>
-                    <div className={`relative border-4 border-black ${stat.accent} p-4 rounded-2xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1`}>
-                      <stat.icon className="h-6 w-6 text-black mb-2" />
-                      <p className="text-3xl font-black text-black">{stat.value}</p>
-                      <p className="text-xs font-black text-black/70 uppercase tracking-wider">{stat.label}</p>
-                    </div>
+                  <div key={stat.label} className="rounded-2xl border border-white/65 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+                    <stat.icon className={`mb-3 h-5 w-5 ${stat.tone}`} />
+                    <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{stat.value}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{stat.label}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
-          <style>{`
-            @keyframes grid-move { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
-            @keyframes bounce-slow { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
-            @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-            .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-          `}</style>
-        </div>
+        </section>
 
         {/* Error Message */}
         {error && (

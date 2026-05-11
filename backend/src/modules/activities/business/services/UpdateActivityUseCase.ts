@@ -38,6 +38,11 @@ interface UpdateActivityDtoType {
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
   nguoi_tao_id?: string;
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string | null;
+  geo_longitude?: number | string | null;
+  geo_radius_meters?: number | string | null;
   toDomain?: () => NormalizedActivityData;
 }
 
@@ -59,6 +64,11 @@ interface NormalizedActivityData {
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
   nguoi_tao_id?: string;
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string | null;
+  geo_longitude?: number | string | null;
+  geo_radius_meters?: number | string | null;
 }
 
 /**
@@ -132,6 +142,11 @@ class UpdateActivityUseCase {
     if (normalized.tep_dinh_kem !== undefined) updateData.tep_dinh_kem = Array.isArray(normalized.tep_dinh_kem) ? normalized.tep_dinh_kem : [];
     if (normalized.hoc_ky !== undefined) updateData.hoc_ky = normalized.hoc_ky as Prisma.EnumHocKyFieldUpdateOperationsInput['set'];
     if (normalized.nam_hoc !== undefined) updateData.nam_hoc = normalized.nam_hoc;
+    if (normalized.yeu_cau_gps !== undefined) updateData.yeu_cau_gps = Boolean(normalized.yeu_cau_gps);
+    if (normalized.cho_phep_fallback !== undefined) updateData.cho_phep_fallback = normalized.cho_phep_fallback !== false;
+    if (normalized.geo_latitude !== undefined) updateData.geo_latitude = normalized.geo_latitude === null ? null : Number(normalized.geo_latitude);
+    if (normalized.geo_longitude !== undefined) updateData.geo_longitude = normalized.geo_longitude === null ? null : Number(normalized.geo_longitude);
+    if (normalized.geo_radius_meters !== undefined) updateData.geo_radius_meters = normalized.geo_radius_meters === null ? null : Number(normalized.geo_radius_meters);
 
     return this.activityRepository.update(id, updateData);
   }

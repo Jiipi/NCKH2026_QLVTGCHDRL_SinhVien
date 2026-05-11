@@ -1,79 +1,163 @@
-import React from 'react';
-import { Trophy, Medal } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Trophy, Medal, Crown, ChevronDown, Users } from 'lucide-react';
+
+const rowVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' as const } }
+};
 
 export default function ScoresRankingTable({ rankings = [] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (!Array.isArray(rankings) || rankings.length === 0) return null;
 
+  const INITIAL_SHOW = 10;
+  const displayRankings = isExpanded ? rankings : rankings.slice(0, INITIAL_SHOW);
+  const hasMore = rankings.length > INITIAL_SHOW;
+
   return (
-    <section className="bg-white rounded-xl border p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Bảng xếp hạng lớp</h3>
-        <Trophy className="h-6 w-6 text-yellow-600" />
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
+      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+            <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Bảng xếp hạng lớp</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{rankings.length} sinh viên</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Users className="w-4 h-4 text-slate-400" />
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{rankings.length} SV</span>
+        </div>
       </div>
+
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Hạng</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">MSSV</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Họ tên</th>
-              <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Số HĐ</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Tổng điểm</th>
+            <tr className="bg-slate-50 dark:bg-slate-700/50">
+              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hạng</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MSSV</th>
+              <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Họ tên</th>
+              <th className="text-center py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Số HĐ</th>
+              <th className="text-right py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng điểm</th>
             </tr>
           </thead>
-          <tbody>
-            {rankings.map((student, index) => (
-              <tr
-                key={student.mssv || index}
-                className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${student.is_current_user ? 'bg-blue-50 font-semibold' : ''}`}
-              >
-                <td className="py-3 px-4">
-                  <div className="flex items-center">
-                    {getMedalIcon(index)}
-                    <span className={student.is_current_user ? 'text-blue-700' : 'text-gray-900'}>#{index + 1}</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={student.is_current_user ? 'text-blue-700' : 'text-gray-600'}>{student.mssv}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={student.is_current_user ? 'text-blue-900' : 'text-gray-900'}>
-                    {student.ho_ten}
-                    {student.is_current_user && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Bạn</span>}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <span className={student.is_current_user ? 'text-blue-700' : 'text-gray-600'}>{student.so_hoat_dong}</span>
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <span className={`font-bold ${getScoreColor(student.tong_diem, student.is_current_user)}`}>
-                    {student.tong_diem} điểm
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <motion.tbody
+            initial="hidden"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.03 } } }}
+          >
+            {displayRankings.map((student, index) => {
+              const isCurrentUser = student.is_current_user;
+              return (
+                <motion.tr
+                  key={student.mssv || index}
+                  variants={rowVariants}
+                  className={`border-b border-slate-100 dark:border-slate-700/50 transition-colors ${
+                    isCurrentUser
+                      ? 'bg-blue-50/70 dark:bg-blue-900/20 border-l-4 !border-l-blue-500'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'
+                  }`}
+                >
+                  <td className="py-3.5 px-5">
+                    <div className="flex items-center gap-2">
+                      {getMedalIcon(index)}
+                      <span className={`text-sm font-semibold ${isCurrentUser ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                        #{index + 1}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-5">
+                    <span className={`text-sm font-mono ${isCurrentUser ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {student.mssv}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-5">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${isCurrentUser ? 'text-blue-900 dark:text-blue-200' : 'text-slate-900 dark:text-white'}`}>
+                        {student.ho_ten}
+                      </span>
+                      {isCurrentUser && (
+                        <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-800/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                          Bạn
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-5 text-center">
+                    <span className={`text-sm ${isCurrentUser ? 'text-blue-700 dark:text-blue-300 font-semibold' : 'text-slate-600 dark:text-slate-400'}`}>
+                      {student.so_hoat_dong}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-5 text-right">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-bold ${getScoreBadge(student.tong_diem, isCurrentUser)}`}>
+                      {student.tong_diem}
+                    </span>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </motion.tbody>
         </table>
       </div>
-      <p className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-        <strong>Ghi chú:</strong> Bảng xếp hạng dựa trên tổng điểm rèn luyện của học kỳ này trong lớp.
-      </p>
-    </section>
+
+      {/* Show more / Note */}
+      <div className="p-4 border-t border-slate-100 dark:border-slate-700/50 space-y-3">
+        {hasMore && (
+          <div className="text-center">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+            >
+              <motion.span animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                <ChevronDown className="w-4 h-4" />
+              </motion.span>
+              {isExpanded ? 'Thu gọn' : `Xem thêm (${rankings.length - INITIAL_SHOW} SV)`}
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700/30 rounded-lg px-3 py-2">
+          <strong>Ghi chú:</strong> Bảng xếp hạng dựa trên tổng điểm rèn luyện của học kỳ này trong lớp.
+        </p>
+      </div>
+    </motion.section>
   );
 }
 
-function getMedalIcon(index) {
-  if (index === 0) return <Trophy className="h-5 w-5 text-yellow-500 mr-2" />;
-  if (index === 1) return <Medal className="h-5 w-5 text-gray-400 mr-2" />;
-  if (index === 2) return <Medal className="h-5 w-5 text-orange-400 mr-2" />;
-  return null;
+function getMedalIcon(index: number) {
+  if (index === 0) return (
+    <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+      <Crown className="h-3.5 w-3.5 text-amber-500" />
+    </div>
+  );
+  if (index === 1) return (
+    <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
+      <Medal className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
+    </div>
+  );
+  if (index === 2) return (
+    <div className="w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+      <Medal className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
+    </div>
+  );
+  return <div className="w-7 h-7" />;
 }
 
-function getScoreColor(score, isCurrentUser) {
-  if (isCurrentUser) return 'text-blue-700';
-  if (score >= 90) return 'text-yellow-600';
-  if (score >= 80) return 'text-blue-600';
-  if (score >= 65) return 'text-green-600';
-  return 'text-gray-600';
+function getScoreBadge(score: number, isCurrentUser: boolean) {
+  if (isCurrentUser) return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300';
+  if (score >= 90) return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300';
+  if (score >= 80) return 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
+  if (score >= 65) return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400';
+  if (score >= 50) return 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400';
+  return 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400';
 }
-

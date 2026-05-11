@@ -12,33 +12,35 @@ export default function ClassDetailModal({
   if (!isOpen || !selectedClass) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/90 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/90">
+        <div className="border-b border-white/60 bg-white/55 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <GraduationCap className="h-8 w-8" />
+              <div className="rounded-2xl bg-indigo-50/80 p-3 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+                <GraduationCap className="h-6 w-6" />
+              </div>
               <div>
-                <h2 className="text-2xl font-bold">{selectedClass.name || selectedClass.ten_lop || 'Lớp'}</h2>
-                <p className="text-blue-100 text-sm">Chi tiết lớp học</p>
+                <h2 className="text-xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">{selectedClass.name || selectedClass.ten_lop || 'Lớp'}</h2>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-300">Chi tiết lớp học</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+              className="rounded-2xl border border-white/60 bg-white/45 p-2 text-slate-500 transition-colors hover:bg-white/75 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
         <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="rounded-2xl border border-indigo-200/70 bg-indigo-50/70 p-4 dark:border-indigo-400/20 dark:bg-indigo-400/10">
                 <p className="text-sm text-gray-600 mb-1">Mã lớp</p>
                 <p className="text-lg font-bold text-gray-900">{selectedClass.id || selectedClass.ma_lop || '—'}</p>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="rounded-2xl border border-indigo-200/70 bg-indigo-50/70 p-4 dark:border-indigo-400/20 dark:bg-indigo-400/10">
                 <p className="text-sm text-gray-600 mb-1">Số sinh viên</p>
                 <p className="text-lg font-bold text-gray-900">
                   {selectedClass.studentCount || selectedClass._count?.students || classStudents.length || 0}
@@ -46,7 +48,7 @@ export default function ClassDetailModal({
               </div>
             </div>
             {selectedClass.teacher && (
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-400/20 dark:bg-emerald-400/10">
                 <p className="text-sm text-gray-600 mb-1">Giảng viên chủ nhiệm</p>
                 <p className="text-lg font-bold text-gray-900">
                   {selectedClass.teacher.name || selectedClass.teacher.full_name || selectedClass.teacher.ho_ten || '—'}
@@ -54,12 +56,12 @@ export default function ClassDetailModal({
               </div>
             )}
             {selectedClass.description && (
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="rounded-2xl border border-white/60 bg-white/45 p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="text-sm text-gray-600 mb-1">Mô tả</p>
                 <p className="text-gray-900">{selectedClass.description}</p>
               </div>
             )}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="rounded-2xl border border-white/60 bg-white/45 p-4 dark:border-white/10 dark:bg-white/5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-bold text-gray-900">
                   Danh sách sinh viên ({classStudents.length})
@@ -91,7 +93,7 @@ export default function ClassDetailModal({
                     return (
                       <div
                         key={student.id || student.user_id || student.ma_sv || index}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50"
+                        className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/55 p-3 dark:border-white/10 dark:bg-white/5"
                       >
                         <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">
                           {(studentName || 'SV').split(' ').pop()?.charAt(0)?.toUpperCase() || 'S'}
@@ -113,10 +115,10 @@ export default function ClassDetailModal({
             </div>
           </div>
         </div>
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-          <button 
+        <div className="flex justify-end border-t border-white/60 bg-white/45 p-4 dark:border-white/10 dark:bg-white/5">
+          <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+            className="rounded-2xl border border-white/60 bg-white/70 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
           >
             Đóng
           </button>

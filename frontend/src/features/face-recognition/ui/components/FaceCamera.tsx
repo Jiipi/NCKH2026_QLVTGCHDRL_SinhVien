@@ -54,7 +54,8 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<FaceError | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isFrameReady, setIsFrameReady] = useState(false);
+  const [qualityMessage, setQualityMessage] = useState('Đưa khuôn mặt vào khung');
 
   // Helper to handle camera errors with proper error codes
   const handleCameraError = useCallback((err: unknown) => {
@@ -114,6 +115,7 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setIsStreaming(true);
+        setQualityMessage('Đang kiểm tra chất lượng ảnh');
       }
     } catch (err) {
       const faceError = handleCameraError(err);
@@ -134,7 +136,60 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
       videoRef.current.srcObject = null;
     }
     setIsStreaming(false);
+    setIsFrameReady(false);
   }, []);
+
+  const evaluateFrameQuality = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !isStreaming || video.videoWidth === 0 || video.videoHeight === 0) {
+      setIsFrameReady(false);
+      setQualityMessage('Đưa khuôn mặt vào khung');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const sampleWidth = 96;
+    const sampleHeight = 72;
+    canvas.width = sampleWidth;
+    canvas.height = sampleHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+    const pixels = ctx.getImageData(0, 0, sampleWidth, sampleHeight).data;
+    let totalBrightness = 0;
+    let previous = 0;
+    let edgeScore = 0;
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const brightness = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+      totalBrightness += brightness;
+      edgeScore += Math.abs(brightness - previous);
+      previous = brightness;
+    }
+
+    const pixelCount = pixels.length / 4;
+    const averageBrightness = totalBrightness / pixelCount;
+    const averageEdge = edgeScore / pixelCount;
+    const isBrightEnough = averageBrightness >= 55 && averageBrightness <= 225;
+    const isSharpEnough = averageEdge >= 7;
+
+    setIsFrameReady(isBrightEnough && isSharpEnough);
+    if (!isBrightEnough) {
+      setQualityMessage(averageBrightness < 55 ? 'Ảnh quá tối' : 'Ảnh quá sáng');
+    } else if (!isSharpEnough) {
+      setQualityMessage('Ảnh mờ, giữ yên camera');
+    } else {
+      setQualityMessage('Ảnh đạt, có thể chụp');
+    }
+  }, [isStreaming]);
+
+  useEffect(() => {
+    if (!isStreaming) return;
+    evaluateFrameQuality();
+    const intervalId = window.setInterval(evaluateFrameQuality, 300);
+    return () => window.clearInterval(intervalId);
+  }, [evaluateFrameQuality, isStreaming]);
 
   // Chụp ảnh từ video
   const capture = useCallback((): string | null => {
@@ -160,23 +215,16 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
     // Chuyển sang base64
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
     return imageData;
-  }, [isStreaming, facingMode]);
+  }, [isStreaming]);
 
-  // Chụp với countdown
-  const captureWithCountdown = useCallback(async () => {
-    setCountdown(3);
-    
-    for (let i = 3; i > 0; i--) {
-      setCountdown(i);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    setCountdown(null);
+  const captureWhenReady = useCallback(() => {
+    if (!isFrameReady) return;
+
     const imageData = capture();
     if (imageData) {
       onCapture?.(imageData);
     }
-  }, [capture, onCapture]);
+  }, [capture, isFrameReady, onCapture]);
 
   // Expose methods qua ref
   useImperativeHandle(ref, () => ({
@@ -206,6 +254,9 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
           autoPlay
           playsInline
           muted
+          onCanPlay={() => setIsFrameReady(true)}
+          onPlaying={() => setIsFrameReady(true)}
+          onWaiting={() => setIsFrameReady(false)}
           className="w-full h-auto"
           style={{
             transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
@@ -233,9 +284,9 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
                 <ellipse 
                   cx="50" cy="45" rx="25" ry="35" 
                   fill="none" 
-                  stroke="#10b981" 
-                  strokeWidth="0.5"
-                  strokeDasharray="2,2"
+                  stroke={isFrameReady ? '#10b981' : '#ef4444'}
+                  strokeWidth="0.8"
+                  strokeDasharray={isFrameReady ? '0' : '2,2'}
                 />
               </svg>
             )}
@@ -255,9 +306,9 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
                 <rect 
                   x="25" y="15" width="50" height="70" 
                   fill="none" 
-                  stroke="#10b981" 
-                  strokeWidth="0.5"
-                  strokeDasharray="2,2"
+                  stroke={isFrameReady ? '#10b981' : '#ef4444'}
+                  strokeWidth="0.8"
+                  strokeDasharray={isFrameReady ? '0' : '2,2'}
                   rx="5"
                 />
               </svg>
@@ -265,15 +316,13 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
           </div>
         )}
         
-        {/* Countdown overlay */}
-        {countdown !== null && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <span className="text-8xl font-bold text-white animate-pulse">
-              {countdown}
-            </span>
+        {/* Face readiness indicator */}
+        {isStreaming && !isProcessing && (
+          <div className={`absolute left-1/2 top-4 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm ${isFrameReady ? 'bg-emerald-600/90' : 'bg-red-600/90'}`}>
+            {qualityMessage}
           </div>
         )}
-        
+
         {/* Loading state */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
@@ -346,9 +395,9 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
       {showControls && isStreaming && (
         <div className="flex justify-center gap-4 mt-4">
           <button
-            onClick={captureWithCountdown}
-            disabled={countdown !== null}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={captureWhenReady}
+            disabled={!isFrameReady}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg text-white transition disabled:cursor-not-allowed ${isFrameReady ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 opacity-80'}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />

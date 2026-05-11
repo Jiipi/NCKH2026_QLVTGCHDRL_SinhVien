@@ -32,16 +32,22 @@ export type RegistrationStatus = 'cho_duyet' | 'da_duyet' | 'tu_choi' | 'da_tham
 export interface Activity {
     id: string;
     ten_hd: string;
+    name?: string;
     mo_ta?: string;
     ngay_bd: string;
     ngay_kt: string;
     han_dk?: string;
     dia_diem?: string;
     so_luong_toi_da?: number;
+    sl_toi_da?: number;
     diem_cong?: number;
+    diem_rl?: number;
     trang_thai: ActivityStatus;
+    loai?: string;
     loai_hd_id?: string;
-    loai_hd?: ActivityType;
+    loai_hd?: ActivityType & { ten_loai_hd?: string };
+    hinh_anh?: string | string[];
+    tep_dinh_kem?: string[];
     nguoi_tao_id?: string;
     lop_id?: string;
     hoc_ky?: number;
@@ -50,6 +56,7 @@ export interface Activity {
     ngay_cap_nhat?: string;
     // Enriched fields for students
     is_registered?: boolean;
+    is_attended?: boolean;
     registration_status?: RegistrationStatus;
     trang_thai_dk?: RegistrationStatus;
 }

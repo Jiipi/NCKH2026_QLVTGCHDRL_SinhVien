@@ -1,9 +1,7 @@
 // Notifications UI Layer - Barrel Export
 
 // Pages
-export { default as AdminNotificationsPage } from './AdminNotificationsPage';
-export { default as MonitorNotificationsPage } from './MonitorNotificationsPage';
-export { default as TeacherNotificationsPage } from './TeacherNotificationsPage';
+export * from './pages';
 
 // Components
 export * from './components';

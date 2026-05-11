@@ -5,9 +5,4 @@
  * Shared components dùng chung cho tất cả users pages
  */
 
-// Add shared components here as needed
-// export { default as UserCard } from './UserCard';
-// export { default as PermissionList } from './PermissionList';
-
-// Export empty object to make this a valid module
 export {};

@@ -197,7 +197,7 @@ export default function useStudentActivitiesList() {
           case 'open':
             return item.trang_thai === 'da_duyet' &&
               (!deadline || deadline > now) &&
-              (!startDate || startDate > now);
+              (!endDate || endDate > now);
           case 'soon':
             return startDate && endDate && startDate <= now && endDate >= now;
           case 'closed':
@@ -269,19 +269,7 @@ export default function useStudentActivitiesList() {
     }));
   }, [sortedItems.length]);
 
-  // Bỏ giới hạn hiển thị: luôn hiển thị tất cả hoạt động trong một trang
-  useEffect(() => {
-    setPagination(prev => {
-      if (!sortedItems.length) return { ...prev, limit: 0, page: 1, total: 0 };
-      if (prev.limit === sortedItems.length) return prev;
-      return {
-        ...prev,
-        limit: sortedItems.length,
-        page: 1,
-        total: sortedItems.length
-      };
-    });
-  }, [sortedItems.length]);
+
 
   // Reset page when filters change
   useEffect(() => {
@@ -356,6 +344,8 @@ export default function useStudentActivitiesList() {
     isModalOpen,
     scopeTab,
     filteredItems,
+    allItems,
+    sortedItems,
     isTransitioning,
     setIsTransitioning,
     activitiesGridRef,

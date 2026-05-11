@@ -24,7 +24,8 @@ export type {
   IDashboardRepository as DashboardRepositoryInterface,
   AdminOverviewStats,
   ActivityStatsByStatus,
-  ClassRegistration
+  ClassRegistration,
+  AdminChartStats
 } from './business/interfaces/IDashboardRepository';
 
 export { calculateActivityPoints, type ActivityWithPoints } from './business/utils/activityPoints';
@@ -35,6 +36,7 @@ export { default as GetActivityStatsUseCase } from './business/services/GetActiv
 export { default as GetAdminDashboardUseCase } from './business/services/GetAdminDashboardUseCase';
 export { default as GetMyActivitiesUseCase } from './business/services/GetMyActivitiesUseCase';
 export { default as GetDetailedScoresUseCase } from './business/services/GetDetailedScoresUseCase';
+export { default as GetAdminChartStatsUseCase } from './business/services/GetAdminChartStatsUseCase';
 
 // Export repository
 export { default as dashboardRepository } from './data/repositories/dashboard.repository';

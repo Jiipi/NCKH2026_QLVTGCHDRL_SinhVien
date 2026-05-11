@@ -32,9 +32,8 @@ export default function DashboardStatsCard({
   goalText
 }: DashboardStatsCardProps) {
   return (
-    <div className="group relative">
-      <div className="absolute inset-0 bg-black/30 transform translate-x-1.5 translate-y-1.5 rounded-xl"></div>
-      <div className={`relative ${bgColor} border-4 border-black rounded-xl p-3 transform transition-all duration-300 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 h-full flex flex-col`}>
+    <div className="h-full rounded-2xl border border-white/60 bg-white/60 p-3 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+      <div className="flex h-full flex-col">
         <div className="flex items-center justify-between mb-2">
           {Icon && <Icon className={`w-5 h-5 ${textColor}`} />}
           {badge && typeof badge !== 'string' && (

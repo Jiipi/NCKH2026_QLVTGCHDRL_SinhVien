@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import http from '../../../../shared/api/http';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import reportsApi from '../../services/reportsApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 export default function useTeacherReports() {
@@ -64,8 +64,7 @@ export default function useTeacherReports() {
       } else {
         params = getDateRangeParams();
       }
-      const res = await http.get('/teacher/reports/statistics', { params });
-      const data = res.data?.data || {};
+      const data = await reportsApi.getTeacherStatistics(params);
       setStats(data);
     } catch (err) {
       console.error('Error loading statistics:', err);
@@ -95,12 +94,9 @@ export default function useTeacherReports() {
       } else {
         params = { format, ...getDateRangeParams() };
       }
-      const res = await http.get('/teacher/reports/export', {
-        params,
-        responseType: 'text'
-      });
-      
-      const blob = new Blob([res.data], { 
+      const data = await reportsApi.exportTeacherReport(params);
+
+      const blob = new Blob([data], {
         type: format === 'excel' ? 'text/csv' : 'text/csv'
       });
       const url = window.URL.createObjectURL(blob);

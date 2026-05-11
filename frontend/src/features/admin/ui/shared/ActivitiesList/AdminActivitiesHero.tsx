@@ -8,136 +8,60 @@ interface AdminActivitiesHeroProps {
   rejectedCount?: number;
 }
 
-interface StatCardProps {
+interface EditorialMetricProps {
   icon: LucideIcon;
-  iconColor: string;
-  bgClass: string;
   value: number;
   label: string;
+  tone: string;
 }
 
-export default function AdminActivitiesHero({ 
-  totalActivities = 0, 
+export default function AdminActivitiesHero({
+  totalActivities = 0,
   pendingCount = 0,
   approvedCount = 0,
-  rejectedCount = 0 
+  rejectedCount = 0
 }: AdminActivitiesHeroProps): React.ReactElement {
   return (
-    <div className="relative min-h-[280px]">
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}
-        ></div>
-      </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
 
-      <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-      <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-      <div className="relative z-10 p-8">
-        <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
-                  ⚡ QUẢN TRỊ
-                </div>
-              </div>
-              <div className="h-8 w-1 bg-white/40"></div>
-              <div className="text-white/90 font-bold text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  ADMIN PANEL
-                </div>
-              </div>
-            </div>
+      <div className="relative z-10 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+        <div>
+          <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+            <span className="h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_18px_rgba(45,212,191,0.8)]" />
+            Điều phối hoạt động
           </div>
 
-          <div className="mb-8">
-            <h1 className="text-5xl lg:text-6xl font-black text-white mb-4 leading-none tracking-tight">
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Q</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ả</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-              <span className="inline-block mx-2">•</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">L</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ý</span>
-              <br />
-              <span className="relative inline-block mt-2">
-                <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
-                  HOẠT ĐỘNG
-                </span>
-                <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
-              </span>
-            </h1>
+          <h1 className="max-w-3xl text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
+            Quản lý hoạt động
+          </h1>
 
-            <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-              Quản trị toàn bộ hoạt động trong hệ thống - duyệt, từ chối, theo dõi theo lớp và học kỳ
-            </p>
-          </div>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+            Theo dõi, lọc, duyệt và quản lý hoạt động rèn luyện theo học kỳ trong không gian quản trị tập trung.
+          </p>
+        </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={Activity}
-              iconColor="text-purple-600"
-              bgClass="bg-white"
-              value={totalActivities}
-              label="TỔNG SỐ"
-            />
-            <StatCard
-              icon={AlertCircle}
-              iconColor="text-black"
-              bgClass="bg-yellow-400"
-              value={pendingCount}
-              label="CHỜ DUYỆT"
-            />
-            <StatCard
-              icon={CheckCircle}
-              iconColor="text-black"
-              bgClass="bg-emerald-400"
-              value={approvedCount}
-              label="ĐÃ DUYỆT"
-            />
-            <StatCard
-              icon={XCircle}
-              iconColor="text-black"
-              bgClass="bg-rose-400"
-              value={rejectedCount}
-              label="TỪ CHỐI"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+          <GlassMetric icon={Activity} value={totalActivities} label="Tổng hoạt động" tone="text-slate-950 dark:text-white" />
+          <GlassMetric icon={AlertCircle} value={pendingCount} label="Chờ duyệt" tone="text-amber-600 dark:text-amber-300" />
+          <GlassMetric icon={CheckCircle} value={approvedCount} label="Đã duyệt" tone="text-emerald-600 dark:text-emerald-300" />
+          <GlassMetric icon={XCircle} value={rejectedCount} label="Từ chối" tone="text-rose-600 dark:text-rose-300" />
         </div>
       </div>
-
-      <style>{`
-        @keyframes grid-move { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
-        @keyframes bounce-slow { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
-        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-      `}
-      </style>
-    </div>
+    </section>
   );
 }
 
-function StatCard({ icon: Icon, iconColor, bgClass, value, label }: StatCardProps): React.ReactElement {
+function GlassMetric({ icon: Icon, value, label, tone }: EditorialMetricProps): React.ReactElement {
   return (
-    <div className="group relative">
-      <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-      <div className={`relative ${bgClass} border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1`}>
-        <Icon className={`h-6 w-6 ${iconColor} mb-2`} />
-        <p className="text-3xl font-black text-black">{value}</p>
-        <p className="text-xs font-black text-black/70 uppercase tracking-wider">{label}</p>
+    <div className="rounded-2xl border border-white/65 bg-white/55 p-4 shadow-sm backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 dark:border-white/10 dark:bg-slate-900/45">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{label}</p>
+        <span className="rounded-full border border-white/70 bg-white/55 p-2 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <Icon className={`h-4 w-4 ${tone}`} />
+        </span>
       </div>
+      <p className={`text-3xl font-black tracking-[-0.05em] leading-none ${tone}`}>{value}</p>
     </div>
   );
 }

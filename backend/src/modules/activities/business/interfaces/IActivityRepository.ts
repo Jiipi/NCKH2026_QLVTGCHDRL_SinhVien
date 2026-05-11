@@ -19,6 +19,27 @@ export interface ActivityAttendanceCreateData {
   nguoi_diem_danh_id: string;
   sv_id: string;
   hd_id: string;
+  phuong_thuc?: 'qr' | 'ma_vach' | 'truyen_thong' | 'khuon_mat' | 'thu_cong_fallback';
+  dia_chi_ip?: string | null;
+  vi_tri_gps?: string | null;
+  gps_latitude?: number | null;
+  gps_longitude?: number | null;
+  gps_accuracy_m?: number | null;
+  khoang_cach_m?: number | null;
+  ket_qua_geofence?: 'trong_vung' | 'ngoai_vung' | 'khong_co_gps' | 'khong_yeu_cau' | null;
+  fallback_request_id?: string | null;
+}
+
+export interface ActivityFallbackRequestCreateData {
+  sv_id: string;
+  hd_id: string;
+  ly_do: string;
+  minh_chung?: string[];
+  gps_latitude?: number | null;
+  gps_longitude?: number | null;
+  gps_accuracy_m?: number | null;
+  dia_chi_ip?: string | null;
+  user_agent?: string | null;
 }
 
 /**
@@ -83,6 +104,20 @@ abstract class IActivityRepository {
   abstract createAttendance(data: ActivityAttendanceCreateData): Promise<DiemDanh>;
 
   abstract markRegistrationAsAttended(studentId: string, activityId: string): Promise<void>;
+
+  abstract createFallbackRequest(data: ActivityFallbackRequestCreateData): Promise<unknown>;
+
+  abstract findFallbackRequestByStudentAndActivity(studentId: string, activityId: string): Promise<unknown | null>;
+
+  abstract listFallbackRequests(activityId?: string, studentId?: string): Promise<unknown[]>;
+
+  abstract findFallbackRequestById(requestId: string): Promise<unknown | null>;
+
+  abstract approveFallbackRequest(requestId: string, approverId: string, note?: string | null): Promise<unknown>;
+
+  abstract rejectFallbackRequest(requestId: string, approverId: string, note: string): Promise<unknown>;
+
+  abstract cancelFallbackRequest(requestId: string, studentId: string): Promise<unknown>;
 }
 
 export default IActivityRepository;

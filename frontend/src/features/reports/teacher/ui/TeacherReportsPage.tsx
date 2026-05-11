@@ -63,10 +63,6 @@ export default function ModernReports() {
       <TeacherReportsHeader />
 
       <TeacherReportsFilters
-        filterMode={filterMode}
-        setFilterMode={setFilterMode}
-        semester={semester}
-        setSemester={setSemester}
         dateRange={dateRange}
         setDateRange={setDateRange}
         onRefresh={loadStatistics}

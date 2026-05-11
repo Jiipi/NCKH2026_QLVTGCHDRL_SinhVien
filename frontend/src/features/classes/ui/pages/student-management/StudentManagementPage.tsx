@@ -24,8 +24,8 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
-import http from '../../../../../shared/api/http';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
+import classesApi from '../../../services/classesApi';
 import { useNavigate } from 'react-router-dom';
 import { getStudentAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 
@@ -142,13 +142,12 @@ export default function ModernStudentManagement() {
       if (searchTerm) params.search = searchTerm;
       if (selectedClass) { params.classFilter = selectedClass; params.classId = selectedClass; }
 
-      const [studentsRes, classesRes] = await Promise.all([
-        http.get('/teacher/students', { params }),
-        http.get('/teacher/classes')
+      const [studentsRes, classesData] = await Promise.all([
+        classesApi.getClassStudents(selectedClass, params),
+        classesApi.getTeacherClasses()
       ]);
 
-      const studentsData = studentsRes.data?.data?.students || [];
-      const classesData = classesRes.data?.data?.classes || [];
+      const studentsData = studentsRes.students || [];
 
       // Normalize student data to ensure anh_dai_dien is properly mapped
       const normalizedStudents = (Array.isArray(studentsData) ? studentsData : []).map(student => ({
@@ -188,8 +187,7 @@ export default function ModernStudentManagement() {
 
   const loadClassStatistics = async (classId) => {
     try {
-      const response = await http.get(`/teacher/classes/${classId}/statistics`);
-      const stats = response.data?.data || {};
+      const stats = await classesApi.getClassStatistics(classId);
       setClassStatistics({
         totalStudents: stats.totalStudents || 0,
         totalActivities: stats.totalActivities || 0,
@@ -214,9 +212,7 @@ export default function ModernStudentManagement() {
 
     setAssigningMonitor(true);
     try {
-      await http.patch(`/teacher/classes/${selectedClass}/monitor`, {
-        sinh_vien_id: selectedMonitorId
-      });
+      await classesApi.assignMonitor(selectedClass, selectedMonitorId);
       showSuccess('Gán lớp trưởng thành công');
       await loadData();
     } catch (err) {
@@ -270,7 +266,7 @@ export default function ModernStudentManagement() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sinh viên này?')) return;
 
     try {
-      await http.delete(`/teacher/students/${studentId}`);
+      await classesApi.deleteTeacherStudent(studentId);
       showSuccess('Xóa sinh viên thành công');
       loadData();
     } catch (err) {
@@ -281,7 +277,7 @@ export default function ModernStudentManagement() {
 
   const handleSaveEdit = async () => {
     try {
-      await http.put(`/teacher/students/${selectedStudent.id}`, formData);
+      await classesApi.updateTeacherStudent(selectedStudent.id, formData);
       showSuccess('Cập nhật thông tin sinh viên thành công');
       setEditModalOpen(false);
       loadData();
@@ -303,7 +299,7 @@ export default function ModernStudentManagement() {
       const payload = { ...formData };
       if (payload.sdt) payload.sdt = String(payload.sdt).replace(/\D/g, '');
 
-      await http.post('/teacher/students', payload);
+      await classesApi.createTeacherStudent(payload);
       showSuccess('Thêm sinh viên thành công');
       setAddModalOpen(false);
       loadData();
@@ -320,9 +316,8 @@ export default function ModernStudentManagement() {
       if (searchTerm) params.set('search', searchTerm);
       if (selectedClass && selectedClass !== 'all') { params.set('classFilter', selectedClass); params.set('classId', selectedClass); }
 
-      const url = `/teacher/students/export?${params.toString()}`;
-      const res = await http.get(url, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: fmt === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv;charset=utf-8;' });
+      const data = await classesApi.exportTeacherStudents(Object.fromEntries(params));
+      const blob = new Blob([data], { type: fmt === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const href = window.URL.createObjectURL(blob);
       link.href = href;

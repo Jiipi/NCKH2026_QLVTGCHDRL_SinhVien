@@ -1,23 +1,27 @@
 import React from 'react';
-import { Activity, Clock, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Activity, Clock, CheckCircle, XCircle } from 'lucide-react';
 
-const STATUS_CONFIG: Record<string, { badge: { bg: string; icon: typeof Clock; label: string }; points: string }> = {
-  pending: {
-    badge: { bg: 'bg-yellow-100 text-yellow-700', icon: Clock, label: 'Chờ duyệt' },
-    points: 'bg-orange-500'
-  },
-  approved: {
-    badge: { bg: 'bg-green-100 text-green-700', icon: CheckCircle, label: 'Đã duyệt' },
-    points: 'bg-green-500'
-  },
-  joined: {
-    badge: { bg: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: 'Đã tham gia' },
-    points: 'bg-blue-500'
-  },
-  rejected: {
-    badge: { bg: 'bg-red-100 text-red-700', icon: XCircle, label: 'Bị từ chối' },
-    points: 'bg-red-500'
+const sectionVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: 'easeOut' as const }
   }
+} as const;
+
+const listItemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: i * 0.08,
+      duration: 0.4,
+      ease: 'easeOut' as const,
+    }
+  })
 };
 
 interface ActivityData {
@@ -71,70 +75,42 @@ export default function RecentActivities({
   myActivities = {},
   formatNumber = (value) => value
 }: RecentActivitiesProps) {
-  const counts = {
-    all: myActivities.all?.length || 0,
-    pending: myActivities.pending?.length || 0,
-    approved: myActivities.approved?.length || 0,
-    joined: myActivities.joined?.length || 0,
-    rejected: myActivities.rejected?.length || 0
-  };
-
-  const filters = [
-    { key: 'all', label: 'Tất cả' },
-    { key: 'pending', label: 'Chờ duyệt' },
-    { key: 'approved', label: 'Đã duyệt' },
-    { key: 'joined', label: 'Đã tham gia' },
-    { key: 'rejected', label: 'Bị từ chối' }
-  ];
-
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg h-full">
+    <motion.div
+      className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20"
+      variants={sectionVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-50px' }}
+    >
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 font-bold text-sm">
-          <Activity className="w-5 h-5" />
-          Hoạt động gần đây
-        </div>
-        <button
-          onClick={onViewAll}
-          className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
-        >
-          Xem tất cả →
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {filters.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => onFilterChange(key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              recentFilter === key
-                ? 'bg-purple-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
-            }`}
+        <div className="flex items-center gap-2">
+          <motion.div
+            whileHover={{ rotate: -15, scale: 1.1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
-            {label} ({counts[key]})
-          </button>
-        ))}
+            <Activity className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+          </motion.div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm uppercase tracking-wide">
+            Hoạt động đã tham gia gần đây
+          </h3>
+        </div>
+        <motion.button
+          onClick={onViewAll}
+          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+          whileHover={{ x: 4 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+        >
+          Xem tất cả lịch sử →
+        </motion.button>
       </div>
 
-      <div
-        className="max-h-[500px] overflow-y-auto pr-2 space-y-3"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#a855f7 #f3f4f6' }}
-      >
-        {recentActivities.length > 0 ? (
-          recentActivities.map((activity: ActivityItem, idx: number) => {
-            const activityData: ActivityData = (activity.activity || activity) as ActivityData;
-            const status = normalizeStatus(activity.trang_thai_dk || activity.status);
-            const config = STATUS_CONFIG[status];
-            const location =
-              activity.dia_diem ||
-              activityData.dia_diem ||
-              activity.activity?.dia_diem ||
-              activity.hoat_dong?.dia_diem ||
-              activityData.location ||
-              activity.location ||
-              'N/A';
+      {/* List with staggered slide-in animation */}
+      {recentActivities.length > 0 ? (
+        <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-700">
+          {recentActivities.slice(0, 6).map((activity: ActivityItem, idx: number) => {
+            const activityData: ActivityData = (activity.activity || activity.hoat_dong || activity) as ActivityData;
             const displayDate =
               activity.ngay_tham_gia ||
               activity.ngay_bd ||
@@ -142,48 +118,77 @@ export default function RecentActivities({
               activityData.ngay_tham_gia ||
               activity.hoat_dong?.ngay_bd ||
               null;
+            const points = activityData.diem_rl || activity.diem_rl || 0;
+            const status = normalizeStatus(activity.trang_thai_dk || activity.status);
 
             return (
-              <div
+              <motion.div
                 key={activity.id || activity.activity_id || idx}
-                className="group/item cursor-pointer bg-gradient-to-br rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200"
-                style={{ background: resolveBackground(status) }}
+                className="-mx-2 flex cursor-pointer items-center justify-between rounded-2xl border border-transparent px-3 py-3 transition-all hover:border-white/60 hover:bg-white/55 hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/5"
+                custom={idx}
+                variants={listItemVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                whileHover={{ x: 4, backgroundColor: 'rgba(241,245,249,0.8)' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 onClick={() => onSelectActivity(activity)}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 flex-1 text-sm leading-tight">
-                    {activityData.ten_hd || activityData.name || 'Hoạt động'}
-                  </h3>
-                  <div className="ml-2 flex items-center gap-2">
-                    {config && (
-                      <span className={`${config.badge.bg} px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1`}>
-                        <config.badge.icon className="h-3 w-3" />
-                        {config.badge.label}
-                      </span>
-                    )}
-                    <span className={`${config?.points || 'bg-blue-500'} text-white px-2.5 py-1 rounded-full text-xs font-medium`}>
-                      +{formatNumber(activityData.diem_rl || activity.diem_rl || 0)}đ
-                    </span>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Activity info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                      {activityData.ten_hd || activityData.name || 'Hoạt động'}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {displayDate ? new Date(displayDate).toLocaleDateString('vi-VN') : 'N/A'}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-700 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {displayDate ? new Date(displayDate).toLocaleDateString('vi-VN') : 'N/A'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {location}
-                  </span>
+
+                {/* Status badge + Points */}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                  <motion.span
+                    className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getStatusBadge(status)}`}
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.08 + 0.3, type: 'spring', stiffness: 500, damping: 20 }}
+                  >
+                    {getStatusLabel(status)}
+                  </motion.span>
+                  <motion.span
+                    className="text-sm font-bold text-blue-700 dark:text-blue-400"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.08 + 0.4 }}
+                  >
+                    +{formatNumber(points)}đ
+                  </motion.span>
                 </div>
-              </div>
+              </motion.div>
             );
-          })
-        ) : (
-          <div className="text-center py-8 text-gray-500 font-medium">Không có hoạt động nào</div>
-        )}
-      </div>
-    </div>
+          })}
+        </div>
+      ) : (
+        <motion.div
+          className="text-center py-8"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <motion.div
+            className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 mb-2"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Activity className="w-5 h-5" />
+          </motion.div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có hoạt động nào</p>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
@@ -196,18 +201,22 @@ function normalizeStatus(status = '') {
   return 'pending';
 }
 
-function resolveBackground(status) {
+function getStatusBadge(status: string) {
   switch (status) {
-    case 'pending':
-      return 'linear-gradient(to bottom right, #fef9c3, #fef3c7)';
-    case 'approved':
-      return 'linear-gradient(to bottom right, #dcfce7, #d1fae5)';
-    case 'joined':
-      return 'linear-gradient(to bottom right, #dbeafe, #e0e7ff)';
-    case 'rejected':
-      return 'linear-gradient(to bottom right, #fee2e2, #fecaca)';
-    default:
-      return 'linear-gradient(to bottom right, #dbeafe, #e0e7ff)';
+    case 'joined': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
+    case 'approved': return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
+    case 'pending': return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+    case 'rejected': return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400';
+    default: return 'bg-slate-100 dark:bg-slate-700 text-slate-500';
   }
 }
 
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'joined': return 'Đã tham gia';
+    case 'approved': return 'Đã duyệt';
+    case 'pending': return 'Chờ duyệt';
+    case 'rejected': return 'Từ chối';
+    default: return 'N/A';
+  }
+}

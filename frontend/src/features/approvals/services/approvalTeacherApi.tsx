@@ -6,6 +6,56 @@ import http from '../../../shared/api/http';
 import { handleApiError, createSuccessResponse } from './apiErrorHandler';
 
 class ApprovalTeacherApi {
+  async getTeacherClasses() {
+    try {
+      const response = await http.get('/teacher/classes');
+      const payload = response?.data?.data || response?.data || {};
+      return createSuccessResponse(Array.isArray(payload?.classes) ? payload.classes : (Array.isArray(payload) ? payload : []));
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+
+  async getApprovalActivities(endpoint, params = {}) {
+    try {
+      const response = await http.get(endpoint, { params });
+      const data = response?.data?.data || response?.data || {};
+      return createSuccessResponse({
+        items: Array.isArray(data.items) ? data.items : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])),
+        stats: data.stats,
+        raw: data
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+
+  async getPendingRegistrations(params = {}) {
+    try {
+      const response = await http.get('/teacher/registrations/pending', { params });
+      const data = response?.data?.data || response?.data || {};
+      const items = data.items || data.data || data || [];
+      return createSuccessResponse({
+        items: Array.isArray(items) ? items : [],
+        pagination: data.pagination || {},
+        total: data.total,
+        counts: data.counts
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+
+  async getTeacherActivities(params = {}) {
+    try {
+      const response = await http.get('/teacher/activities', { params });
+      const list = response?.data?.data?.activities || response?.data?.data || response?.data || [];
+      return createSuccessResponse(Array.isArray(list) ? list : []);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+
   /**
    * Fetches activity registrations for teacher's activities
    * @param {object} params - Query parameters

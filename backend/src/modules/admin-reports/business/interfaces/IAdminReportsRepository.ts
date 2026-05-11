@@ -10,7 +10,7 @@ import type {
   UserWithStudent,
   ActivityReportFilter,
 } from '../../admin-reports.types';
-import type { DiemDanh, Lop } from '@prisma/client';
+import type { DiemDanh, Lop, Prisma } from '@prisma/client';
 
 /**
  * Attendance record with related data
@@ -99,6 +99,15 @@ export interface StudentAttendance {
   } | null;
 }
 
+export interface AttendanceAuditSummary {
+  totalEvents: number;
+  failedScans: number;
+  successfulScans: number;
+  duplicateAttemptCount: number;
+  tokenIssueCount: number;
+  suspiciousIpCount: number;
+}
+
 export interface IAdminReportsRepository {
   groupActivitiesByStatus(where: ActivityReportFilter): Promise<unknown[]>;
   findTopActivities(where: ActivityReportFilter): Promise<unknown[]>;
@@ -115,4 +124,10 @@ export interface IAdminReportsRepository {
   ): Promise<{ attendanceList: AttendanceRecord[]; total: number }>;
   findAllClasses(): Promise<unknown[]>;
   getAttendanceStats(): Promise<AttendanceStats>;
+  findAttendanceAuditWithFilters(
+    whereCondition: Prisma.NhatKyDiemDanhWhereInput,
+    skip: number,
+    take: number
+  ): Promise<{ items: unknown[]; total: number }>;
+  getAttendanceAuditSummary(whereCondition: Prisma.NhatKyDiemDanhWhereInput): Promise<AttendanceAuditSummary>;
 }

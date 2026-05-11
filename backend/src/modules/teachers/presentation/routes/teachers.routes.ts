@@ -8,7 +8,7 @@ import { createTeachersController } from '../teachers.factory';
 import { auth, requireTeacher } from '../../../../core/http/middleware/authJwt';
 import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
 import { uploadExcel } from '../../../../core/http/middleware/uploadExcel';
-import { parseExcelFile, validateStudents, importStudents, cleanupFile } from '../../../../core/utils/excelParser';
+import { parseExcelFile, validateStudents, cleanupFile, createImportJob, completeImportJob, getRecentImportJobs, getImportJob, confirmStudentImportJob } from '../../../../core/utils/excelParser';
 import type { AuthenticatedRequest } from '../controllers/TeachersController';
 
 const router: Router = express.Router();
@@ -128,6 +128,28 @@ interface AuthenticatedUploadRequest {
 }
 
 /**
+ * GET /teachers/students/import/jobs
+ * Get recent import jobs
+ */
+router.get('/students/import/jobs', auth, asyncHandler(async (_req: Request, res: Response) => {
+  const jobs = await getRecentImportJobs(20);
+  return res.json({ success: true, data: jobs });
+}));
+
+
+/**
+ * GET /teachers/students/import/jobs/:jobId
+ * Get import job detail
+ */
+router.get('/students/import/jobs/:jobId', auth, asyncHandler(async (req: Request, res: Response) => {
+  const job = await getImportJob(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy import job' });
+  }
+  return res.json({ success: true, data: job });
+}));
+
+/**
  * POST /teachers/students/preview
  * Upload Excel/CSV and return validation results (no DB writes)
  */
@@ -142,10 +164,31 @@ router.post('/students/preview', auth, uploadExcel.single('file'), asyncHandler(
   }
 
   const filePath = uploadReq.file.path;
+  const originalName = uploadReq.file.originalname || 'unknown';
+
   try {
     const rows = parseExcelFile(filePath);
     const result = await validateStudents(rows);
-    return res.json({ success: true, data: result });
+
+    const job = await createImportJob({
+      actorId: uploadReq.user!.id,
+      filename: originalName,
+      totalRows: rows.length,
+      previewPayload: result
+    });
+
+    await completeImportJob(job.id, {
+      validRows: result.valid.length,
+      invalidRows: result.invalid.length,
+      status: 'pending',
+      errors: result.invalid.map(inv => ({
+        rowNumber: inv.rowNumber || 0,
+        message: inv.errors.join(', '),
+        rawValue: JSON.stringify(inv)
+      }))
+    });
+
+    return res.json({ success: true, data: { ...result, jobId: job.id } });
   } finally {
     cleanupFile(filePath);
   }
@@ -153,30 +196,27 @@ router.post('/students/preview', auth, uploadExcel.single('file'), asyncHandler(
 
 /**
  * POST /teachers/students/import
- * Upload Excel/CSV, validate and import valid rows into DB
+ * Confirm previewed import job and write valid rows into DB
  */
-router.post('/students/import', auth, uploadExcel.single('file'), asyncHandler(async (req: Request, res: Response) => {
+router.post('/students/import', auth, asyncHandler(async (req: Request, res: Response) => {
   const uploadReq = req as AuthenticatedUploadRequest;
   if (uploadReq.user?.role !== 'GIANG_VIEN' && uploadReq.user?.role !== 'GIANG_VIÊN') {
     return res.status(403).json({ success: false, message: 'Chỉ giảng viên mới được import sinh viên' });
   }
 
-  if (!uploadReq.file || !uploadReq.file.path) {
-    return res.status(400).json({ success: false, message: 'Thiếu file upload. Vui lòng chọn file Excel/CSV' });
+  const jobId = String(req.body?.jobId || '');
+  if (!jobId) {
+    return res.status(400).json({ success: false, message: 'Thiếu jobId để xác nhận import' });
   }
 
-  const filePath = uploadReq.file.path;
-  try {
-    const rows = parseExcelFile(filePath);
-    const { valid, invalid } = await validateStudents(rows);
-    if (!valid || valid.length === 0) {
-      return res.status(400).json({ success: false, message: 'Không có dòng hợp lệ để import', data: { imported: 0, failed: invalid?.length || 0, invalid } });
-    }
-    const { imported, failed } = await importStudents(valid);
-    return res.json({ success: true, message: 'Import hoàn tất', data: { imported, failed, invalid } });
-  } finally {
-    cleanupFile(filePath);
-  }
+  const result = await confirmStudentImportJob(jobId, {
+    userId: uploadReq.user!.id,
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'] || null,
+    requestId: null,
+  });
+
+  return res.json({ success: true, message: 'Import hoàn tất', data: { ...result, jobId } });
 }));
 
 /**

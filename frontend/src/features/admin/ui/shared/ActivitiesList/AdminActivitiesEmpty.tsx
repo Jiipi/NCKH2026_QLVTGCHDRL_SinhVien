@@ -8,19 +8,19 @@ interface AdminActivitiesEmptyProps {
 
 export default function AdminActivitiesEmpty({ scopeTab, onResetFilters }: AdminActivitiesEmptyProps): React.ReactElement {
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-gray-200 p-12">
-      <div className="absolute top-4 right-4 w-32 h-32 bg-indigo-200/30 rounded-full blur-2xl"></div>
-      <div className="absolute bottom-4 left-4 w-24 h-24 bg-purple-200/30 rounded-full blur-2xl"></div>
+    <div className="relative overflow-hidden rounded-[2rem] border border-dashed border-white/60 bg-white/60 p-12 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+      <div className="absolute right-4 top-4 h-32 w-32 rounded-full bg-indigo-300/20 blur-2xl dark:bg-indigo-400/10" />
+      <div className="absolute bottom-4 left-4 h-24 w-24 rounded-full bg-teal-300/20 blur-2xl dark:bg-teal-400/10" />
 
       <div className="relative z-10 flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-white rounded-2xl shadow-lg flex items-center justify-center mb-6 border-2 border-gray-200">
-          <Activity className="h-10 w-10 text-gray-400" />
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <Activity className="h-10 w-10 text-slate-300 dark:text-slate-600" />
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
+        <h3 className="mb-2 text-xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">
           Không tìm thấy hoạt động nào
         </h3>
-        <p className="text-gray-600 mb-6 max-w-md">
+        <p className="mb-6 max-w-md text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
           {scopeTab === 'class'
             ? 'Lớp này chưa có hoạt động nào trong học kỳ được chọn. Hãy thử chọn lớp khác hoặc học kỳ khác.'
             : 'Không có hoạt động nào phù hợp với bộ lọc hiện tại. Hãy thử điều chỉnh bộ lọc hoặc tạo hoạt động mới.'}
@@ -28,7 +28,7 @@ export default function AdminActivitiesEmpty({ scopeTab, onResetFilters }: Admin
 
         <button
           onClick={onResetFilters}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+          className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:shadow-md"
         >
           <RefreshCw className="h-4 w-4" />
           Xóa lọc

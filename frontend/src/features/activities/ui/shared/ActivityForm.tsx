@@ -22,6 +22,11 @@ interface FormData {
   diem_rl: number | string;
   sl_toi_da: number | string;
   dia_diem: string;
+  yeu_cau_gps: boolean;
+  cho_phep_fallback: boolean;
+  geo_latitude: string;
+  geo_longitude: string;
+  geo_radius_meters: string;
 }
 
 interface FieldErrors {
@@ -36,6 +41,9 @@ interface FieldErrors {
   diem_rl?: string;
   sl_toi_da?: string;
   dia_diem?: string;
+  geo_latitude?: string;
+  geo_longitude?: string;
+  geo_radius_meters?: string;
 }
 
 interface Status {
@@ -57,7 +65,7 @@ interface ActivityFormProps {
   disabled?: boolean;
 }
 
-export const ActivityForm: FC<ActivityFormProps> = ({ 
+export const ActivityForm: FC<ActivityFormProps> = ({
   form,
   activityTypes,
   onFormChange,
@@ -70,6 +78,14 @@ export const ActivityForm: FC<ActivityFormProps> = ({
   onSemesterChange,
   disabled,
 }: ActivityFormProps) => {
+  const fillCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((position) => {
+      onFormChange({ target: { name: 'geo_latitude', value: String(position.coords.latitude), type: 'text' } } as ChangeEvent<HTMLInputElement>);
+      onFormChange({ target: { name: 'geo_longitude', value: String(position.coords.longitude), type: 'text' } } as ChangeEvent<HTMLInputElement>);
+    }, undefined, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+  };
+
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-2 gap-4">
       {/* Tên & Loại */}
@@ -211,6 +227,84 @@ export const ActivityForm: FC<ActivityFormProps> = ({
           disabled={disabled}
         />
       </LabeledInput>
+
+      <div className="col-span-2 rounded-lg border border-gray-200 p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <input
+            id="yeu_cau_gps"
+            type="checkbox"
+            name="yeu_cau_gps"
+            checked={form.yeu_cau_gps}
+            onChange={onFormChange}
+            disabled={disabled}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="yeu_cau_gps" className="font-medium text-gray-800">Yêu cầu vị trí khi điểm danh</label>
+        </div>
+
+        {form.yeu_cau_gps && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <LabeledInput id="geo_latitude" label="Vĩ độ" error={fieldErrors.geo_latitude}>
+              <input
+                id="geo_latitude"
+                type="number"
+                step="any"
+                name="geo_latitude"
+                value={form.geo_latitude}
+                onChange={onFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={disabled}
+              />
+            </LabeledInput>
+            <LabeledInput id="geo_longitude" label="Kinh độ" error={fieldErrors.geo_longitude}>
+              <input
+                id="geo_longitude"
+                type="number"
+                step="any"
+                name="geo_longitude"
+                value={form.geo_longitude}
+                onChange={onFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={disabled}
+              />
+            </LabeledInput>
+            <LabeledInput id="geo_radius_meters" label="Bán kính (m)" error={fieldErrors.geo_radius_meters}>
+              <input
+                id="geo_radius_meters"
+                type="number"
+                min="50"
+                max="1000"
+                name="geo_radius_meters"
+                value={form.geo_radius_meters}
+                onChange={onFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={disabled}
+              />
+            </LabeledInput>
+            <div className="md:col-span-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={fillCurrentLocation}
+                disabled={disabled}
+                className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+              >
+                Dùng vị trí hiện tại
+              </button>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  name="cho_phep_fallback"
+                  checked={form.cho_phep_fallback}
+                  onChange={onFormChange}
+                  disabled={disabled}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Cho phép yêu cầu điểm danh thủ công khi GPS lỗi
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Actions */}
       <div className="col-span-2 flex items-center justify-end gap-2 pt-2">

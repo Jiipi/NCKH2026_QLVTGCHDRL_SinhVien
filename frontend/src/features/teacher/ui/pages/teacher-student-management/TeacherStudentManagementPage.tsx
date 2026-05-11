@@ -57,7 +57,7 @@ function LoadingState() {
 function ErrorState({ error, onRetry }) {
   return (
     <div className="p-8">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <div className="rounded-[2rem] border border-rose-200/70 bg-rose-50/70 backdrop-blur-2xl dark:border-rose-400/20 dark:bg-rose-950/40 p-6 text-center">
         <h3 className="text-lg font-semibold text-red-800 mb-2">Có lỗi xảy ra</h3>
         <p className="text-red-600">{error}</p>
         <button 

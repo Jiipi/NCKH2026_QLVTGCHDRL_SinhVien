@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Calendar, MapPin, Download, Search, Filter, X, CheckCircle, Trophy, FileText, BookOpen } from 'lucide-react';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
-import http from '../../../../../shared/api/http';
+import { studentCertificatesApi } from '../../../services';
 
 export default function MonitorMyCertificates() {
   const [certificates, setCertificates] = useState([]);
@@ -17,20 +17,15 @@ export default function MonitorMyCertificates() {
   }, []);
 
   const loadActivityTypes = () => {
-    http.get('/activities/types/list')
-      .then(res => {
-        const types = res.data?.data || [];
-        setActivityTypes(types);
-      })
+    studentCertificatesApi.getActivityTypes()
+      .then(types => setActivityTypes(types))
       .catch(() => setActivityTypes([]));
   };
 
   const loadCertificates = () => {
     setLoading(true);
-    http.get('/core/dashboard/activities/me')
-      .then(res => {
-        const data = res.data?.data || [];
-        // Only show completed activities
+    studentCertificatesApi.getMyActivities()
+      .then(data => {
         const completed = data.filter(reg => reg.trang_thai_dk === 'da_tham_gia');
         setCertificates(completed);
       })
@@ -41,15 +36,6 @@ export default function MonitorMyCertificates() {
   const handleDownloadCertificate = async (activity) => {
     try {
       showSuccess('Chức năng đang phát triển. Tạm thời hiển thị thông tin chứng nhận.', 'Thông báo', 5000);
-      // TODO: Implement PDF generation
-      // const response = await http.get(`/activities/${activity.id}/certificate`, { responseType: 'blob' });
-      // const url = window.URL.createObjectURL(new Blob([response.data]));
-      // const link = document.createElement('a');
-      // link.href = url;
-      // link.setAttribute('download', `chung-nhan-${activity.ten_hd}.pdf`);
-      // document.body.appendChild(link);
-      // link.click();
-      // link.remove();
     } catch (error) {
       showError('Không thể tải chứng nhận');
     }

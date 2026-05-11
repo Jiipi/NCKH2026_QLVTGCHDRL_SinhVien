@@ -18,6 +18,9 @@ export interface FaceHealthResponse {
   models_loaded: boolean;
   detector: string;
   embedder: string;
+  model_name?: string;
+  model_version?: string;
+  embedding_dim?: number;
 }
 
 export interface FaceStatusResponse {
@@ -30,6 +33,9 @@ export interface FaceStatusResponse {
   soAnhDangKy?: number;
   ngayDangKy?: string;
   ngayCapNhat?: string;
+  anhKhuonMat?: string | null;
+  anhKhuonMatDs?: string[] | null;
+  hasFaceImage?: boolean;
 }
 
 export interface FaceRegisterResponse {
@@ -38,6 +44,7 @@ export interface FaceRegisterResponse {
   sinhVienId?: string;
   faceDataId?: string;
   isUpdate?: boolean;
+  errorCode?: string;
 }
 
 export interface FaceAttendanceResponse {
@@ -49,6 +56,27 @@ export interface FaceAttendanceResponse {
   similarity?: number;
   threshold?: number;
   timestamp?: string;
+  errorCode?: string;
+}
+
+export interface ConsentStatusResponse {
+  hasConsent: boolean;
+  currentVersion: string;
+  acceptedVersion?: string;
+  acceptedAt?: string;
+  needsConsent: boolean;
+  policy: {
+    title: string;
+    version: string;
+    sections: Array<{ title: string; content: string }>;
+  };
+}
+
+export interface FallbackRequestResponse {
+  success: boolean;
+  message: string;
+  requestId?: string;
+  status?: string;
 }
 
 /**
@@ -56,7 +84,6 @@ export interface FaceAttendanceResponse {
  */
 export async function checkFaceServiceHealth(): Promise<FaceHealthResponse> {
   try {
-    // Use retry for health check since it's idempotent
     const response = await withRetry(
       () => http.get('/face/health'),
       {
@@ -98,6 +125,43 @@ export async function getFaceStatus(): Promise<FaceStatusResponse | null> {
   }
 }
 
+// ========================
+// CONSENT API
+// ========================
+
+/**
+ * Kiểm tra trạng thái consent sinh trắc học
+ */
+export async function checkConsent(): Promise<ConsentStatusResponse | null> {
+  try {
+    const response = await http.get('/face/consent');
+    return response.data?.data || null;
+  } catch (error) {
+    console.error('[FaceAPI] Check consent failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Ghi nhận đồng ý chính sách sinh trắc học
+ */
+export async function acceptConsent(): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await http.post('/face/consent');
+    return response.data?.data || { success: true, message: 'Đã đồng ý' };
+  } catch (error: any) {
+    console.error('[FaceAPI] Accept consent failed:', error);
+    return {
+      success: false,
+      message: error.response?.data?.error || error.message || 'Lỗi ghi nhận đồng ý'
+    };
+  }
+}
+
+// ========================
+// REGISTRATION API
+// ========================
+
 /**
  * Đăng ký khuôn mặt
  * @param imageFiles - File ảnh hoặc Blob (1 hoặc nhiều ảnh)
@@ -125,13 +189,11 @@ export async function registerFace(
     }
 
     const formData = new FormData();
-    // Append all files with field name 'files' for multi-image registration
     files.forEach((file, index) => {
       formData.append('files', file, `face_${index + 1}.jpg`);
     });
     formData.append('updateIfExists', String(updateIfExists));
 
-    // Don't retry registration - it's not idempotent
     const response = await http.post('/face/register', formData, {
       timeout: FACE_CONFIG.api.timeoutMs
     });
@@ -139,28 +201,33 @@ export async function registerFace(
     return response.data?.data || response.data;
   } catch (error: any) {
     console.error('[FaceAPI] Register failed:', error);
-    console.error('[FaceAPI] Response data:', error.response?.data);
-    console.error('[FaceAPI] Response status:', error.response?.status);
+    const errorCode = error.response?.data?.data?.errorCode || error.response?.data?.errorCode;
     return {
       success: false,
-      message: error.response?.data?.error || error.response?.data?.message || error.response?.data?.detail || error.message || 'Đăng ký khuôn mặt thất bại'
+      message: error.response?.data?.error || error.response?.data?.message || error.response?.data?.detail || error.message || 'Đăng ký khuôn mặt thất bại',
+      errorCode
     };
   }
 }
+
+// ========================
+// ATTENDANCE API
+// ========================
 
 /**
  * Điểm danh bằng khuôn mặt
  * @param activityId - ID hoạt động
  * @param imageFile - File ảnh hoặc Blob
  * @param threshold - Ngưỡng similarity (mặc định 0.68)
+ * @param location - Vị trí GPS khi điểm danh
  */
 export async function faceAttendance(
   activityId: string,
   imageFile: File | Blob,
-  threshold?: number
+  threshold?: number,
+  location?: { latitude: number; longitude: number; accuracy?: number } | null
 ): Promise<FaceAttendanceResponse> {
   try {
-    // Validate image before upload
     const validation = validateImageFile(imageFile);
     if (!validation.valid) {
       const errorMsg = validation.error?.message || 'File ảnh không hợp lệ';
@@ -176,8 +243,15 @@ export async function faceAttendance(
       formData.append('threshold', String(threshold));
     }
 
-    // Don't retry attendance - it's not idempotent
-    // Note: Don't set Content-Type manually when using FormData
+    // Gửi kèm vị trí GPS nếu có
+    if (location) {
+      formData.append('latitude', String(location.latitude));
+      formData.append('longitude', String(location.longitude));
+      if (location.accuracy !== undefined) {
+        formData.append('accuracy', String(location.accuracy));
+      }
+    }
+
     const response = await http.post(`/face/attendance/${activityId}`, formData, {
       timeout: FACE_CONFIG.api.timeoutMs
     });
@@ -185,12 +259,106 @@ export async function faceAttendance(
     return response.data?.data || response.data;
   } catch (error: any) {
     console.error('[FaceAPI] Attendance failed:', error);
+    const errorCode = error.response?.data?.data?.errorCode || error.response?.data?.errorCode;
     return {
       success: false,
-      message: error.response?.data?.message || error.response?.data?.error || error.message || 'Điểm danh thất bại'
+      message: error.response?.data?.message || error.response?.data?.error || error.message || 'Điểm danh thất bại',
+      errorCode
     };
   }
 }
+
+// ========================
+// FALLBACK API
+// ========================
+
+/**
+ * Tạo yêu cầu điểm danh thủ công khi face fail
+ */
+export async function createFaceFallback(
+  activityId: string,
+  reason: string,
+  errorCode?: string,
+  similarity?: number,
+  location?: { latitude: number; longitude: number; accuracy?: number } | null
+): Promise<FallbackRequestResponse> {
+  try {
+    const body: any = { reason, errorCode, similarity };
+    if (location) {
+      body.latitude = location.latitude;
+      body.longitude = location.longitude;
+      body.accuracy = location.accuracy;
+    }
+
+    const response = await http.post(`/face/fallback/${activityId}`, body);
+    const data = response.data?.data || response.data;
+    return {
+      success: true,
+      message: data?.message || 'Đã gửi yêu cầu xác minh',
+      requestId: data?.requestId,
+      status: data?.status
+    };
+  } catch (error: any) {
+    console.error('[FaceAPI] Fallback failed:', error);
+    return {
+      success: false,
+      message: error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể gửi yêu cầu'
+    };
+  }
+}
+
+// ========================
+// ADMIN API
+// ========================
+
+/**
+ * Lấy danh sách face registrations (Admin/GV)
+ */
+export async function getAdminFaceRegistrations(
+  params: { status?: string; classId?: string; page?: number; limit?: number } = {}
+) {
+  try {
+    const response = await http.get('/face/admin/registrations', { params });
+    return response.data?.data || null;
+  } catch (error: any) {
+    console.error('[FaceAPI] Admin list failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Xác minh face data (Admin/GV)
+ */
+export async function verifyFaceData(faceDataId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await http.patch(`/face/admin/registrations/${faceDataId}/verify`);
+    return response.data?.data || { success: true, message: 'Đã xác minh' };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.error || error.message || 'Lỗi xác minh'
+    };
+  }
+}
+
+/**
+ * Từ chối face data (Admin/GV)
+ */
+export async function rejectFaceData(faceDataId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await http.patch(`/face/admin/registrations/${faceDataId}/reject`, { reason });
+    return response.data?.data || { success: true, message: 'Đã từ chối' };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.error || error.message || 'Lỗi từ chối'
+    };
+  }
+}
+
+// ========================
+// DELETE
+// ========================
 
 /**
  * Xóa dữ liệu khuôn mặt đã đăng ký
@@ -210,6 +378,10 @@ export async function deleteFaceData(): Promise<{ success: boolean; message: str
     };
   }
 }
+
+// ========================
+// UTILITIES
+// ========================
 
 /**
  * Chuyển canvas thành Blob
@@ -268,8 +440,14 @@ export function captureVideoFrame(video: HTMLVideoElement): Promise<Blob> {
 export default {
   checkFaceServiceHealth,
   getFaceStatus,
+  checkConsent,
+  acceptConsent,
   registerFace,
   faceAttendance,
+  createFaceFallback,
+  getAdminFaceRegistrations,
+  verifyFaceData,
+  rejectFaceData,
   deleteFaceData,
   canvasToBlob,
   captureVideoFrame

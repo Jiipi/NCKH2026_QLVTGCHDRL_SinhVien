@@ -29,6 +29,10 @@ router.get('/attendance', (req: Request, res: Response) =>
   adminReportsController.getAttendanceReport(req, res)
 );
 
+router.get('/attendance-audit', (req: Request, res: Response) =>
+  adminReportsController.getAttendanceAuditReport(req, res)
+);
+
 /**
  * GET /api/core/admin/reports/classes
  * Get all classes with student counts

@@ -42,10 +42,10 @@ export default function ActivityApprovalEmptyState({
   }, [config.defaultMessage, searchTerm, viewMode, semester, semesterOptions]);
 
   return (
-    <div className="col-span-full text-center py-12 bg-white rounded-xl border border-gray-200" data-ref="teacher-approval-empty-state">
-      <Icon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-500 mb-2">{config.title}</h3>
-      <p className="text-gray-400 text-sm">{description}</p>
+    <div className="col-span-full text-center py-12 backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 rounded-2xl border border-white/60 dark:border-white/10 shadow-2xl shadow-slate-200/50 dark:shadow-black/30" data-ref="teacher-approval-empty-state">
+      <Icon className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-300 mb-2">{config.title}</h3>
+      <p className="text-slate-400 dark:text-slate-500 text-sm">{description}</p>
     </div>
   );
 }

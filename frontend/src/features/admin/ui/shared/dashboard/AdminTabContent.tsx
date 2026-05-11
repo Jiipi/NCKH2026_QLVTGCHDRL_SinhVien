@@ -13,51 +13,51 @@ import {
 
 const ACTION_TYPE_STYLES = {
   approval: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    iconBg: 'bg-green-100',
-    badge: 'bg-green-100 text-green-700',
-    iconColor: 'text-green-700',
+    bg: 'bg-emerald-50/70 dark:bg-emerald-400/10',
+    border: 'border-emerald-200/70 dark:border-emerald-400/20',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-400/10',
+    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
+    iconColor: 'text-emerald-700 dark:text-emerald-300',
     icon: CheckCircle
   },
   create: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    iconBg: 'bg-orange-100',
-    badge: 'bg-orange-100 text-orange-700',
-    iconColor: 'text-orange-600',
+    bg: 'bg-orange-50/70 dark:bg-orange-400/10',
+    border: 'border-orange-200/70 dark:border-orange-400/20',
+    iconBg: 'bg-orange-100 dark:bg-orange-400/10',
+    badge: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
+    iconColor: 'text-orange-600 dark:text-orange-300',
     icon: Activity
   },
   update: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    iconBg: 'bg-blue-100',
-    badge: 'bg-blue-100 text-blue-700',
-    iconColor: 'text-blue-600',
+    bg: 'bg-sky-50/70 dark:bg-sky-400/10',
+    border: 'border-sky-200/70 dark:border-sky-400/20',
+    iconBg: 'bg-sky-100 dark:bg-sky-400/10',
+    badge: 'bg-sky-100 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300',
+    iconColor: 'text-sky-600 dark:text-sky-300',
     icon: FileCheck
   },
   account: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    iconBg: 'bg-purple-100',
-    badge: 'bg-purple-100 text-purple-700',
-    iconColor: 'text-purple-600',
+    bg: 'bg-indigo-50/70 dark:bg-indigo-400/10',
+    border: 'border-indigo-200/70 dark:border-indigo-400/20',
+    iconBg: 'bg-indigo-100 dark:bg-indigo-400/10',
+    badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-400/10 dark:text-indigo-300',
+    iconColor: 'text-indigo-600 dark:text-indigo-300',
     icon: UserCheck
   },
   incident: {
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    iconBg: 'bg-red-100',
-    badge: 'bg-red-100 text-red-700',
-    iconColor: 'text-red-600',
+    bg: 'bg-rose-50/70 dark:bg-rose-400/10',
+    border: 'border-rose-200/70 dark:border-rose-400/20',
+    iconBg: 'bg-rose-100 dark:bg-rose-400/10',
+    badge: 'bg-rose-100 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300',
+    iconColor: 'text-rose-600 dark:text-rose-300',
     icon: AlertCircle
   },
   default: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
-    iconBg: 'bg-gray-100',
-    badge: 'bg-gray-200 text-gray-700',
-    iconColor: 'text-gray-600',
+    bg: 'bg-slate-50/70 dark:bg-white/5',
+    border: 'border-slate-200/70 dark:border-white/10',
+    iconBg: 'bg-slate-100 dark:bg-white/10',
+    badge: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300',
+    iconColor: 'text-slate-600 dark:text-slate-300',
     icon: Bell
   }
 };
@@ -95,17 +95,17 @@ export default function AdminTabContent({
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200">
-      <div className="border-b border-gray-200">
+    <div className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+      <div className="border-b border-white/60 dark:border-white/10">
         <div className="flex flex-wrap gap-2 p-4">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all ${
                 activeTab === tab.key
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'border border-white/60 bg-white/45 text-slate-600 hover:bg-white/75 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
               }`}
             >
               <tab.icon className="h-5 w-5" />
@@ -151,7 +151,7 @@ export default function AdminTabContent({
 function RecentTabContent({ adminActionFeed, navigate }) {
   if (!adminActionFeed || adminActionFeed.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="py-12 text-center text-slate-500 dark:text-slate-400">
         <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
         <p className="text-sm">Chưa có ghi nhận thao tác quản trị nào</p>
       </div>
@@ -166,7 +166,7 @@ function RecentTabContent({ adminActionFeed, navigate }) {
         return (
           <div
             key={action.key}
-            className={`p-4 rounded-xl border ${style.border} ${style.bg} hover:shadow-md transition-all`}
+            className={`rounded-2xl border ${style.border} ${style.bg} p-4 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-md`}
           >
             <div className="flex items-start gap-3">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${style.iconBg}`}>
@@ -190,7 +190,7 @@ function RecentTabContent({ adminActionFeed, navigate }) {
               {action.actionPath && (
                 <button
                   onClick={() => navigate(action.actionPath)}
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                  className="whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/20"
                 >
                   {action.actionLabel || 'Chi tiết'}
                 </button>
@@ -215,7 +215,7 @@ function SemestersTabContent({ semesters, loadingSemesters, navigate }) {
 
   if (!semesters || semesters.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="py-12 text-center text-slate-500 dark:text-slate-400">
         <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
         <p className="text-sm">Chưa có học kỳ nào trong hệ thống</p>
         <button
@@ -233,8 +233,8 @@ function SemestersTabContent({ semesters, loadingSemesters, navigate }) {
       {semesters.map((semester, idx) => (
         <div
           key={semester.value || semester.id || idx}
-          className={`flex items-center justify-between p-4 rounded-lg hover:shadow-md transition-all ${
-            semester.is_active ? 'bg-purple-50 border border-purple-300' : 'bg-gray-50 border border-gray-200'
+          className={`flex items-center justify-between rounded-2xl border p-4 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-md ${
+            semester.is_active ? 'border-indigo-200/70 bg-indigo-50/70 dark:border-indigo-400/20 dark:bg-indigo-400/10' : 'border-white/60 bg-white/45 dark:border-white/10 dark:bg-white/5'
           }`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -275,7 +275,7 @@ function ApprovalsTabContent({ pendingRegistrations, pendingRegistrationsCount, 
 
   if (!pendingRegistrations || pendingRegistrations.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="py-12 text-center text-slate-500 dark:text-slate-400">
         <CheckCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
         <p className="text-sm">Không có đăng ký nào cần phê duyệt</p>
       </div>
@@ -285,7 +285,7 @@ function ApprovalsTabContent({ pendingRegistrations, pendingRegistrationsCount, 
   return (
     <div className="space-y-3">
       {pendingRegistrations.map((registration) => (
-        <div key={registration.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg hover:shadow-md transition-all">
+        <div key={registration.id} className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-amber-400/20 dark:bg-amber-400/10">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0">
               <AlertCircle className="h-5 w-5 text-white" />

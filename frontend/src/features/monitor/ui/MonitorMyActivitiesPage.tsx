@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Clock, Calendar, Filter, Search, RefreshCw, SlidersHorizontal, Grid3X3, List,
   CheckCircle, XCircle, Sparkles, Trophy
@@ -13,6 +14,7 @@ import MyActivitiesHeader from './components/Activities/MyActivitiesHeader';
 import MyActivityCard from './components/Activities/MyActivityCard';
 
 export default function MonitorMyActivitiesPage() {
+  const navigate = useNavigate();
   const {
     tab,
     setTab,
@@ -82,6 +84,13 @@ export default function MonitorMyActivitiesPage() {
     await cancelRegistration(hdId, activityName);
   };
 
+  const handleFaceAttendance = (activityId) => {
+    if (!activityId) return;
+    const params = new URLSearchParams({ tab: 'face', activityId: String(activityId) });
+    if (semester) params.set('semester', semester);
+    navigate(`/qr-scanner?${params.toString()}`);
+  };
+
   // Sử dụng currentItems từ hook (đã được filter + sort)
   // Không cần getFilteredRegistrations() nữa vì hook đã xử lý
 
@@ -117,30 +126,24 @@ export default function MonitorMyActivitiesPage() {
         totalPoints={totalPoints}
       />
 
-      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="p-6">
           <div className="relative mb-6">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
-            <input type="text" value={query} onChange={e => setQuery(e.target.value)} className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:border-blue-300" placeholder="Tìm kiếm hoạt động..." />
+            <input type="text" value={query} onChange={e => setQuery(e.target.value)} className="block w-full rounded-2xl border border-white/70 bg-white/55 py-3 pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white/75 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" placeholder="Tìm kiếm hoạt động..." />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                <Calendar className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
-                <SemesterFilter value={semester} onChange={setSemester} label="" />
-              </div>
-              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
-              <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium border-2 border-gray-200 hover:border-gray-300">
+              <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 font-semibold text-slate-700 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
                 <SlidersHorizontal className="h-4 w-4" />
                 <span className="text-sm">Lọc nâng cao</span>
                 {getActiveFilterCount() > 0 && (<span className="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded-full min-w-[20px] text-center">{getActiveFilterCount()}</span>)}
                 <span className={`text-xs transform transition-transform ${showFilters ? 'rotate-180' : ''}`}>▼</span>
               </button>
               {getActiveFilterCount() > 0 && (
-                <button onClick={clearAllFilters} className="flex items-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 font-medium border-2 border-red-200 hover:border-red-300" title="Xóa tất cả bộ lọc">
+                <button onClick={clearAllFilters} className="flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/70 px-4 py-2.5 font-semibold text-rose-600 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-100/80 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300" title="Xóa tất cả bộ lọc">
                   <RefreshCw className="h-4 w-4" />
                   <span className="text-sm">Xóa lọc</span>
                 </button>
@@ -150,12 +153,12 @@ export default function MonitorMyActivitiesPage() {
               <ActivitySortBar sortBy={sortBy} onSortChange={(v) => setSortBy(v as typeof sortBy)} />
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                  <button onClick={() => setDisplayViewMode('grid')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng lưới">
+                <div className="flex items-center gap-1 rounded-2xl border border-white/70 bg-white/45 p-1 shadow-inner shadow-white/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+                  <button onClick={() => setDisplayViewMode('grid')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'grid' ? 'bg-white/85 shadow-sm text-indigo-600 border border-white/80 dark:bg-white/15 dark:text-indigo-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`} title="Hiển thị dạng lưới">
                     <Grid3X3 className="h-4 w-4" />
                     <span className="hidden sm:inline">Lưới</span>
                   </button>
-                  <button onClick={() => setDisplayViewMode('list')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list' ? 'bg-white shadow-md text-blue-600 border border-blue-200' : 'text-gray-500 hover:text-gray-700'}`} title="Hiển thị dạng danh sách">
+                  <button onClick={() => setDisplayViewMode('list')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${displayViewMode === 'list' ? 'bg-white/85 shadow-sm text-indigo-600 border border-white/80 dark:bg-white/15 dark:text-indigo-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`} title="Hiển thị dạng danh sách">
                     <List className="h-4 w-4" />
                     <span className="hidden sm:inline">Danh sách</span>
                   </button>
@@ -164,7 +167,7 @@ export default function MonitorMyActivitiesPage() {
             </div>
           </div>
           {showFilters && (
-            <div className="mt-6 p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
+            <div className="mt-6 rounded-[1.5rem] border border-white/60 bg-white/45 p-6 shadow-sm backdrop-blur-xl animate-slideDown dark:border-white/10 dark:bg-white/5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Filter className="h-5 w-5 text-blue-600" />
@@ -175,7 +178,7 @@ export default function MonitorMyActivitiesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Loại hoạt động</label>
-                  <select value={filters.type} onChange={e => setFilters(prev => ({ ...prev, type: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                  <select value={filters.type} onChange={e => setFilters(prev => ({ ...prev, type: e.target.value }))} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none">
                     <option value="">Tất cả loại</option>
                     {(Array.isArray(activityTypes) ? activityTypes : []).map(type => {
                       const typeName = typeof type === 'string' ? type : (type?.name || type?.ten_loai_hd || '');
@@ -187,19 +190,19 @@ export default function MonitorMyActivitiesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Từ ngày</label>
-                  <input type="date" value={filters.from} onChange={e => setFilters(prev => ({ ...prev, from: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" />
+                  <input type="date" value={filters.from} onChange={e => setFilters(prev => ({ ...prev, from: e.target.value }))} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Đến ngày</label>
-                  <input type="date" value={filters.to} onChange={e => setFilters(prev => ({ ...prev, to: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" />
+                  <input type="date" value={filters.to} onChange={e => setFilters(prev => ({ ...prev, to: e.target.value }))} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Điểm RL tối thiểu</label>
-                  <input type="number" step="0.5" min="0" value={filters.minPoints} onChange={e => setFilters(prev => ({ ...prev, minPoints: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" placeholder="0" />
+                  <input type="number" step="0.5" min="0" value={filters.minPoints} onChange={e => setFilters(prev => ({ ...prev, minPoints: e.target.value }))} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" placeholder="0" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Điểm RL tối đa</label>
-                  <input type="number" step="0.5" min="0" value={filters.maxPoints} onChange={e => setFilters(prev => ({ ...prev, maxPoints: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all" placeholder="Không giới hạn" />
+                  <input type="number" step="0.5" min="0" value={filters.maxPoints} onChange={e => setFilters(prev => ({ ...prev, maxPoints: e.target.value }))} className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none" placeholder="Không giới hạn" />
                 </div>
               </div>
               {getActiveFilterCount() > 0 && (
@@ -217,7 +220,7 @@ export default function MonitorMyActivitiesPage() {
 
       <div className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-        <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+        <div className="relative z-10 rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
@@ -255,7 +258,7 @@ export default function MonitorMyActivitiesPage() {
           )}
           {statusViewMode === 'dropdown' && (
             <div className="flex items-center gap-3">
-              <select value={tab} onChange={e => setTab(e.target.value)} className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm">
+              <select value={tab} onChange={e => setTab(e.target.value)} className="flex-1 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm backdrop-blur-xl transition-all duration-200 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white">
                 <option value="pending">Chờ duyệt ({myRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length})</option>
                 <option value="approved">Đã duyệt ({myRegistrations.filter(r => r.trang_thai_dk === 'da_duyet').length})</option>
                 <option value="completed">Đã tham gia ({myRegistrations.filter(r => r.trang_thai_dk === 'da_tham_gia').length})</option>
@@ -280,7 +283,7 @@ export default function MonitorMyActivitiesPage() {
             </div>
           )}
           {statusViewMode === 'compact' && (
-            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/45 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
               <button onClick={() => setTab('pending')} className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${tab === 'pending' ? 'bg-white shadow-md scale-105' : 'hover:bg-white/50'}`} title="Chờ duyệt">
                 <Clock className={`h-5 w-5 ${tab === 'pending' ? 'text-purple-600' : 'text-gray-500'}`} />
                 <span className={`text-xs font-bold ${tab === 'pending' ? 'text-purple-600' : 'text-gray-600'}`}>{myRegistrations.filter(r => r.trang_thai_dk === 'cho_duyet').length}</span>
@@ -317,6 +320,7 @@ export default function MonitorMyActivitiesPage() {
               getStatusBadge={getStatusBadge}
               handleViewDetail={handleViewDetail}
               handleShowQR={handleShowQR}
+              handleFaceAttendance={handleFaceAttendance}
               handleCancel={handleCancel}
               isWritable={isWritable}
             />
@@ -325,7 +329,7 @@ export default function MonitorMyActivitiesPage() {
       )}
 
       {filteredRegs.length > 0 && (
-        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 p-6">
           <Pagination pagination={pagination} onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))} onLimitChange={(newLimit) => setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))} itemLabel="hoạt động" showLimitSelector={true} />
         </div>
       )}

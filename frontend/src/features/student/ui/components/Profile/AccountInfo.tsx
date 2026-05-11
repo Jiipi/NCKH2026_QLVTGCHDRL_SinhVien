@@ -37,8 +37,8 @@ export default function AccountInfo({ profile, formatDateVN, getStatusText }) {
   };
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+    <section className="space-y-6 rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+      <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
         <Shield className="h-5 w-5 text-blue-600" />
         Thông tin tài khoản
       </h3>
@@ -50,8 +50,8 @@ export default function AccountInfo({ profile, formatDateVN, getStatusText }) {
             <div key={key} className="flex items-start gap-3">
               <Icon className="h-5 w-5 text-gray-400 mt-1" />
               <div>
-                <label className="text-sm font-medium text-gray-500">{label}</label>
-                <p className="mt-1 text-sm text-gray-900">{value}</p>
+                <label className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</label>
+                <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{value}</p>
               </div>
             </div>
           );

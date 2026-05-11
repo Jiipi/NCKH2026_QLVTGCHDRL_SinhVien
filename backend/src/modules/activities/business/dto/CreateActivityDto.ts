@@ -23,6 +23,11 @@ interface CreateActivityInput {
   nam_hoc?: string | number;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string;
+  geo_longitude?: number | string;
+  geo_radius_meters?: number | string;
 }
 
 /**
@@ -42,6 +47,11 @@ interface CreateActivityDomain {
   nam_hoc: string | null;
   hinh_anh: string[];
   tep_dinh_kem: string[];
+  yeu_cau_gps: boolean;
+  cho_phep_fallback: boolean;
+  geo_latitude: number | null;
+  geo_longitude: number | null;
+  geo_radius_meters: number | null;
 }
 
 /**
@@ -62,6 +72,11 @@ class CreateActivityDto {
   nam_hoc?: string | null;
   hinh_anh?: string[];
   tep_dinh_kem?: string[];
+  yeu_cau_gps?: boolean;
+  cho_phep_fallback?: boolean;
+  geo_latitude?: number | string;
+  geo_longitude?: number | string;
+  geo_radius_meters?: number | string;
 
   constructor(data: CreateActivityInput) {
     this.ten_hd = data.ten_hd || data.ten_hoat_dong;
@@ -78,6 +93,11 @@ class CreateActivityDto {
     this.nam_hoc = this._normalizeNamHoc(data.nam_hoc);
     this.hinh_anh = data.hinh_anh;
     this.tep_dinh_kem = data.tep_dinh_kem;
+    this.yeu_cau_gps = data.yeu_cau_gps;
+    this.cho_phep_fallback = data.cho_phep_fallback;
+    this.geo_latitude = data.geo_latitude;
+    this.geo_longitude = data.geo_longitude;
+    this.geo_radius_meters = data.geo_radius_meters;
   }
 
   /**
@@ -116,7 +136,12 @@ class CreateActivityDto {
       hoc_ky: this.hoc_ky || null,
       nam_hoc: this.nam_hoc || null,
       hinh_anh: this.hinh_anh || [],
-      tep_dinh_kem: this.tep_dinh_kem || []
+      tep_dinh_kem: this.tep_dinh_kem || [],
+      yeu_cau_gps: Boolean(this.yeu_cau_gps),
+      cho_phep_fallback: this.cho_phep_fallback !== false,
+      geo_latitude: this.yeu_cau_gps ? toNumberOrNull(this.geo_latitude) : null,
+      geo_longitude: this.yeu_cau_gps ? toNumberOrNull(this.geo_longitude) : null,
+      geo_radius_meters: this.yeu_cau_gps ? toNumberOrNull(this.geo_radius_meters) || 100 : null
     };
   }
 }

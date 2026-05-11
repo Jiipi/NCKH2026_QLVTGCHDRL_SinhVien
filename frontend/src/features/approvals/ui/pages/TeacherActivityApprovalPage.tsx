@@ -13,9 +13,9 @@ import {
   History,
   FileCheck
 } from 'lucide-react';
-import http from '../../../../shared/api/http';
+import { approvalTeacherApi } from '../../services';
 import { getActivityImage } from '../../../../shared/lib/activityImages';
-import { ConfirmModal, Toast, SemesterFilter } from '../../../../shared/components/common';
+import { ConfirmModal, Toast } from '../../../../shared/components/common';
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
 import { useSemesterData } from '../../../../shared/hooks';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
@@ -94,12 +94,11 @@ export default function ModernActivityApproval() {
 
       console.log('[TeacherActivityApproval] Loading activities:', { endpoint, params, activeTab });
 
-      const res = await http.get(endpoint, { params });
+      const result = await approvalTeacherApi.getApprovalActivities(endpoint, params);
+      if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách hoạt động');
 
-      // Parse response - backend returns: { success: true, data: { items: [...], total, page, limit, stats } }
-      const responseData = res.data?.data || res.data || {};
-      const activities = responseData.items || responseData.data || responseData || [];
-      const activitiesArray = Array.isArray(activities) ? activities : [];
+      const responseData = result.data.raw || {};
+      const activitiesArray = result.data.items;
 
       setActivities(activitiesArray);
 
@@ -157,7 +156,8 @@ export default function ModernActivityApproval() {
 
     try {
       if (type === 'approve') {
-        await http.post(`/teacher/activities/${activityId}/approve`);
+        const result = await approvalTeacherApi.approveActivity(activityId);
+        if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể xử lý hoạt động. Vui lòng thử lại.');
         showToast('Phê duyệt hoạt động thành công!', 'success');
         await loadActivities();
       } else if (type === 'reject') {
@@ -165,7 +165,8 @@ export default function ModernActivityApproval() {
           showToast('Vui lòng nhập lý do từ chối', 'warning');
           return;
         }
-        await http.post(`/teacher/activities/${activityId}/reject`, { reason: rejectReason.trim() });
+        const result = await approvalTeacherApi.rejectActivity(activityId, rejectReason.trim());
+        if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể xử lý hoạt động. Vui lòng thử lại.');
         showToast('Từ chối hoạt động thành công!', 'success');
         await loadActivities();
       }
@@ -336,7 +337,6 @@ export default function ModernActivityApproval() {
             </div>
           </div>
           <div className="flex gap-2">
-            <SemesterFilter value={semester} onChange={setSemester} label="" />
             {activeTab === 'history' && (
               <select
                 value={filter}

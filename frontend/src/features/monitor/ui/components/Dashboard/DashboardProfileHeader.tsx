@@ -18,7 +18,7 @@ export default function DashboardProfileHeader({
   const avatarSrc = rawAvatar && !avatarError ? resolveAssetUrl(rawAvatar) : null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+    <div className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
           <svg className="absolute inset-0 w-20 h-20 -rotate-90 transform -translate-x-2 -translate-y-2" viewBox="0 0 80 80">
@@ -49,7 +49,7 @@ export default function DashboardProfileHeader({
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full z-10 shadow-sm"></div>
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-2 mb-1">
+          <h1 className="mb-1 flex items-center gap-2 bg-gradient-to-r from-slate-950 via-indigo-800 to-teal-700 bg-clip-text text-2xl font-black text-transparent dark:from-white dark:via-indigo-200 dark:to-teal-200 md:text-3xl">
             Xin chào, {monitorName}!
             <Sparkles className="h-6 w-6 text-yellow-400 animate-pulse" />
           </h1>

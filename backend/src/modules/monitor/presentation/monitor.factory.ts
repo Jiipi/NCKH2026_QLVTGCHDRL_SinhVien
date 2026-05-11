@@ -8,6 +8,8 @@ import ApproveRegistrationUseCase from '../business/services/ApproveRegistration
 import RejectRegistrationUseCase from '../business/services/RejectRegistrationUseCase';
 import GetMonitorDashboardUseCase from '../business/services/GetMonitorDashboardUseCase';
 import GetClassReportsUseCase from '../business/services/GetClassReportsUseCase';
+import GetAttendanceAuditReportUseCase from '../../admin-reports/business/services/GetAttendanceAuditReportUseCase';
+import adminReportsRepository from '../../admin-reports/data/repositories/admin-reports.repository';
 import MonitorController from './controllers/MonitorController';
 
 /**
@@ -26,7 +28,8 @@ function createMonitorController(): MonitorController {
     approveRegistration: new ApproveRegistrationUseCase(monitorRepository),
     rejectRegistration: new RejectRegistrationUseCase(monitorRepository),
     getMonitorDashboard: new GetMonitorDashboardUseCase(monitorRepository),
-    getClassReports: new GetClassReportsUseCase(monitorRepository)
+    getClassReports: new GetClassReportsUseCase(monitorRepository),
+    getAttendanceAuditReport: new GetAttendanceAuditReportUseCase(adminReportsRepository)
   };
 
   // Presentation layer

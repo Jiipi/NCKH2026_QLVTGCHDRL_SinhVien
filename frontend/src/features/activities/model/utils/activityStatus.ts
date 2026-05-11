@@ -166,19 +166,16 @@ export const canRegisterForActivity = (activity: Activity, role: string, isWrita
   const startDate = activity.ngay_bd ? new Date(activity.ngay_bd) : null;
   const endDate = activity.ngay_kt ? new Date(activity.ngay_kt) : startDate;
   const deadline = activity.han_dk ? new Date(activity.han_dk) : null;
-  
+
   const isPast = endDate ? endDate < now : false;
   const isDeadlinePast = deadline ? deadline.getTime() < now.getTime() : false;
-  const isAfterStart = startDate ? now.getTime() >= startDate.getTime() : false;
-  
+
   const isTeacher = role === 'giang_vien' || role === 'teacher';
   const hasNotRegistered = !activity.is_registered || activity.registration_status === 'tu_choi';
-  
-  return activity.trang_thai === 'da_duyet' && 
-         !isPast && 
-         !isDeadlinePast && 
-         !isAfterStart && 
-         hasNotRegistered && 
-         !isTeacher && 
-         isWritable;
+
+  return activity.trang_thai === 'da_duyet' &&
+         !isPast &&
+         !isDeadlinePast &&
+         hasNotRegistered &&
+         !isTeacher;
 };

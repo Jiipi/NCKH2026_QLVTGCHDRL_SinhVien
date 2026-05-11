@@ -7,12 +7,12 @@ import {
 
 // Hook & Services
 import { useAdminApprovals } from '../../model/hooks/useAdminApprovals';
+import { getStoredApprovalSemester } from '../../model/utils';
 import { useSemesterData } from '../../../../shared/hooks';
 
 // Shared Components (3-Tier Architecture)
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
-import SemesterFilter from '../../../../widgets/semester/ui/SemesterSwitcher';
-import { AdminRegistrationCard } from '../shared';
+import AdminRegistrationCard from '../shared/AdminRegistrationCard';
 import Pagination from '../../../../shared/components/common/Pagination';
 
 // ============================================
@@ -54,7 +54,7 @@ const roleLabel = (role) => ROLE_DISPLAY[role] || role || 'Không rõ';
 // MAIN COMPONENT
 // ============================================
 export default function AdminApprovalsPage() {
-  const initialSemester = useMemo(() => sessionStorage.getItem('current_semester') || '', []);
+  const initialSemester = useMemo(() => getStoredApprovalSemester(), []);
   const { options: semesterOptions } = useSemesterData(initialSemester);
 
   const {
@@ -126,13 +126,8 @@ export default function AdminApprovalsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6">
-        <div className="flex justify-center items-center h-96">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent absolute top-0 left-0"></div>
-          </div>
-        </div>
+      <div className="flex min-h-[420px] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-r-amber-500 border-t-indigo-600 dark:border-white/10 dark:border-r-amber-300 dark:border-t-indigo-300" />
       </div>
     );
   }
@@ -142,144 +137,30 @@ export default function AdminApprovalsPage() {
       {/* ============================================ */}
       {/* HERO HEADER - Neo-Brutalism + Glassmorphism */}
       {/* ============================================ */}
-      <div className="relative min-h-[280px]">
-        {/* Animated Background Grid */}
-        <div className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}></div>
-        </div>
-
-        {/* Floating Geometric Shapes */}
-        <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-        <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-        {/* Main Content Container with Glassmorphism */}
-        <div className="relative z-10 p-8">
-          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-            
-            {/* Top Bar with Badge */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
-                  <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
-                    ⚡ QUẢN TRỊ
-                  </div>
-                </div>
-                <div className="h-8 w-1 bg-white/40"></div>
-                <div className="text-white/90 font-bold text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    {stats.total ?? 0} ĐĂNG KÝ
-                  </div>
-                </div>
-              </div>
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(245,158,11,0.12),transparent_28%)]" />
+        <div className="relative z-10 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+              <Sparkles className="h-4 w-4" />
+              Quản trị phê duyệt
             </div>
-
-            {/* Main Title Section */}
-            <div className="mb-8">
-              <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">P</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ê</span>
-                <span className="inline-block mx-2">•</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">D</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">U</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Y</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ệ</span>
-                <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
-                <br />
-                <span className="relative inline-block mt-2">
-                  <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
-                    ĐĂNG KÝ
-                  </span>
-                  <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
-                </span>
-              </h1>
-              
-              <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-                Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên toàn hệ thống
-              </p>
-            </div>
-
-            {/* Stats Bar with Brutalist Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1 - Pending */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-yellow-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Clock className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{stats.pending ?? 0}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">CHỜ DUYỆT</p>
-                </div>
-              </div>
-
-              {/* Card 2 - Approved */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-green-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <CheckCircle className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{stats.approved ?? 0}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ DUYỆT</p>
-                </div>
-              </div>
-
-              {/* Card 3 - Participated */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-blue-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <Trophy className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{stats.participated ?? 0}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">ĐÃ THAM GIA</p>
-                </div>
-              </div>
-
-              {/* Card 4 - Rejected */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-                <div className="relative bg-red-400 border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1">
-                  <XCircle className="h-6 w-6 text-black mb-2" />
-                  <p className="text-3xl font-black text-black">{stats.rejected ?? 0}</p>
-                  <p className="text-xs font-black text-black/70 uppercase tracking-wider">TỪ CHỐI</p>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Phê duyệt đăng ký</h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên toàn hệ thống.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+            <HeroMetric icon={Clock} value={stats.pending ?? 0} label="Chờ duyệt" tone="text-amber-600 dark:text-amber-300" />
+            <HeroMetric icon={CheckCircle} value={stats.approved ?? 0} label="Đã duyệt" tone="text-emerald-600 dark:text-emerald-300" />
+            <HeroMetric icon={Trophy} value={stats.participated ?? 0} label="Đã tham gia" tone="text-indigo-600 dark:text-indigo-300" />
+            <HeroMetric icon={XCircle} value={stats.rejected ?? 0} label="Từ chối" tone="text-rose-600 dark:text-rose-300" />
           </div>
         </div>
-
-        {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes grid-move {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(50px); }
-          }
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0) rotate(45deg); }
-            50% { transform: translateY(-20px) rotate(45deg); }
-          }
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .animate-bounce-slow {
-            animation: bounce-slow 3s ease-in-out infinite;
-          }
-          .animate-spin-slow {
-            animation: spin-slow 8s linear infinite;
-          }
-        `}} />
-      </div>
+      </section>
 
       {/* ============================================ */}
       {/* SCOPE SELECTOR (Admin specific) */}
       {/* ============================================ */}
-      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6">
+      <div className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {SCOPE_OPTIONS.map((option) => (
             <button
@@ -288,10 +169,10 @@ export default function AdminApprovalsPage() {
                 setScopeTab(option.value);
                 if (option.value === 'all') setSelectedClass('');
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+              className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${
                 scopeTab === option.value
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 hover:text-indigo-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-indigo-300'
               }`}
             >
               {option.value === 'all' ? <Globe className="h-4 w-4" /> : <Building className="h-4 w-4" />}
@@ -301,14 +182,14 @@ export default function AdminApprovalsPage() {
         </div>
 
         {scopeTab === 'class' && (
-          <div className="p-4 rounded-xl border-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+          <div className="rounded-2xl border border-indigo-200/70 bg-indigo-50/70 p-4 shadow-sm backdrop-blur-xl dark:border-indigo-400/20 dark:bg-indigo-400/10">
+            <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-300">
               Chọn lớp để xem đăng ký
             </label>
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full md:w-96 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-medium"
+              className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20 md:w-96"
             >
               <option value="">-- Chọn lớp --</option>
               {classes.map((cls) => (
@@ -324,18 +205,18 @@ export default function AdminApprovalsPage() {
       {/* ============================================ */}
       {/* SEARCH & FILTERS */}
       {/* ============================================ */}
-      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+      <div className="rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
         <div className="p-6">
           {/* Search bar */}
           <div className="relative mb-6">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-slate-400 dark:text-slate-500" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="block w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-indigo-300"
+              className="block w-full rounded-2xl border border-white/70 bg-white/55 py-3 pl-12 pr-4 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:ring-indigo-400/20"
               placeholder="Tìm kiếm sinh viên, MSSV, email, hoạt động..."
             />
           </div>
@@ -343,27 +224,13 @@ export default function AdminApprovalsPage() {
           {/* Filters and Actions */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              {/* Semester Filter */}
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-                <Calendar className="h-4 w-4 text-indigo-600" />
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Học kỳ:</span>
-                <SemesterFilter
-                  value={semester}
-                  label=""
-                  options={filteredSemesterOptions}
-                  onChange={setSemester}
-                />
-              </div>
-
-              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
-
               {/* Activity Filter */}
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl">
+              <div className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <select
                   value={filters.activityId}
                   onChange={(e) => setFilters(prev => ({ ...prev, activityId: e.target.value }))}
-                  className="border-none bg-transparent text-sm font-semibold text-gray-700 focus:ring-0 focus:outline-none cursor-pointer"
+                  className="cursor-pointer border-none bg-transparent text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 dark:text-slate-200"
                 >
                   <option value="">Tất cả hoạt động</option>
                   {activities.map(activity => (
@@ -374,12 +241,12 @@ export default function AdminApprovalsPage() {
                 </select>
               </div>
 
-              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+              <div className="hidden h-8 w-px bg-white/60 dark:bg-white/10 lg:block"></div>
 
               {/* Advanced Filter Toggle */}
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium border-2 border-gray-200 hover:border-gray-300"
+                className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-white/75 hover:text-indigo-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-indigo-300"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 <span className="text-sm">Lọc nâng cao</span>
@@ -395,7 +262,7 @@ export default function AdminApprovalsPage() {
               {activeFilterCount > 0 && (
                 <button
                   onClick={clearAllFilters}
-                  className="flex items-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 font-medium border-2 border-red-200 hover:border-red-300"
+                  className="flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/70 px-4 py-2.5 text-sm font-bold text-rose-600 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-rose-100/80 hover:text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300 dark:hover:bg-rose-400/15"
                   title="Xóa tất cả bộ lọc"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -409,11 +276,11 @@ export default function AdminApprovalsPage() {
               {/* Sort Dropdown */}
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Sắp xếp:</span>
+                <span className="whitespace-nowrap text-sm font-semibold text-slate-500 dark:text-slate-400">Sắp xếp:</span>
                 <select
                   value={sortBy || 'newest'}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer font-medium text-gray-700"
+                  className="cursor-pointer rounded-2xl border border-white/70 bg-white/55 px-3 py-2 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                 >
                   <option value="newest">Mới nhất</option>
                   <option value="oldest">Cũ nhất</option>
@@ -422,16 +289,16 @@ export default function AdminApprovalsPage() {
                 </select>
               </div>
 
-              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="h-8 w-px bg-white/60 dark:bg-white/10"></div>
 
-              <span className="text-sm font-medium text-gray-600 whitespace-nowrap">Hiển thị:</span>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
+              <span className="whitespace-nowrap text-sm font-semibold text-slate-500 dark:text-slate-400">Hiển thị:</span>
+              <div className="flex items-center gap-1 rounded-2xl border border-white/70 bg-white/55 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                 <button
                   onClick={() => setDisplayViewMode('grid')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                     displayViewMode === 'grid' 
-                      ? 'bg-white shadow-md text-indigo-600 border border-indigo-200' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'border border-indigo-200/70 bg-white text-indigo-600 shadow-sm dark:border-indigo-400/20 dark:bg-white/10 dark:text-indigo-300'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                   title="Hiển thị dạng lưới"
                 >
@@ -442,8 +309,8 @@ export default function AdminApprovalsPage() {
                   onClick={() => setDisplayViewMode('list')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
                     displayViewMode === 'list' 
-                      ? 'bg-white shadow-md text-indigo-600 border border-indigo-200' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'border border-indigo-200/70 bg-white text-indigo-600 shadow-sm dark:border-indigo-400/20 dark:bg-white/10 dark:text-indigo-300'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                   title="Hiển thị dạng danh sách"
                 >
@@ -456,15 +323,15 @@ export default function AdminApprovalsPage() {
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div className="mt-6 p-6 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-indigo-600" />
+            <div className="mt-6 animate-slideDown rounded-[2rem] border border-white/60 bg-white/45 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-lg font-black tracking-[-0.03em] text-slate-950 dark:text-white">
+                  <Filter className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />
                   Bộ lọc nâng cao
                 </h3>
                 <button
                   onClick={() => setShowAdvancedFilters(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                   title="Đóng"
                 >
                   <X className="h-5 w-5" />
@@ -474,47 +341,47 @@ export default function AdminApprovalsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* MSSV */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">MSSV</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-300">MSSV</label>
                   <input
                     type="text"
                     value={filters.mssv || ''}
                     onChange={e => setFilters({ ...filters, mssv: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all"
+                    className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                     placeholder="Nhập MSSV"
                   />
                 </div>
 
                 {/* Student Name */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tên sinh viên</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-300">Tên sinh viên</label>
                   <input
                     type="text"
                     value={filters.studentName || ''}
                     onChange={e => setFilters({ ...filters, studentName: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all"
+                    className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                     placeholder="Nhập tên sinh viên"
                   />
                 </div>
 
                 {/* From date */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Từ ngày</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-300">Từ ngày</label>
                   <input
                     type="date"
                     value={filters.fromDate || ''}
                     onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all"
+                    className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                   />
                 </div>
 
                 {/* To date */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Đến ngày</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-300">Đến ngày</label>
                   <input
                     type="date"
                     value={filters.toDate || ''}
                     onChange={e => setFilters({ ...filters, toDate: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all"
+                    className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
                   />
                 </div>
               </div>
@@ -526,18 +393,16 @@ export default function AdminApprovalsPage() {
       {/* ============================================ */}
       {/* STATUS TABS */}
       {/* ============================================ */}
-      <div className="relative group">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-pink-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-300"></div>
-        <div className="relative bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-5">
+      <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              <h3 className="text-base font-bold text-gray-900">Trạng thái</h3>
+              <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+              <h3 className="text-base font-black tracking-[-0.03em] text-slate-950 dark:text-white">Trạng thái</h3>
             </div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setStatusViewMode(statusViewMode === 'pills' ? 'dropdown' : statusViewMode === 'dropdown' ? 'compact' : 'pills')} 
-                className="p-1 text-gray-400 hover:text-purple-600 transition-colors" 
+                className="p-1 text-slate-400 transition-colors hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-300" 
                 title="Chuyển chế độ hiển thị"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -550,9 +415,9 @@ export default function AdminApprovalsPage() {
               <button 
                 onClick={() => { setActiveTab('pending'); setSelectedIds([]); }} 
                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  activeTab === 'pending' 
-                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === 'pending'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                 }`}
               >
                 <Clock className="h-4 w-4" />
@@ -562,9 +427,9 @@ export default function AdminApprovalsPage() {
               <button 
                 onClick={() => { setActiveTab('approved'); setSelectedIds([]); }} 
                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  activeTab === 'approved' 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === 'approved'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                 }`}
               >
                 <CheckCircle className="h-4 w-4" />
@@ -574,9 +439,9 @@ export default function AdminApprovalsPage() {
               <button 
                 onClick={() => { setActiveTab('participated'); setSelectedIds([]); }} 
                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  activeTab === 'participated' 
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === 'participated'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                 }`}
               >
                 <Trophy className="h-4 w-4" />
@@ -586,9 +451,9 @@ export default function AdminApprovalsPage() {
               <button 
                 onClick={() => { setActiveTab('rejected'); setSelectedIds([]); }} 
                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${
-                  activeTab === 'rejected' 
-                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === 'rejected'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'border border-white/70 bg-white/55 text-slate-600 shadow-sm backdrop-blur-xl hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
                 }`}
               >
                 <XCircle className="h-4 w-4" />
@@ -603,7 +468,7 @@ export default function AdminApprovalsPage() {
               <select 
                 value={activeTab} 
                 onChange={e => { setActiveTab(e.target.value); setSelectedIds([]); }} 
-                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all duration-200 hover:border-purple-300 font-semibold text-sm"
+                className="flex-1 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
               >
                 <option value="pending">Chờ duyệt ({stats.pending})</option>
                 <option value="approved">Đã duyệt ({stats.approved})</option>
@@ -614,7 +479,7 @@ export default function AdminApprovalsPage() {
           )}
 
           {statusViewMode === 'compact' && (
-            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/45 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
               <button 
                 onClick={() => { setActiveTab('pending'); setSelectedIds([]); }} 
                 className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ${
@@ -657,27 +522,26 @@ export default function AdminApprovalsPage() {
               </button>
             </div>
           )}
-        </div>
       </div>
 
       {/* ============================================ */}
       {/* BULK ACTION TOOLBAR (only show for pending) */}
       {/* ============================================ */}
       {activeTab === 'pending' && pendingInCurrentList > 0 && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-4 shadow-lg">
+        <div className="rounded-[2rem] border border-indigo-200/70 bg-indigo-50/70 p-4 shadow-sm backdrop-blur-2xl dark:border-indigo-400/20 dark:bg-indigo-400/10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer hover:bg-white/50 rounded-lg px-3 py-2 transition-all">
+              <label className="flex cursor-pointer items-center gap-2 rounded-2xl px-3 py-2 transition-all hover:bg-white/50 dark:hover:bg-white/10">
                 <input 
                   type="checkbox" 
                   checked={selectedIds.length > 0 && selectedIds.length === pendingInCurrentList} 
                   onChange={handleToggleSelectAll} 
-                  className="w-5 h-5 rounded border-2 cursor-pointer accent-indigo-600" 
+                  className="h-5 w-5 cursor-pointer rounded border-2 accent-indigo-600" 
                 />
-                <span className="font-semibold text-gray-700">Chọn tất cả ({pendingInCurrentList})</span>
+                <span className="font-bold text-slate-600 dark:text-slate-300">Chọn tất cả ({pendingInCurrentList})</span>
               </label>
               {selectedIds.length > 0 && (
-                <span className="px-4 py-2 bg-indigo-500 text-white rounded-full text-sm font-bold shadow-md animate-pulse">
+                <span className="animate-pulse rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm">
                   ✓ Đã chọn: {selectedIds.length}
                 </span>
               )}
@@ -687,21 +551,21 @@ export default function AdminApprovalsPage() {
                 <>
                   <button 
                     onClick={() => setSelectedIds([])} 
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="rounded-2xl border border-white/70 bg-white/55 px-4 py-2 font-bold text-slate-600 shadow-sm backdrop-blur-xl transition-colors hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
                   >
                     Bỏ chọn
                   </button>
                   <button 
                     onClick={handleBulkApprove} 
                     disabled={processing} 
-                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-2 font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="h-5 w-5" />
                     {processing ? 'Đang xử lý...' : `Phê duyệt ${selectedIds.length} đăng ký`}
                   </button>
                 </>
               ) : (
-                <div className="text-sm text-gray-500 italic">← Chọn các đăng ký để phê duyệt hàng loạt</div>
+                <div className="text-sm italic text-slate-500 dark:text-slate-400">← Chọn các đăng ký để phê duyệt hàng loạt</div>
               )}
             </div>
           </div>
@@ -746,15 +610,15 @@ export default function AdminApprovalsPage() {
             })}
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-300 p-16 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="rounded-[2rem] border border-dashed border-white/60 bg-white/60 p-16 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+            <div className="mx-auto max-w-md">
+              <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                 {activeTab === 'pending' && <Clock className="h-12 w-12 text-amber-600" />}
                 {activeTab === 'approved' && <CheckCircle className="h-12 w-12 text-emerald-600" />}
                 {activeTab === 'rejected' && <XCircle className="h-12 w-12 text-rose-600" />}
                 {activeTab === 'participated' && <Trophy className="h-12 w-12 text-blue-600" />}
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3 className="mb-3 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">
                 {searchTerm ? 'Không tìm thấy đăng ký' : 
                   activeTab === 'pending' ? 'Không có đăng ký chờ duyệt' : 
                   activeTab === 'approved' ? 'Không có đăng ký đã duyệt' : 
@@ -762,7 +626,7 @@ export default function AdminApprovalsPage() {
                   activeTab === 'participated' ? 'Không có đăng ký hoàn thành' : 
                   'Chưa có đăng ký nào'}
               </h3>
-              <p className="text-gray-600 text-lg">
+              <p className="text-lg font-medium text-slate-500 dark:text-slate-300">
                 {searchTerm ? 'Thử tìm kiếm với từ khóa khác' : 
                   activeTab === 'pending' ? 'Tất cả đăng ký đã được xử lý' : 
                   activeTab === 'approved' ? 'Chưa có đăng ký nào được phê duyệt' : 
@@ -776,7 +640,7 @@ export default function AdminApprovalsPage() {
 
         {/* Pagination */}
         {pagination.total > 0 && (
-          <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 mt-6">
+          <div className="mt-6 rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
             <Pagination 
               pagination={{ 
                 page: pagination.page, 
@@ -797,11 +661,25 @@ export default function AdminApprovalsPage() {
       {/* ============================================ */}
       {/* ACTIVITY DETAIL MODAL */}
       {/* ============================================ */}
-      <ActivityDetailModal 
-        activityId={activityDetailId} 
-        isOpen={!!activityDetailId} 
-        onClose={() => setActivityDetailId(null)} 
+      <ActivityDetailModal
+        activityId={activityDetailId}
+        isOpen={!!activityDetailId}
+        onClose={() => setActivityDetailId(null)}
       />
+    </div>
+  );
+}
+
+function HeroMetric({ icon: Icon, value, label, tone }) {
+  return (
+    <div className="rounded-2xl border border-white/65 bg-white/55 p-4 shadow-sm backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 dark:border-white/10 dark:bg-slate-900/45">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{label}</p>
+        <span className="rounded-full border border-white/70 bg-white/55 p-2 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <Icon className={`h-4 w-4 ${tone}`} />
+        </span>
+      </div>
+      <p className={`text-3xl font-black leading-none tracking-[-0.05em] ${tone}`}>{value}</p>
     </div>
   );
 }

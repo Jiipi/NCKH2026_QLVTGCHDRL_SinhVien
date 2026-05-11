@@ -44,6 +44,20 @@ const validate = (schema: ZodSchema): ((req: Request, res: Response, next: NextF
 };
 
 // Reusable schemas
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+
+const parseActivityDate = (value: string | Date): Date => {
+  if (value instanceof Date) return value;
+  if (DATETIME_LOCAL_PATTERN.test(value)) {
+    const [datePart, timePart] = value.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second = 0] = timePart.split(':').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, hour - VIETNAM_UTC_OFFSET_HOURS, minute, second));
+  }
+  return new Date(value);
+};
+
 const activityStatusEnum = z.enum(['cho_duyet', 'da_duyet', 'tu_choi'], {
   errorMap: () => ({ message: 'Trạng thái không hợp lệ' }),
 });
@@ -54,10 +68,18 @@ const activityScopeEnum = z.enum(['toan_truong', 'khoa', 'lop'], {
 
 const dateString = z
   .string()
-  .refine((val) => !isNaN(Date.parse(val)), {
+  .refine((val) => !isNaN(parseActivityDate(val).getTime()), {
     message: 'Ngày không hợp lệ',
   })
-  .transform((val) => new Date(val));
+  .transform((val) => parseActivityDate(val));
+
+const geofenceFields = {
+  yeu_cau_gps: z.boolean().optional(),
+  cho_phep_fallback: z.boolean().optional(),
+  geo_latitude: z.number().min(-90).max(90).or(z.string().transform((val) => Number(val))).optional().nullable(),
+  geo_longitude: z.number().min(-180).max(180).or(z.string().transform((val) => Number(val))).optional().nullable(),
+  geo_radius_meters: z.number().int().min(50).max(1000).or(z.string().transform((val) => parseInt(val, 10))).optional().nullable(),
+};
 
 // Query validation schemas
 const getAllActivitiesSchema = z.object({
@@ -180,6 +202,7 @@ const createActivitySchema = z.object({
       .min(1, 'Năm học không được để trống'),
     
     trang_thai: activityStatusEnum.optional().default('cho_duyet'),
+    ...geofenceFields,
   }).refine(
     (data) => {
       // Validate date range
@@ -292,6 +315,7 @@ const updateActivitySchema = z.object({
       .optional(),
     
     trang_thai: activityStatusEnum.optional(),
+    ...geofenceFields,
   }).refine(
     (data) => {
       // Validate date range if both dates provided

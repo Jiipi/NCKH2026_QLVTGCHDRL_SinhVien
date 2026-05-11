@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Shield, Users, Plus, Edit, Trash2, Eye, Search, X, Save, Crown, Key, Lock, Clock, CheckCircle, XCircle, Sparkles, MapPin, Calendar } from 'lucide-react';
-import http from '../../../../../shared/api/http';
-import { extractRolesFromAxiosResponse, extractUsersFromAxiosResponse } from '../../../../../shared/lib/apiNormalization';
+import { extractUsersFromAxiosResponse } from '../../../../../shared/lib/apiNormalization';
 import { getUserAvatar, getStudentAvatar } from '../../../../../shared/lib/avatar';
-import { userManagementApi } from '../../../../admin/services/userManagementApi';
+import { adminRolesApi } from '../../../services';
 import Pagination from '../../../../../shared/components/common/Pagination';
 
 // Interfaces for type safety
@@ -72,29 +71,7 @@ export default function AdminRoles() {
   // Fetch active sessions to determine who is online
   const fetchActiveSessions = useCallback(async () => {
     try {
-      const response = await http.get('/core/sessions/active-users?minutes=5');
-      const data = response.data?.data;
-      if (data) {
-        const activeIds = new Set();
-        if (Array.isArray(data.userIds)) {
-          data.userIds.forEach(id => {
-            if (id != null) activeIds.add(String(id));
-          });
-        }
-        if (Array.isArray(data.userCodes)) {
-          data.userCodes.forEach(code => {
-            if (code) activeIds.add(String(code));
-          });
-        }
-        if (Array.isArray(data.users)) {
-          data.users.forEach((user: { user_id?: string; ten_dn?: string; mssv?: string }) => {
-            if (user?.user_id) activeIds.add(String(user.user_id));
-            if (user?.ten_dn) activeIds.add(String(user.ten_dn));
-            if (user?.mssv) activeIds.add(String(user.mssv));
-          });
-        }
-        setActiveUserIds(new Set(Array.from(activeIds) as string[]));
-      }
+      setActiveUserIds(await adminRolesApi.getActiveUserIds(5));
     } catch (error) {
       console.error('Lỗi khi tải phiên hoạt động:', error);
     }
@@ -161,8 +138,7 @@ export default function AdminRoles() {
       try {
         setLoadingRoles(true);
         setAuthError(false);
-        const resp = await http.get('/admin/roles');
-        const rs = extractRolesFromAxiosResponse(resp) as unknown as RoleData[];
+        const rs = await adminRolesApi.getRoles();
         setRoles(rs);
         if (rs.length > 0) setRoleFilter(rs[0]);
         fetchRoleCounts(rs);
@@ -190,9 +166,7 @@ export default function AdminRoles() {
     (async () => {
       if (!roleFilter?.id) return;
       try {
-        const resp = await http.get(`/admin/roles/${roleFilter.id}`);
-        const data = resp?.data?.data || resp?.data || {};
-        if (!Array.isArray(data.quyen_han)) data.quyen_han = [];
+        const data = await adminRolesApi.getRoleDetail(roleFilter.id);
         
         console.log('?? Loaded fresh role permissions from API:', {
           roleId: data.id,
@@ -215,7 +189,7 @@ export default function AdminRoles() {
       const pairs = await Promise.all(
         arr.map(async (r) => {
           try {
-            const result = await userManagementApi.fetchUsers({ role: r.ten_vt, page: 1, limit: 1 });
+            const result = await adminRolesApi.fetchUsers({ role: r.ten_vt, page: 1, limit: 1 });
             if (result.success) {
               const data = result.data as { pagination?: { total?: number }; total?: number } | undefined;
               const total = data?.pagination?.total ?? data?.total ?? 0;
@@ -248,8 +222,8 @@ export default function AdminRoles() {
     if (!window.confirm('Bạn có chắc muốn xóa vai trò này?')) return;
     if (!window.confirm('Xóa luôn TẤT CẢ người dùng đang thuộc vai trò này? Hành động này không thể hoàn tác.')) return;
     try {
-      await http.delete(`/admin/roles/${roleId}`, { params: { cascadeUsers: true } });
-      const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles')) as unknown as RoleData[];
+      await adminRolesApi.deleteRole(roleId);
+      const rs = await adminRolesApi.getRoles();
       setRoles(rs);
       if (!rs.find(r => r.id === roleFilter?.id)) setRoleFilter(rs[0] || null);
       fetchRoleCounts(rs);
@@ -390,7 +364,7 @@ export default function AdminRoles() {
       setUsersLoading(true);
       const effectiveLimit = role ? Math.max(limit, 200) : limit;
       const baseParams = { page: 1, limit: effectiveLimit, role, search };
-      const result = await userManagementApi.fetchUsers(baseParams);
+      const result = await adminRolesApi.fetchUsers(baseParams);
       
       if (result.success) {
         const data = (result.data || {}) as { pagination?: PaginationInfo; users?: UserData[] };
@@ -403,7 +377,7 @@ export default function AdminRoles() {
           const extraPages = [];
           for (let nextPage = 2; nextPage <= paginationInfo.totalPages; nextPage++) {
             extraPages.push(
-              userManagementApi.fetchUsers({ ...baseParams, page: nextPage })
+              adminRolesApi.fetchUsers({ ...baseParams, page: nextPage })
             );
           }
 
@@ -440,142 +414,49 @@ export default function AdminRoles() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: 24, background: 'linear-gradient(to bottom right, #f0f9ff, white, #faf5ff)' }}>
-      
-      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism */}
-      <div style={{ position: 'relative', minHeight: 280, marginBottom: 24, borderRadius: 24 }}>
-        {/* Animated Background Grid */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24 }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, #0d9488, #14b8a6, #0ea5e9)' }}></div>
-          <div style={{ 
-            position: 'absolute', 
-            inset: 0,
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}></div>
-        </div>
-
-        {/* Floating Geometric Shapes */}
-        <div style={{ position: 'absolute', top: 40, right: 80, width: 80, height: 80, border: '4px solid rgba(255,255,255,0.3)', transform: 'rotate(45deg)', animation: 'bounce-slow 3s ease-in-out infinite' }}></div>
-        <div style={{ position: 'absolute', bottom: 40, left: 60, width: 60, height: 60, background: 'rgba(251,191,36,0.2)', borderRadius: '50%', animation: 'pulse 2s ease-in-out infinite' }}></div>
-        <div style={{ position: 'absolute', top: '50%', left: '33%', width: 50, height: 50, border: '4px solid rgba(236,72,153,0.4)', borderRadius: '50%', animation: 'spin-slow 8s linear infinite' }}></div>
-
-        {/* Main Content Container with Glassmorphism */}
-        <div style={{ position: 'relative', zIndex: 10, padding: 32 }}>
-          <div style={{ 
-            backdropFilter: 'blur(40px)', 
-            background: 'rgba(255,255,255,0.1)', 
-            border: '2px solid rgba(255,255,255,0.2)', 
-            borderRadius: 16, 
-            padding: 32, 
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' 
-          }}>
-            
-            {/* Top Bar with Badge */}
-            <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', inset: 0, background: '#818cf8', filter: 'blur(20px)', opacity: 0.5, animation: 'pulse 2s ease-in-out infinite' }}></div>
-                  <div style={{ position: 'relative', background: 'black', color: '#818cf8', padding: '8px 16px', fontWeight: 900, fontSize: 14, letterSpacing: 2, transform: 'rotate(-2deg)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '2px solid #818cf8' }}>
-                    ✓ VAI TRÒ
-                  </div>
-                </div>
-                <div style={{ height: 32, width: 4, background: 'rgba(255,255,255,0.4)' }}></div>
-                <div style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, background: '#818cf8', borderRadius: '50%', animation: 'pulse 2s ease-in-out infinite' }}></div>
-                    {roles.length} VAI TRÒ
-                  </div>
-                </div>
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(20,184,166,0.12),transparent_28%)]" />
+        <div className="relative z-10 space-y-6">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
+              <Sparkles className="h-4 w-4" />
+              {roles.length} vai trò
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                <Shield className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản trị vai trò & quyền</h1>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Quản lý vai trò, phân quyền và người dùng trong hệ thống.</p>
               </div>
             </div>
+          </div>
 
-            {/* Main Title Section */}
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ 
-                fontSize: '4.5rem', 
-                fontWeight: 900, 
-                color: 'white', 
-                marginBottom: 16, 
-                lineHeight: 1, 
-                letterSpacing: '-0.05em' 
-              }}>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>Q</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>U</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>Ả</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>N</span>
-                <span style={{ display: 'inline-block', margin: '0 8px' }}>•</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>T</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>R</span>
-                <span style={{ display: 'inline-block', transition: 'transform 0.3s', cursor: 'default' }} onMouseEnter={(e) => (e.target as HTMLElement).style.transform = 'scale(1.1)'} onMouseLeave={(e) => (e.target as HTMLElement).style.transform = 'scale(1)'}>Ị</span>
-                <br />
-                <span style={{ position: 'relative', display: 'inline-block', marginTop: 8 }}>
-                  <span style={{ position: 'relative', zIndex: 10, color: '#c7d2fe', filter: 'drop-shadow(0 0 30px rgba(199,210,254,0.5))' }}>
-                    VAI TRÒ & QUYỀN
-                  </span>
-                  <div style={{ position: 'absolute', bottom: -8, left: 0, right: 0, height: 16, background: 'rgba(199,210,254,0.3)', filter: 'blur(4px)' }}></div>
-                </span>
-              </h1>
-              
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 20, fontWeight: 500, maxWidth: 700, lineHeight: 1.6 }}>
-                Quản lý vai trò, phân quyền và người dùng trong hệ thống
-              </p>
-            </div>
-
-            {/* Stats Bar with Brutalist Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-              {roles.map((r, idx) => {
-                const colors = [
-                  { bg: '#fbbf24', name: 'ADMIN' },
-                  { bg: '#60a5fa', name: 'GIẢNG VIÊN' },
-                  { bg: '#a78bfa', name: 'LỚP TRƯỞNG' },
-                  { bg: '#34d399', name: 'SINH VIÊN' }
-                ];
-                const color = colors[idx % colors.length];
-                return (
-                  <div key={r.id} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => { setRoleFilter(r); setUserPage(1); }}>
-                    <div style={{ position: 'absolute', inset: 0, background: 'black', transform: 'translate(8px, 8px)', borderRadius: 12 }}></div>
-                    <div style={{ 
-                      position: 'relative', 
-                      background: color.bg, 
-                      border: '4px solid black', 
-                      padding: 16, 
-                      borderRadius: 12, 
-                      transform: roleFilter?.id === r.id ? 'translate(-4px, -4px)' : 'translate(0, 0)',
-                      transition: 'transform 0.3s' 
-                    }}>
-                      {getRoleIcon(r.ten_vt)}
-                      <p style={{ fontSize: 28, fontWeight: 900, color: 'black', margin: '8px 0 4px 0' }}>{roleCounts[r.id] ?? 0}</p>
-                      <p style={{ fontSize: 11, fontWeight: 900, color: 'rgba(0,0,0,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>{r.ten_vt}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {roles.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => { setRoleFilter(r); setUserPage(1); }}
+                className={`rounded-2xl border p-4 text-left shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:hover:bg-white/10 ${
+                  roleFilter?.id === r.id
+                    ? 'border-indigo-200/80 bg-indigo-50/70 ring-4 ring-indigo-100/70 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:ring-indigo-400/20'
+                    : 'border-white/65 bg-white/55 dark:border-white/10 dark:bg-slate-900/45'
+                }`}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="rounded-full border border-white/70 bg-white/55 p-2 shadow-sm dark:border-white/10 dark:bg-white/5">{getRoleIcon(r.ten_vt)}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Vai trò</span>
+                </div>
+                <p className="text-3xl font-black leading-none tracking-[-0.05em] text-slate-950 dark:text-white">{roleCounts[r.id] ?? 0}</p>
+                <p className="mt-2 truncate text-xs font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">{r.ten_vt}</p>
+              </button>
+            ))}
           </div>
         </div>
-
-        {/* CSS Animations */}
-        <style>{`
-          @keyframes grid-move {
-            0% { background-position: 0 0; }
-            100% { background-position: 50px 50px; }
-          }
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0) rotate(45deg); }
-            50% { transform: translateY(-20px) rotate(45deg); }
-          }
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
+      </section>
 
       {/* Search Section */}
       <div style={{ 
@@ -713,8 +594,8 @@ export default function AdminRoles() {
           onRestoreOriginal={useCanonicalSlugs && permsBackupByRoleId[roleFilter.id]?.length ? async () => {
             try {
               const orig = permsBackupByRoleId[roleFilter.id] || [];
-              await http.put(`/admin/roles/${roleFilter.id}`, { ten_vt: roleFilter.ten_vt, mo_ta: roleFilter.mo_ta, quyen_han: orig });
-              const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles')) as unknown as RoleData[];
+              await adminRolesApi.updateRole(roleFilter.id, { ten_vt: roleFilter.ten_vt, mo_ta: roleFilter.mo_ta, quyen_han: orig });
+              const rs = await adminRolesApi.getRoles();
               setRoles(rs);
               const cur = rs.find(r => r.id === roleFilter.id) || rs[0] || null;
               setRoleFilter(cur);
@@ -728,7 +609,7 @@ export default function AdminRoles() {
             try {
               console.log('?? Updating role permissions via API:', updated);
               
-              await http.put(`/admin/roles/${roleFilter.id}`, {
+              await adminRolesApi.updateRole(roleFilter.id, {
                 ten_vt: updated.ten_vt,
                 mo_ta: updated.mo_ta,
                 quyen_han: updated.quyen_han,
@@ -737,13 +618,11 @@ export default function AdminRoles() {
               console.log('? Role permissions saved successfully');
               
               // Refresh roles list
-              const rs = extractRolesFromAxiosResponse(await http.get('/admin/roles')) as unknown as RoleData[];
+              const rs = await adminRolesApi.getRoles();
               setRoles(rs);
               
               // Reload the current role with fresh data from API
-              const freshResp = await http.get(`/admin/roles/${roleFilter.id}`);
-              const freshData = freshResp?.data?.data || freshResp?.data || {};
-              if (!Array.isArray(freshData.quyen_han)) freshData.quyen_han = [];
+              const freshData = await adminRolesApi.getRoleDetail(roleFilter.id);
               
               console.log('?? Reloaded role after save:', {
                 roleId: freshData.id,

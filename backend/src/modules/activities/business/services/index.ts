@@ -15,6 +15,11 @@ import RegisterActivityUseCase from './RegisterActivityUseCase';
 import RejectActivityUseCase from './RejectActivityUseCase';
 import ScanAttendanceUseCase from './ScanAttendanceUseCase';
 import UpdateActivityUseCase from './UpdateActivityUseCase';
+import CreateAttendanceFallbackRequestUseCase from './CreateAttendanceFallbackRequestUseCase';
+import ListAttendanceFallbackRequestsUseCase from './ListAttendanceFallbackRequestsUseCase';
+import ApproveAttendanceFallbackRequestUseCase from './ApproveAttendanceFallbackRequestUseCase';
+import RejectAttendanceFallbackRequestUseCase from './RejectAttendanceFallbackRequestUseCase';
+import CancelAttendanceFallbackRequestUseCase from './CancelAttendanceFallbackRequestUseCase';
 
 export {
   // CRUD Use Cases
@@ -36,4 +41,9 @@ export {
   // Attendance Use Cases
   GetActivityQRDataUseCase,
   ScanAttendanceUseCase,
+  CreateAttendanceFallbackRequestUseCase,
+  ListAttendanceFallbackRequestsUseCase,
+  ApproveAttendanceFallbackRequestUseCase,
+  RejectAttendanceFallbackRequestUseCase,
+  CancelAttendanceFallbackRequestUseCase,
 };

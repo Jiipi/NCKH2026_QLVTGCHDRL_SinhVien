@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import http from '../../../../shared/api/http';
-import { extractActivitiesFromAxiosResponse } from '../../../../shared/lib/apiNormalization';
+import qrApi from '../../services/qrApi';
+import {
+  approveAttendanceFallbackRequest,
+  listActivityAttendanceFallbackRequests,
+  rejectAttendanceFallbackRequest,
+} from '../../services/attendanceFallbackApi';
 
 interface AttendanceParams {
   page?: string | number;
@@ -16,19 +20,13 @@ export function useAdminQRAttendance() {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [stats, setStats] = useState({ total: 0, coMat: 0, vangMat: 0, muon: 0, veSom: 0 });
+  const [fallbackRequests, setFallbackRequests] = useState([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
 
   const fetchAttendanceRecords = useCallback(async (params: AttendanceParams = {}) => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams();
-      if (params.page) queryParams.append('page', String(params.page));
-      if (params.limit) queryParams.append('limit', String(params.limit));
-      if (params.search) queryParams.append('search', params.search);
-      if (params.activity_id) queryParams.append('activity_id', params.activity_id);
-      if (params.status) queryParams.append('status', params.status);
-      
-      const response = await http.get(`/admin/reports/attendance?${queryParams.toString()}`);
-      const data = response.data?.data || response.data;
+      const data = await qrApi.fetchAdminAttendanceReport(params);
       
       // Parse response theo format từ GetAttendanceReportUseCase
       if (data.attendance && Array.isArray(data.attendance)) {
@@ -58,8 +56,7 @@ export function useAdminQRAttendance() {
 
   const fetchActivities = useCallback(async () => {
     try {
-      const response = await http.get('/admin/activities');
-      const normalized = extractActivitiesFromAxiosResponse(response);
+      const normalized = await qrApi.fetchAdminActivities();
       setActivities(Array.isArray(normalized) ? normalized : []);
       return normalized;
     } catch (error) {
@@ -83,15 +80,16 @@ export function useAdminQRAttendance() {
 
   const getQRCodeData = useCallback(async (activityId) => {
     try {
-      // Lấy QR code từ backend
-      const response = await http.get(`/activities/${activityId}/qr-data`);
-      const data = response.data?.data || response.data || {};
-      const code = data.qr_token || data.qr || `QR-${activityId}`;
+      let session = await qrApi.getCurrentAttendanceSession(activityId);
+      if (!session?.id) {
+        session = await qrApi.createAttendanceSession(activityId);
+      }
+      const data = await qrApi.fetchDynamicQrToken(activityId, session.id);
+      const code = data.qrJson || data.qr_json || data.token || `QR-${activityId}`;
       const activity = activities.find((a) => a.id === activityId) || null;
       return { code, activity };
     } catch (error) {
       console.error('Lỗi khi tạo mã QR:', error);
-      // Fallback nếu API không có
       const code = `QR-${activityId}-${Date.now()}`;
       const activity = activities.find((a) => a.id === activityId) || null;
       return { code, activity };
@@ -100,8 +98,7 @@ export function useAdminQRAttendance() {
 
   const updateAttendanceStatus = useCallback(async (recordId, status) => {
     try {
-      // Cập nhật trạng thái điểm danh
-      await http.patch(`/admin/attendance/${recordId}`, { status });
+      await qrApi.updateAdminAttendanceStatus(recordId, status);
       await fetchAttendanceRecords();
       return true;
     } catch (error) {
@@ -112,6 +109,36 @@ export function useAdminQRAttendance() {
     }
   }, [fetchAttendanceRecords]);
 
+  const fetchFallbackRequests = useCallback(async (activityId?: string) => {
+    if (!activityId) {
+      setFallbackRequests([]);
+      return [];
+    }
+    try {
+      setFallbackLoading(true);
+      const data = await listActivityAttendanceFallbackRequests(activityId);
+      const normalized = Array.isArray(data) ? data : [];
+      setFallbackRequests(normalized);
+      return normalized;
+    } catch (error) {
+      console.error('Lỗi khi tải yêu cầu điểm danh thủ công:', error);
+      setFallbackRequests([]);
+      return [];
+    } finally {
+      setFallbackLoading(false);
+    }
+  }, []);
+
+  const approveFallbackRequest = useCallback(async (requestId: string, note?: string, activityId?: string) => {
+    await approveAttendanceFallbackRequest(requestId, note);
+    await Promise.all([fetchFallbackRequests(activityId), fetchAttendanceRecords()]);
+  }, [fetchAttendanceRecords, fetchFallbackRequests]);
+
+  const rejectFallbackRequest = useCallback(async (requestId: string, note: string, activityId?: string) => {
+    await rejectAttendanceFallbackRequest(requestId, note);
+    await fetchFallbackRequests(activityId);
+  }, [fetchFallbackRequests]);
+
   return {
     // state
     attendanceRecords,
@@ -119,6 +146,8 @@ export function useAdminQRAttendance() {
     loading,
     pagination,
     stats,
+    fallbackRequests,
+    fallbackLoading,
     // loaders
     refreshAttendance: fetchAttendanceRecords,
     refreshActivities: fetchActivities,
@@ -127,5 +156,8 @@ export function useAdminQRAttendance() {
     fetchAttendanceDetails,
     getQRCodeData,
     updateAttendanceStatus,
+    fetchFallbackRequests,
+    approveFallbackRequest,
+    rejectFallbackRequest,
   };
 }

@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Award, Eye, Edit, Trash2, QrCode, Users, UserPlus, Sparkles, CalendarClock, CalendarCheck, CalendarX } from 'lucide-react';
-import { getActivityImage, getActivityImages } from '../../../../../shared/lib/activityImages';
-import resolveAssetUrl from '../../../../../shared/lib/assetUrl';
+import React from 'react';
+import { Calendar, Award, Eye, Edit, Trash2, QrCode, Users, UserPlus, Sparkles, CalendarClock, CalendarCheck, CalendarX, ScanFace, MapPin } from 'lucide-react';
 import ActivityImageSlideshow from '../../../../../shared/components/ActivityImageSlideshow';
+import { formatDisplayDateTime } from '../../../../../shared/lib/dateTime';
 
 // Get gradient based on activity type
 const getTypeGradient = (activityType) => {
@@ -33,12 +32,12 @@ const getTypeGradient = (activityType) => {
  * ActivityCard Component - Hiển thị thẻ hoạt động
  * Hỗ trợ 2 chế độ: list và grid
  */
-export default function ActivityCard({ 
-  activity, 
-  displayViewMode, 
-  statusFilter, 
-  statusLabels, 
-  statusColors, 
+export default function ActivityCard({
+  activity,
+  displayViewMode,
+  statusFilter,
+  statusLabels,
+  statusColors,
   isWritable,
   formatDate,
   getDisplayStatus,
@@ -46,7 +45,8 @@ export default function ActivityCard({
   onEdit,
   onDelete,
   onShowQR,
-  onRegister
+  onRegister,
+  onShowFaceAttendance
 }) {
   const now = new Date();
   const deadline = activity.han_dk ? new Date(activity.han_dk) : null;
@@ -60,20 +60,20 @@ export default function ActivityCard({
   const capacity = activity.so_luong_toi_da ?? activity.sl_toi_da ?? null;
   const registeredCount = activity.registrationCount ?? activity.so_dang_ky ?? activity._count?.dang_ky_hd ?? null;
   const isFull = capacity !== null && registeredCount !== null ? Number(registeredCount) >= Number(capacity) : false;
-  const canRegister = activity.trang_thai === 'da_duyet' && !isPast && !isDeadlinePast 
+  const canRegister = activity.trang_thai === 'da_duyet' && !isPast && !isDeadlinePast
     && (!activity.is_registered || activity.registration_status === 'tu_choi') && !isFull;
   const isRegistrationOpen = canRegister;
-  
+
   const displayStatus = getDisplayStatus(activity);
   const typeGradient = getTypeGradient(activity.loai_hd?.ten_loai_hd);
-  
+
   // LIST MODE - Compact horizontal layout
   if (displayViewMode === 'list') {
     return (
       <div className="group relative">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition-opacity duration-200"></div>
-        
-        <div className="relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg transition-all duration-200">
+
+        <div className="relative overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/80 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/50">
           <div className="flex items-stretch gap-4 p-4">
             {/* Compact Image */}
             <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
@@ -99,19 +99,19 @@ export default function ActivityCard({
                 </div>
               )}
             </div>
-            
+
             {/* Content */}
             <div className="flex-1 min-w-0 flex flex-col justify-between">
               <div>
-                <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-2">
+                <h3 className="mb-2 line-clamp-1 text-base font-bold text-slate-950 transition-colors group-hover:text-indigo-600 dark:text-white">
                   {activity.ten_hd}
                 </h3>
-                
+
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-600 truncate">
+                    <span className="truncate text-slate-600 dark:text-slate-300">
                       {activity.loai_hd?.ten_loai_hd || 'Chưa phân loại'}
                     </span>
                   </div>
@@ -119,11 +119,8 @@ export default function ActivityCard({
                   {activity.ngay_bd && (
                     <div className="flex items-center gap-1.5">
                       <CalendarClock className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-gray-900 font-medium">
-                        {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
-                          day: '2-digit', month: '2-digit',
-                          hour: '2-digit', minute: '2-digit'
-                        })}
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {formatDisplayDateTime(activity.ngay_bd)}
                       </span>
                     </div>
                   )}
@@ -132,11 +129,8 @@ export default function ActivityCard({
                     <div className="flex items-center gap-1.5">
                       <CalendarCheck className="h-3.5 w-3.5 text-blue-500" />
                       <span className="text-gray-600">KT:</span>
-                      <span className="text-gray-900 font-medium">
-                        {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
-                          day: '2-digit', month: '2-digit',
-                          hour: '2-digit', minute: '2-digit'
-                        })}
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {formatDisplayDateTime(activity.ngay_kt)}
                       </span>
                     </div>
                   )}
@@ -146,17 +140,14 @@ export default function ActivityCard({
                       <CalendarX className="h-3.5 w-3.5 text-orange-500" />
                       <span className="text-gray-600">Hạn:</span>
                       <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
-                        {new Date(activity.han_dk).toLocaleString('vi-VN', {
-                          day: '2-digit', month: '2-digit',
-                          hour: '2-digit', minute: '2-digit'
-                        })}
+                        {formatDisplayDateTime(activity.han_dk)}
                       </span>
                     </div>
                   )}
                   {activity.dia_diem && (
                     <div className="flex items-center gap-1.5 col-span-2">
                       <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                      <span className="truncate text-slate-600 dark:text-slate-300">{activity.dia_diem}</span>
                     </div>
                   )}
                   {activity.registrationCount !== undefined && (
@@ -191,8 +182,20 @@ export default function ActivityCard({
                 <Eye className="h-4 w-4" />
                 Chi tiết
               </button>
-              
+
               {/* Tab "Có sẵn" - KHÔNG hiển thị QR/Sửa/Xóa */}
+              {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
+                <button
+                  onClick={() => onShowFaceAttendance(activity)}
+                  disabled={!isWritable}
+                  className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[120px] ${isWritable ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  title="Điểm danh khuôn mặt"
+                >
+                  <ScanFace className="h-4 w-4" />
+                  Khuôn mặt
+                </button>
+              )}
+
               {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
                 <button
                   onClick={() => onShowQR(activity)}
@@ -204,7 +207,7 @@ export default function ActivityCard({
                   QR
                 </button>
               )}
-              
+
               {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
                 <button
                   onClick={() => onEdit(activity)}
@@ -216,7 +219,7 @@ export default function ActivityCard({
                   Sửa
                 </button>
               )}
-              
+
               {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
                 <button
                   onClick={() => onDelete(activity)}
@@ -234,15 +237,15 @@ export default function ActivityCard({
       </div>
     );
   }
-  
+
   // GRID MODE - Compact vertical layout
   // ✅ Tab "Có sẵn" sử dụng thiết kế giống sinh viên với header gradient
   if (statusFilter === 'co_san') {
     return (
       <div className="group relative h-full">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-        
-        <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col h-full">
+
+        <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/50">
           {/* Header với ảnh hoặc gradient background - Giống sinh viên */}
           <div className="relative h-24 overflow-hidden">
             <ActivityImageSlideshow
@@ -253,7 +256,7 @@ export default function ActivityCard({
               showDots={true}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-            
+
             {/* Status badge - Top left */}
             <div className="absolute top-2 left-2">
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-white/95 backdrop-blur-sm text-emerald-700 shadow-md">
@@ -261,7 +264,7 @@ export default function ActivityCard({
                 {displayStatus === 'da_duyet' ? 'Đã mở' : (statusLabels[displayStatus] || 'Đã mở')}
               </span>
             </div>
-            
+
             {/* Points badge - Top right */}
             {activity.diem_rl && (
               <div className="absolute top-2 right-2">
@@ -277,11 +280,11 @@ export default function ActivityCard({
           <div className="flex-1 p-4 space-y-3">
             {/* Activity Title */}
             <div>
-              <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-1.5 leading-tight">
+              <h3 className="mb-1.5 line-clamp-2 text-sm font-bold leading-tight text-slate-950 transition-colors group-hover:text-indigo-600 dark:text-white">
                 {activity.ten_hd}
               </h3>
               {activity.loai_hd?.ten_loai_hd && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border border-indigo-200/70 bg-indigo-50/70 text-indigo-700 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-300">
                   <Calendar className="h-3 w-3" />
                   {activity.loai_hd.ten_loai_hd}
                 </span>
@@ -295,11 +298,8 @@ export default function ActivityCard({
                 <div className="flex items-center gap-1.5 text-xs">
                   <CalendarClock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
                   <span className="text-gray-600">Bắt đầu:</span>
-                  <span className="text-gray-900 font-medium">
-                    {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit'
-                    })}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {formatDisplayDateTime(activity.ngay_bd)}
                   </span>
                 </div>
               )}
@@ -309,11 +309,8 @@ export default function ActivityCard({
                 <div className="flex items-center gap-1.5 text-xs">
                   <CalendarCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                   <span className="text-gray-600">Kết thúc:</span>
-                  <span className="text-gray-900 font-medium">
-                    {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit'
-                    })}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {formatDisplayDateTime(activity.ngay_kt)}
                   </span>
                 </div>
               )}
@@ -324,18 +321,15 @@ export default function ActivityCard({
                   <CalendarX className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
                   <span className="text-gray-600">Hạn ĐK:</span>
                   <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
-                    {new Date(activity.han_dk).toLocaleString('vi-VN', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit'
-                    })}
+                    {formatDisplayDateTime(activity.han_dk)}
                   </span>
                 </div>
               )}
-              
+
               {activity.dia_diem && (
                 <div className="flex items-center gap-1.5 text-xs">
                   <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+                  <span className="truncate text-slate-600 dark:text-slate-300">{activity.dia_diem}</span>
                 </div>
               )}
             </div>
@@ -365,7 +359,7 @@ export default function ActivityCard({
             )}
             <button
               onClick={() => onViewDetails(activity?.id)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200 ${canRegister ? '' : 'flex-1'}`}
+              className={`flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 ${canRegister ? '' : 'flex-1'}`}
             >
               <Eye className="h-3.5 w-3.5" />
               Chi tiết
@@ -375,11 +369,11 @@ export default function ActivityCard({
       </div>
     );
   }
-  
+
   // GRID MODE - Compact vertical layout cho các tab khác
   return (
-    <div className={`group relative h-full bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col ${
-      isRegistrationOpen ? 'border-emerald-200 shadow-lg shadow-emerald-100' : ''
+    <div className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/50 ${
+      isRegistrationOpen ? 'border-emerald-200/80 shadow-emerald-100/60 dark:border-emerald-400/20' : ''
     }`}>
       {/* Activity Image - Compact */}
       <div className="relative w-full h-36 overflow-hidden">
@@ -391,14 +385,14 @@ export default function ActivityCard({
           showDots={true}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
-        
+
         {/* Status Badge on Image - Compact */}
         <div className="absolute top-2 left-2">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusColors[displayStatus]}`}>
             {statusLabels[displayStatus]}
           </span>
         </div>
-        
+
         {/* Points Badge on Image - Compact */}
         {activity.diem_rl && (
           <div className="absolute bottom-2 right-2">
@@ -408,7 +402,7 @@ export default function ActivityCard({
             </span>
           </div>
         )}
-        
+
         {/* Featured badge for open registration */}
         {isRegistrationOpen && (
           <div className="absolute bottom-2 left-2">
@@ -423,13 +417,13 @@ export default function ActivityCard({
       <div className="flex-1 p-4 space-y-3 relative z-10">
         {/* Header - Compact */}
         <div>
-          <h3 className="text-sm font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1.5 leading-tight">
+          <h3 className="mb-1.5 line-clamp-2 text-sm font-bold leading-tight text-slate-950 transition-colors group-hover:text-indigo-600 dark:text-white">
             {activity.ten_hd}
           </h3>
-          
+
           {/* Category tag - Compact */}
           {activity.loai_hd?.ten_loai_hd && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded border border-blue-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border border-indigo-200/70 bg-indigo-50/70 text-indigo-700 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-300">
               <Calendar className="h-3 w-3" />
               {activity.loai_hd.ten_loai_hd}
             </span>
@@ -443,11 +437,8 @@ export default function ActivityCard({
             <div className="flex items-center gap-1.5 text-xs">
               <CalendarClock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
               <span className="text-gray-600">Bắt đầu:</span>
-              <span className="text-gray-900 font-medium">
-                {new Date(activity.ngay_bd).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+              <span className="font-medium text-slate-900 dark:text-slate-100">
+                {formatDisplayDateTime(activity.ngay_bd)}
               </span>
             </div>
           )}
@@ -457,11 +448,8 @@ export default function ActivityCard({
             <div className="flex items-center gap-1.5 text-xs">
               <CalendarCheck className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
               <span className="text-gray-600">Kết thúc:</span>
-              <span className="text-gray-900 font-medium">
-                {new Date(activity.ngay_kt).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+              <span className="font-medium text-slate-900 dark:text-slate-100">
+                {formatDisplayDateTime(activity.ngay_kt)}
               </span>
             </div>
           )}
@@ -472,10 +460,7 @@ export default function ActivityCard({
               <CalendarX className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
               <span className="text-gray-600">Hạn ĐK:</span>
               <span className={`font-medium ${isDeadlinePast ? 'text-red-600' : 'text-gray-900'}`}>
-                {new Date(activity.han_dk).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+                {formatDisplayDateTime(activity.han_dk)}
               </span>
             </div>
           )}
@@ -483,14 +468,14 @@ export default function ActivityCard({
           {activity.dia_diem && (
             <div className="flex items-center gap-1.5 text-xs">
               <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <span className="text-gray-600 truncate">{activity.dia_diem}</span>
+              <span className="truncate text-slate-600 dark:text-slate-300">{activity.dia_diem}</span>
             </div>
           )}
 
           {activity.diem_rl && (
             <div className="flex items-center gap-1.5 text-xs">
               <Award className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-              <span className="text-gray-900 font-medium">+{activity.diem_rl} điểm</span>
+              <span className="font-medium text-slate-900 dark:text-slate-100">+{activity.diem_rl} điểm</span>
             </div>
           )}
 
@@ -509,13 +494,24 @@ export default function ActivityCard({
         <div className="p-3 pt-0 mt-auto flex gap-2">
           <button
             onClick={() => onViewDetails(activity?.id)}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
           >
             <Eye className="h-3.5 w-3.5" />
             Chi tiết
           </button>
-          
+
           {/* Tab khác - Hiển thị QR/Sửa/Xóa */}
+          {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
+            <button
+              onClick={() => onShowFaceAttendance(activity)}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              disabled={!isWritable}
+              title="Điểm danh khuôn mặt"
+            >
+              <ScanFace className="h-3.5 w-3.5" />
+            </button>
+          )}
+
           {statusFilter !== 'co_san' && displayStatus === 'da_duyet' && (
             <button
               onClick={() => onShowQR(activity)}
@@ -526,7 +522,7 @@ export default function ActivityCard({
               <QrCode className="h-3.5 w-3.5" />
             </button>
           )}
-          
+
           {/* Chỉ cho phép sửa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
           {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
             <button
@@ -538,7 +534,7 @@ export default function ActivityCard({
               <Edit className="h-3.5 w-3.5" />
             </button>
           )}
-          
+
           {/* Chỉ cho phép xóa khi trạng thái "Chờ duyệt" và KHÔNG phải tab "Có sẵn" */}
           {statusFilter !== 'co_san' && displayStatus === 'cho_duyet' && (
             <button

@@ -16,15 +16,15 @@ export default function AdminSidebar({
 
   return (
     <aside className="lg:col-span-6 xl:col-span-5">
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarTab('classes')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 sidebarTab === 'classes'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'border border-white/60 bg-white/45 text-slate-600 hover:bg-white/75 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
               }`}
             >
               <GraduationCap className="h-4 w-4" />
@@ -34,8 +34,8 @@ export default function AdminSidebar({
               onClick={() => setSidebarTab('teachers')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 sidebarTab === 'teachers'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'border border-white/60 bg-white/45 text-slate-600 hover:bg-white/75 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
               }`}
             >
               <Users className="h-4 w-4" />
@@ -45,14 +45,14 @@ export default function AdminSidebar({
           {sidebarTab === 'classes' ? (
             <button
               onClick={() => navigate('/admin/classes')}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              className="text-sm font-bold text-indigo-600 transition-colors hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200"
             >
               Xem tất cả →
             </button>
           ) : (
             <button
               onClick={() => navigate('/admin/users?role=GIANG_VIEN')}
-              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              className="text-sm font-bold text-indigo-600 transition-colors hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200"
             >
               Quản lý →
             </button>
@@ -101,7 +101,7 @@ function ClassesList({ classes, loading, onClassClick }) {
       {classes.map((c, idx) => (
         <div
           key={c.id || c.ma_lop || c.class_id || c._id || idx}
-          className="rounded-lg p-3 border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer"
+          className="cursor-pointer rounded-2xl border border-white/60 bg-white/45 p-3 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-indigo-200/70 hover:bg-indigo-50/70 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:border-indigo-400/20 dark:hover:bg-indigo-400/10"
           onClick={() => onClassClick(c)}
         >
           <div className="flex items-center justify-between">
@@ -146,7 +146,7 @@ function TeachersList({ teachers, loading, onTeacherClick }) {
       {teachers.map((t, idx) => (
         <div
           key={t.id || t.user_id || t._id || idx}
-          className="rounded-lg p-3 border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 transition-all cursor-pointer"
+          className="cursor-pointer rounded-2xl border border-white/60 bg-white/45 p-3 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-indigo-200/70 hover:bg-indigo-50/70 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:border-indigo-400/20 dark:hover:bg-indigo-400/10"
           onClick={() => onTeacherClick(t)}
         >
           <div className="flex items-center gap-3">

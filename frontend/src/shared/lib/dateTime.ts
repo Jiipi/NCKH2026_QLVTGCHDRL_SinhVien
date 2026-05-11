@@ -1,8 +1,3 @@
-/**
- * Date/Time utility functions
- * Xử lý timezone đúng cách cho Việt Nam (UTC+7)
- */
-
 type DateValue = string | Date | null | undefined;
 
 interface DateTimeFormatOptions {
@@ -15,53 +10,58 @@ interface DateTimeFormatOptions {
   timeZone?: string;
 }
 
-/**
- * Format datetime cho input datetime-local
- * Sử dụng local timezone thay vì UTC để tránh lệch giờ
- */
+const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+
+const parseVietnamWallTime = (value: string): Date | null => {
+  if (!DATETIME_LOCAL_PATTERN.test(value)) return null;
+  const [datePart, timePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second = 0] = timePart.split(':').map(Number);
+  const dt = new Date(Date.UTC(year, month - 1, day, hour - VIETNAM_UTC_OFFSET_HOURS, minute, second));
+  return isNaN(dt.getTime()) ? null : dt;
+};
+
 export const formatDateTimeLocal = (value: DateValue): string => {
   if (!value) return '';
   try {
     const dt = value instanceof Date ? value : new Date(value);
     if (isNaN(dt.getTime())) return '';
-    // Lấy các thành phần theo local timezone (không dùng toISOString vì nó trả về UTC)
-    const year = dt.getFullYear();
-    const month = String(dt.getMonth() + 1).padStart(2, '0');
-    const day = String(dt.getDate()).padStart(2, '0');
-    const hours = String(dt.getHours()).padStart(2, '0');
-    const minutes = String(dt.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  } catch (_e) { 
-    return ''; 
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: VIETNAM_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(dt);
+    const get = (type: string) => parts.find(part => part.type === type)?.value || '';
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+  } catch (_e) {
+    return '';
   }
 };
 
-/**
- * Chuyển đổi datetime-local string sang ISO string với timezone
- * Để gửi lên backend, đảm bảo timezone được preserve
- */
 export const toISOWithTimezone = (dateTimeLocal: string | null | undefined): string | null => {
   if (!dateTimeLocal) return null;
   try {
-    // datetime-local không có timezone info, parse theo local timezone của browser
-    const dt = new Date(dateTimeLocal);
+    const vietnamDate = parseVietnamWallTime(dateTimeLocal);
+    const dt = vietnamDate || new Date(dateTimeLocal);
     if (isNaN(dt.getTime())) return null;
-    // toISOString() trả về UTC, chính xác cho việc lưu trữ và so sánh
     return dt.toISOString();
   } catch (_e) {
     return null;
   }
 };
 
-/**
- * Format datetime cho hiển thị người dùng
- */
 export const formatDisplayDateTime = (value: DateValue, options: DateTimeFormatOptions = {}): string => {
   if (!value) return '';
   try {
     const dt = value instanceof Date ? value : new Date(value);
     if (isNaN(dt.getTime())) return '';
-    
+
     const defaultOptions: DateTimeFormatOptions = {
       day: '2-digit',
       month: '2-digit',
@@ -69,23 +69,37 @@ export const formatDisplayDateTime = (value: DateValue, options: DateTimeFormatO
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh',
+      timeZone: VIETNAM_TIMEZONE,
       ...options
     };
-    
+
     return dt.toLocaleString('vi-VN', defaultOptions as Intl.DateTimeFormatOptions);
   } catch (_e) {
     return '';
   }
 };
 
-/**
- * Parse datetime-local string thành Date object
- */
+export const formatDisplayDate = (value: DateValue): string => {
+  if (!value) return '';
+  try {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (isNaN(dt.getTime())) return '';
+    return dt.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: VIETNAM_TIMEZONE,
+    });
+  } catch (_e) {
+    return '';
+  }
+};
+
 export const parseDateTimeLocal = (value: string | null | undefined): Date | null => {
   if (!value) return null;
   try {
-    const dt = new Date(value);
+    const vietnamDate = parseVietnamWallTime(value);
+    const dt = vietnamDate || new Date(value);
     return isNaN(dt.getTime()) ? null : dt;
   } catch (_e) {
     return null;

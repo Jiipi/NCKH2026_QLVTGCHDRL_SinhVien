@@ -5,6 +5,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FaceCamera, { FaceCameraRef } from './FaceCamera';
 import { useFaceRecognition } from '../../model/hooks/useFaceRecognition';
+import { createFaceFallback } from '../../services/faceApi';
 
 interface FaceAttendanceCardProps {
   hoatDongId: string;
@@ -13,6 +14,58 @@ interface FaceAttendanceCardProps {
   disabled?: boolean;
   className?: string;
 }
+
+// Error message classification
+const ERROR_CONFIGS: Record<string, { icon: string; title: string; hint: string; canFallback: boolean }> = {
+  NO_FACE: {
+    icon: '👤',
+    title: 'Không thấy khuôn mặt',
+    hint: 'Vui lòng đưa mặt vào khung hình và đảm bảo đủ ánh sáng.',
+    canFallback: false
+  },
+  MULTI_FACE: {
+    icon: '👥',
+    title: 'Phát hiện nhiều khuôn mặt',
+    hint: 'Chỉ cho phép 1 khuôn mặt trong khung hình. Vui lòng đứng riêng.',
+    canFallback: false
+  },
+  LIVENESS_FAIL: {
+    icon: '📷',
+    title: 'Ảnh không đạt kiểm tra',
+    hint: 'Vui lòng chụp trực tiếp từ camera, không dùng ảnh in hoặc màn hình.',
+    canFallback: true
+  },
+  MISMATCH: {
+    icon: '❌',
+    title: 'Khuôn mặt không khớp',
+    hint: 'Khuôn mặt không khớp với dữ liệu đã đăng ký.',
+    canFallback: true
+  },
+  NOT_VERIFIED: {
+    icon: '⏳',
+    title: 'Chưa được xác minh',
+    hint: 'Dữ liệu khuôn mặt chưa được duyệt. Vui lòng chờ quản trị viên hoặc giảng viên xác minh.',
+    canFallback: true
+  },
+  NO_REGISTRATION: {
+    icon: '⚠️',
+    title: 'Chưa đăng ký khuôn mặt',
+    hint: 'Bạn cần đăng ký khuôn mặt trước khi sử dụng tính năng này.',
+    canFallback: false
+  },
+  GEOFENCE_FAIL: {
+    icon: '📍',
+    title: 'Ngoài khu vực cho phép',
+    hint: 'Bạn đang ở ngoài khu vực điểm danh. Vui lòng di chuyển đến đúng vị trí.',
+    canFallback: true
+  },
+  UNKNOWN: {
+    icon: '⚠️',
+    title: 'Điểm danh thất bại',
+    hint: 'Vui lòng thử lại sau.',
+    canFallback: true
+  }
+};
 
 export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
   hoatDongId,
@@ -23,7 +76,10 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
 }) => {
   const cameraRef = useRef<FaceCameraRef>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; confidence?: number } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; confidence?: number; errorCode?: string } | null>(null);
+  const [fallbackSent, setFallbackSent] = useState(false);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const consecutiveFailsRef = useRef(0);
 
   const {
     attend,
@@ -43,6 +99,8 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
     }
     setIsExpanded(!isExpanded);
     setResult(null);
+    setFallbackSent(false);
+    consecutiveFailsRef.current = 0;
   }, [isExpanded, checkStatus]);
 
   // Xử lý khi chụp ảnh
@@ -55,6 +113,7 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
       const attendResult = await attend(hoatDongId, blob);
 
       if (attendResult.success) {
+        consecutiveFailsRef.current = 0;
         setResult({
           success: true,
           message: 'Điểm danh thành công!',
@@ -70,17 +129,22 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
           cameraRef.current?.stopStream();
         }, 2000);
       } else {
+        consecutiveFailsRef.current++;
+        const errorCode = attendResult.errorCode || 'UNKNOWN';
         setResult({
           success: false,
-          message: attendResult.message || 'Điểm danh thất bại. Vui lòng thử lại.'
+          message: attendResult.message || 'Điểm danh thất bại. Vui lòng thử lại.',
+          errorCode
         });
         onError?.(attendResult.message || 'Điểm danh thất bại');
       }
     } catch (err) {
+      consecutiveFailsRef.current++;
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra';
       setResult({
         success: false,
-        message
+        message,
+        errorCode: 'UNKNOWN'
       });
       onError?.(message);
     }
@@ -94,7 +158,29 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
     }
   }, [handleCapture]);
 
-  // Tự động quét khuôn mặt
+  // Gửi yêu cầu fallback
+  const handleFallback = useCallback(async () => {
+    setFallbackLoading(true);
+    try {
+      const fbResult = await createFaceFallback(
+        hoatDongId,
+        result?.message || 'Điểm danh khuôn mặt thất bại',
+        result?.errorCode,
+        result?.confidence
+      );
+      if (fbResult.success) {
+        setFallbackSent(true);
+      } else {
+        alert(fbResult.message);
+      }
+    } catch {
+      alert('Không thể gửi yêu cầu. Vui lòng thử lại.');
+    } finally {
+      setFallbackLoading(false);
+    }
+  }, [hoatDongId, result]);
+
+  // Tự động quét khuôn mặt với exponential backoff
   const isAttendingRef = useRef(isAttending);
   useEffect(() => {
     isAttendingRef.current = isAttending;
@@ -104,25 +190,39 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
     let intervalId: NodeJS.Timeout;
 
     if (isExpanded && isRegistered && !result?.success) {
+      // Exponential backoff: 2.5s → 5s → 10s → cap at 10s
+      const getDelay = () => {
+        const base = 2500;
+        const fails = consecutiveFailsRef.current;
+        return Math.min(base * Math.pow(2, fails), 10000);
+      };
+
       // Đợi 1.5s để camera khởi động xong trước khi bắt đầu vòng lặp quét
       const timeoutId = setTimeout(() => {
-        intervalId = setInterval(() => {
-          if (!isAttendingRef.current && cameraRef.current?.isStreaming) {
-            handleTakePhoto();
-          }
-        }, 2500); // Quét mỗi 2.5 giây
+        const scheduleNext = () => {
+          intervalId = setTimeout(() => {
+            if (!isAttendingRef.current && cameraRef.current?.isStreaming) {
+              handleTakePhoto();
+            }
+            scheduleNext();
+          }, getDelay());
+        };
+        scheduleNext();
       }, 1500);
 
       return () => {
         clearTimeout(timeoutId);
-        if (intervalId) clearInterval(intervalId);
+        if (intervalId) clearTimeout(intervalId);
       };
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) clearTimeout(intervalId);
     };
   }, [isExpanded, isRegistered, result?.success, handleTakePhoto]);
+
+  // Get error config for display
+  const errorConfig = result?.errorCode ? (ERROR_CONFIGS[result.errorCode] || ERROR_CONFIGS.UNKNOWN) : null;
 
   // Nếu chưa đăng ký khuôn mặt
   const notRegistered = !isRegistered;
@@ -202,29 +302,76 @@ export const FaceAttendanceCard: React.FC<FaceAttendanceCardProps> = ({
           {/* Đã đăng ký - hiển thị camera */}
           {!notRegistered && (
             <>
-              {/* Result message */}
+              {/* Result message - classified */}
               {result && (
-                <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 ${result.success
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-red-100 text-red-800'
+                <div className={`mb-4 p-4 rounded-lg ${result.success
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
                   }`}>
                   {result.success ? (
-                    <svg className="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="font-medium">{result.message}</p>
+                        {result.confidence && (
+                          <p className="text-sm opacity-80">
+                            Độ tin cậy: {(result.confidence * 100).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   ) : (
-                    <svg className="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
+                    <div>
+                      {/* Classified error display */}
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl flex-shrink-0">{errorConfig?.icon || '⚠️'}</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-base">{errorConfig?.title || 'Điểm danh thất bại'}</p>
+                          <p className="text-sm mt-1 opacity-80">{errorConfig?.hint || result.message}</p>
+                          {result.confidence !== undefined && result.confidence > 0 && (
+                            <p className="text-xs mt-1 opacity-60">
+                              Độ tương đồng: {(result.confidence * 100).toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Fallback button */}
+                      {errorConfig?.canFallback && !fallbackSent && (
+                        <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-700">
+                          <button
+                            onClick={handleFallback}
+                            disabled={fallbackLoading}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition font-medium text-sm disabled:opacity-50"
+                          >
+                            {fallbackLoading ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            )}
+                            Gửi yêu cầu xác minh thủ công
+                          </button>
+                          <p className="text-xs text-center mt-1 opacity-60">Giảng viên hoặc lớp trưởng sẽ xem xét yêu cầu của bạn</p>
+                        </div>
+                      )}
+
+                      {/* Fallback sent confirmation */}
+                      {fallbackSent && (
+                        <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700">
+                          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-sm font-medium">Đã gửi yêu cầu xác minh thành công!</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                  <div>
-                    <p className="font-medium">{result.message}</p>
-                    {result.confidence && (
-                      <p className="text-sm opacity-80">
-                        Độ tin cậy: {(result.confidence * 100).toFixed(1)}%
-                      </p>
-                    )}
-                  </div>
                 </div>
               )}
 

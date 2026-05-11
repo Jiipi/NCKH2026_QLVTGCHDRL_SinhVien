@@ -1,107 +1,116 @@
 /**
  * Face Recognition Routes
  * ========================
- * API routes cho nhận diện khuôn mặt
- * 
- * Endpoints:
- * - GET  /api/face/health              - Kiểm tra service status
- * - GET  /api/face/status              - Lấy trạng thái đăng ký khuôn mặt
- * - POST /api/face/register            - Đăng ký khuôn mặt (1 hoặc nhiều ảnh)
- * - POST /api/face/attendance/:activityId - Điểm danh bằng khuôn mặt
- * - DELETE /api/face/register          - Xóa dữ liệu khuôn mặt
+ * Định nghĩa các endpoint API cho nhận diện khuôn mặt
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
-import multer, { MulterError } from 'multer';
-import { faceRecognitionController } from '../controllers';
-
-// Import auth middleware
-import { auth } from '../../../../core/http/middleware';
-import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
-import { faceLimiter } from '../../../../core/http/middleware/rateLimiters';
+import { Router } from 'express';
+import multer from 'multer';
+import { faceRecognitionController } from '../controllers/FaceRecognitionController';
+import { isTeacherOrAbove } from '../../../../core/utils/roleHelper';
 
 const router = Router();
 
-// Multer config cho upload ảnh (lưu trong memory)
-// Giảm từ 10MB → 5MB per file để tránh OOM (5 files × 5MB = 25MB max/request)
+// Multer config: lưu trong memory (in-memory buffer)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // Max 5MB per file (khớp với frontend validation)
-    files: 5 // Max 5 files for multi-image registration
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 5                     // tối đa 5 ảnh
   },
   fileFilter: (_req, file, cb) => {
-    // Chỉ chấp nhận ảnh JPEG/PNG/WebP (không chấp nhận mọi image/*)
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
+    if (!file.mimetype.startsWith('image/')) {
+      cb(new Error('Chỉ chấp nhận file ảnh'));
     } else {
-      cb(new Error('Chỉ chấp nhận file ảnh JPEG, PNG hoặc WebP'));
+      cb(null, true);
     }
   }
 });
 
-// Multer error handler middleware
-const handleMulterError = (err: any, _req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof MulterError) {
-    if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'Tối đa 5 ảnh được phép upload' });
-    }
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'Kích thước ảnh tối đa 10MB' });
-    }
-    return res.status(400).json({ error: err.message });
-  }
-  next(err);
-};
+// ========================
+// PUBLIC (nhưng cần auth)
+// ========================
 
-/**
- * GET /api/face/health
- * Public endpoint - kiểm tra Face Recognition Service
- */
-router.get('/health', (req: Request, res: Response) =>
-  faceRecognitionController.healthCheck(req, res)
+router.get('/health',
+  (req, res) => faceRecognitionController.healthCheck(req, res)
 );
 
-/**
- * GET /api/face/status
- * Requires: authenticated user (sinh viên)
- * Lấy trạng thái đăng ký khuôn mặt
- */
-router.get('/status', auth, asyncHandler((req: Request, res: Response) =>
-  faceRecognitionController.getFaceStatus(req, res)
-));
+router.get('/status',
+  (req, res) => faceRecognitionController.getFaceStatus(req, res)
+);
 
-/**
- * POST /api/face/register
- * Requires: authenticated user (sinh viên)
- * Body: multipart/form-data
- *   - files: Ảnh khuôn mặt (1-5 ảnh, field name: "files")
- *   - file: Ảnh khuôn mặt đơn (backward compatible, field name: "file") 
- *   - updateIfExists: boolean (optional, default false)
- */
-router.post('/register', auth, faceLimiter, upload.any(), handleMulterError, asyncHandler((req: any, res: Response) =>
-  faceRecognitionController.registerFace(req, res)
-));
+// ========================
+// CONSENT
+// ========================
 
-/**
- * POST /api/face/attendance/:activityId
- * Requires: authenticated user (sinh viên)
- * Body: multipart/form-data
- *   - file: Ảnh khuôn mặt (required)
- *   - threshold: number (optional, default 0.68)
- */
-router.post('/attendance/:activityId', auth, faceLimiter, upload.single('file'), asyncHandler((req: any, res: Response) =>
-  faceRecognitionController.faceAttendance(req, res)
-));
+router.get('/consent',
+  (req, res) => faceRecognitionController.checkConsent(req, res)
+);
 
-/**
- * DELETE /api/face/register
- * Requires: authenticated user (sinh viên)
- * Xóa dữ liệu khuôn mặt đã đăng ký
- */
-router.delete('/register', auth, asyncHandler((req: any, res: Response) =>
-  faceRecognitionController.deleteFaceData(req, res)
-));
+router.post('/consent',
+  (req, res) => faceRecognitionController.acceptConsent(req, res)
+);
+
+// ========================
+// REGISTRATION
+// ========================
+
+router.post('/register',
+  upload.array('files', 5),
+  (req, res) => faceRecognitionController.registerFace(req, res)
+);
+
+router.delete('/register',
+  (req, res) => faceRecognitionController.deleteFaceData(req, res)
+);
+
+// ========================
+// ATTENDANCE
+// ========================
+
+router.post('/attendance/:activityId',
+  upload.single('file'),
+  (req, res) => faceRecognitionController.faceAttendance(req, res)
+);
+
+router.post('/monitor-attendance/:activityId',
+  upload.array('files', 30),
+  (req, res) => faceRecognitionController.monitorBulkFaceAttendance(req, res)
+);
+
+// ========================
+// FALLBACK
+// ========================
+
+router.post('/fallback/:activityId',
+  (req, res) => faceRecognitionController.createFallbackRequest(req, res)
+);
+
+// ========================
+// ADMIN / TEACHER
+// ========================
+
+const requireTeacherOrAbove = (req: any, res: any, next: any) => {
+  const role = req.user?.role;
+  if (!isTeacherOrAbove(role)) {
+    return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập' });
+  }
+  next();
+};
+
+router.get('/admin/registrations',
+  requireTeacherOrAbove,
+  (req, res) => faceRecognitionController.adminListRegistrations(req, res)
+);
+
+router.patch('/admin/registrations/:faceDataId/verify',
+  requireTeacherOrAbove,
+  (req, res) => faceRecognitionController.adminVerifyFace(req, res)
+);
+
+router.patch('/admin/registrations/:faceDataId/reject',
+  requireTeacherOrAbove,
+  (req, res) => faceRecognitionController.adminRejectFace(req, res)
+);
 
 export default router;

@@ -53,15 +53,15 @@ export default function AdminActivitiesFiltersPanel({
   const safeStatus = Array.isArray(statusOptions) ? statusOptions : [];
 
   return (
-    <div className="mb-6 p-6 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-gray-200 animate-slideDown">
+    <div className="mb-6 animate-slideDown rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-          <Filter className="h-5 w-5 text-indigo-600" />
+        <h3 className="flex items-center gap-2 text-lg font-black tracking-[-0.03em] text-slate-950 dark:text-white">
+          <Filter className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />
           Bộ lọc nâng cao
         </h3>
         {activeFilterCount > 0 && (
-          <span className="text-sm text-gray-600">
-            Đang áp dụng <span className="font-bold text-indigo-600">{activeFilterCount}</span> bộ lọc
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            Đang áp dụng <span className="font-bold text-indigo-600 dark:text-indigo-300">{activeFilterCount}</span> bộ lọc
           </span>
         )}
       </div>
@@ -75,7 +75,7 @@ export default function AdminActivitiesFiltersPanel({
             <select
               value={filters.type}
               onChange={(e) => onFilterChange('type', e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-200 hover:border-indigo-300"
+              className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
             >
               <option value="">Tất cả loại</option>
               {safeTypes.map((type) => (
@@ -95,7 +95,7 @@ export default function AdminActivitiesFiltersPanel({
             <select
               value={filters.status}
               onChange={(e) => onFilterChange('status', e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-200 hover:border-indigo-300"
+              className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
             >
               {safeStatus.map((option) => (
                 <option key={option.value || 'all'} value={option.value}>
@@ -115,7 +115,7 @@ export default function AdminActivitiesFiltersPanel({
               type="date"
               value={filters.from}
               onChange={(e) => onFilterChange('from', e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-200 hover:border-indigo-300"
+              className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
             />
           }
         />
@@ -129,16 +129,16 @@ export default function AdminActivitiesFiltersPanel({
               type="date"
               value={filters.to}
               onChange={(e) => onFilterChange('to', e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all duration-200 hover:border-indigo-300"
+              className="w-full rounded-2xl border border-white/70 bg-white/55 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white/75 focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:focus:ring-indigo-400/20"
             />
           }
         />
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600">
+      <div className="mt-4 flex items-center justify-between border-t border-white/60 pt-4 dark:border-white/10">
+        <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
           {activeFilterCount > 0 ? (
-            <span>✓ Đã áp dụng <strong>{activeFilterCount}</strong> bộ lọc</span>
+            <span>✓ Đã áp dụng <strong className="text-indigo-600 dark:text-indigo-300">{activeFilterCount}</strong> bộ lọc</span>
           ) : (
             <span>Chưa có bộ lọc nào được áp dụng</span>
           )}
@@ -146,7 +146,7 @@ export default function AdminActivitiesFiltersPanel({
         {activeFilterCount > 0 && (
           <button
             onClick={onClearAll}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all duration-200"
+            className="flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/70 px-4 py-2 text-sm font-bold text-rose-600 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-rose-100/80 hover:text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300 dark:hover:bg-rose-400/15"
           >
             <RefreshCw className="h-4 w-4" />
             Xóa tất cả
@@ -160,7 +160,7 @@ export default function AdminActivitiesFiltersPanel({
 function FilterField({ label, icon: Icon = Calendar, iconColor, element }: FilterFieldProps): React.ReactElement {
   return (
     <div>
-      <label className="inline-flex text-sm font-semibold text-gray-700 mb-2 items-center gap-2">
+      <label className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
         <Icon className={`h-4 w-4 ${iconColor}`} />
         {label}
       </label>

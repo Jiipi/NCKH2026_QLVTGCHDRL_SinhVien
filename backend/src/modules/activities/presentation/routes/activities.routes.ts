@@ -50,6 +50,74 @@ function createActivitiesRouter(controller: InstanceType<typeof ActivitiesContro
     })
   );
 
+  // QR attendance session endpoints (must be before /:id route)
+  router.post(
+    '/:id/attendance/session',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.createAttendanceSession(req, res))
+  );
+
+  router.get(
+    '/:id/attendance/session/current',
+    requireDynamicPermission('activities.read'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.getCurrentAttendanceSession(req, res))
+  );
+
+  router.post(
+    '/:id/attendance/session/:sessionId/token',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.createAttendanceSessionToken(req, res))
+  );
+
+  router.post(
+    '/:id/attendance/session/:sessionId/close',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.closeAttendanceSession(req, res))
+  );
+
+  // Attendance fallback request endpoints
+  router.get(
+    '/attendance/fallback-requests/my',
+    requireDynamicPermission('attendance.read'),
+    asyncHandler((req: Request, res: Response) => controller.listMyFallbackRequests(req, res))
+  );
+
+  router.post(
+    '/attendance/fallback-requests/:requestId/approve',
+    requireDynamicPermission('attendance.write'),
+    asyncHandler((req: Request, res: Response) => controller.approveFallbackRequest(req, res))
+  );
+
+  router.post(
+    '/attendance/fallback-requests/:requestId/reject',
+    requireDynamicPermission('attendance.write'),
+    asyncHandler((req: Request, res: Response) => controller.rejectFallbackRequest(req, res))
+  );
+
+  router.post(
+    '/attendance/fallback-requests/:requestId/cancel',
+    requireDynamicPermission('attendance.write'),
+    asyncHandler((req: Request, res: Response) => controller.cancelFallbackRequest(req, res))
+  );
+
+  router.post(
+    '/:id/attendance/fallback-requests',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.createFallbackRequest(req, res))
+  );
+
+  router.get(
+    '/:id/attendance/fallback-requests',
+    requireDynamicPermission('attendance.read'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.listFallbackRequests(req, res))
+  );
+
   // Get activity details with registrations
   router.get(
     '/:id/details',
@@ -141,11 +209,11 @@ function createActivitiesRouter(controller: InstanceType<typeof ActivitiesContro
 
 // Create default router with injected controller
 const activitiesController = createActivitiesController();
-const router = createActivitiesRouter(activitiesController);
+export const router = createActivitiesRouter(activitiesController);
 
-export default createActivitiesRouter;
+export default router;
 
 // CommonJS compatibility
-module.exports = createActivitiesRouter;
-module.exports.default = createActivitiesRouter;
+module.exports = router;
+module.exports.default = router;
 module.exports.router = router;

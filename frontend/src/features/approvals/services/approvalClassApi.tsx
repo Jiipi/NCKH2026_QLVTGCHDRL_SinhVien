@@ -12,7 +12,7 @@ class ApprovalClassApi {
    */
   async getClassRegistrations(params = {}) {
     try {
-      const response = await http.get('/class/registrations', { params });
+      const response = await http.get('/core/monitor/registrations', { params });
       return createSuccessResponse(extractArrayData(response));
     } catch (error) {
       return handleApiError(error);
@@ -25,7 +25,7 @@ class ApprovalClassApi {
    */
   async approveRegistration(registrationId) {
     try {
-      await http.post(`/class/registrations/${registrationId}/approve`);
+      await http.put(`/core/monitor/registrations/${registrationId}/approve`);
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -39,7 +39,7 @@ class ApprovalClassApi {
    */
   async rejectRegistration(registrationId, reason) {
     try {
-      await http.post(`/class/registrations/${registrationId}/reject`, { reason });
+      await http.put(`/core/monitor/registrations/${registrationId}/reject`, { reason });
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -52,8 +52,9 @@ class ApprovalClassApi {
    */
   async bulkApproveRegistrations(registrationIds) {
     try {
-      const response = await http.post('/class/registrations/bulk-approve', { registrationIds });
-      return createSuccessResponse(response.data?.data || null);
+      const results = await Promise.all(registrationIds.map(registrationId => this.approveRegistration(registrationId)));
+      const approved = results.filter(result => result.success).length;
+      return createSuccessResponse({ approved, failed: results.length - approved });
     } catch (error) {
       return handleApiError(error);
     }
@@ -66,11 +67,9 @@ class ApprovalClassApi {
    */
   async bulkRejectRegistrations(registrationIds, reason) {
     try {
-      const response = await http.post('/class/registrations/bulk-reject', { 
-        registrationIds, 
-        reason 
-      });
-      return createSuccessResponse(response.data?.data || null);
+      const results = await Promise.all(registrationIds.map(registrationId => this.rejectRegistration(registrationId, reason)));
+      const rejected = results.filter(result => result.success).length;
+      return createSuccessResponse({ rejected, failed: results.length - rejected });
     } catch (error) {
       return handleApiError(error);
     }

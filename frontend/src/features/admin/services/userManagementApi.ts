@@ -80,6 +80,18 @@ const handleError = (error: AxiosError): ApiResult => {
  * Admin User Management API
  */
 export const userManagementApi = {
+  async fetchUserProfile(): Promise<ApiResult> {
+    try {
+      const response = await http.get('/core/profile');
+      return {
+        success: true,
+        data: response?.data?.data || response?.data || {}
+      };
+    } catch (error) {
+      return handleError(error as AxiosError);
+    }
+  },
+
   /**
    * Lấy thống kê người dùng (số lượng theo vai trò, trạng thái)
    */

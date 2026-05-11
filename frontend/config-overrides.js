@@ -21,6 +21,22 @@ module.exports = function override(config, env) {
   
   // Don't set libraryTarget - causes library name error
   // Use default configuration for chunk format
+
+  // Fix framer-motion v12 ESM issue with ES5 target:
+  // 1. Alias framer-motion to its CJS build (which already exists at dist/cjs/)
+  // 2. Remove ModuleScopePlugin so webpack allows resolving to node_modules paths
+  const path = require('path');
+  config.resolve = config.resolve || {};
+  config.resolve.alias = {
+    ...(config.resolve.alias || {}),
+    'framer-motion': path.join(__dirname, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
+  };
+  // Remove CRA's ModuleScopePlugin which blocks imports from node_modules
+  if (config.resolve.plugins) {
+    config.resolve.plugins = config.resolve.plugins.filter(
+      plugin => !plugin.constructor || plugin.constructor.name !== 'ModuleScopePlugin'
+    );
+  }
   
   // Optimization for older browsers
   if (config.optimization) {

@@ -6,10 +6,14 @@
 import { Request } from 'express';
 import { prisma } from '../../data/infrastructure/prisma/client';
 import { logInfo, logError } from '../../core/logger';
+import { auditIntegrityService } from '../../modules/audit-integrity/services/auditIntegrity.service';
+import qrAttendanceTokenService from './qr-attendance-token.service';
 
 // Types
 interface QrPayload {
-  hd: string;
+  hd?: string;
+  activityId?: string;
+  sessionId?: string;
   token?: string;
 }
 
@@ -17,6 +21,10 @@ interface UserInfo {
   id: string;
   sub: string;
   role: string;
+}
+
+interface AuditRequest extends Request {
+  requestId?: string;
 }
 
 interface AttendanceResult {
@@ -48,7 +56,7 @@ class QrAttendanceService {
    * @param req - Express request object (for IP)
    * @returns Attendance result
    */
-  async scanQrCode(qrCode: string, user: UserInfo, req: Request): Promise<AttendanceResult> {
+  async scanQrCode(qrCode: string, user: UserInfo, req: AuditRequest): Promise<AttendanceResult> {
     console.log('QR Attendance Scan:', { hasQR: !!qrCode, user: { role: user.role, id: user.id } });
 
     // 1. Parse QR code payload
@@ -63,14 +71,15 @@ class QrAttendanceService {
       }
     }
 
-    if (!parsed?.hd) {
+    const payloadActivityId = parsed?.hd || parsed?.activityId;
+    if (!payloadActivityId) {
       console.log('❌ Invalid QR payload');
       const error: HttpError = new Error('Mã QR không hợp lệ');
       error.status = 400;
       throw error;
     }
 
-    const activityId = String(parsed.hd);
+    const activityId = String(payloadActivityId);
 
     // 2. Verify activity exists
     const activity = await prisma.hoatDong.findUnique({
@@ -127,7 +136,15 @@ class QrAttendanceService {
     }
 
     // 5. Verify QR token matches (security check)
-    if (activity.qr) {
+    if (parsed.sessionId) {
+      try {
+        await qrAttendanceTokenService.verifyToken(activityId, parsed.sessionId, parsed.token);
+      } catch (tokenError) {
+        const error: HttpError = new Error((tokenError as Error).message || 'Mã QR đã hết hạn hoặc không hợp lệ');
+        error.status = 400;
+        throw error;
+      }
+    } else if (activity.qr) {
       if (!parsed.token || parsed.token !== activity.qr) {
         console.log('❌ QR token mismatch');
         const error: HttpError = new Error('Mã QR đã hết hạn hoặc không hợp lệ');
@@ -207,25 +224,69 @@ class QrAttendanceService {
     const forwardedFor = req.headers['x-forwarded-for'];
     const clientIp = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0] : req.ip) || null;
 
-    const created = await prisma.diemDanh.create({
-      data: {
-        nguoi_diem_danh_id: user.sub,
-        sv_id: sv.id,
-        hd_id: activityId,
-        phuong_thuc: 'qr',
-        trang_thai_tham_gia: 'co_mat',
-        dia_chi_ip: clientIp,
-        xac_nhan_tham_gia: true
-      }
-    });
-
-    // 12. Update registration status to "participated"
-    if (reg.trang_thai_dk !== 'da_tham_gia') {
-      await prisma.dangKyHoatDong.update({
-        where: { id: reg.id },
-        data: { trang_thai_dk: 'da_tham_gia' }
+    const created = await prisma.$transaction(async (tx) => {
+      const attendance = await tx.diemDanh.create({
+        data: {
+          nguoi_diem_danh_id: user.sub,
+          sv_id: sv.id,
+          hd_id: activityId,
+          phuong_thuc: 'qr',
+          trang_thai_tham_gia: 'co_mat',
+          dia_chi_ip: clientIp,
+          xac_nhan_tham_gia: true
+        }
       });
-    }
+
+      await auditIntegrityService.appendEvent(tx, {
+        chainScope: 'attendance',
+        entityType: 'diem_danh',
+        entityId: attendance.id,
+        action: 'attendance_created_qr',
+        actorId: user.sub,
+        requestId: req.requestId,
+        ipAddress: clientIp,
+        userAgent: req.get('User-Agent') || null,
+        payload: {
+          attendanceId: attendance.id,
+          nguoiDiemDanhId: attendance.nguoi_diem_danh_id,
+          sinhVienId: attendance.sv_id,
+          hoatDongId: attendance.hd_id,
+          thoiGianDiemDanh: attendance.tg_diem_danh,
+          phuongThuc: attendance.phuong_thuc,
+          trangThaiThamGia: attendance.trang_thai_tham_gia,
+          xacNhanThamGia: attendance.xac_nhan_tham_gia,
+          ip: attendance.dia_chi_ip
+        }
+      });
+
+      // 12. Update registration status to "participated"
+      if (reg.trang_thai_dk !== 'da_tham_gia') {
+        const updatedRegistration = await tx.dangKyHoatDong.update({
+          where: { id: reg.id },
+          data: { trang_thai_dk: 'da_tham_gia' }
+        });
+
+        await auditIntegrityService.appendEvent(tx, {
+          chainScope: 'registration',
+          entityType: 'dang_ky_hoat_dong',
+          entityId: updatedRegistration.id,
+          action: 'registration_marked_attended_qr',
+          actorId: user.sub,
+          requestId: req.requestId,
+          ipAddress: clientIp,
+          userAgent: req.get('User-Agent') || null,
+          payload: {
+            registrationId: updatedRegistration.id,
+            sinhVienId: updatedRegistration.sv_id,
+            hoatDongId: updatedRegistration.hd_id,
+            trangThaiDk: updatedRegistration.trang_thai_dk,
+            attendanceId: attendance.id
+          }
+        });
+      }
+
+      return attendance;
+    });
 
     console.log('✅ QR attendance successful:', {
       attendanceId: created.id,

@@ -61,19 +61,6 @@ interface AdminUsersResultsProps {
   getDisplayRoleName?: (role: string) => string;
 }
 
-const buttonStyle = {
-  padding: '8px 16px',
-  borderRadius: '6px',
-  border: 'none',
-  cursor: 'pointer',
-  fontSize: '14px',
-  fontWeight: '500' as const,
-  display: 'flex' as const,
-  alignItems: 'center' as const,
-  gap: '8px',
-  transition: 'all 0.2s ease'
-};
-
 export default function AdminUsersResults({
   users = [],
   viewMode = 'grid',
@@ -88,18 +75,9 @@ export default function AdminUsersResults({
 }: AdminUsersResultsProps): React.ReactElement {
   if (!users.length) {
     return (
-      <div
-        className={viewMode === 'grid' ? 'col-span-full' : ''}
-        style={{
-          textAlign: 'center',
-          padding: '60px 24px',
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <Users size={48} style={{ margin: '0 auto 16px', opacity: 0.5, color: '#6b7280' }} />
-        <p style={{ fontSize: '16px', fontWeight: '500', color: '#6b7280' }}>Không tìm thấy người dùng nào</p>
+      <div className={`rounded-[2rem] border border-dashed border-white/60 bg-white/60 px-6 py-16 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/60 ${viewMode === 'grid' ? 'col-span-full' : ''}`}>
+        <Users className="mx-auto mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" />
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Không tìm thấy người dùng nào</p>
       </div>
     );
   }
@@ -115,7 +93,7 @@ export default function AdminUsersResults({
           return (
             <div
               key={user.id}
-              className="group relative bg-white border-2 border-gray-200 rounded-xl hover:shadow-lg hover:border-violet-300 transition-all duration-200"
+              className="group relative rounded-[1.5rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200/70 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-white/10"
             >
               <div className="flex items-center gap-4 p-4">
                 <UserAvatar avatarInfo={avatarInfo} borderColor={roleInfo.bg} />
@@ -128,7 +106,7 @@ export default function AdminUsersResults({
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => onViewDetails(user)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 text-sm font-medium shadow-sm hover:shadow-md transition-all"
+                    className="flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md"
                   >
                     <Eye size={16} />
                     <span className="hidden sm:inline">Chi tiết</span>
@@ -158,40 +136,22 @@ export default function AdminUsersResults({
         return (
           <div
             key={user.id}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '20px',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-              border: '1px solid #e5e7eb',
-              transition: 'all 0.2s ease',
-              minHeight: '280px',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            className="flex min-h-[280px] flex-col rounded-[1.5rem] border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:border-indigo-200/70 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/60 dark:hover:bg-white/10"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div className="mb-4 flex items-center gap-3">
               <UserAvatar avatarInfo={avatarInfo} borderColor={roleInfo.bg} large />
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-lg font-bold text-slate-950 dark:text-white">
                   {user.ho_ten || 'Chưa có tên'}
                 </h3>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge label={getDisplayRoleName(getRoleName(user.vai_tro) || user.role)} colors={roleInfo} />
                   <Badge label={statusInfo.text} colors={statusInfo} />
                 </div>
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px', minHeight: '140px', flex: 1 }}>
+            <div className="mb-4 min-h-[140px] flex-1">
               <InfoRow icon={<Mail size={14} />} text={user.email || 'Chưa có email'} />
               <InfoRow icon={<User size={14} />} text={user.ten_dn || 'Chưa có username'} />
               {user.sinh_vien && (
@@ -208,11 +168,11 @@ export default function AdminUsersResults({
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', paddingTop: '16px', borderTop: '1px solid #f3f4f6', marginTop: 'auto' }}>
+            <div className="mt-auto flex gap-2 border-t border-white/60 pt-4 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => onViewDetails(user)}
-                style={{ ...buttonStyle, backgroundColor: '#3b82f6', color: 'white', flex: 1, justifyContent: 'center' }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
               >
                 <Eye size={16} />
                 Chi tiết
@@ -221,7 +181,7 @@ export default function AdminUsersResults({
                 <button
                   onClick={() => onUnlockUser(user.id)}
                   title="Mở khóa tài khoản"
-                  style={{ ...buttonStyle, backgroundColor: '#10b981', color: 'white', padding: '8px 12px' }}
+                  className="rounded-2xl bg-emerald-500 px-3 py-2 text-white shadow-sm transition-colors hover:bg-emerald-600"
                 >
                   <Unlock size={16} />
                 </button>
@@ -229,7 +189,7 @@ export default function AdminUsersResults({
                 <button
                   onClick={() => onLockUser(user.id)}
                   title="Khóa tài khoản"
-                  style={{ ...buttonStyle, backgroundColor: '#f59e0b', color: 'white', padding: '8px 12px' }}
+                  className="rounded-2xl bg-amber-500 px-3 py-2 text-white shadow-sm transition-colors hover:bg-amber-600"
                 >
                   <Lock size={16} />
                 </button>
@@ -237,7 +197,7 @@ export default function AdminUsersResults({
               <button
                 onClick={() => onDeleteUser(user.id)}
                 title="Xóa tài khoản"
-                style={{ ...buttonStyle, backgroundColor: '#ef4444', color: 'white', padding: '8px 12px' }}
+                className="rounded-2xl bg-rose-500 px-3 py-2 text-white shadow-sm transition-colors hover:bg-rose-600"
               >
                 <Trash2 size={16} />
               </button>
@@ -308,19 +268,9 @@ interface InfoRowProps {
 
 function InfoRow({ icon, text }: InfoRowProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '8px',
-        fontSize: '14px',
-        color: '#6b7280',
-        minHeight: '24px'
-      }}
-    >
-      <span style={{ flexShrink: 0 }}>{icon}</span>
-      <span>{text}</span>
+    <div className="mb-2 flex min-h-6 items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <span className="flex-shrink-0 text-slate-400 dark:text-slate-500">{icon}</span>
+      <span className="truncate">{text}</span>
     </div>
   );
 }
@@ -336,7 +286,7 @@ function UserListInfo({ user, statusInfo, roleInfo, getDisplayRoleName }: UserLi
   return (
     <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-center">
       <div className="min-w-0">
-        <h3 className="text-base font-semibold text-gray-900 truncate group-hover:text-violet-600 transition-colors">
+        <h3 className="truncate text-base font-bold text-slate-950 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-300">
           {user.ho_ten || 'Chưa có tên'}
         </h3>
         <p className="text-sm text-gray-500 truncate">{user.ten_dn || 'N/A'}</p>

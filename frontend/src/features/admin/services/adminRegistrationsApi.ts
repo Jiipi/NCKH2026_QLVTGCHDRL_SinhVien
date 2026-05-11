@@ -44,6 +44,11 @@ const adminRegistrationsApi = {
     return res?.data?.data || res?.data || {};
   },
 
+  async listCoreRegistrations(params: ListRegistrationsParams): Promise<RegistrationsResponse> {
+    const res = await http.get('/core/admin/registrations', { params });
+    return res?.data?.data || res?.data || {};
+  },
+
   async listActivities(params: ListActivitiesParams): Promise<AxiosResponse> {
     const res = await http.get('/admin/activities', { params });
     return res;

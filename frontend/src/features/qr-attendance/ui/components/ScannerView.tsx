@@ -8,46 +8,51 @@ interface ScannerViewProps {
 
 const ScannerView = React.forwardRef<HTMLVideoElement, ScannerViewProps>(({ isScanning, isStarting }, ref) => {
   return (
-    <div className="relative mb-6 w-full h-80 bg-black rounded-2xl overflow-hidden">
+    <div className="relative mb-6 h-80 w-full overflow-hidden rounded-[2rem] border border-white/60 bg-slate-950 shadow-inner shadow-black/20 dark:border-white/10">
       <video
         ref={ref}
-        className={`w-full h-full object-cover ${isScanning ? 'block' : 'hidden'}`}
+        className={`h-full w-full object-cover ${isScanning ? 'block' : 'hidden'}`}
         playsInline
         autoPlay
         muted
       />
 
       {!isScanning && (
-        <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-          <div className="text-center text-gray-400">
-            <Camera className="w-16 h-16 mx-auto mb-4" />
-            <p className="font-semibold">
+        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_0%,rgba(20,184,166,0.18),transparent_32%),linear-gradient(135deg,#0f172a,#020617)]">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/10 shadow-2xl backdrop-blur-xl">
+              {isStarting ? (
+                <Scan className="h-8 w-8 animate-pulse text-teal-200" />
+              ) : (
+                <Camera className="h-8 w-8 text-slate-300" />
+              )}
+            </div>
+            <p className="font-bold text-white">
               {isStarting ? 'Đang khởi động camera...' : 'Camera chưa bật'}
             </p>
+            <p className="mt-1 text-sm text-slate-400">Đặt mã QR trong khung để hệ thống nhận diện.</p>
           </div>
         </div>
       )}
 
       {isScanning && (
-        <div className="absolute inset-0">
-          {/* Scanning corners */}
-          <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
-          <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
-          <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
-          <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
-          
-          {/* Scanning line animation */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 shadow-[0_0_15px_5px_rgba(59,130,246,0.5)] animate-scan-line"></div>
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-4 rounded-[1.5rem] border border-white/10" />
+          <div className="absolute left-5 top-5 h-12 w-12 rounded-tl-2xl border-l-4 border-t-4 border-teal-300 shadow-[0_0_18px_rgba(45,212,191,0.35)]" />
+          <div className="absolute right-5 top-5 h-12 w-12 rounded-tr-2xl border-r-4 border-t-4 border-indigo-300 shadow-[0_0_18px_rgba(129,140,248,0.35)]" />
+          <div className="absolute bottom-5 left-5 h-12 w-12 rounded-bl-2xl border-b-4 border-l-4 border-indigo-300 shadow-[0_0_18px_rgba(129,140,248,0.35)]" />
+          <div className="absolute bottom-5 right-5 h-12 w-12 rounded-br-2xl border-b-4 border-r-4 border-teal-300 shadow-[0_0_18px_rgba(45,212,191,0.35)]" />
+          <div className="absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-transparent via-teal-200 to-transparent shadow-[0_0_18px_rgba(45,212,191,0.65)] animate-scan-line" />
         </div>
       )}
 
       <style>{`
         @keyframes scan-line {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(100vh); }
+          0%, 100% { transform: translateY(-96px); opacity: .45; }
+          50% { transform: translateY(96px); opacity: 1; }
         }
         .animate-scan-line {
-          animation: scan-line 2s ease-in-out infinite;
+          animation: scan-line 2.4s ease-in-out infinite;
         }
       `}</style>
     </div>
@@ -55,4 +60,3 @@ const ScannerView = React.forwardRef<HTMLVideoElement, ScannerViewProps>(({ isSc
 });
 
 export default ScannerView;
-

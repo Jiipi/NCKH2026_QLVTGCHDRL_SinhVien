@@ -83,7 +83,7 @@ const settingsApi = {
    * Update settings
    */
   updateSettings: async (settings: SystemSettings): Promise<SystemSettings> => {
-    const response = await http.put('/admin/settings', settings);
+    const response = await http.post('/admin/settings', settings);
     return response.data;
   },
 

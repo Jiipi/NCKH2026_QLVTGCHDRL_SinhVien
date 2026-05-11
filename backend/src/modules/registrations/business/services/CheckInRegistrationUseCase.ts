@@ -81,7 +81,9 @@ export class CheckInRegistrationUseCase {
     }
 
     // Check-in using repository
-    const updated = await this.registrationRepository.checkIn(id, new Date());
+    const updated = await this.registrationRepository.checkIn(id, new Date(), {
+      actorId: user.sub || user.id || null
+    });
 
     return updated;
   }

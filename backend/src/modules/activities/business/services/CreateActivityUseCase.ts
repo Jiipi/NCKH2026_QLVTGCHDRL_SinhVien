@@ -5,8 +5,6 @@ import { determineSemesterFromDate } from '../../../../core/utils/semester';
 import crypto from 'crypto';
 import { logInfo } from '../../../../core/logger';
 
-import CreateActivityDto from '../dto/CreateActivityDto';
-
 interface User {
   sub: string;
   role: string;
@@ -39,8 +37,22 @@ interface NormalizedActivityData extends CreateActivityInput {
 }
 
 interface CreateActivityDtoInstance {
-  toDomain(): CreateActivityInput;
+  toDomain(): unknown;
 }
+
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+
+const parseActivityDate = (value: Date | string): Date => {
+  if (value instanceof Date) return value;
+  if (DATETIME_LOCAL_PATTERN.test(value)) {
+    const [datePart, timePart] = value.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second = 0] = timePart.split(':').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, hour - VIETNAM_UTC_OFFSET_HOURS, minute, second));
+  }
+  return new Date(value);
+};
 
 /**
  * CreateActivityUseCase
@@ -56,7 +68,7 @@ class CreateActivityUseCase {
 
   async execute(dto: CreateActivityDtoInstance, user: User): Promise<HoatDong> {
     // Normalize data
-    const normalized = this.normalizeActivityData(dto.toDomain());
+    const normalized = this.normalizeActivityData(dto.toDomain() as CreateActivityInput);
 
     // Validate dates
     this.validateDates(normalized);
@@ -122,7 +134,7 @@ class CreateActivityUseCase {
   private normalizeActivityData(data: CreateActivityInput): NormalizedActivityData {
     const toDateOrNull = (value: Date | string | null | undefined, fieldName: string): Date | null => {
       if (!value) return null;
-      const date = value instanceof Date ? value : new Date(value);
+      const date = parseActivityDate(value);
       if (Number.isNaN(date.getTime())) {
         throw new ValidationError(`Giá trị ${fieldName} không hợp lệ`);
       }

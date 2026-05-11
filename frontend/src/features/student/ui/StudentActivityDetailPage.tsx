@@ -66,13 +66,13 @@ export default function StudentActivityDetailPage() {
   ];
 
   return (
-    <div className="space-y-6" data-ref="student-activity-detail-refactored">
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="flex flex-col flex-1 space-y-6" data-ref="student-activity-detail-refactored">
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <h1 className="text-2xl font-bold">{data.ten_hd || data.name || 'Hoạt động'}</h1>
         <p className="mt-4 text-gray-700">{data.mo_ta || '—'}</p>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="mb-3 flex items-center gap-2">
           <ImageIcon size={20} className="text-indigo-600" />
           <h3 className="text-lg font-semibold text-gray-900">Hình ảnh hoạt động</h3>
@@ -99,7 +99,7 @@ export default function StudentActivityDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {metadata.map((item) => (
             <MetaItem key={item.label} label={item.label} value={item.value} />
@@ -108,7 +108,7 @@ export default function StudentActivityDetailPage() {
       </section>
 
       {Array.isArray(data.tep_dinh_kem) && data.tep_dinh_kem.length > 0 && (
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
           <div className="mb-3 flex items-center gap-2">
             <File size={20} className="text-indigo-600" />
             <h3 className="text-lg font-semibold text-gray-900">Tệp đính kèm</h3>
@@ -130,7 +130,7 @@ export default function StudentActivityDetailPage() {
                   download={filename}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 rounded-xl border-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 transition-all hover:border-indigo-300 hover:shadow-md"
+                  className="group flex items-center gap-3 rounded-2xl border border-white/60 bg-white/45 p-4 shadow-sm backdrop-blur-xl transition-all hover:border-indigo-200 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                 >
                   <div className="rounded-lg bg-indigo-100 p-2 transition-colors group-hover:bg-indigo-200">
                     <Download size={20} className="text-indigo-600" />
@@ -147,7 +147,7 @@ export default function StudentActivityDetailPage() {
       )}
 
       {/* Trạng thái đăng ký và điểm danh */}
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="flex flex-wrap items-center gap-3">
           {/* Trạng thái đăng ký */}
           {data?.is_registered ? (
@@ -156,7 +156,7 @@ export default function StudentActivityDetailPage() {
               {data.registration_status === 'da_duyet' ? 'Đã đăng ký (Đã duyệt)' : 'Đã đăng ký (Chờ duyệt)'}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            <span className="inline-flex items-center rounded-full border border-white/60 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-600 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
               {canRegister ? 'Chưa đăng ký' : 'Không thể đăng ký'}
             </span>
           )}
@@ -193,7 +193,7 @@ export default function StudentActivityDetailPage() {
 
       {/* Thông báo khi đã điểm danh thành công */}
       {attendanceSuccess && (
-        <section className="rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 shadow-sm">
+        <section className="rounded-[2rem] border border-emerald-200/70 bg-emerald-50/70 p-6 shadow-sm backdrop-blur-2xl dark:border-emerald-400/20 dark:bg-emerald-400/10">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-emerald-100 p-2">
               <CheckCircle size={24} className="text-emerald-600" />
@@ -211,9 +211,9 @@ export default function StudentActivityDetailPage() {
 
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-gray-50 p-3">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="font-medium">{value}</div>
+    <div className="rounded-2xl border border-white/60 bg-white/45 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">{label}</div>
+      <div className="mt-1 font-bold text-slate-900 dark:text-white">{value}</div>
     </div>
   );
 }

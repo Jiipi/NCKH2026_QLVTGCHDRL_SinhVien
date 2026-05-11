@@ -1,106 +1,64 @@
 import React from 'react';
-import { Clock, CheckCircle, Trophy, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Clock, CheckCircle, Trophy, XCircle, Activity } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.15 } }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } }
+} as const;
 
 export default function MyActivitiesHero({ stats, totalActivities }) {
   const safeStats = stats || { pending: [], approved: [], joined: [], rejected: [] };
 
+  const statCards = [
+    { icon: Clock, label: 'Chờ duyệt', value: safeStats.pending?.length || 0, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-900/30' },
+    { icon: CheckCircle, label: 'Đã duyệt', value: safeStats.approved?.length || 0, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+    { icon: Trophy, label: 'Đã tham gia', value: safeStats.joined?.length || 0, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-900/30' },
+    { icon: XCircle, label: 'Bị từ chối', value: safeStats.rejected?.length || 0, iconColor: 'text-rose-600 dark:text-rose-400', iconBg: 'bg-rose-50 dark:bg-rose-900/30' },
+  ];
+
   return (
-    <div className="relative min-h-[280px]">
-      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-600 via-purple-600 to-blue-600"></div>
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}
-        ></div>
-      </div>
-
-      <div className="absolute top-10 right-20 w-20 h-20 border-4 border-white/30 rotate-45 animate-bounce-slow"></div>
-      <div className="absolute bottom-10 left-16 w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
-      <div className="absolute top-1/2 left-1/3 w-12 h-12 border-4 border-pink-300/40 rounded-full animate-spin-slow"></div>
-
-      <div className="relative z-10 p-8">
-        <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-black text-yellow-400 px-4 py-2 font-black text-sm tracking-wider transform -rotate-2 shadow-lg border-2 border-yellow-400">
-                  ⭐ CỦA TÔI
-                </div>
-              </div>
-              <div className="h-8 w-1 bg-white/40"></div>
-              <div className="text-white/90 font-bold text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  {totalActivities} HOẠT ĐỘNG
-                </div>
-              </div>
+    <motion.div className="space-y-4" variants={containerVariants} initial="hidden" animate="visible">
+      {/* Header */}
+      <motion.div variants={itemVariants} className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Hoạt động của tôi</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Theo dõi và quản lý hoạt động rèn luyện</p>
             </div>
           </div>
-
-          <div className="mb-8">
-            <h1 className="text-6xl lg:text-7xl font-black text-white mb-4 leading-none tracking-tight">
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">H</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">O</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ạ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">T</span>
-              <span className="inline-block mx-2">•</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Đ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">Ộ</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">N</span>
-              <span className="inline-block transform hover:scale-110 transition-transform duration-300 cursor-default">G</span>
-              <br />
-              <span className="relative inline-block mt-2">
-                <span className="relative z-10 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]">
-                  CỦA TÔI
-                </span>
-                <div className="absolute -bottom-2 left-0 right-0 h-4 bg-yellow-400/30 blur-sm"></div>
-              </span>
-            </h1>
-            <p className="text-white/80 text-xl font-medium max-w-2xl leading-relaxed">
-              Theo dõi, quản lý và chinh phục các hoạt động rèn luyện bạn đã đăng ký
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <HeroStatCard icon={Clock} label="CHỜ DUYỆT" value={safeStats.pending?.length || 0} color="bg-yellow-400" />
-            <HeroStatCard icon={CheckCircle} label="ĐÃ DUYỆT" value={safeStats.approved?.length || 0} color="bg-green-400" />
-            <HeroStatCard icon={Trophy} label="THAM GIA" value={safeStats.joined?.length || 0} color="bg-blue-400" />
-            <HeroStatCard icon={XCircle} label="TỪ CHỐI" value={safeStats.rejected?.length || 0} color="bg-red-400" />
-          </div>
+          <span className="rounded-full border border-white/70 bg-white/55 px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            {totalActivities} hoạt động
+          </span>
         </div>
-      </div>
+      </motion.div>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes grid-move { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
-          @keyframes bounce-slow { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
-          @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-          .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-        `
-        }}
-      />
-    </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {statCards.map(({ icon: Icon, label, value, iconColor, iconBg }) => (
+          <motion.div
+            key={label}
+            variants={itemVariants}
+            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }}
+            className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-2xl transition-shadow dark:border-white/10 dark:bg-slate-950/45"
+          >
+            <div className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center mb-3`}>
+              <Icon className={`w-4.5 h-4.5 ${iconColor}`} />
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-0.5">{value}</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
   );
 }
-
-function HeroStatCard({ icon: Icon, label, value, color }) {
-  return (
-    <div className="group relative">
-      <div className="absolute inset-0 bg-black transform translate-x-2 translate-y-2 rounded-xl"></div>
-      <div className={`relative ${color} border-4 border-black p-4 rounded-xl transform transition-all duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1`}>
-        <Icon className="h-6 w-6 text-black mb-2" />
-        <p className="text-3xl font-black text-black">{value}</p>
-        <p className="text-xs font-black text-black/70 uppercase tracking-wider">{label}</p>
-      </div>
-    </div>
-  );
-}
-

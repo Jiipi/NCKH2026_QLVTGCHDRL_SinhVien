@@ -17,6 +17,9 @@ interface FaceStatusResult {
   soAnhDangKy?: number;
   ngayDangKy?: Date;
   ngayCapNhat?: Date;
+  anhKhuonMat?: string | null;
+  anhKhuonMatDs?: string[] | null;
+  hasFaceImage?: boolean;
 }
 
 class GetFaceStatusUseCase {
@@ -55,7 +58,10 @@ class GetFaceStatusUseCase {
       daXacMinh: faceData.da_xac_minh,
       soAnhDangKy: faceData.so_anh_dang_ky,
       ngayDangKy: faceData.ngay_tao,
-      ngayCapNhat: faceData.ngay_cap_nhat
+      ngayCapNhat: faceData.ngay_cap_nhat,
+      anhKhuonMat: faceData.anh_khuon_mat,
+      anhKhuonMatDs: faceData.anh_khuon_mat_ds,
+      hasFaceImage: !!faceData.anh_khuon_mat
     };
   }
 }

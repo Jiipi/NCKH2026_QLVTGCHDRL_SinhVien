@@ -10,5 +10,5 @@ export * from './model';
 // Services Layer
 export * from './services';
 
-// UI Layer - Pages
-export { default as AdminSettingsPage } from './ui/AdminSettingsPage';
+// UI Layer
+export * from './ui';

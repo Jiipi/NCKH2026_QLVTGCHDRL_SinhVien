@@ -12,12 +12,18 @@ import {
   RejectActivityUseCase,
   ScanAttendanceUseCase,
   UpdateActivityUseCase,
+  CreateAttendanceFallbackRequestUseCase,
+  ListAttendanceFallbackRequestsUseCase,
+  ApproveAttendanceFallbackRequestUseCase,
+  RejectAttendanceFallbackRequestUseCase,
+  CancelAttendanceFallbackRequestUseCase,
 } from '../../business/services';
 
 import GetActivitiesDto from '../../business/dto/GetActivitiesDto';
 import CreateActivityDto from '../../business/dto/CreateActivityDto';
 import UpdateActivityDto from '../../business/dto/UpdateActivityDto';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { qrAttendanceTokenService } from '../../../../business/services/qr-attendance-token.service';
 import { logError } from '../../../../core/logger';
 import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
@@ -60,6 +66,11 @@ interface ActivitiesUseCases {
   cancelRegistration: CancelActivityRegistrationUseCase;
   getQRData: GetActivityQRDataUseCase;
   scanAttendance: ScanAttendanceUseCase;
+  createFallbackRequest: CreateAttendanceFallbackRequestUseCase;
+  listFallbackRequests: ListAttendanceFallbackRequestsUseCase;
+  approveFallbackRequest: ApproveAttendanceFallbackRequestUseCase;
+  rejectFallbackRequest: RejectAttendanceFallbackRequestUseCase;
+  cancelFallbackRequest: CancelAttendanceFallbackRequestUseCase;
 }
 
 /**
@@ -129,7 +140,7 @@ class ActivitiesController {
       logError('Create activity error', error);
 
       if (error instanceof AppError) {
-        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.details));
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
         return;
       }
 
@@ -263,23 +274,211 @@ class ActivitiesController {
     }
   }
 
+  async createAttendanceSession(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.sub || req.user?.id;
+      if (!userId) {
+        sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập'));
+        return;
+      }
+
+      const session = await qrAttendanceTokenService.createSession(id, userId, req.body?.ttlMinutes, {
+        actorId: userId,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 201, ApiResponse.success(session, 'Tạo phiên QR thành công'));
+    } catch (error) {
+      logError('Create QR attendance session error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không tạo được phiên QR'));
+    }
+  }
+
+  async getCurrentAttendanceSession(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const session = await qrAttendanceTokenService.getCurrentSession(id);
+      sendResponse(res, 200, ApiResponse.success(session, 'Phiên QR hiện tại'));
+    } catch (error) {
+      logError('Get current QR attendance session error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không lấy được phiên QR'));
+    }
+  }
+
+  async createAttendanceSessionToken(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id, sessionId } = req.params;
+      const userId = req.user?.sub || req.user?.id;
+      const token = await qrAttendanceTokenService.generateToken(id, sessionId, req.body?.ttlSeconds, {
+        actorId: userId || null,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 201, ApiResponse.success(token, 'Tạo mã QR động thành công'));
+    } catch (error) {
+      logError('Create QR attendance token error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không tạo được mã QR động'));
+    }
+  }
+
+  async closeAttendanceSession(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id, sessionId } = req.params;
+      const userId = req.user?.sub || req.user?.id;
+      if (!userId) {
+        sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập'));
+        return;
+      }
+
+      const session = await qrAttendanceTokenService.closeSession(id, sessionId, userId);
+      sendResponse(res, 200, ApiResponse.success(session, 'Đóng phiên QR thành công'));
+    } catch (error) {
+      logError('Close QR attendance session error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không đóng được phiên QR'));
+    }
+  }
+
   async scanAttendance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { token } = req.body || {};
+      const { token, sessionId, location } = req.body || {};
       const scope = req.scope || {};
 
-      const result = await this.useCases.scanAttendance.execute(id, token, scope, req.user, req.semester);
+      const userId = req.user?.sub || req.user?.id;
+      const result = await this.useCases.scanAttendance.execute(id, { token, sessionId, location }, scope, req.user, req.semester, {
+        actorId: userId || null,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
 
       sendResponse(res, 201, ApiResponse.success(result, 'Điểm danh thành công'));
     } catch (error) {
       logError('QR scan attendance error', error);
       if (error instanceof AppError) {
         const statusCode = error.statusCode || 500;
-        sendResponse(res, statusCode, ApiResponse.error(error.message));
+        sendResponse(res, statusCode, ApiResponse.error(error.message, statusCode, error.details));
         return;
       }
       sendResponse(res, 500, ApiResponse.error('Không thể điểm danh'));
+    }
+  }
+
+  async createFallbackRequest(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.useCases.createFallbackRequest.execute(id, {
+        ...req.body,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      }, req.user);
+      sendResponse(res, 201, ApiResponse.success(result, 'Gửi yêu cầu điểm danh thủ công thành công'));
+    } catch (error) {
+      logError('Create attendance fallback request error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không gửi được yêu cầu điểm danh thủ công'));
+    }
+  }
+
+  async listFallbackRequests(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.useCases.listFallbackRequests.listByActivity(id);
+      sendResponse(res, 200, ApiResponse.success(result, 'Danh sách yêu cầu điểm danh thủ công'));
+    } catch (error) {
+      logError('List attendance fallback requests error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không lấy được danh sách yêu cầu điểm danh thủ công'));
+    }
+  }
+
+  async listMyFallbackRequests(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await this.useCases.listFallbackRequests.listMine(req.user);
+      sendResponse(res, 200, ApiResponse.success(result, 'Danh sách yêu cầu điểm danh thủ công của bạn'));
+    } catch (error) {
+      logError('List my attendance fallback requests error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không lấy được yêu cầu điểm danh thủ công của bạn'));
+    }
+  }
+
+  async approveFallbackRequest(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { requestId } = req.params;
+      const result = await this.useCases.approveFallbackRequest.execute(requestId, req.body?.ghi_chu_duyet || req.body?.note, req.user, {
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 200, ApiResponse.success(result, 'Duyệt yêu cầu điểm danh thủ công thành công'));
+    } catch (error) {
+      logError('Approve attendance fallback request error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không duyệt được yêu cầu điểm danh thủ công'));
+    }
+  }
+
+  async rejectFallbackRequest(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { requestId } = req.params;
+      const result = await this.useCases.rejectFallbackRequest.execute(requestId, req.body?.ghi_chu_duyet || req.body?.note, req.user, {
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 200, ApiResponse.success(result, 'Từ chối yêu cầu điểm danh thủ công thành công'));
+    } catch (error) {
+      logError('Reject attendance fallback request error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không từ chối được yêu cầu điểm danh thủ công'));
+    }
+  }
+
+  async cancelFallbackRequest(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { requestId } = req.params;
+      const result = await this.useCases.cancelFallbackRequest.execute(requestId, req.user, {
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 200, ApiResponse.success(result, 'Hủy yêu cầu điểm danh thủ công thành công'));
+    } catch (error) {
+      logError('Cancel attendance fallback request error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không hủy được yêu cầu điểm danh thủ công'));
     }
   }
 }

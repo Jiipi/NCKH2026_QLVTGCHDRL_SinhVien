@@ -25,6 +25,33 @@ interface ReportStatsParams {
  * Teacher Dashboard API
  */
 export const teacherDashboardApi = {
+  async getProfile() {
+    try {
+      const response = await http.get('/core/profile');
+      return createSuccessResponse(extractApiData(response, {}));
+    } catch (error) {
+      return handleApiError(error, 'Dashboard.getProfile');
+    }
+  },
+
+  async updateProfile(payload: Record<string, unknown>) {
+    try {
+      const response = await http.put('/core/profile', payload);
+      return createSuccessResponse(extractApiData(response, null));
+    } catch (error) {
+      return handleApiError(error, 'Dashboard.updateProfile');
+    }
+  },
+
+  async changePassword(payload: { currentPassword: string; newPassword: string }) {
+    try {
+      const response = await http.post('/auth/change-password', payload);
+      return createSuccessResponse(extractApiData(response, null));
+    } catch (error) {
+      return handleApiError(error, 'Dashboard.changePassword');
+    }
+  },
+
   /**
    * Lấy dữ liệu dashboard của giáo viên
    * @param {string} [semester] - Học kỳ
