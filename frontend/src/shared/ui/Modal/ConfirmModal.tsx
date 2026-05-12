@@ -66,10 +66,10 @@ export default function ConfirmModal({
   const style = typeStyles[type] || typeStyles.confirm;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all animate-slideUp">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50 p-3 backdrop-blur-sm animate-fadeIn sm:items-center sm:p-4">
+      <div className="max-h-[90svh] w-full max-w-md transform overflow-y-auto rounded-2xl bg-white shadow-2xl transition-all animate-slideUp sm:max-h-[90vh]">
         {/* Header */}
-        <div className="relative p-6 pb-4">
+        <div className="relative p-5 pb-4 sm:p-6 sm:pb-4">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -101,16 +101,16 @@ export default function ConfirmModal({
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 p-6 pt-2 border-t border-gray-100">
+        <div className="flex flex-col-reverse gap-3 border-t border-gray-100 p-5 pt-3 sm:flex-row sm:p-6 sm:pt-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+            className="touch-target flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2.5 ${style.buttonColor} text-white rounded-lg transition-colors font-medium text-sm shadow-sm`}
+            className={`touch-target flex-1 rounded-lg px-4 py-2.5 ${style.buttonColor} text-sm font-medium text-white shadow-sm transition-colors`}
           >
             {confirmText}
           </button>

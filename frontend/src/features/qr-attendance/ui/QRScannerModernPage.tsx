@@ -23,7 +23,7 @@ function TabButton({ active, onClick, icon: Icon, label, description }: {
   return (
     <button
       onClick={onClick}
-      className={`flex min-w-[180px] flex-1 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${active
+      className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200 sm:px-4 ${active
         ? 'border-indigo-200/80 bg-white/85 text-slate-950 shadow-sm shadow-indigo-100/70 dark:border-indigo-300/20 dark:bg-white/15 dark:text-white dark:shadow-none'
         : 'border-transparent text-slate-500 hover:bg-white/45 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
       }`}
@@ -131,17 +131,17 @@ export default function QRScannerModernPage() {
   }, [approvedActivityIds, requestedActivityId]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <motion.section
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6"
+        className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:rounded-[2rem] sm:p-6"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(45,212,191,0.14),transparent_32%),radial-gradient(circle_at_100%_0%,rgba(129,140,248,0.14),transparent_28%)]" />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-lg shadow-indigo-500/20 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950">
-              <Fingerprint className="h-7 w-7" />
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-lg shadow-indigo-500/20 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 sm:h-14 sm:w-14 sm:rounded-[1.4rem]">
+              <Fingerprint className="h-6 w-6 sm:h-7 sm:w-7" />
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian lớp trưởng</p>
@@ -159,7 +159,7 @@ export default function QRScannerModernPage() {
         </div>
       </motion.section>
 
-      <div className="rounded-[2rem] border border-white/60 bg-white/55 p-2 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/45">
+      <div className="rounded-3xl border border-white/60 bg-white/55 p-2 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/45 sm:rounded-[2rem]">
         <div className="flex flex-col gap-2 sm:flex-row">
           <TabButton active={activeTab === 'qr'} onClick={() => setActiveTab('qr')} icon={QrCode} label="Quét mã QR" description="Camera hoặc tải ảnh QR" />
           <TabButton active={activeTab === 'face'} onClick={() => setActiveTab('face')} icon={Camera} label="Nhận diện khuôn mặt" description="Xác minh theo hoạt động" />
@@ -231,7 +231,7 @@ function QRTab() {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
       <aside className="lg:col-span-2">
-        <div className="sticky top-20 rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5 lg:sticky lg:top-20 lg:rounded-[2rem]">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
               <ScanLine className="h-5 w-5" />
@@ -255,7 +255,7 @@ function QRTab() {
       </aside>
 
       <section className="lg:col-span-3">
-        <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5 lg:rounded-[2rem]">
           {!scanResult && !isProcessing && (
             <>
               <ScannerView ref={videoRef} isScanning={isScanning} isStarting={isStarting} />
@@ -274,7 +274,7 @@ function QRTab() {
           )}
 
           {isProcessing && (
-            <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[280px] flex-col items-center justify-center text-center sm:min-h-[420px]">
               <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="mb-5 h-14 w-14 rounded-full border-4 border-indigo-200 border-t-indigo-600" />
               <p className="text-base font-bold text-slate-800 dark:text-slate-100">Đang xử lý điểm danh...</p>
               <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">Vui lòng giữ nguyên thao tác trong giây lát.</p>
@@ -282,7 +282,7 @@ function QRTab() {
           )}
 
           {scanResult && (
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="flex min-h-[420px] flex-col items-center justify-center text-center">
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="flex min-h-[280px] flex-col items-center justify-center text-center sm:min-h-[420px]">
               <div className={`mb-5 flex h-20 w-20 items-center justify-center rounded-[1.7rem] ${scanResult.success ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300' : 'bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-300'}`}>
                 {scanResult.success ? <CheckCircle className="h-10 w-10" /> : <AlertCircle className="h-10 w-10" />}
               </div>
@@ -297,7 +297,7 @@ function QRTab() {
                     value={fallbackReason}
                     onChange={(e) => setFallbackReason(e.target.value)}
                     rows={3}
-                    className="mt-2 w-full rounded-xl border border-amber-200 bg-white/80 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 dark:border-amber-400/20 dark:bg-white/10 dark:text-white"
+                    className="mobile-input mt-2 w-full rounded-xl border border-amber-200 bg-white/80 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100 dark:border-amber-400/20 dark:bg-white/10 dark:text-white"
                     placeholder="Ví dụ: GPS bị lỗi nhưng em đang có mặt tại hoạt động..."
                   />
                   {fallbackMessage && <p className="mt-2 text-sm font-semibold text-amber-800 dark:text-amber-200">{fallbackMessage}</p>}
@@ -305,7 +305,7 @@ function QRTab() {
                     type="button"
                     onClick={submitFallback}
                     disabled={fallbackSubmitting || !fallbackReason.trim()}
-                    className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                    className="touch-target mt-3 w-full rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-60 sm:w-auto"
                   >
                     {fallbackSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu thủ công'}
                   </button>
@@ -313,7 +313,7 @@ function QRTab() {
               )}
               <button
                 onClick={resetScanner}
-                className="mt-7 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
+                className="touch-target mt-7 w-full rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 sm:w-auto"
               >
                 {scanResult.success ? 'Quét mã khác' : 'Thử lại'}
               </button>
@@ -340,7 +340,7 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
       <aside className="lg:col-span-2">
-        <div className="sticky top-20 rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+        <div className="rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5 lg:sticky lg:top-20 lg:rounded-[2rem]">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 dark:bg-teal-400/10 dark:text-teal-300">
               <Camera className="h-5 w-5" />
@@ -368,7 +368,7 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
                 <select
                   value={selectedId}
                   onChange={(e) => onSelect(e.target.value)}
-                  className="block w-full appearance-none rounded-2xl border border-white/70 bg-white/55 px-4 py-3 pr-10 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-teal-300 focus:outline-none focus:ring-4 focus:ring-teal-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
+                  className="mobile-input block w-full appearance-none rounded-2xl border border-white/70 bg-white/55 px-4 py-3 pr-10 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-teal-300 focus:outline-none focus:ring-4 focus:ring-teal-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
                 >
                   {activities.map((a: any) => {
                     const id = a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id;
@@ -389,11 +389,11 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
 
       <section className="lg:col-span-3">
         {selectedId && !loading && activities.length > 0 ? (
-          <div className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
+          <div className="rounded-3xl border border-white/60 bg-white/60 p-3 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-4 lg:rounded-[2rem]">
             <FaceAttendanceCard hoatDongId={selectedId} className="border border-white/60 shadow-sm dark:border-white/10" />
           </div>
         ) : (
-          <div className="rounded-[2rem] border border-dashed border-white/70 bg-white/60 p-12 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
+          <div className="rounded-3xl border border-dashed border-white/70 bg-white/60 p-6 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 sm:p-12 lg:rounded-[2rem]">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-500">
               <Camera className="h-8 w-8" />
             </div>

@@ -67,7 +67,7 @@ export default function StudentLayout({ children }) {
 
       {/* Main Content */}
       <div 
-        className="flex-1 min-w-0 h-screen flex flex-col transition-all duration-300 ease-in-out"
+        className="flex-1 min-w-0 h-screen min-h-0 flex flex-col transition-all duration-300 ease-in-out"
         style={{ 
           marginLeft: isMobile ? 0 : (sidebarCollapsed ? '80px' : '288px')
         }}
@@ -76,8 +76,8 @@ export default function StudentLayout({ children }) {
           isMobile={isMobile}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto flex flex-col">
-          <div className="flex-1 flex flex-col px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main className="flex-1 min-h-0 overflow-y-auto flex flex-col overscroll-contain">
+          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             {children || <Outlet />}
           </div>
           <ModernFooter />

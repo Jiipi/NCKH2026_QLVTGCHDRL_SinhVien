@@ -39,7 +39,7 @@ function ScoreRing({ score, maxScore = 100, size = 180, strokeWidth = 14 }) {
   };
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex max-w-full items-center justify-center">
       <svg width={size} height={size} className="transform -rotate-90 drop-shadow-lg">
         <defs>
           <linearGradient id="ringGradientExcellent" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -179,7 +179,7 @@ export default function ScoresSummary({ currentScore, targetScore, progressPerce
 
   return (
     <motion.div
-      className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+      className="grid grid-cols-1 gap-4 lg:grid-cols-2"
       initial="hidden"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
@@ -187,7 +187,7 @@ export default function ScoresSummary({ currentScore, targetScore, progressPerce
       {/* LEFT — Score Ring + Classification */}
       <motion.section
         variants={panelVariants}
-        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm"
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6"
       >
         <div className="flex items-center gap-2 mb-6">
           <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
@@ -210,7 +210,7 @@ export default function ScoresSummary({ currentScore, targetScore, progressPerce
       {/* RIGHT — Ranking & Quick Stats + Comparison */}
       <motion.section
         variants={panelVariants}
-        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col"
+        className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6"
       >
         <div className="flex items-center gap-2 mb-6">
           <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
@@ -291,7 +291,7 @@ export default function ScoresSummary({ currentScore, targetScore, progressPerce
 /* ─── Quick Stat Row ───────────────────────────────────────── */
 function QuickStat({ icon, label, value, highlight = false }: { icon: string; label: string; value: any; highlight?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0 dark:border-slate-700/50">
       <div className="flex items-center gap-2">
         <span className="text-base">{icon}</span>
         <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>

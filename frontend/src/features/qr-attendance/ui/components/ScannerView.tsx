@@ -8,7 +8,7 @@ interface ScannerViewProps {
 
 const ScannerView = React.forwardRef<HTMLVideoElement, ScannerViewProps>(({ isScanning, isStarting }, ref) => {
   return (
-    <div className="relative mb-6 h-80 w-full overflow-hidden rounded-[2rem] border border-white/60 bg-slate-950 shadow-inner shadow-black/20 dark:border-white/10">
+    <div className="relative mb-4 h-[min(68svh,20rem)] min-h-64 w-full overflow-hidden rounded-3xl border border-white/60 bg-slate-950 shadow-inner shadow-black/20 dark:border-white/10 sm:mb-6 sm:h-80 sm:rounded-[2rem]">
       <video
         ref={ref}
         className={`h-full w-full object-cover ${isScanning ? 'block' : 'hidden'}`}
@@ -19,7 +19,7 @@ const ScannerView = React.forwardRef<HTMLVideoElement, ScannerViewProps>(({ isSc
 
       {!isScanning && (
         <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_0%,rgba(20,184,166,0.18),transparent_32%),linear-gradient(135deg,#0f172a,#020617)]">
-          <div className="text-center">
+          <div className="px-4 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/10 shadow-2xl backdrop-blur-xl">
               {isStarting ? (
                 <Scan className="h-8 w-8 animate-pulse text-teal-200" />

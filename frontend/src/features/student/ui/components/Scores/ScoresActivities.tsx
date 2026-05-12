@@ -35,20 +35,20 @@ export default function ScoresActivities({ activities = [] }) {
       {/* Header — clickable to toggle */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50 sm:p-5 cursor-pointer"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
             <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="text-left">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white sm:text-base">
               Lịch sử hoạt động đã tham gia
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {activities.length > 0 && (
             <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
               {activities.length} hoạt động • Tổng +{totalPoints} điểm
@@ -73,7 +73,7 @@ export default function ScoresActivities({ activities = [] }) {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-700/50">
+            <div className="border-t border-slate-100 px-4 pb-4 dark:border-slate-700/50 sm:px-5 sm:pb-5">
               {activities.length > 0 ? (
                 <>
                   <motion.div

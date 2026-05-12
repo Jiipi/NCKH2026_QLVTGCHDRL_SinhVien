@@ -90,18 +90,18 @@ export default function AdminTable({
   return (
     <div className={`overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/60 ${className}`}>
       {/* Header */}
-      <div className="border-b border-slate-200/60 px-6 py-4 dark:border-white/10">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <div className="flex items-center space-x-4">
+      <div className="border-b border-slate-200/60 px-4 py-4 dark:border-white/10 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">{title}</h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-0 sm:space-x-4">
             {/* Search */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="rounded-xl border border-white/60 bg-white/60 py-2 pl-10 pr-4 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                className="mobile-input w-full rounded-xl border border-white/60 bg-white/60 py-2 pl-10 pr-4 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-64"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@ export default function AdminTable({
             <select
               value={pagination.limit}
               onChange={onPageSizeChange}
-              className="rounded-xl border border-white/60 bg-white/60 px-3 py-2 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="mobile-input w-full rounded-xl border border-white/60 bg-white/60 px-3 py-2 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-auto"
             >
               <option value={10}>10 / trang</option>
               <option value={20}>20 / trang</option>
@@ -148,8 +148,8 @@ export default function AdminTable({
       {/* Table */}
       {!loading && data && (
         <>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200/60 dark:divide-white/10">
+          <div className="-mx-4 overflow-x-auto sm:mx-0">
+            <table className={`${renderRow ? 'min-w-[720px]' : 'mobile-table-card min-w-full'} divide-y divide-slate-200/60 dark:divide-white/10`}>
               <thead className="bg-slate-50/70 dark:bg-white/5">
                 <tr>
                   {columns.map((column, index) => (
@@ -168,7 +168,7 @@ export default function AdminTable({
                     <tr key={item.id || index} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/5">
                       {renderRow ? renderRow(item, index) : (
                         columns.map((column, colIndex) => (
-                          <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td key={colIndex} data-label={column.header} className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100 sm:px-6 sm:py-4 sm:whitespace-nowrap">
                             {column.accessor ? item[column.accessor] : column.render ? column.render(item) : ''}
                           </td>
                         ))

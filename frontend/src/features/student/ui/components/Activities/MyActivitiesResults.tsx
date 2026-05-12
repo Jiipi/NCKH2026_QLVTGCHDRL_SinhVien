@@ -74,17 +74,17 @@ export default function MyActivitiesResults({
 
       {/* Pagination */}
       {pagination?.total > 0 && (
-        <div className="mt-auto pt-6 flex items-center justify-center gap-4 flex-wrap border-t border-slate-200 dark:border-slate-800">
+        <div className="mt-auto flex flex-col items-stretch gap-3 border-t border-slate-200 pt-4 dark:border-slate-800 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4 sm:pt-6">
           <Pagination
             pagination={pagination}
             onPageChange={onPageChange}
           />
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/50 sm:justify-start sm:py-1.5">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Hiển thị:</span>
             <select
               value={pagination.limit}
               onChange={(e) => onLimitChange(parseInt(e.target.value, 10))}
-              className="bg-transparent text-xs font-semibold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              className="mobile-input bg-transparent text-xs font-semibold text-slate-900 focus:outline-none dark:text-white cursor-pointer"
             >
               {[10, 20, 50, 100].map((size) => (
                 <option key={size} value={size} className="text-slate-900">
@@ -105,7 +105,7 @@ function Pagination({ pagination, onPageChange }) {
   const pageNumbers = getPageNumbers(currentPage, totalPages);
 
   return (
-    <div className="flex items-center justify-center gap-1.5 flex-wrap">
+    <div className="flex items-center justify-center gap-1.5 overflow-x-auto px-1">
       <IconButton
         disabled={currentPage === 1}
         onClick={() => onPageChange(1)}
@@ -122,7 +122,7 @@ function Pagination({ pagination, onPageChange }) {
         <ChevronLeft className="h-4 w-4" />
       </IconButton>
 
-      <div className="flex items-center gap-1.5 px-2">
+      <div className="flex items-center gap-1.5 px-1 sm:px-2">
         {pageNumbers.map((pageNum, idx) =>
           typeof pageNum === 'string' ? (
             <span key={`${pageNum}-${idx}`} className="px-2 text-slate-400 font-medium">
@@ -134,7 +134,7 @@ function Pagination({ pagination, onPageChange }) {
               onClick={() => onPageChange(pageNum)}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`min-w-[40px] h-10 px-2 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+              className={`h-10 min-w-10 rounded-lg px-2 text-sm font-semibold shadow-sm transition-colors ${
                 pageNum === currentPage
                   ? 'bg-blue-600 text-white border border-blue-600'
                   : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
@@ -180,7 +180,7 @@ function IconButton({ children, disabled, onClick, title }: IconButtonProps) {
       title={title}
       whileHover={!disabled ? { scale: 1.05, y: -2 } : {}}
       whileTap={!disabled ? { scale: 0.95 } : {}}
-      className={`flex items-center justify-center h-10 w-10 rounded-lg font-semibold transition-colors shadow-sm ${
+      className={`touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-semibold shadow-sm transition-colors ${
         disabled
           ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border border-transparent cursor-not-allowed'
           : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 cursor-pointer'
@@ -213,4 +213,3 @@ function getPageNumbers(currentPage, totalPages) {
   pages.push(totalPages);
   return pages;
 }
-

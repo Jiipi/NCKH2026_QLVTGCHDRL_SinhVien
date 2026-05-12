@@ -82,7 +82,7 @@ export function StudentDashboardPage() {
   return (
     <motion.div
       data-ref="student-dashboard-refactored"
-      className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6"
+      className="w-full bg-slate-50 p-3 dark:bg-slate-900 sm:p-4 md:p-6"
       variants={pageVariants}
       initial="initial"
       animate="animate"

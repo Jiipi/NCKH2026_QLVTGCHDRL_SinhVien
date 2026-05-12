@@ -414,14 +414,14 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
     <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 shadow-[0_10px_40px_rgba(15,23,42,0.06)] backdrop-blur-2xl transition-colors duration-200 dark:border-white/10 dark:bg-slate-950/75 dark:shadow-black/20">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-300/20" />
       <div className="w-full px-3 sm:px-5">
-        <div className="relative flex h-16 items-center justify-between gap-3">
+        <div className="relative flex h-14 items-center justify-between gap-2 sm:h-16 sm:gap-3">
           {/* Left: Mobile menu + Greeting text */}
-          <div className="flex min-w-0 items-center gap-3 lg:flex-[0_1_48%] xl:flex-[0_1_42%]">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 lg:flex-[0_1_48%] xl:flex-[0_1_42%]">
             {/* Mobile Menu Button */}
             {isMobile && onMenuClick && (
               <button
                 onClick={onMenuClick}
-                className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="touch-target md:hidden rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5 text-slate-600 dark:text-slate-300" />
@@ -430,7 +430,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
             {/* Page Title / Greeting with Animation */}
             {profile && (
-              <Link to={getHomePath()} className="group relative flex min-w-[220px] max-w-full flex-1 items-center gap-3 rounded-2xl border border-white/60 bg-white/45 px-3 py-1.5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+              <Link to={getHomePath()} className="group relative flex min-w-0 max-w-full flex-1 items-center gap-2 rounded-2xl border border-white/60 bg-white/45 px-2 py-1.5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:gap-3 sm:px-3">
                 <div className="hidden h-10 w-1 rounded-full bg-gradient-to-b from-indigo-500 via-teal-400 to-emerald-400 shadow-[0_0_20px_rgba(99,102,241,0.35)] sm:block" />
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -443,7 +443,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <motion.h2
-                        className="truncate bg-[linear-gradient(110deg,#0f172a,45%,#4f46e5,55%,#0f766e,65%,#0f172a)] bg-[length:240%_100%] bg-clip-text text-[19px] font-black leading-tight tracking-[-0.025em] text-transparent antialiased dark:bg-[linear-gradient(110deg,#ffffff,45%,#c7d2fe,55%,#99f6e4,65%,#ffffff)]"
+                        className="truncate bg-[linear-gradient(110deg,#0f172a,45%,#4f46e5,55%,#0f766e,65%,#0f172a)] bg-[length:240%_100%] bg-clip-text text-[15px] font-black leading-tight text-transparent antialiased dark:bg-[linear-gradient(110deg,#ffffff,45%,#c7d2fe,55%,#99f6e4,65%,#ffffff)] sm:text-[19px]"
                         style={{ fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
                         animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
                         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
@@ -481,11 +481,11 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
           {/* Right: Actions */}
           {isAuthenticated ? (
-            <div className="flex flex-shrink-0 items-center gap-2 rounded-[1.35rem] border border-white/60 bg-white/45 p-1.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-shrink-0 items-center gap-1 rounded-2xl border border-white/60 bg-white/45 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:gap-2 sm:rounded-[1.35rem] sm:p-1.5">
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="rounded-2xl border border-transparent p-2 transition-all hover:border-white/70 hover:bg-white/70 hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/10"
+                className="touch-target rounded-2xl border border-transparent p-2 transition-all hover:border-white/70 hover:bg-white/70 hover:shadow-sm dark:hover:border-white/10 dark:hover:bg-white/10"
                 title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'}
               >
                 {theme === 'light' ? (
@@ -502,7 +502,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                     setNotificationOpen(!notificationOpen);
                     if (!notificationOpen) loadNotifications();
                   }}
-                  className="relative rounded-xl border border-transparent p-2 transition-colors hover:border-white/60 hover:bg-white/55 dark:hover:border-white/10 dark:hover:bg-white/10"
+                  className="touch-target relative rounded-xl border border-transparent p-2 transition-colors hover:border-white/60 hover:bg-white/55 dark:hover:border-white/10 dark:hover:bg-white/10"
                 >
                   <Bell className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                   {unreadCount > 0 && (
@@ -514,7 +514,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
                 {/* Notification Dropdown */}
                 {notificationOpen && (
-                  <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 dark:shadow-black/30 sm:w-96">
+                  <div className="fixed left-3 right-3 top-16 overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/95 dark:shadow-black/30 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96">
                     <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                       <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thông báo</h3>
                       {unreadCount > 0 && (
@@ -523,7 +523,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                         </span>
                       )}
                     </div>
-                    <div className="max-h-[360px] overflow-y-auto">
+                    <div className="max-h-[min(70vh,360px)] overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-8 text-center">
                           <Bell className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
@@ -589,12 +589,12 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                 <button
                   ref={buttonRef}
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 p-1.5 pr-2 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  className="flex touch-target items-center gap-1 rounded-2xl border border-white/60 bg-white/55 p-1 pr-1.5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:gap-2 sm:p-1.5 sm:pr-2"
                 >
                   {(() => {
                     const avatar = getUserAvatar(profile);
                     return (avatar.hasValidAvatar && !avatarError) ? (
-                      <div className="h-9 w-9 overflow-hidden rounded-2xl shadow-sm ring-1 ring-white/70 dark:ring-white/10">
+                        <div className="h-8 w-8 overflow-hidden rounded-2xl shadow-sm ring-1 ring-white/70 dark:ring-white/10 sm:h-9 sm:w-9">
                         <img
                           src={avatar.src}
                           alt={avatar.alt}
@@ -603,7 +603,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-xs font-black text-white shadow-sm ring-1 ring-white/70 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 dark:ring-white/10">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-xs font-black text-white shadow-sm ring-1 ring-white/70 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 dark:ring-white/10 sm:h-9 sm:w-9">
                         {getInitials()}
                       </div>
                     );
@@ -622,7 +622,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
                 {profileOpen && (
                   <div
                     ref={dropdownRef}
-                    className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 dark:shadow-black/30"
+                    className="fixed left-3 right-3 top-16 overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/95 dark:shadow-black/30 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-64"
                   >
                     {/* Profile Header */}
                     <div className="p-4 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950">

@@ -130,7 +130,7 @@ export default function SharedModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -151,12 +151,12 @@ export default function SharedModal({
           bg-white rounded-2xl shadow-2xl
           transform transition-all duration-300
           animate-in fade-in zoom-in-95
-          max-h-[90vh] flex flex-col
+          max-h-[90svh] flex flex-col sm:max-h-[90vh]
           ${className}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
           <h2
             id={titleId}
             className="text-lg font-semibold text-gray-900 truncate"
@@ -176,7 +176,7 @@ export default function SharedModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
           {children}
         </div>
       </div>

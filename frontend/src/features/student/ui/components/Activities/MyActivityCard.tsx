@@ -107,8 +107,8 @@ export default function MyActivityCard({
           className={`absolute inset-0 bg-gradient-to-r ${config.gradient} rounded-[2rem] blur opacity-10 group-hover:opacity-20 transition-opacity duration-200`}
         ></div>
         <div className={`relative rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55`}>
-          <div className="flex items-stretch gap-4 p-4">
-            <div className="relative w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+          <div className="flex flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-stretch">
+            <div className="relative h-44 w-full flex-shrink-0 overflow-hidden rounded-xl md:h-24 md:w-32 md:rounded-lg">
               <ActivityImageSlideshow
                 images={activityData.hinh_anh}
                 activityType={activityData.loai || activityData.loai_hd?.ten_loai_hd}
@@ -136,7 +136,7 @@ export default function MyActivityCard({
                 <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-2">
                   {activityData.ten_hd || activityData.name || 'Hoạt động'}
                 </h3>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-gray-400" />
                     <span className="text-gray-600 truncate">
@@ -185,7 +185,7 @@ export default function MyActivityCard({
               </div>
             </div>
 
-            <div className="flex flex-col justify-center gap-2 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-shrink-0 md:flex-col md:justify-center">
               <PrimaryButton onClick={handleViewDetail} icon={Eye} label="Chi tiết" />
               {normalizedStatus === 'approved' && canShowQr && (
                 <PrimaryButton onClick={handleShowQr} icon={QrCode} label="QR" variant="success" />
@@ -300,10 +300,10 @@ export default function MyActivityCard({
             )}
           </div>
         </div>
-        <div className="p-3 pt-0 mt-auto flex gap-2">
+        <div className="mt-auto grid grid-cols-2 gap-2 p-3 pt-0">
           <button
             onClick={handleViewDetail}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
+            className="touch-target flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-2 text-xs font-medium text-white shadow-md transition-all duration-200 hover:from-purple-700 hover:to-pink-700 hover:shadow-lg"
           >
             <Eye className="h-3.5 w-3.5" />
             Chi tiết
@@ -311,7 +311,7 @@ export default function MyActivityCard({
           {normalizedStatus === 'approved' && canShowQr && (
             <button
               onClick={handleShowQr}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 font-medium text-xs shadow-md hover:shadow-lg transition-all duration-200"
+              className="touch-target flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-3 py-2 text-xs font-medium text-white shadow-md transition-all duration-200 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg"
             >
               <QrCode className="h-3.5 w-3.5" />
               QR
@@ -320,7 +320,7 @@ export default function MyActivityCard({
           {normalizedStatus === 'pending' && (
             <button
               onClick={handleCancel}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs shadow-md transition-all duration-200 ${
+              className={`touch-target flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium shadow-md transition-all duration-200 ${
                 isWritable
                   ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:shadow-lg'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -346,7 +346,7 @@ function PrimaryButton({ onClick, icon: Icon, label, variant = 'primary' }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[90px] ${variantClasses}`}
+      className={`touch-target flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium shadow-md transition-all duration-200 hover:shadow-lg sm:px-4 ${variantClasses}`}
     >
       <Icon className="h-4 w-4" />
       {label}
@@ -358,7 +358,7 @@ function SecondaryButton({ onClick, icon: Icon, label, disabled }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all duration-200 whitespace-nowrap min-w-[90px] ${
+      className={`touch-target flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium shadow-md transition-all duration-200 sm:px-4 ${
         disabled
           ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
           : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:shadow-lg'

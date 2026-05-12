@@ -43,8 +43,8 @@ export default function ActivitiesListCard({
       <div className="group relative">
         <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-indigo-500/10 to-teal-500/10 blur opacity-0 transition-opacity duration-200 group-hover:opacity-100"></div>
         <div className="relative rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white/75 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
-          <div className="flex items-stretch gap-4 p-4">
-            <div className="relative w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden">
+          <div className="flex flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-stretch">
+            <div className="relative h-44 w-full flex-shrink-0 overflow-hidden rounded-xl md:h-28 md:w-36 md:rounded-lg">
               <ActivityImageSlideshow
                 images={activity.hinh_anh}
                 activityType={activity.loai_hd?.ten_loai_hd}
@@ -84,7 +84,7 @@ export default function ActivitiesListCard({
                   <span className={`text-xs font-semibold ${timeStatusColor}`}>• {timeStatus}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
                   {startDate && (
                     <div className="flex items-center gap-1.5 text-xs">
                       <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
@@ -130,7 +130,7 @@ export default function ActivitiesListCard({
               )}
             </div>
 
-            <div className="flex flex-col justify-center gap-2 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-shrink-0 md:flex-col md:justify-center">
               {canRegister && (
                 <ActionButton
                   onClick={() => onRegister(activity.id, activity.ten_hd)}
@@ -236,7 +236,7 @@ export default function ActivitiesListCard({
           </div>
         </div>
 
-        <div className="p-3 pt-0 mt-auto flex gap-2">
+        <div className="mt-auto grid grid-cols-2 gap-2 p-3 pt-0">
           {canRegister && (
             <ActionButton
               onClick={() => onRegister(activity.id, activity.ten_hd)}
@@ -370,7 +370,7 @@ function ActionButton({ onClick, icon: Icon, label, gradient, fullWidth }: Actio
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap min-w-[100px] bg-gradient-to-r ${gradient} text-white ${fullWidth ? 'flex-1' : ''}`}
+      className={`touch-target flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r px-3 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:shadow-lg sm:px-4 ${gradient} ${fullWidth ? 'flex-1' : ''}`}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>

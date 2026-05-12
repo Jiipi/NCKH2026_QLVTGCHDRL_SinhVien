@@ -24,7 +24,7 @@ export default function ScoresRankingTable({ rankings = [] }) {
       className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700/50">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 dark:border-slate-700/50 sm:p-5">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
             <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -34,7 +34,7 @@ export default function ScoresRankingTable({ rankings = [] }) {
             <p className="text-xs text-slate-500 dark:text-slate-400">{rankings.length} sinh viên</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="hidden items-center gap-1.5 sm:flex">
           <Users className="w-4 h-4 text-slate-400" />
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{rankings.length} SV</span>
         </div>
@@ -42,7 +42,7 @@ export default function ScoresRankingTable({ rankings = [] }) {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="min-w-[640px] w-full">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-700/50">
               <th className="text-left py-3 px-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hạng</th>

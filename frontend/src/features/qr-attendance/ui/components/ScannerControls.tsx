@@ -34,7 +34,7 @@ export default function ScannerControls({
         <button
           onClick={onStart}
           disabled={isStarting}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-4 text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
+          className="touch-target flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-4 text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
         >
           <Camera className="h-5 w-5" />
           <span className="text-base font-bold">
@@ -44,7 +44,7 @@ export default function ScannerControls({
       ) : (
         <button
           onClick={onStop}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-rose-700 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-100 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
+          className="touch-target flex w-full items-center justify-center gap-3 rounded-2xl border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-rose-700 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-100 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300"
         >
           <X className="h-5 w-5" />
           <span className="text-base font-bold">Dừng quét</span>
@@ -54,7 +54,7 @@ export default function ScannerControls({
       {isScanning && hasTorch && onToggleTorch && (
         <button
           onClick={onToggleTorch}
-          className={`flex w-full items-center justify-center gap-3 rounded-2xl border px-5 py-3 text-sm font-bold shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 ${torchOn
+          className={`touch-target flex w-full items-center justify-center gap-3 rounded-2xl border px-5 py-3 text-sm font-bold shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 ${torchOn
             ? 'border-amber-200/70 bg-amber-50/80 text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300'
             : 'border-white/60 bg-white/55 text-slate-700 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200'
           }`}
@@ -79,7 +79,7 @@ export default function ScannerControls({
       />
       <button
         onClick={handleFileClick}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/60 bg-white/55 px-5 py-4 text-slate-700 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+        className="touch-target flex w-full items-center justify-center gap-3 rounded-2xl border border-white/60 bg-white/55 px-5 py-4 text-slate-700 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
       >
         <Upload className="h-5 w-5" />
         <span className="text-base font-bold">Tải ảnh QR lên</span>
