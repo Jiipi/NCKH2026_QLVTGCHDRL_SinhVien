@@ -298,8 +298,8 @@ class VanTayWebAuthnService {
       attestation: 'none',
       authenticatorSelection: {
         authenticatorAttachment: 'platform',
-        residentKey: 'preferred',
-        requireResidentKey: false,
+        residentKey: 'required',
+        requireResidentKey: true,
         userVerification: 'required'
       },
       excludeCredentials: existing.map((device: any) => ({
@@ -348,7 +348,15 @@ class VanTayWebAuthnService {
 
   async beginLogin(identifier: string, context: AuthContext) {
     const value = String(identifier || '').trim();
-    if (!value) throw new ValidationError('Vui lòng nhập MSSV, email hoặc tên đăng nhập');
+    if (!value) {
+      const challenge = await this.createChallenge('dang_nhap', context);
+      return {
+        challenge,
+        rpId: getRpId(),
+        timeout: 60000,
+        userVerification: 'required'
+      };
+    }
     const user = await prisma.nguoiDung.findFirst({
       where: {
         OR: [
@@ -386,7 +394,7 @@ class VanTayWebAuthnService {
       where: { credential_id: credential.rawId || credential.id },
       include: { nguoi_dung: { include: { vai_tro: true } } }
     });
-    if (!device || !device.da_kich_hoat || device.nguoi_dung_id !== challenge.nguoi_dung_id) {
+    if (!device || !device.da_kich_hoat || (challenge.nguoi_dung_id && device.nguoi_dung_id !== challenge.nguoi_dung_id)) {
       throw new UnauthorizedError('Thiết bị vân tay không hợp lệ');
     }
 

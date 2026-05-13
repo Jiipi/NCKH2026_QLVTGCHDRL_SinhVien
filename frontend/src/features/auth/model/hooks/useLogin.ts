@@ -181,14 +181,10 @@ export default function useLogin() {
   }, [formData, validateForm, completeLogin]);
 
   const handleFingerprintLogin = useCallback(async () => {
-    if (!formData.username.trim()) {
-      setErrors({ username: 'Vui lòng nhập MSSV, email hoặc tên đăng nhập trước khi dùng vân tay' });
-      return;
-    }
     setIsLoading(true);
     setErrors({});
     try {
-      const result = await authApi.loginWithFingerprint(formData.username, formData.remember) as LoginApiResult;
+      const result = await authApi.loginWithFingerprint('', formData.remember) as LoginApiResult;
       if (result.success && result.data?.token) {
         completeLogin(result.data.token, result.data.user);
         return;
@@ -200,7 +196,7 @@ export default function useLogin() {
     } finally {
       setIsLoading(false);
     }
-  }, [formData.username, formData.remember, completeLogin]);
+  }, [formData.remember, completeLogin]);
 
   return {
     formData,
