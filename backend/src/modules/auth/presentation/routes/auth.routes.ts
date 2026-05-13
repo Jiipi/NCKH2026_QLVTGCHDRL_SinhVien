@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { createAuthController } from '../auth.factory';
 import PermissionsController from '../controllers/permissions.controller';
+import vanTayWebAuthnService from '../../../../business/services/van-tay-webauthn.service';
 import { 
   validateLogin,
   validateRegister,
@@ -16,11 +17,29 @@ import {
 } from '../../business/validators/auth.validators';
 import { auth } from '../../../../core/http/middleware/authJwt';
 import { loginLimiter } from '../../../../core/http/middleware/rateLimiters';
+import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
+import { AppError } from '../../../../core/errors/AppError';
 
 const router = Router();
 
 // Create controller with all dependencies (Dependency Injection)
 const authController = createAuthController();
+
+function requestContext(req: Request) {
+  return {
+    ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+    userAgent: req.get('user-agent') || null
+  };
+}
+
+function handleWebAuthnError(res: Response, error: unknown): void {
+  if (error instanceof AppError) {
+    sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+    return;
+  }
+  console.error('[VanTayAuth] Error:', error);
+  sendResponse(res, 500, ApiResponse.error('Không xử lý được xác thực vân tay'));
+}
 
 /**
  * @route   POST /api/auth/login
@@ -35,6 +54,54 @@ router.post('/login', loginLimiter, validateLogin, (req: Request, res: Response)
  * @access  Public
  */
 router.post('/register', validateRegister, (req: Request, res: Response) => authController.register(req, res));
+
+router.get('/van-tay/thiet-bi', auth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const result = await vanTayWebAuthnService.getRegisteredDevices(userId);
+    sendResponse(res, 200, ApiResponse.success(result, 'Danh sách thiết bị vân tay'));
+  } catch (error) {
+    handleWebAuthnError(res, error);
+  }
+});
+
+router.post('/van-tay/dang-ky/options', auth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const result = await vanTayWebAuthnService.beginRegistration(userId, { ...requestContext(req), userId });
+    sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên đăng ký vân tay'));
+  } catch (error) {
+    handleWebAuthnError(res, error);
+  }
+});
+
+router.post('/van-tay/dang-ky/verify', auth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.sub || (req as any).user?.id;
+    const result = await vanTayWebAuthnService.finishRegistration(userId, req.body?.credential, req.body?.deviceName, { ...requestContext(req), userId });
+    sendResponse(res, 201, ApiResponse.success(result, 'Đăng ký vân tay thành công'));
+  } catch (error) {
+    handleWebAuthnError(res, error);
+  }
+});
+
+router.post('/van-tay/dang-nhap/options', loginLimiter, async (req: Request, res: Response) => {
+  try {
+    const result = await vanTayWebAuthnService.beginLogin(req.body?.username || req.body?.maso, requestContext(req));
+    sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên đăng nhập vân tay'));
+  } catch (error) {
+    handleWebAuthnError(res, error);
+  }
+});
+
+router.post('/van-tay/dang-nhap/verify', loginLimiter, async (req: Request, res: Response) => {
+  try {
+    const result = await vanTayWebAuthnService.finishLogin(req.body?.credential, !!req.body?.remember, requestContext(req));
+    sendResponse(res, 200, ApiResponse.success(result, 'Đăng nhập vân tay thành công'));
+  } catch (error) {
+    handleWebAuthnError(res, error);
+  }
+});
 
 /**
  * @route   GET /api/auth/me

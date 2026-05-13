@@ -1,4 +1,4 @@
-import { Camera, Edit3, GraduationCap, Key, User } from 'lucide-react';
+import { Camera, Edit3, Fingerprint, GraduationCap, Key, User } from 'lucide-react';
 import useStudentProfile from '../model/hooks/useStudentProfile';
 import ProfileLoading from './components/Profile/ProfileLoading';
 import ProfileEmpty from './components/Profile/ProfileEmpty';
@@ -21,6 +21,7 @@ export default function StudentProfilePage() {
     setEditing,
     changingPassword,
     setChangingPassword,
+    fingerprintLoading,
     activeTab,
     setActiveTab,
     formData,
@@ -31,6 +32,7 @@ export default function StudentProfilePage() {
     setShowPasswords,
     handleUpdateProfile,
     handleChangePassword,
+    handleRegisterFingerprint,
     getGenderDisplay,
     getStatusText,
     canDisplayImage,
@@ -109,6 +111,7 @@ export default function StudentProfilePage() {
           { label: 'Lớp', value: profile.lop?.ten_lop || profile.ten_lop || '—', icon: <User className="h-4 w-4" /> }
         ]}
         actions={!editing ? [
+          { label: fingerprintLoading ? 'Đang đăng ký...' : 'Đăng ký vân tay', onClick: handleRegisterFingerprint, icon: <Fingerprint className="h-4 w-4" />, variant: 'secondary' },
           { label: 'Đổi mật khẩu', onClick: () => setChangingPassword(true), icon: <Key className="h-4 w-4" />, variant: 'secondary' },
           { label: 'Chỉnh sửa', onClick: () => setEditing(true), icon: <Edit3 className="h-4 w-4" /> }
         ] : []}

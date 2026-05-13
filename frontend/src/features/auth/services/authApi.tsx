@@ -5,6 +5,7 @@
  */
 
 import http from '../../../shared/api/http';
+import { createFingerprintCredential, getFingerprintAssertion } from '../../../shared/lib/webauthn';
 
 const handleError = (error) => {
   const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra.';
@@ -34,6 +35,51 @@ export const authApi = {
           user: data?.user || null
         }
       };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  async loginWithFingerprint(username, remember = false) {
+    try {
+      const optionsRes = await http.post('/auth/van-tay/dang-nhap/options', {
+        username: String(username || '').trim()
+      });
+      const options = optionsRes.data?.data || optionsRes.data || {};
+      const credential = await getFingerprintAssertion(options);
+      const verifyRes = await http.post('/auth/van-tay/dang-nhap/verify', { credential, remember });
+      const data = verifyRes.data?.data || verifyRes.data || {};
+      return {
+        success: true,
+        data: {
+          token: data?.token || data?.data?.token,
+          user: data?.user || null
+        }
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  async registerFingerprint(deviceName = 'Thiết bị vân tay') {
+    try {
+      const optionsRes = await http.post('/auth/van-tay/dang-ky/options');
+      const options = optionsRes.data?.data || optionsRes.data || {};
+      const credential = await createFingerprintCredential(options);
+      const verifyRes = await http.post('/auth/van-tay/dang-ky/verify', { credential, deviceName });
+      return {
+        success: true,
+        data: verifyRes.data?.data || verifyRes.data || {}
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  async getFingerprintDevices() {
+    try {
+      const response = await http.get('/auth/van-tay/thiet-bi');
+      return { success: true, data: response.data?.data || response.data || [] };
     } catch (error) {
       return handleError(error);
     }

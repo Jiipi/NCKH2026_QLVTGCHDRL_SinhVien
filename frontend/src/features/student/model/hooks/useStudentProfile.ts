@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { studentProfileApi } from '../../services/studentProfileApi';
+import { authApi } from '../../../auth/services/authApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { formatDateVN } from '../../../../shared/lib/date';
 import { resolveAssetUrl } from '../../../../shared/lib/assetUrl';
@@ -20,6 +21,7 @@ export default function useStudentProfile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [fingerprintLoading, setFingerprintLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
   const [formData, setFormData] = useState({
     ho_ten: '',
@@ -159,6 +161,23 @@ export default function useStudentProfile() {
     }
   }, [passwordData, showSuccess, showError]);
 
+  const handleRegisterFingerprint = useCallback(async () => {
+    try {
+      setFingerprintLoading(true);
+      const result = await authApi.registerFingerprint(`${profile?.ho_ten || 'Thiết bị'} - vân tay`);
+      if (!result.success) {
+        showError(('error' in result ? result.error : '') || 'Không đăng ký được vân tay');
+        return;
+      }
+      showSuccess('Đăng ký vân tay thành công. Từ lần sau bạn có thể đăng nhập và điểm danh bằng vân tay.', 'Thành công', 8000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không đăng ký được vân tay trên thiết bị này';
+      showError(message);
+    } finally {
+      setFingerprintLoading(false);
+    }
+  }, [profile, showError, showSuccess]);
+
   // Business logic: Helper functions
   const getGenderDisplay = useCallback((gt) => {
     if (!gt) return 'Chưa cập nhật';
@@ -205,6 +224,7 @@ export default function useStudentProfile() {
     setEditing,
     changingPassword,
     setChangingPassword,
+    fingerprintLoading,
     activeTab,
     setActiveTab,
     formData,
@@ -216,6 +236,7 @@ export default function useStudentProfile() {
     loadProfile,
     handleUpdateProfile,
     handleChangePassword,
+    handleRegisterFingerprint,
     getGenderDisplay,
     getStatusText,
     canDisplayImage,

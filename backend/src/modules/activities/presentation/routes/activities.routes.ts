@@ -204,6 +204,20 @@ function createActivitiesRouter(controller: InstanceType<typeof ActivitiesContro
     asyncHandler((req: Request, res: Response) => controller.scanAttendance(req, res))
   );
 
+  router.post(
+    '/:id/attendance/van-tay/options',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.beginFingerprintAttendance(req, res))
+  );
+
+  router.post(
+    '/:id/attendance/van-tay/verify',
+    requireDynamicPermission('attendance.write'),
+    validators.validateGetById,
+    asyncHandler((req: Request, res: Response) => controller.verifyFingerprintAttendance(req, res))
+  );
+
   return router;
 }
 

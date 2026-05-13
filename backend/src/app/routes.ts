@@ -10,10 +10,28 @@ import { requireDynamicPermission } from '../core/http/middleware';
 import { validateAndInjectSemester } from './middleware/semesterMiddleware';
 import { applyScope } from './scopes/scopeMiddleware';
 import { qrAttendanceTokenService } from '../business/services/qr-attendance-token.service';
+import vanTayWebAuthnService from '../business/services/van-tay-webauthn.service';
 import { createActivitiesController } from '../modules/activities/presentation/activities.factory';
 import { ApiResponse, sendResponse } from '../core/utils/response';
+import { AppError } from '../core/errors/AppError';
 
 const router: IRouter = Router();
+
+function webAuthnContext(req: any, userId?: string | null) {
+	return {
+		actorId: userId || null,
+		userId: userId || null,
+		ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+		userAgent: req.get('user-agent') || null
+	};
+}
+
+function webAuthnError(res: any, error: any, fallbackMessage: string) {
+	if (error instanceof AppError) {
+		return sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+	}
+	return sendResponse(res, 500, ApiResponse.error(error?.message || fallbackMessage));
+}
 
 // ==================== LEGACY ROUTES (V1) ====================
 // These routes are kept for backward compatibility
@@ -50,6 +68,55 @@ router.get('/setup-admin', (req, res) => {
 
 // Authentication (V2 - New Module Architecture - Refactored to 3 tiers)
 import * as authModule from '../modules/auth';
+
+router.get('/auth/van-tay/thiet-bi', authenticate, async (req: any, res) => {
+	try {
+		const userId = req.user?.sub || req.user?.id;
+		const result = await vanTayWebAuthnService.getRegisteredDevices(userId);
+		return sendResponse(res, 200, ApiResponse.success(result, 'Danh sách thiết bị vân tay'));
+	} catch (error: any) {
+		return webAuthnError(res, error, 'Không lấy được danh sách thiết bị vân tay');
+	}
+});
+
+router.post('/auth/van-tay/dang-ky/options', authenticate, async (req: any, res) => {
+	try {
+		const userId = req.user?.sub || req.user?.id;
+		const result = await vanTayWebAuthnService.beginRegistration(userId, webAuthnContext(req, userId));
+		return sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên đăng ký vân tay'));
+	} catch (error: any) {
+		return webAuthnError(res, error, 'Không tạo được phiên đăng ký vân tay');
+	}
+});
+
+router.post('/auth/van-tay/dang-ky/verify', authenticate, async (req: any, res) => {
+	try {
+		const userId = req.user?.sub || req.user?.id;
+		const result = await vanTayWebAuthnService.finishRegistration(userId, req.body?.credential, req.body?.deviceName, webAuthnContext(req, userId));
+		return sendResponse(res, 201, ApiResponse.success(result, 'Đăng ký vân tay thành công'));
+	} catch (error: any) {
+		return webAuthnError(res, error, 'Không xác minh được đăng ký vân tay');
+	}
+});
+
+router.post('/auth/van-tay/dang-nhap/options', async (req: any, res) => {
+	try {
+		const result = await vanTayWebAuthnService.beginLogin(req.body?.username || req.body?.maso, webAuthnContext(req));
+		return sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên đăng nhập vân tay'));
+	} catch (error: any) {
+		return webAuthnError(res, error, 'Không tạo được phiên đăng nhập vân tay');
+	}
+});
+
+router.post('/auth/van-tay/dang-nhap/verify', async (req: any, res) => {
+	try {
+		const result = await vanTayWebAuthnService.finishLogin(req.body?.credential, !!req.body?.remember, webAuthnContext(req));
+		return sendResponse(res, 200, ApiResponse.success(result, 'Đăng nhập vân tay thành công'));
+	} catch (error: any) {
+		return webAuthnError(res, error, 'Không xác minh được đăng nhập vân tay');
+	}
+});
+
 router.use('/auth', authModule.routes);
 
 // Users
@@ -126,6 +193,20 @@ router.post('/activities/:id/attendance/session/:sessionId/close', authenticate,
 
 router.post('/activities/:id/attendance/scan', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), (req, res) => {
 	return activitiesFallbackController.scanAttendance(req as any, res);
+});
+
+router.post('/activities/:id/attendance/van-tay/options', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), (req: any, res) => {
+	const userId = req.user?.sub || req.user?.id;
+	return vanTayWebAuthnService.beginAttendance(req.params.id, userId, webAuthnContext(req, userId))
+		.then((result) => sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên điểm danh vân tay')))
+		.catch((error) => webAuthnError(res, error, 'Không tạo được phiên điểm danh vân tay'));
+});
+
+router.post('/activities/:id/attendance/van-tay/verify', authenticate, validateAndInjectSemester(), applyScope('activities'), requireDynamicPermission('attendance.write'), (req: any, res) => {
+	const userId = req.user?.sub || req.user?.id;
+	return vanTayWebAuthnService.finishAttendance(req.params.id, userId, req.body?.credential, req.body?.location, webAuthnContext(req, userId))
+		.then((result) => sendResponse(res, 201, ApiResponse.success(result, 'Điểm danh vân tay thành công')))
+		.catch((error) => webAuthnError(res, error, 'Không thể điểm danh bằng vân tay'));
 });
 
 router.use('/core/activities', authenticate, validateAndInjectSemester(), applyScope('activities'), activitiesV2.routes);

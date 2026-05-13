@@ -24,6 +24,7 @@ import CreateActivityDto from '../../business/dto/CreateActivityDto';
 import UpdateActivityDto from '../../business/dto/UpdateActivityDto';
 import { ApiResponse, sendResponse } from '../../../../core/http/response/apiResponse';
 import { qrAttendanceTokenService } from '../../../../business/services/qr-attendance-token.service';
+import vanTayWebAuthnService from '../../../../business/services/van-tay-webauthn.service';
 import { logError } from '../../../../core/logger';
 import { logAudit } from '../../../../core/logger/audit';
 import { AppError } from '../../../../core/errors/AppError';
@@ -377,6 +378,56 @@ class ActivitiesController {
         return;
       }
       sendResponse(res, 500, ApiResponse.error('Không thể điểm danh'));
+    }
+  }
+
+  async beginFingerprintAttendance(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.sub || req.user?.id;
+      if (!userId) {
+        sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập'));
+        return;
+      }
+      const result = await vanTayWebAuthnService.beginAttendance(id, userId, {
+        actorId: userId,
+        userId,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 200, ApiResponse.success(result, 'Tạo phiên điểm danh vân tay'));
+    } catch (error) {
+      logError('Begin fingerprint attendance error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không tạo được phiên điểm danh vân tay'));
+    }
+  }
+
+  async verifyFingerprintAttendance(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.sub || req.user?.id;
+      if (!userId) {
+        sendResponse(res, 401, ApiResponse.error('Chưa đăng nhập'));
+        return;
+      }
+      const result = await vanTayWebAuthnService.finishAttendance(id, userId, req.body?.credential, req.body?.location, {
+        actorId: userId,
+        userId,
+        ip: req.headers['x-forwarded-for']?.toString() || req.ip,
+        userAgent: req.get('user-agent') || null
+      });
+      sendResponse(res, 201, ApiResponse.success(result, 'Điểm danh vân tay thành công'));
+    } catch (error) {
+      logError('Verify fingerprint attendance error', error);
+      if (error instanceof AppError) {
+        sendResponse(res, error.statusCode, ApiResponse.error(error.message, error.statusCode, error.details));
+        return;
+      }
+      sendResponse(res, 500, ApiResponse.error('Không thể điểm danh bằng vân tay'));
     }
   }
 

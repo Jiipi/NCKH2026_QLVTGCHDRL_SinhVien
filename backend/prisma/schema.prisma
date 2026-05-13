@@ -67,6 +67,8 @@ model NguoiDung {
   phien_qr_tao            PhienDiemDanhQr[]       @relation("NguoiTaoPhienQr")
   audit_diem_danh         NhatKyDiemDanh[]        @relation("NguoiThucHienAuditDiemDanh")
   import_jobs             ImportJob[]             @relation("NguoiTaoImportJob")
+  khoa_van_tay            KhoaVanTay[]
+  thu_thach_van_tay       ThuThachVanTay[]
 
   @@map("nguoi_dung")
 }
@@ -203,6 +205,7 @@ model HoatDong {
   phien_qr                   PhienDiemDanhQr[]
   audit_diem_danh            NhatKyDiemDanh[]
   yeu_cau_diem_danh_thu_cong YeuCauDiemDanhThuCong[]
+  thu_thach_van_tay          ThuThachVanTay[]
   loai_hd                    LoaiHoatDong            @relation(fields: [loai_hd_id], references: [id])
   nguoi_tao                  NguoiDung               @relation("NguoiTaoHoatDong", fields: [nguoi_tao_id], references: [id])
   lop                        Lop?                    @relation("LopHoatDong", fields: [lop_id], references: [id])
@@ -252,6 +255,7 @@ model DiemDanh {
   khoang_cach_m        Float?
   ket_qua_geofence     KetQuaGeofence?
   fallback_request_id  String?                @db.Uuid
+  khoa_van_tay_id      String?                @db.Uuid
   xac_nhan_tham_gia    Boolean                @default(true)
   // Độ tin cậy nhận diện khuôn mặt (0.0 - 1.0), chỉ có giá trị khi phuong_thuc = khuon_mat
   do_tin_cay_nhan_dien Float?                 @db.DoublePrecision
@@ -259,10 +263,49 @@ model DiemDanh {
   nguoi_diem_danh      NguoiDung              @relation("NguoiDiemDanh", fields: [nguoi_diem_danh_id], references: [id])
   sinh_vien            SinhVien               @relation(fields: [sv_id], references: [id])
   fallback_request     YeuCauDiemDanhThuCong? @relation(fields: [fallback_request_id], references: [id], onDelete: SetNull)
+  khoa_van_tay         KhoaVanTay?            @relation(fields: [khoa_van_tay_id], references: [id], onDelete: SetNull)
   audit_diem_danh      NhatKyDiemDanh[]
 
   @@unique([sv_id, hd_id])
   @@map("diem_danh")
+}
+
+model KhoaVanTay {
+  id                String     @id @default(uuid()) @db.Uuid
+  nguoi_dung_id     String     @db.Uuid
+  credential_id     String     @unique @db.Text
+  public_key        Json
+  counter           Int        @default(0)
+  transports        String[]
+  ten_thiet_bi      String?    @db.VarChar(120)
+  da_kich_hoat      Boolean    @default(true)
+  ngay_tao          DateTime   @default(now()) @db.Timestamp(6)
+  ngay_cap_nhat     DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+  lan_su_dung_cuoi  DateTime?  @db.Timestamp(6)
+  nguoi_dung        NguoiDung  @relation(fields: [nguoi_dung_id], references: [id], onDelete: Cascade)
+  diem_danh         DiemDanh[]
+
+  @@index([nguoi_dung_id, da_kich_hoat])
+  @@map("khoa_van_tay")
+}
+
+model ThuThachVanTay {
+  id               String         @id @default(uuid()) @db.Uuid
+  nguoi_dung_id    String?        @db.Uuid
+  challenge        String         @unique @db.VarChar(255)
+  muc_dich         MucDichVanTay
+  hoat_dong_id     String?        @db.Uuid
+  het_han_luc      DateTime       @db.Timestamp(6)
+  da_su_dung_luc   DateTime?      @db.Timestamp(6)
+  dia_chi_ip       String?        @db.VarChar(80)
+  user_agent       String?
+  ngay_tao         DateTime       @default(now()) @db.Timestamp(6)
+  nguoi_dung       NguoiDung?     @relation(fields: [nguoi_dung_id], references: [id], onDelete: Cascade)
+  hoat_dong        HoatDong?      @relation(fields: [hoat_dong_id], references: [id], onDelete: Cascade)
+
+  @@index([nguoi_dung_id, muc_dich, het_han_luc])
+  @@index([hoat_dong_id, muc_dich, het_han_luc])
+  @@map("thu_thach_van_tay")
 }
 
 model PhienDiemDanhQr {
@@ -481,7 +524,14 @@ enum PhuongThucDiemDanh {
   ma_vach
   truyen_thong
   khuon_mat
+  van_tay
   thu_cong_fallback
+}
+
+enum MucDichVanTay {
+  dang_ky
+  dang_nhap
+  diem_danh
 }
 
 enum KetQuaGeofence {

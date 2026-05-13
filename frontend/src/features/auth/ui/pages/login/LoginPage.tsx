@@ -1,9 +1,5 @@
 /**
  * Login Page (3-Tier Architecture)
- * 
- * Tier 1: Services - authApi
- * Tier 2: Model - useLogin hook
- * Tier 3: UI - Shared components from shared/
  */
 
 import React from 'react';
@@ -26,22 +22,30 @@ export default function LoginPage() {
     isLoading,
     handleInputChange,
     setShowPassword,
-    handleLogin
+    handleLogin,
+    handleFingerprintLogin
   } = useLogin();
 
   return (
     <AuthLayout variant="login">
       <AuthPanel>
-        <form onSubmit={handleLogin}>
-          <h1 className="auth-form-title">ĐĂNG NHẬP</h1>
-          
+        <form onSubmit={handleLogin} className="auth-form auth-login-form">
+          <div className="auth-form-header">
+            <span className="auth-form-eyebrow">Tài khoản hệ thống</span>
+            <h1 className="auth-form-title">Đăng nhập</h1>
+            <p className="auth-form-subtitle">
+              Sử dụng mã số sinh viên, email hoặc tên đăng nhập để tiếp tục.
+            </p>
+          </div>
+
           <AuthInput
             type="text"
             name="username"
             value={formData.username}
             onChange={handleInputChange}
-            placeholder="Mã số sinh viên hoặc Email"
+            placeholder="Mã số sinh viên, email hoặc tên đăng nhập"
             icon="fa fa-envelope"
+            autoComplete="username"
             required
             error={errors.username}
           />
@@ -53,23 +57,31 @@ export default function LoginPage() {
             placeholder="Mật khẩu"
             showPassword={showPassword}
             onTogglePassword={() => setShowPassword(!showPassword)}
+            autoComplete="current-password"
             required
             error={errors.password}
           />
 
-          <div className="forget" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <div className="forget auth-login-options">
+            <div className="auth-checkbox-row">
               <input
                 type="checkbox"
                 name="remember"
-                id="checkbox"
+                id="remember-login"
                 checked={formData.remember}
                 onChange={handleInputChange}
-                style={{ width: 16, height: 16, marginRight: 6 }}
               />
-              <label htmlFor="checkbox" style={{ margin: 0 }}>Ghi nhớ đăng nhập</label>
+              <label htmlFor="remember-login">Ghi nhớ đăng nhập</label>
             </div>
-            <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Quên mật khẩu?</a>
+            <a
+              href="/forgot-password"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/forgot-password');
+              }}
+            >
+              Quên mật khẩu?
+            </a>
           </div>
 
           <AuthErrorMessage message={errors.submit} />
@@ -79,11 +91,21 @@ export default function LoginPage() {
             isLoading={isLoading}
             loadingText="Đang đăng nhập..."
           >
-            ĐĂNG NHẬP
+            Đăng nhập
           </AuthButton>
+          <button
+            type="button"
+            onClick={handleFingerprintLogin}
+            disabled={isLoading}
+            className="btn auth-fingerprint-btn"
+          >
+            <i className="fa fa-fingerprint" aria-hidden="true" />
+            Đăng nhập bằng vân tay
+          </button>
         </form>
-        <AuthLink to="/register">
-          Chưa có tài khoản? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Đăng ký ngay</a>
+
+        <AuthLink to="/register" text="Đăng ký ngay">
+          Chưa có tài khoản?
         </AuthLink>
       </AuthPanel>
     </AuthLayout>

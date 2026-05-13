@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useLegacyQRScanner } from '../model/hooks/useLegacyQRScanner';
 import { createAttendanceFallbackRequest } from '../services/attendanceFallbackApi';
+import qrAttendanceApi from '../services/qrAttendanceApi';
 import { studentActivitiesApi } from '../../student/services/studentActivitiesApi';
 import { FaceAttendanceCard } from '../../face-recognition/ui/components';
 import { getCurrentSemesterValue } from '../../../shared/lib/semester';
@@ -73,10 +74,11 @@ function HeroChip({ icon: Icon, label }: { icon: React.ElementType; label: strin
 
 export default function QRScannerModernPage() {
   const [searchParams] = useSearchParams();
-  const requestedTab = searchParams.get('tab') === 'face' ? 'face' : 'qr';
+  const tabParam = searchParams.get('tab');
+  const requestedTab = tabParam === 'face' ? 'face' : (tabParam === 'van-tay' || tabParam === 'fingerprint' ? 'fingerprint' : 'qr');
   const requestedActivityId = searchParams.get('activityId') || '';
   const requestedSemester = searchParams.get('semester') || getCurrentSemesterValue(true);
-  const [activeTab, setActiveTab] = useState<'qr' | 'face'>(requestedTab);
+  const [activeTab, setActiveTab] = useState<'qr' | 'face' | 'fingerprint'>(requestedTab);
   const [ongoingActivities, setOngoingActivities] = useState<any[]>([]);
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
   const [loadingActivities, setLoadingActivities] = useState(false);
@@ -91,7 +93,7 @@ export default function QRScannerModernPage() {
   }, [requestedTab]);
 
   useEffect(() => {
-    if (activeTab === 'face' && ongoingActivities.length === 0) {
+    if (activeTab !== 'qr' && ongoingActivities.length === 0) {
       const fetchActivities = async () => {
         setLoadingActivities(true);
         try {
@@ -147,13 +149,14 @@ export default function QRScannerModernPage() {
               <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian lớp trưởng</p>
               <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Điểm danh hoạt động</h1>
               <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
-                Chọn phương thức điểm danh phù hợp, quét QR nhanh hoặc xác minh khuôn mặt cho hoạt động đang diễn ra.
+                Chọn phương thức điểm danh phù hợp, quét QR nhanh hoặc xác minh sinh trắc học cho hoạt động đang diễn ra.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <HeroChip icon={QrCode} label="Quét QR" />
             <HeroChip icon={Camera} label="Khuôn mặt" />
+            <HeroChip icon={Fingerprint} label="Vân tay" />
             <HeroChip icon={ShieldCheck} label="Theo hoạt động" />
           </div>
         </div>
@@ -163,6 +166,7 @@ export default function QRScannerModernPage() {
         <div className="flex flex-col gap-2 sm:flex-row">
           <TabButton active={activeTab === 'qr'} onClick={() => setActiveTab('qr')} icon={QrCode} label="Quét mã QR" description="Camera hoặc tải ảnh QR" />
           <TabButton active={activeTab === 'face'} onClick={() => setActiveTab('face')} icon={Camera} label="Nhận diện khuôn mặt" description="Xác minh theo hoạt động" />
+          <TabButton active={activeTab === 'fingerprint'} onClick={() => setActiveTab('fingerprint')} icon={Fingerprint} label="Vân tay" description="Passkey hoặc Windows Hello" />
         </div>
       </div>
 
@@ -177,7 +181,7 @@ export default function QRScannerModernPage() {
           >
             <QRTab />
           </motion.div>
-        ) : (
+        ) : activeTab === 'face' ? (
           <motion.div
             key="face"
             initial={{ opacity: 0, y: 10 }}
@@ -186,6 +190,16 @@ export default function QRScannerModernPage() {
             transition={{ duration: 0.25 }}
           >
             <FaceTab activities={ongoingActivities} loading={loadingActivities} selectedId={selectedActivityId} onSelect={setSelectedActivityId} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="fingerprint"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+          >
+            <FingerprintTab activities={ongoingActivities} loading={loadingActivities} selectedId={selectedActivityId} onSelect={setSelectedActivityId} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -401,6 +415,126 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
             <p className="mt-1 text-xs font-medium text-slate-400 dark:text-slate-500">Hệ thống sẽ yêu cầu quyền camera khi xác minh khuôn mặt.</p>
           </div>
         )}
+      </section>
+    </div>
+  );
+}
+
+function getFingerprintLocation(): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+}
+
+function FingerprintTab({ activities, loading, selectedId, onSelect }: any) {
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const selectedActivity = activities.find((a: any) => String(a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id || '') === String(selectedId));
+
+  const submitFingerprint = async () => {
+    if (!selectedId || submitting) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const location = await getFingerprintLocation();
+      const response = await qrAttendanceApi.scanFingerprintAttendance(selectedId, location);
+      if (response.success) {
+        setResult({ success: true, message: response.message || 'Điểm danh vân tay thành công!' });
+        try { window.dispatchEvent(new CustomEvent('attendance:updated', { detail: { activityId: selectedId }})); } catch (_) {}
+        try { window.localStorage.setItem('ATTENDANCE_UPDATED_AT', String(Date.now())); } catch (_) {}
+      } else {
+        setResult({ success: false, message: ('error' in response ? response.error : '') || 'Điểm danh vân tay thất bại' });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+      <aside className="lg:col-span-2">
+        <div className="rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5 lg:sticky lg:top-20 lg:rounded-[2rem]">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+              <Fingerprint className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-[0.16em] text-slate-900 dark:text-white">Vân tay</h3>
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-500">Xác minh bằng Passkey</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <InstructionItem icon={ShieldCheck} tone="indigo" text={<>Thiết bị phải được <strong>đăng ký vân tay</strong> trong hồ sơ cá nhân trước khi điểm danh.</>} />
+            <InstructionItem icon={Activity} tone="emerald" text={<>Chọn <strong>hoạt động đã được duyệt</strong> rồi xác nhận bằng Windows Hello, Touch ID hoặc Passkey.</>} />
+            <InstructionItem icon={Clock} tone="amber" text="Hệ thống vẫn kiểm tra thời gian hoạt động và trạng thái đăng ký trước khi ghi điểm danh." />
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+              Hoạt động điểm danh
+            </label>
+            {loading ? (
+              <div className="h-12 w-full animate-pulse rounded-2xl bg-white/55 dark:bg-white/5" />
+            ) : activities.length > 0 ? (
+              <div className="relative">
+                <select
+                  value={selectedId}
+                  onChange={(e) => onSelect(e.target.value)}
+                  className="mobile-input block w-full appearance-none rounded-2xl border border-white/70 bg-white/55 px-4 py-3 pr-10 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
+                >
+                  {activities.map((a: any) => {
+                    const id = a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id;
+                    const name = a.hoat_dong?.ten_hd || a.hoat_dong?.name || a.name || a.ten_hd || `Hoạt động #${id}`;
+                    return <option key={id} value={id}>{name}</option>;
+                  })}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-amber-200/70 bg-amber-50/80 p-4 text-sm font-semibold text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300">
+                Bạn không có hoạt động nào đã được duyệt để điểm danh.
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      <section className="lg:col-span-3">
+        <div className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border border-white/60 bg-white/60 p-6 text-center shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 lg:rounded-[2rem]">
+          <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-[1.7rem] bg-gradient-to-br from-indigo-600 to-teal-500 text-white shadow-lg shadow-indigo-500/25">
+            <Fingerprint className="h-10 w-10" />
+          </div>
+          <h3 className="text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">Điểm danh bằng vân tay</h3>
+          <p className="mt-2 max-w-md text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
+            {selectedActivity
+              ? (selectedActivity.hoat_dong?.ten_hd || selectedActivity.ten_hd || 'Hoạt động đã chọn')
+              : 'Chọn hoạt động để bắt đầu xác minh vân tay.'}
+          </p>
+          {result && (
+            <div className={`mt-5 w-full max-w-md rounded-2xl border p-4 text-sm font-bold ${result.success ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300'}`}>
+              {result.message}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={submitFingerprint}
+            disabled={!selectedId || submitting || loading || activities.length === 0}
+            className="touch-target mt-7 w-full rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-60 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 sm:w-auto"
+          >
+            {submitting ? 'Đang xác minh...' : 'Xác minh vân tay'}
+          </button>
+        </div>
       </section>
     </div>
   );

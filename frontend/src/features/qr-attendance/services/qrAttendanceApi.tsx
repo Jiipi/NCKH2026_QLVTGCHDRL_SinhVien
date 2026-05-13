@@ -1,4 +1,5 @@
 import http from '../../../shared/api/http';
+import { getFingerprintAssertion } from '../../../shared/lib/webauthn';
 
 interface QRErrorResponse {
   success: false;
@@ -49,6 +50,22 @@ class QRAttendanceAPI {
         success: true,
         data: res?.data?.data || res?.data || {},
         message: res?.data?.message || 'Điểm danh thành công!'
+      };
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  async scanFingerprintAttendance(activityId: string, location?: AttendanceLocationPayload | null): Promise<QRResponse<any>> {
+    try {
+      const optionsRes = await http.post(`/activities/${activityId}/attendance/van-tay/options`);
+      const options = optionsRes?.data?.data || optionsRes?.data || {};
+      const credential = await getFingerprintAssertion(options);
+      const res = await http.post(`/activities/${activityId}/attendance/van-tay/verify`, { credential, location });
+      return {
+        success: true,
+        data: res?.data?.data || res?.data || {},
+        message: res?.data?.message || 'Điểm danh vân tay thành công!'
       };
     } catch (error) {
       return handleError(error);
