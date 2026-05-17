@@ -53,9 +53,10 @@ jspm_packages/
 # dotenv environment variables file
 .env
 
-# IDE files
+# IDE & AI agent files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -82,6 +83,18 @@ prisma/*.db-journal
 # Temporary files
 *.tmp
 *.temp
+temp_token.json
+
+# Security - Private keys & credentials
+*.pem
+*.key
+.env.secure
+.env.production
+.env.3tier*
+
+# Database backups
+backend/backups/
+*.sql.bak
 
 # Additional files from remote
 pgdata
@@ -91,6 +104,10 @@ test-results/
 *.test-results/
 .last-run.json
 repo-reference/
+
+# Frontend log files
+frontend_log.txt
+frontend_error.log
 
 # Uploaded files (user-generated content)
 backend/uploads/

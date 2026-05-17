@@ -5,20 +5,9 @@
     "start": "node dist/index.js",
     "build": "prisma generate --schema=prisma/schema.prisma && tsc -p tsconfig.build.json",
     "build:watch": "tsc --watch",
-    "test": "jest --runInBand",
-    "test:watch": "jest --watch --runInBand",
-    "test:coverage": "jest --coverage --runInBand",
-    "test:unit": "jest unit --runInBand",
-    "test:integration": "jest integration --runInBand",
-    "test:e2e": "jest e2e --runInBand",
-    "test:security": "node scripts/security_smoke_tests.js",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
-    "seed": "node prisma/seed.js",
-    "test:semester": "node scripts/test_semester_sync.js",
-    "smoke:semester": "node scripts/smoke_semester_sync.js",
-    "patch:semester-perms": "node scripts/patch_semester_permissions.js",
-    "add-demo": "node scripts/add_demo_users.js"
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@types/node": "^24.10.9",
@@ -51,13 +40,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "@types/supertest": "^6.0.3",
-    "jest": "^30.2.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.15.0",
-    "supertest": "^7.1.4",
-    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2"
   }
 }

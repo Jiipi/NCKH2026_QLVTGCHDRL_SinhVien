@@ -54,6 +54,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      face-recognition:
+        condition: service_healthy
     env_file:
       - .env.production
     environment:
@@ -64,6 +66,17 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN}
       SEMESTER_DATA_DIR: /app/backend/data/semesters
+      FACE_RECOGNITION_URL: ${FACE_RECOGNITION_URL:-http://face-recognition:5000}
+      FACE_SESSION_REQUIRED: ${FACE_SESSION_REQUIRED:-true}
+      FACE_ACTIVE_LIVENESS_REQUIRED: ${FACE_ACTIVE_LIVENESS_REQUIRED:-true}
+      FACE_SESSION_STORAGE: ${FACE_SESSION_STORAGE:-db}
+      FACE_SESSION_TTL_MS: ${FACE_SESSION_TTL_MS:-120000}
+      FACE_SESSION_MIN_CHALLENGES: ${FACE_SESSION_MIN_CHALLENGES:-3}
+      FACE_THRESHOLD_ATTENDANCE_1TO1: ${FACE_THRESHOLD_ATTENDANCE_1TO1:-0.68}
+      FACE_THRESHOLD_ATTENDANCE_1N: ${FACE_THRESHOLD_ATTENDANCE_1N:-0.72}
+      FACE_THRESHOLD_DUPLICATE_REGISTRATION: ${FACE_THRESHOLD_DUPLICATE_REGISTRATION:-0.68}
+      FACE_THRESHOLD_VERIFY: ${FACE_THRESHOLD_VERIFY:-0.68}
+      FACE_SERVICE_TOKEN: ${FACE_SERVICE_TOKEN:?FACE_SERVICE_TOKEN environment variable must be set}
     volumes:
       - ./backend/logs:/app/backend/logs
       - ./backend/uploads:/app/backend/uploads
@@ -92,6 +105,47 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+
+  # Face Recognition Service (RetinaFace + ArcFace + active liveness)
+  face-recognition:
+    build:
+      context: ./face-recognition-service
+      dockerfile: Dockerfile
+    image: student-app-face-recognition:latest
+    container_name: student_app_face_recognition_prod
+    restart: always
+    environment:
+      ALLOWED_ORIGINS: ${CORS_ORIGIN}
+      FACE_THRESHOLD_VERIFY: ${FACE_THRESHOLD_VERIFY:-0.68}
+      FACE_SERVICE_TOKEN: ${FACE_SERVICE_TOKEN:?FACE_SERVICE_TOKEN environment variable must be set}
+      ACTIVE_LIVENESS_MIN_FRAMES: ${ACTIVE_LIVENESS_MIN_FRAMES:-3}
+      ACTIVE_LIVENESS_YAW_RANGE_MIN: ${ACTIVE_LIVENESS_YAW_RANGE_MIN:-0.10}
+      ACTIVE_LIVENESS_CENTER_YAW_MAX: ${ACTIVE_LIVENESS_CENTER_YAW_MAX:-0.12}
+    volumes:
+      - face_models:/root/.insightface
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
 
   # Frontend Application (Nginx)
   frontend:
@@ -146,7 +200,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx-http-only.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/logs:/var/log/nginx
     networks:
@@ -172,6 +226,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  face_models:
     driver: local
 
 networks:

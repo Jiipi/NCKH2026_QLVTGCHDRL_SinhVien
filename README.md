@@ -1,73 +1,149 @@
-# HỆ THỐNG QUẢN LÝ ĐIỂM RÈN LUYỆN
+# Hệ thống Quản lý Hoạt động Rèn luyện Sinh viên
 
-Đây là mã nguồn của **Đồ án Chuyên ngành: Web Quản lý việc tham gia các hoạt động rèn luyện của sinh viên**.
-Hệ thống giúp quản lý toàn diện quy trình tổ chức hoạt động, sinh viên đăng ký, điểm danh và chấm điểm rèn luyện tự động.
+Ứng dụng web hỗ trợ Trường Đại học Đà Lạt quản lý hoạt động rèn luyện theo học kỳ: tạo và duyệt hoạt động, đăng ký tham gia, điểm danh QR/khuôn mặt, tính điểm rèn luyện, thống kê báo cáo và quản lý sinh viên theo lớp.
 
----
+## Giao diện
 
-## 🚀 Yêu cầu hệ thống
+### Đăng nhập
 
-Trước khi cài đặt, vui lòng đảm bảo máy tính đã cài đặt:
-1.  **Node.js** (v18 trở lên): [Tải tại đây](https://nodejs.org/)
-2.  **Docker Desktop** (để chạy Database & Backend): [Tải tại đây](https://www.docker.com/products/docker-desktop/)
+![Màn hình đăng nhập](docs/images/readme/login.png)
 
----
+### Sinh viên theo dõi điểm rèn luyện
 
-## 📦 Hướng dẫn cài đặt & Chạy dự án
+![Dashboard sinh viên](docs/images/readme/student-dashboard.png)
 
-Dự án đã được tích hợp script tự động hóa hoàn toàn. Chỉ cần thực hiện:
+![Chi tiết điểm rèn luyện sinh viên](docs/images/readme/student-scores.png)
 
-1.  **Clone source code** về máy. "git clone https://github.com/Jiipi/QL_DH_RenLuyen.git"
-2.  Mở thư mục dự án trong Visual Studio Code. Chọn menu Terminal > New Terminal.
-3.  Chạy file **`setup.bat`** bằng cách nhập lệnh sau vào terminal:
-    ```
-    .\setup.bat
-    ```
-    (Hoặc có thể click đúp chuột vào file `setup.bat` trong thư mục)
+### Giảng viên quản lý điểm sinh viên
 
-Script sẽ tự động thực hiện:
-*   Kiểm tra môi trường (Node, Docker, npm).
-*   Cài đặt các thư viện cần thiết.
-*   Khởi động Docker containers (Database, Redis, Backend, Frontend).
-*   **(Tùy chọn)** Khởi tạo dữ liệu mẫu (Seeding) để bạn có ngay dữ liệu để test.
+![Bảng điểm rèn luyện phía giảng viên](docs/images/readme/teacher-student-scores.png)
 
----
+## Chức năng chính
 
-## 🔑 Thông tin đăng nhập (Môi trường Dev/Test)
+| Vai trò | Chức năng |
+| --- | --- |
+| Quản trị viên | Quản lý người dùng, vai trò, lớp, loại hoạt động, học kỳ, duyệt hoạt động, báo cáo toàn hệ thống |
+| Giảng viên | Quản lý lớp phụ trách, tạo hoạt động, duyệt đăng ký, duyệt khuôn mặt sinh viên, xem điểm và báo cáo theo học kỳ |
+| Lớp trưởng | Quản lý hoạt động lớp, hỗ trợ điểm danh, theo dõi sinh viên trong lớp, xử lý đăng ký theo phạm vi được phân quyền |
+| Sinh viên | Xem danh sách hoạt động, đăng ký tham gia, điểm danh nhanh, xem chứng nhận và điểm rèn luyện theo học kỳ |
 
-Sau khi chạy Setup và chọn "Khởi tạo dữ liệu mẫu", bạn có thể sử dụng các tài khoản sau:
+## Kiến trúc
 
-| Vai trò | Tài khoản (Username) | Mật khẩu | Ghi chú |
-| :--- | :--- | :--- | :--- |
-| **Quản trị viên (Admin)** | `Admin` | `123456` | Quản lý toàn bộ hệ thống |
-| **Giảng viên** | `gv0404` | `123456` | Quản lý lớp, duyệt điểm |
-| **Lớp trưởng** | `2140401` | `123456` | Điểm danh, quản lý lớp |
-| **Sinh viên** | `2140402` | `123456` | Đăng ký, xem điểm |
+| Thành phần | Công nghệ |
+| --- | --- |
+| Frontend | React 19, React Router, Zustand, Tailwind CSS, Recharts, Playwright |
+| Backend API | Node.js, Express 5, TypeScript, Prisma ORM, JWT, Zod |
+| Database | PostgreSQL 15 |
+| Nhận diện khuôn mặt | Python FastAPI, DeepFace/RetinaFace/ArcFace |
+| Hạ tầng local | Docker Compose, Nginx, Prisma Studio, Dozzle |
 
----
+Luồng chính của hệ thống:
 
-## 🌐 Truy cập dịch vụ
+1. Frontend gọi API qua `/api`.
+2. Backend xác thực JWT, áp dụng phân quyền theo vai trò và phạm vi lớp/học kỳ.
+3. Prisma truy vấn PostgreSQL cho hoạt động, đăng ký, điểm danh, điểm rèn luyện và báo cáo.
+4. Dịch vụ nhận diện khuôn mặt xử lý đăng ký/điểm danh khuôn mặt và trả kết quả cho backend.
 
-*   **Frontend (Web App):** [http://localhost:3000](http://localhost:3000)
-*   **Backend API:** [http://localhost:3001](http://localhost:3001)
-*   **Quản lý Database (Prisma Studio):** [http://localhost:5555](http://localhost:5555)
-*   **Xem Logs hệ thống:** [http://localhost:9999](http://localhost:9999)
+## Cấu trúc thư mục
 
----
+```text
+.
+├── backend/                  # Express API, Prisma schema, business modules
+├── frontend/                 # React SPA
+├── face-recognition-service/ # FastAPI service nhận diện khuôn mặt
+├── nginx/                    # Cấu hình reverse proxy
+├── docs/                     # Tài liệu và ảnh README
+└── docker-compose.yml        # Môi trường dev/prod bằng Docker
+```
 
-## 📞 Thông tin liên hệ nhóm tác giả
+## Yêu cầu môi trường
 
-Mọi thắc mắc về cài đặt, vận hành hoặc báo lỗi, vui lòng liên hệ nhóm phát triển:
+- Docker Desktop
+- Node.js 22 hoặc mới hơn nếu chạy ngoài Docker
+- npm
+- Git
 
-**Nhóm thực hiện:**
-1. 2212377 - Trần Ngọc Hưng
-	- Email: 2212377@dlu.edu.vn
-	- Số điện thoại: 0387892787
+## Chạy hệ thống bằng Docker Compose
 
-2. 2212391 - Nguyễn Hoàng Nam Khánh
-	- Email: 2212391@dlu.edu.vn
-	- Số điện thoại: 0328405706
-	
-3. 2212391 - Trần Vũ Thành Luân
-	- Email: 2212410@dlu.edu.vn
-	- Số điện thoại: 0325535167
+Tạo file `.env` ở thư mục gốc nếu chưa có:
+
+```env
+JWT_SECRET=devops-demo-secret-key-for-development-2026
+FACE_SERVICE_TOKEN=dev-face-service-token
+```
+
+Khởi động môi trường phát triển:
+
+```powershell
+docker compose --profile dev up -d --build db backend-dev frontend-dev face-recognition
+```
+
+Kiểm tra trạng thái:
+
+```powershell
+docker compose ps
+```
+
+Các địa chỉ thường dùng:
+
+| Dịch vụ | URL |
+| --- | --- |
+| Web app | http://localhost:3000 |
+| Backend API | http://localhost:3001 |
+| Health check | http://localhost:3001/api/v1/health |
+| Face recognition | http://localhost:5000/health |
+| Prisma Studio | http://localhost:5555 |
+| Log viewer | http://localhost:9999 |
+
+Nếu database mới chưa có dữ liệu mẫu:
+
+```powershell
+docker exec dacn_backend_dev npm run seed
+```
+
+## Tài khoản mẫu
+
+| Vai trò | Tài khoản | Mật khẩu |
+| --- | --- | --- |
+| Quản trị viên | `admin` hoặc `Admin` | `123456` |
+| Giảng viên | `gv0404` | `123456` |
+| Lớp trưởng | `2140401` | `123456` |
+| Sinh viên | `2140402` | `123456` |
+
+## Hướng dẫn sử dụng
+
+Xem tài liệu hướng dẫn thao tác theo từng vai trò tại [docs/HUONG_DAN_SU_DUNG_WEBSITE.md](docs/HUONG_DAN_SU_DUNG_WEBSITE.md).
+
+## Lệnh phát triển
+
+Backend:
+
+```powershell
+cd backend
+npm run build
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Xem log container:
+
+```powershell
+docker compose logs -f backend-dev frontend-dev
+```
+
+## Ghi chú dữ liệu điểm rèn luyện
+
+Điểm rèn luyện được tính theo học kỳ và gom từ hoạt động đã tham gia. Backend ưu tiên trạng thái đăng ký `da_tham_gia`, đồng thời có fallback từ bản ghi điểm danh đã xác nhận để tránh lệch điểm khi dữ liệu đăng ký và điểm danh chưa đồng bộ.
+
+## Nhóm thực hiện
+
+| MSSV | Họ tên | Email |
+| --- | --- | --- |
+| 2212377 | Trần Ngọc Hưng | 2212377@dlu.edu.vn |
+| 2212391 | Nguyễn Hoàng Nam Khánh | 2212391@dlu.edu.vn |
+| 2212410 | Trần Vũ Thành Luân | 2212410@dlu.edu.vn |
