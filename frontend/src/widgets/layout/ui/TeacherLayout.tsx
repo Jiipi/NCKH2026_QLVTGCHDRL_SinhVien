@@ -77,8 +77,8 @@ export default function ModernTeacherLayout() {
           isMobile={isMobile}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-          <div className="min-w-0 px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <main className="flex-1 min-h-0 overflow-y-auto flex flex-col overscroll-contain">
+          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             <Outlet />
           </div>
           <ModernFooter />

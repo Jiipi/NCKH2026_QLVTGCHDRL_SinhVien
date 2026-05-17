@@ -8,6 +8,7 @@ import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { parseSemesterString } from '../../../../core/utils/semester';
 import bcrypt from 'bcryptjs';
 import { findTeacherClassesRaw } from './helpers/teacherClassHelper';
+import { calculateActivityPoints, type ActivityWithPoints } from '../../../dashboard/business/utils/activityPoints';
 import type { HocKy, Prisma } from '@prisma/client';
 
 export interface TeacherStudentFilters {
@@ -111,7 +112,8 @@ class TeacherStudentRepository {
     // IMPORTANT: For dashboard, we want to show ALL students in the class
     // But only calculate points from registrations in the selected semester
     const registrationWhere: Prisma.DangKyHoatDongWhereInput = {
-      trang_thai_dk: 'da_tham_gia' // Only count if student actually attended (QR scanned)
+      trang_thai_dk: 'da_tham_gia',
+      hoat_dong: {}
     };
 
     // Apply semester filter to registrations (not to students)
@@ -119,6 +121,7 @@ class TeacherStudentRepository {
       const parsed = parseSemesterString(semester);
       if (parsed && parsed.year) {
         registrationWhere.hoat_dong = {
+          ...(registrationWhere.hoat_dong as Prisma.HoatDongWhereInput),
           hoc_ky: parsed.semester as HocKy,
           nam_hoc: {
             contains: parsed.year
@@ -147,8 +150,10 @@ class TeacherStudentRepository {
         dang_ky_hd: {
           where: registrationWhere,
           select: {
+            hd_id: true,
             hoat_dong: {
               select: {
+                id: true,
                 diem_rl: true,
                 loai_hd: {
                   select: {
@@ -163,16 +168,70 @@ class TeacherStudentRepository {
       orderBy: { mssv: 'asc' }
     });
 
-    // Calculate totalPoints from dang_ky_hd array (sum of diem_rl)
+    const studentIds = students.map(sv => sv.id);
+    const attendanceWhere: Prisma.DiemDanhWhereInput = {
+      sv_id: { in: studentIds },
+      trang_thai_tham_gia: 'co_mat',
+      xac_nhan_tham_gia: true
+    };
+
+    if (registrationWhere.hoat_dong) {
+      attendanceWhere.hoat_dong = registrationWhere.hoat_dong as Prisma.HoatDongWhereInput;
+    }
+
+    const attendances = studentIds.length > 0
+      ? await prisma.diemDanh.findMany({
+        where: attendanceWhere,
+        select: {
+          sv_id: true,
+          hd_id: true,
+          hoat_dong: {
+            select: {
+              id: true,
+              diem_rl: true,
+              loai_hd: {
+                select: {
+                  diem_mac_dinh: true
+                }
+              }
+            }
+          }
+        }
+      })
+      : [];
+
+    const attendanceByStudent = new Map<string, typeof attendances>();
+    attendances.forEach(attendance => {
+      const current = attendanceByStudent.get(attendance.sv_id) || [];
+      current.push(attendance);
+      attendanceByStudent.set(attendance.sv_id, current);
+    });
+
+    // Calculate totalPoints from participated registrations and confirmed attendance, deduped by activity.
     return students.map(sv => {
-      const totalPoints = (sv.dang_ky_hd || []).reduce((sum, reg) => {
-        return sum + Number(reg.hoat_dong?.diem_rl || 0);
+      const activitiesById = new Map<string, ActivityWithPoints>();
+
+      (sv.dang_ky_hd || []).forEach(reg => {
+        const key = reg.hd_id || reg.hoat_dong?.id;
+        if (key) {
+          activitiesById.set(key, reg.hoat_dong as ActivityWithPoints);
+        }
+      });
+
+      (attendanceByStudent.get(sv.id) || []).forEach(attendance => {
+        if (!activitiesById.has(attendance.hd_id)) {
+          activitiesById.set(attendance.hd_id, attendance.hoat_dong as ActivityWithPoints);
+        }
+      });
+
+      const totalPoints = Array.from(activitiesById.values()).reduce((sum, activity) => {
+        return sum + calculateActivityPoints(activity);
       }, 0);
 
       return {
         ...sv,
         totalPoints,
-        activitiesJoined: sv.dang_ky_hd?.length || 0
+        activitiesJoined: activitiesById.size
       };
     });
   }

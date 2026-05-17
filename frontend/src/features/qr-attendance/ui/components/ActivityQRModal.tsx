@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Download, QrCode as QrCodeIcon, Loader, RefreshCw } from 'lucide-react';
 import QRCode from 'qrcode';
 import qrApi from '../../services/qrApi';
@@ -10,14 +10,20 @@ function secondsUntil(dateString) {
   return Math.max(0, Math.ceil((new Date(dateString).getTime() - Date.now()) / 1000));
 }
 
+function getQrPayload(qrData) {
+  const payload = qrData?.qrJson || qrData?.qr_json || qrData?.token || '';
+  if (!payload) return '';
+  return typeof payload === 'string' ? payload : JSON.stringify(payload);
+}
+
 export default function ActivityQRModal({ activityId, activityName, isOpen, onClose }) {
   const [session, setSession] = useState(null);
   const [qrData, setQrData] = useState(null);
+  const [qrImageUrl, setQrImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(0);
-  const canvasRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && activityId) {
@@ -25,13 +31,16 @@ export default function ActivityQRModal({ activityId, activityName, isOpen, onCl
     } else {
       setSession(null);
       setQrData(null);
+      setQrImageUrl('');
       setError('');
     }
   }, [isOpen, activityId]);
 
   useEffect(() => {
-    if (qrData?.qrJson && canvasRef.current) {
+    if (getQrPayload(qrData)) {
       generateQRCode();
+    } else {
+      setQrImageUrl('');
     }
   }, [qrData]);
 
@@ -87,17 +96,20 @@ export default function ActivityQRModal({ activityId, activityName, isOpen, onCl
 
   async function generateQRCode() {
     try {
-      if (!qrData?.qrJson || !canvasRef.current) return;
+      const payload = getQrPayload(qrData);
+      if (!payload) return;
 
-      await QRCode.toCanvas(canvasRef.current, qrData.qrJson, {
-        width: 256,
-        margin: 2,
+      const imageUrl = await QRCode.toDataURL(payload, {
+        width: 280,
+        margin: 3,
+        scale: 8,
         color: {
-          dark: '#000000',
-          light: '#FFFFFF'
+          dark: '#0f172aff',
+          light: '#ffffffff'
         },
-        errorCorrectionLevel: 'H'
+        errorCorrectionLevel: 'M'
       });
+      setQrImageUrl(imageUrl);
     } catch (err) {
       console.error('Generate QR error:', err);
       setError('Không thể tạo mã QR');
@@ -105,12 +117,11 @@ export default function ActivityQRModal({ activityId, activityName, isOpen, onCl
   }
 
   function downloadQR() {
-    if (!qrData || !canvasRef.current) return;
+    if (!qrImageUrl) return;
 
-    const url = canvasRef.current.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = `QR-${activityName || 'Activity'}.png`;
-    link.href = url;
+    link.href = qrImageUrl;
     link.click();
   }
 
@@ -163,7 +174,18 @@ export default function ActivityQRModal({ activityId, activityName, isOpen, onCl
               </div>
 
               <div className="flex justify-center bg-white border-2 border-gray-200 rounded-lg p-6">
-                <canvas ref={canvasRef} className="max-w-full" />
+                {qrImageUrl ? (
+                  <img
+                    src={qrImageUrl}
+                    alt="Mã QR điểm danh"
+                    className="block h-[280px] w-[280px] max-w-full rounded bg-white"
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                ) : (
+                  <div className="flex h-[280px] w-[280px] max-w-full items-center justify-center rounded bg-white text-sm text-gray-500">
+                    Đang tạo mã QR...
+                  </div>
+                )}
               </div>
 
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">

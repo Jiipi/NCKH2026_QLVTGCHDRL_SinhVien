@@ -12,7 +12,7 @@
  */
 
 import { prisma } from '../../data/infrastructure/prisma/client';
-import { TrangThaiHoatDong, HocKy } from '@prisma/client';
+import { TrangThaiHoatDong, HocKy, Prisma } from '@prisma/client';
 
 /**
  * Semester filter interface
@@ -20,6 +20,7 @@ import { TrangThaiHoatDong, HocKy } from '@prisma/client';
 export interface SemesterFilter {
   hoc_ky?: string;
   nam_hoc?: string;
+  classCreatorUserIds?: string[];
 }
 
 /**
@@ -60,17 +61,23 @@ export interface ClassActivity {
  */
 export async function countClassActivities(
   classId: string,
-  semesterFilter: SemesterFilter = {}
+  semesterFilter: SemesterFilter = {},
+  options: { classCreatorUserIds?: string[] } = {}
 ): Promise<number> {
-  const where: {
-    lop_id: string;
-    trang_thai: { in: TrangThaiHoatDong[] };
-    hoc_ky?: HocKy;
-    nam_hoc?: string;
-  } = {
-    lop_id: classId,
+  const where: Prisma.HoatDongWhereInput = {
     trang_thai: { in: [TrangThaiHoatDong.da_duyet, TrangThaiHoatDong.ket_thuc] }
   };
+
+  // Support activities created by class members even if lop_id is null
+  const creatorIds = options.classCreatorUserIds || [];
+  if (creatorIds.length > 0) {
+    where.OR = [
+      { lop_id: classId },
+      { lop_id: null, nguoi_tao_id: { in: creatorIds } }
+    ];
+  } else {
+    where.lop_id = classId;
+  }
 
   // Thêm filter học kỳ nếu có
   if (semesterFilter.hoc_ky) {
@@ -80,7 +87,7 @@ export async function countClassActivities(
     // Data đã được chuẩn hóa sang năm đơn, dùng exact match hoặc contains để backward compatible
     // Nếu user gửi "2025-2026", extract năm đầu
     const year = String(semesterFilter.nam_hoc).match(/^(\d{4})/)?.[1] || semesterFilter.nam_hoc;
-    where.nam_hoc = year;
+    where.nam_hoc = { contains: year };
   }
 
   return prisma.hoatDong.count({ where });
@@ -96,17 +103,22 @@ export async function countClassActivities(
 export async function getClassActivities(
   classId: string,
   semesterFilter: SemesterFilter = {},
-  options: ActivityQueryOptions = {}
+  options: ActivityQueryOptions & { classCreatorUserIds?: string[] } = {}
 ): Promise<ClassActivity[]> {
-  const where: {
-    lop_id: string;
-    trang_thai: { in: TrangThaiHoatDong[] };
-    hoc_ky?: HocKy;
-    nam_hoc?: string;
-  } = {
-    lop_id: classId,
+  const where: Prisma.HoatDongWhereInput = {
     trang_thai: { in: [TrangThaiHoatDong.da_duyet, TrangThaiHoatDong.ket_thuc] }
   };
+
+  // Support activities created by class members even if lop_id is null
+  const creatorIds = options.classCreatorUserIds || [];
+  if (creatorIds.length > 0) {
+    where.OR = [
+      { lop_id: classId },
+      { lop_id: null, nguoi_tao_id: { in: creatorIds } }
+    ];
+  } else {
+    where.lop_id = classId;
+  }
 
   // Thêm filter học kỳ nếu có
   if (semesterFilter.hoc_ky) {
@@ -115,7 +127,7 @@ export async function getClassActivities(
   if (semesterFilter.nam_hoc) {
     // Data đã được chuẩn hóa sang năm đơn
     const year = String(semesterFilter.nam_hoc).match(/^(\d{4})/)?.[1] || semesterFilter.nam_hoc;
-    where.nam_hoc = year;
+    where.nam_hoc = { contains: year };
   }
 
   const queryOptions: {

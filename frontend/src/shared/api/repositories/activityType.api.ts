@@ -21,13 +21,16 @@ class ActivityTypeApi {
     async getActivityTypes(): Promise<ActivityType[]> {
             const response = await http.get(API_ENDPOINTS.activityTypes.list);
             const payload = response.data?.data ?? response.data ?? [];
-            const payloadObj = payload as { items?: unknown; data?: unknown };
+            const payloadObj = payload as { items?: unknown; data?: unknown; activityTypes?: unknown };
 
             if (Array.isArray(payloadObj?.items)) {
                 return payloadObj.items as ActivityType[];
             }
             if (Array.isArray(payloadObj?.data)) {
                 return payloadObj.data as ActivityType[];
+            }
+            if (Array.isArray(payloadObj?.activityTypes)) {
+                return payloadObj.activityTypes as ActivityType[];
             }
             if (Array.isArray(payload)) {
                 return payload as ActivityType[];

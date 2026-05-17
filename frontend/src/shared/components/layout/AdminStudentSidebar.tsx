@@ -314,7 +314,10 @@ function AdminStudentSidebar() {
     if (hasAnyPermission(['activities.view', 'activities.read', 'activities.write'])) {
       activitiesItems.push({ key: 'admin-activities', to: '/admin/activities', label: 'Danh sách hoạt động', icon: <Activity className="w-4 h-4" />, active: isActive('/admin/activities') });
     }
-    if (hasAnyPermission(['activities.approve', 'registrations.approve'])) {
+    if (hasAnyPermission(['activities.approve'])) {
+      activitiesItems.push({ key: 'admin-activity-approvals', to: '/admin/activities?status=cho_duyet', label: 'Phê duyệt hoạt động', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/activities') && path.includes('status=cho_duyet') });
+    }
+    if (hasAnyPermission(['registrations.approve'])) {
       activitiesItems.push({ key: 'admin-approvals', to: '/admin/approvals', label: 'Phê duyệt đăng ký', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/approvals') });
     }
     if (hasAnyPermission(['attendance.view', 'attendance.read', 'attendance.write', 'attendance.mark'])) {

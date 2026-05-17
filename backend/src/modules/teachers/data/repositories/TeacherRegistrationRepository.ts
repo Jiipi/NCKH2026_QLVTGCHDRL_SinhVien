@@ -7,6 +7,7 @@
 import { prisma } from '../../../../data/infrastructure/prisma/client';
 import { parseSemesterString } from '../../../../core/utils/semester';
 import { findTeacherClassesRaw } from './helpers/teacherClassHelper';
+import { calculateActivityPoints, type ActivityWithPoints } from '../../../dashboard/business/utils/activityPoints';
 import type { HocKy, Prisma, TrangThaiDangKy } from '@prisma/client';
 
 export interface ClassRegistrationFilters {
@@ -200,7 +201,7 @@ class TeacherRegistrationRepository {
 
       if (hocKy && yearRaw) {
         activityWhere.hoc_ky = hocKy;
-        activityWhere.nam_hoc = yearRaw;
+        activityWhere.nam_hoc = { contains: yearRaw };
       }
     }
 
@@ -212,7 +213,7 @@ class TeacherRegistrationRepository {
       include: {
         hoat_dong: {
           include: {
-            loai_hd: { select: { ten_loai_hd: true } }
+            loai_hd: { select: { ten_loai_hd: true, diem_mac_dinh: true } }
           }
         },
         sinh_vien: {
@@ -224,19 +225,63 @@ class TeacherRegistrationRepository {
       orderBy: { ngay_dang_ky: 'desc' }
     });
 
-    return registrations.map(r => ({
+    const attendances = await prisma.diemDanh.findMany({
+      where: {
+        sinh_vien: { lop_id: { in: classIds } },
+        trang_thai_tham_gia: 'co_mat',
+        xac_nhan_tham_gia: true,
+        hoat_dong: activityWhere
+      },
+      include: {
+        hoat_dong: {
+          include: {
+            loai_hd: { select: { ten_loai_hd: true, diem_mac_dinh: true } }
+          }
+        },
+        sinh_vien: {
+          include: {
+            nguoi_dung: { select: { ho_ten: true } }
+          }
+        }
+      },
+      orderBy: { tg_diem_danh: 'desc' }
+    });
+
+    const results = registrations.map(r => ({
       id: r.id,
       sv_id: r.sv_id,
       sinh_vien: r.sinh_vien as unknown as RegistrationForCharts['sinh_vien'],
       hoat_dong: {
         id: r.hoat_dong.id,
         ngay_bd: r.hoat_dong.ngay_bd,
-        diem_rl: Number(r.hoat_dong.diem_rl) || 0,
+        diem_rl: calculateActivityPoints(r.hoat_dong as ActivityWithPoints),
         loai_hd: r.hoat_dong.loai_hd
       },
       ngay_dang_ky: r.ngay_dang_ky,
       trang_thai_dk: r.trang_thai_dk
     }));
+
+    const seen = new Set(registrations.map(r => `${r.sv_id}:${r.hd_id}`));
+    attendances.forEach(attendance => {
+      const key = `${attendance.sv_id}:${attendance.hd_id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      results.push({
+        id: `attendance:${attendance.id}`,
+        sv_id: attendance.sv_id,
+        sinh_vien: attendance.sinh_vien as unknown as RegistrationForCharts['sinh_vien'],
+        hoat_dong: {
+          id: attendance.hoat_dong.id,
+          ngay_bd: attendance.hoat_dong.ngay_bd,
+          diem_rl: calculateActivityPoints(attendance.hoat_dong as ActivityWithPoints),
+          loai_hd: attendance.hoat_dong.loai_hd
+        },
+        ngay_dang_ky: attendance.tg_diem_danh,
+        trang_thai_dk: 'da_tham_gia'
+      });
+    });
+
+    return results.sort((a, b) => b.ngay_dang_ky.getTime() - a.ngay_dang_ky.getTime());
   }
 
   /**
@@ -274,7 +319,7 @@ class TeacherRegistrationRepository {
 
       if (hocKy && yearRaw) {
         activityWhere.hoc_ky = hocKy;
-        activityWhere.nam_hoc = yearRaw;
+        activityWhere.nam_hoc = { contains: yearRaw };
       }
     }
 
@@ -287,7 +332,7 @@ class TeacherRegistrationRepository {
       include: {
         hoat_dong: {
           include: {
-            loai_hd: { select: { ten_loai_hd: true } }
+            loai_hd: { select: { ten_loai_hd: true, diem_mac_dinh: true } }
           }
         },
         sinh_vien: {
@@ -299,17 +344,59 @@ class TeacherRegistrationRepository {
       orderBy: { ngay_dang_ky: 'desc' }
     });
 
-    return registrations.map(r => ({
+    const attendances = await prisma.diemDanh.findMany({
+      where: {
+        sinh_vien: { lop_id: { in: classIds } },
+        trang_thai_tham_gia: 'co_mat',
+        xac_nhan_tham_gia: true,
+        hoat_dong: activityWhere
+      },
+      include: {
+        hoat_dong: {
+          include: {
+            loai_hd: { select: { ten_loai_hd: true, diem_mac_dinh: true } }
+          }
+        },
+        sinh_vien: {
+          include: {
+            nguoi_dung: { select: { ho_ten: true } }
+          }
+        }
+      },
+      orderBy: { tg_diem_danh: 'desc' }
+    });
+
+    const results = registrations.map(r => ({
       id: r.id,
       sv_id: r.sv_id,
       sinh_vien: r.sinh_vien as unknown as RegistrationForReports['sinh_vien'],
       hoat_dong: {
         id: r.hoat_dong.id,
-        diem_rl: Number(r.hoat_dong.diem_rl) || 0,
+        diem_rl: calculateActivityPoints(r.hoat_dong as ActivityWithPoints),
         loai_hd: r.hoat_dong.loai_hd
       },
       ngay_dang_ky: r.ngay_dang_ky
     }));
+
+    const seen = new Set(registrations.map(r => `${r.sv_id}:${r.hd_id}`));
+    attendances.forEach(attendance => {
+      const key = `${attendance.sv_id}:${attendance.hd_id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      results.push({
+        id: `attendance:${attendance.id}`,
+        sv_id: attendance.sv_id,
+        sinh_vien: attendance.sinh_vien as unknown as RegistrationForReports['sinh_vien'],
+        hoat_dong: {
+          id: attendance.hoat_dong.id,
+          diem_rl: calculateActivityPoints(attendance.hoat_dong as ActivityWithPoints),
+          loai_hd: attendance.hoat_dong.loai_hd
+        },
+        ngay_dang_ky: attendance.tg_diem_danh
+      });
+    });
+
+    return results.sort((a, b) => b.ngay_dang_ky.getTime() - a.ngay_dang_ky.getTime());
   }
 }
 

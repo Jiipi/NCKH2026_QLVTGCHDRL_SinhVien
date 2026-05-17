@@ -24,6 +24,52 @@ import type {
 } from '../../business/interfaces/IDashboardRepository';
 
 class DashboardRepository implements IDashboardRepository {
+  private buildActivityWhere(activityFilter: DashboardActivityFilter = {}): Prisma.HoatDongWhereInput {
+    const hoatDongFilter: Prisma.HoatDongWhereInput = {};
+    if (activityFilter.hoc_ky) hoatDongFilter.hoc_ky = activityFilter.hoc_ky;
+    if (activityFilter.nam_hoc) hoatDongFilter.nam_hoc = activityFilter.nam_hoc;
+    if (activityFilter.trang_thai) hoatDongFilter.trang_thai = activityFilter.trang_thai as TrangThaiHoatDong;
+    return hoatDongFilter;
+  }
+
+  private mergeStudentAttendance(
+    registrations: StudentRegistration[],
+    attendances: Array<{
+      id: string;
+      sv_id: string;
+      hd_id: string;
+      tg_diem_danh: Date;
+      hoat_dong: StudentRegistration['hoat_dong'];
+    }>
+  ): StudentRegistration[] {
+    const byActivity = new Map<string, StudentRegistration>();
+
+    registrations.forEach((registration) => {
+      const key = registration.hd_id || registration.hoat_dong?.id || registration.id;
+      byActivity.set(key, registration);
+    });
+
+    attendances.forEach((attendance) => {
+      const existing = byActivity.get(attendance.hd_id);
+      if (existing?.trang_thai_dk === 'da_tham_gia') return;
+
+      byActivity.set(attendance.hd_id, {
+        id: existing?.id || `attendance:${attendance.id}`,
+        sv_id: attendance.sv_id,
+        hd_id: attendance.hd_id,
+        trang_thai_dk: 'da_tham_gia',
+        ngay_dang_ky: existing?.ngay_dang_ky || attendance.tg_diem_danh,
+        ngay_duyet: existing?.ngay_duyet || attendance.tg_diem_danh,
+        ly_do_tu_choi: existing?.ly_do_tu_choi ?? null,
+        hoat_dong: existing?.hoat_dong || attendance.hoat_dong
+      });
+    });
+
+    return Array.from(byActivity.values()).sort((a, b) => {
+      return new Date(b.ngay_dang_ky).getTime() - new Date(a.ngay_dang_ky).getTime();
+    });
+  }
+
   async getStudentInfo(userId: string): Promise<StudentInfo | null> {
     return prisma.sinhVien.findUnique({
       where: { nguoi_dung_id: userId },
@@ -74,38 +120,74 @@ class DashboardRepository implements IDashboardRepository {
     const whereClause: Prisma.DangKyHoatDongWhereInput = {
       sv_id: svId
     };
+    const hoatDongFilter = this.buildActivityWhere(activityFilter);
 
     // If semester filter exists, apply it to hoat_dong relation
     // Only extract valid Prisma fields (hoc_ky, nam_hoc, trang_thai)
-    if (activityFilter.hoc_ky || activityFilter.nam_hoc) {
-      const hoatDongFilter: Prisma.HoatDongWhereInput = {};
-      if (activityFilter.hoc_ky) hoatDongFilter.hoc_ky = activityFilter.hoc_ky;
-      if (activityFilter.nam_hoc) hoatDongFilter.nam_hoc = activityFilter.nam_hoc;
-      if (activityFilter.trang_thai) hoatDongFilter.trang_thai = activityFilter.trang_thai as TrangThaiHoatDong;
+    if (Object.keys(hoatDongFilter).length > 0) {
       whereClause.hoat_dong = hoatDongFilter;
     }
 
-    return prisma.dangKyHoatDong.findMany({
-      where: whereClause,
-      include: {
-        hoat_dong: {
-          include: {
-            loai_hd: {
-              select: {
-                id: true,
-                ten_loai_hd: true,
-                diem_mac_dinh: true,
-                diem_toi_da: true,
-                mau_sac: true
+    const [registrations, attendances] = await Promise.all([
+      prisma.dangKyHoatDong.findMany({
+        where: whereClause,
+        include: {
+          hoat_dong: {
+            include: {
+              loai_hd: {
+                select: {
+                  id: true,
+                  ten_loai_hd: true,
+                  diem_mac_dinh: true,
+                  diem_toi_da: true,
+                  mau_sac: true
+                }
               }
             }
           }
+        },
+        orderBy: {
+          ngay_dang_ky: 'desc'
         }
-      },
-      orderBy: {
-        ngay_dang_ky: 'desc'
-      }
-    }) as unknown as Promise<StudentRegistration[]>;
+      }),
+      prisma.diemDanh.findMany({
+        where: {
+          sv_id: svId,
+          trang_thai_tham_gia: 'co_mat',
+          xac_nhan_tham_gia: true,
+          ...(Object.keys(hoatDongFilter).length > 0 ? { hoat_dong: hoatDongFilter } : {})
+        },
+        include: {
+          hoat_dong: {
+            include: {
+              loai_hd: {
+                select: {
+                  id: true,
+                  ten_loai_hd: true,
+                  diem_mac_dinh: true,
+                  diem_toi_da: true,
+                  mau_sac: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          tg_diem_danh: 'desc'
+        }
+      })
+    ]);
+
+    return this.mergeStudentAttendance(
+      registrations as unknown as StudentRegistration[],
+      attendances as unknown as Array<{
+        id: string;
+        sv_id: string;
+        hd_id: string;
+        tg_diem_danh: Date;
+        hoat_dong: StudentRegistration['hoat_dong'];
+      }>
+    );
   }
 
   async getUpcomingActivities(
@@ -320,6 +402,7 @@ class DashboardRepository implements IDashboardRepository {
     activityFilter: DashboardActivityFilter = {}
   ): Promise<ClassRegistration[]> {
     // Build where clause with semester filter applied to hoat_dong relation
+    const hoatDongFilter = this.buildActivityWhere(activityFilter);
     const whereClause: Prisma.DangKyHoatDongWhereInput = {
       sinh_vien: {
         lop_id: lopId
@@ -330,30 +413,63 @@ class DashboardRepository implements IDashboardRepository {
 
     // If semester filter exists, apply it to hoat_dong relation
     // Only extract valid Prisma fields (hoc_ky, nam_hoc, trang_thai)
-    if (activityFilter.hoc_ky || activityFilter.nam_hoc) {
-      const hoatDongFilter: Prisma.HoatDongWhereInput = {};
-      if (activityFilter.hoc_ky) hoatDongFilter.hoc_ky = activityFilter.hoc_ky;
-      if (activityFilter.nam_hoc) hoatDongFilter.nam_hoc = activityFilter.nam_hoc;
-      if (activityFilter.trang_thai) hoatDongFilter.trang_thai = activityFilter.trang_thai as TrangThaiHoatDong;
+    if (Object.keys(hoatDongFilter).length > 0) {
       whereClause.hoat_dong = hoatDongFilter;
     }
 
-    return prisma.dangKyHoatDong.findMany({
-      where: whereClause,
-      select: {
-        sv_id: true,
-        hoat_dong: {
-          include: {
-            loai_hd: {
-              select: {
-                diem_mac_dinh: true,
-                diem_toi_da: true
+    const [registrations, attendances] = await Promise.all([
+      prisma.dangKyHoatDong.findMany({
+        where: whereClause,
+        select: {
+          sv_id: true,
+          hd_id: true,
+          hoat_dong: {
+            include: {
+              loai_hd: {
+                select: {
+                  diem_mac_dinh: true,
+                  diem_toi_da: true
+                }
               }
             }
           }
         }
+      }),
+      prisma.diemDanh.findMany({
+        where: {
+          sinh_vien: {
+            lop_id: lopId
+          },
+          trang_thai_tham_gia: 'co_mat',
+          xac_nhan_tham_gia: true,
+          ...(Object.keys(hoatDongFilter).length > 0 ? { hoat_dong: hoatDongFilter } : {})
+        },
+        select: {
+          sv_id: true,
+          hd_id: true,
+          hoat_dong: {
+            include: {
+              loai_hd: {
+                select: {
+                  diem_mac_dinh: true,
+                  diem_toi_da: true
+                }
+              }
+            }
+          }
+        }
+      })
+    ]);
+
+    const byStudentActivity = new Map<string, ClassRegistration>();
+    [...registrations, ...attendances].forEach((item) => {
+      const key = `${item.sv_id}:${item.hd_id}`;
+      if (!byStudentActivity.has(key)) {
+        byStudentActivity.set(key, item as unknown as ClassRegistration);
       }
-    }) as unknown as Promise<ClassRegistration[]>;
+    });
+
+    return Array.from(byStudentActivity.values());
   }
 
   async getAdminChartStats(semester?: { hoc_ky: string; nam_hoc: string }): Promise<AdminChartStats> {

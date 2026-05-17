@@ -179,8 +179,8 @@ class GetActivitiesUseCase {
       const parsed = parseSemesterString(dto.semester);
       if (parsed && parsed.year) {
         where.hoc_ky = parsed.semester as HocKy;
-        // Data đã được chuẩn hóa sang năm đơn, dùng exact match
-        where.nam_hoc = parsed.year;
+        // Support both "2025" and range values like "2025-2026".
+        where.nam_hoc = { contains: parsed.year };
       }
     }
 

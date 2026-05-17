@@ -68,6 +68,7 @@ class EmbedResponse(BaseModel):
     embedding_dim: int = 0
     liveness_score: Optional[float] = None
     liveness_passed: Optional[bool] = None
+    error_code: Optional[str] = None
 
 class VerifyRequest(BaseModel):
     """Request body cho endpoint /verify"""
@@ -390,7 +391,8 @@ async def extract_embedding(file: UploadFile = File(...)):
                 embedding=None,
                 embedding_dim=0,
                 liveness_score=liveness["score"],
-                liveness_passed=liveness["passed"]
+                liveness_passed=liveness["passed"],
+                error_code="NO_FACE"
             )
         
         # Lấy khuôn mặt rõ nhất/to nhất

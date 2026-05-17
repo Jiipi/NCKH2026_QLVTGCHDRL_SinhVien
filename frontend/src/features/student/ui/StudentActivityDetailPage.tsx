@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, Image as ImageIcon, File, CheckCircle, UserCheck } from 'lucide-react';
+import { Download, Image as ImageIcon, File, CheckCircle, UserCheck, Calendar, MapPin, Award } from 'lucide-react';
 import useStudentActivityDetail from '../model/hooks/useStudentActivityDetail';
 import { getActivityImages } from '../../../shared/lib/activityImages';
 import { FaceAttendanceCard } from '../../face-recognition/ui/components';
+import { StudentPageHero } from '../../../shared/components/student';
 
 export default function StudentActivityDetailPage() {
   const { id } = useParams();
@@ -67,10 +68,16 @@ export default function StudentActivityDetailPage() {
 
   return (
     <div className="flex flex-col flex-1 space-y-6" data-ref="student-activity-detail-refactored">
-      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
-        <h1 className="text-2xl font-bold">{data.ten_hd || data.name || 'Hoạt động'}</h1>
-        <p className="mt-4 text-gray-700">{data.mo_ta || '—'}</p>
-      </section>
+      <StudentPageHero
+        eyebrow="Không gian sinh viên"
+        title={data.ten_hd || data.name || 'Hoạt động'}
+        description={data.mo_ta || 'Xem chi tiết thông tin hoạt động, hình ảnh và trạng thái điểm danh.'}
+        chips={[
+          { icon: Award, label: `${data.diem_rl || 0} điểm RL` },
+          { icon: Calendar, label: data.ngay_bd ? new Date(data.ngay_bd).toLocaleDateString('vi-VN') : '—' },
+          { icon: MapPin, label: data.dia_diem || '—' },
+        ]}
+      />
 
       <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="mb-3 flex items-center gap-2">

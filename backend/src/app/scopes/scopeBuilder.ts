@@ -90,8 +90,23 @@ async function buildTeacherScope(resource: string, userId: string): Promise<Scop
   // Apply scope based on resource type
   switch (resource) {
     case 'activities':
-      // Teachers see activities assigned to their homeroom classes
-      return { lop_id: { in: classIds } };
+      // Teachers see activities assigned to their homeroom classes, plus older
+      // records created by class members that may not have lop_id populated.
+      const classStudents = await prisma.sinhVien.findMany({
+        where: { lop_id: { in: classIds } },
+        select: { nguoi_dung_id: true }
+      });
+      const classCreatorUserIds = classStudents
+        .map((student: { nguoi_dung_id: string | null }) => student.nguoi_dung_id)
+        .filter((id): id is string => Boolean(id));
+      classCreatorUserIds.push(userId);
+
+      return {
+        OR: [
+          { lop_id: { in: classIds } },
+          { nguoi_tao_id: { in: classCreatorUserIds } }
+        ]
+      };
 
     case 'registrations':
       // Filter by students in teacher's classes
@@ -269,6 +284,20 @@ async function canAccessItem(resource: string, itemId: string, user: ScopeUser):
             select: { chu_nhiem: true }
           });
           if (classInfo?.chu_nhiem === userId) {
+            return true;
+          }
+        }
+
+        if (normalizedRole === 'GIANG_VIEN' && activity.nguoi_tao_id) {
+          const creatorStudent = await prisma.sinhVien.findUnique({
+            where: { nguoi_dung_id: activity.nguoi_tao_id },
+            select: {
+              lop: {
+                select: { chu_nhiem: true }
+              }
+            }
+          });
+          if (creatorStudent?.lop?.chu_nhiem === userId) {
             return true;
           }
         }

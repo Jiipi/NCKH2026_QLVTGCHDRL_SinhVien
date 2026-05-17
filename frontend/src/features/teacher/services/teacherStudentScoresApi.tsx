@@ -35,14 +35,14 @@ export const teacherStudentScoresApi = {
   async list(params = {}) {
     try {
       const response = await teacherStudentsApi.getStudents(params);
-      const payload = response?.data ?? response ?? {};
+      const payload = response?.data?.data ?? response?.data ?? response ?? {};
       const rawItems = Array.isArray(payload)
         ? payload
         : (Array.isArray(payload.students) ? payload.students : extractArrayItems(payload));
       const items = rawItems.map((student) => {
         const studentInfo = student.sinh_vien || student;
         const user = student.nguoi_dung || student.user || {};
-        const score = Number(student.tong_diem ?? student.diem_rl ?? student.score ?? studentInfo.diem_rl ?? 0);
+        const score = Number(student.tong_diem ?? student.totalPoints ?? student.total_points ?? student.diem_rl ?? student.score ?? studentInfo.diem_rl ?? 0);
         const activities = student.hoat_dong || student.activities || [];
 
         return {
@@ -55,7 +55,7 @@ export const teacherStudentScoresApi = {
             ten_lop: student.className || student.ten_lop
           },
           tong_diem: score,
-          tong_hoat_dong: Number(student.tong_hoat_dong ?? student.totalActivities ?? student.total_activities ?? activities.length ?? 0),
+          tong_hoat_dong: Number(student.tong_hoat_dong ?? student.activitiesJoined ?? student.totalActivities ?? student.total_activities ?? activities.length ?? 0),
           xep_loai: student.xep_loai || classifyScore(score),
           hoat_dong: activities
         };

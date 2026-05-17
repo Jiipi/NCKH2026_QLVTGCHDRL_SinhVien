@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { activityApi, activityTypeApi } from '../../../../shared/api/repositories';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
@@ -30,6 +30,8 @@ export interface ActivityFormData {
     geo_latitude: string;
     geo_longitude: string;
     geo_radius_meters: string;
+    hinh_anh: string[];
+    tep_dinh_kem: string[];
 }
 
 export interface FormStatus {
@@ -48,6 +50,7 @@ export interface UseManageActivityReturn {
     status: FormStatus;
     fieldErrors: FieldErrors;
     handleFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+    handleArrayFieldChange: (field: 'hinh_anh' | 'tep_dinh_kem', urls: string[]) => void;
     handleSubmit: (e: React.FormEvent) => Promise<void>;
     semesterOptions: Array<{ value: string; label: string }>;
     currentSemesterValue: string;
@@ -89,8 +92,12 @@ const getInitialSemester = (): { hoc_ky: string; nam_hoc: string } => {
 export function useManageActivity(): UseManageActivityReturn {
     const { id: activityId } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { showSuccess, showError } = useNotification();
     const isEditMode = !!activityId;
+    const isAdminRoute = location.pathname.startsWith('/admin');
+    const isTeacherRoute = location.pathname.startsWith('/teacher');
+    const isMonitorRoute = location.pathname.startsWith('/monitor') || location.pathname.startsWith('/class');
 
     const initialSemester = getInitialSemester();
 
@@ -111,6 +118,8 @@ export function useManageActivity(): UseManageActivityReturn {
         geo_latitude: '',
         geo_longitude: '',
         geo_radius_meters: '100',
+        hinh_anh: [],
+        tep_dinh_kem: [],
     });
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
     const [status, setStatus] = useState<FormStatus>({ loading: isEditMode, submitting: false });
@@ -155,14 +164,14 @@ export function useManageActivity(): UseManageActivityReturn {
                 const d = await activityApi.getActivityById(activityId) as any;
                 setForm({
                     ten_hd: d.ten_hd || '',
-                    loai_hd_id: d.loai_hd_id || '',
+                    loai_hd_id: d.loai_hd_id || d.loai_hoat_dong_id || d.loai_hd?.id || '',
                     mo_ta: d.mo_ta || '',
                     ngay_bd: formatDateTimeLocal(d.ngay_bd),
                     ngay_kt: formatDateTimeLocal(d.ngay_kt),
                     han_dk: formatDateTimeLocal(d.han_dk),
-                    diem_rl: d.diem_cong?.toString() || '',
+                    diem_rl: (d.diem_rl ?? d.diem_cong ?? d.diem_ren_luyen ?? '').toString(),
                     dia_diem: d.dia_diem || '',
-                    sl_toi_da: d.so_luong_toi_da?.toString() || '',
+                    sl_toi_da: (d.sl_toi_da ?? d.so_luong_toi_da ?? '').toString(),
                     nam_hoc: d.nam_hoc || getDefaultYear(),
                     hoc_ky: d.hoc_ky?.toString() || getDefaultSemester(),
                     yeu_cau_gps: Boolean(d.yeu_cau_gps),
@@ -170,6 +179,8 @@ export function useManageActivity(): UseManageActivityReturn {
                     geo_latitude: d.geo_latitude?.toString() || '',
                     geo_longitude: d.geo_longitude?.toString() || '',
                     geo_radius_meters: d.geo_radius_meters?.toString() || '100',
+                    hinh_anh: d.hinh_anh || [],
+                    tep_dinh_kem: d.tep_dinh_kem || [],
                 });
             } catch (err) {
                 showError('Không thể tải chi tiết hoạt động.');
@@ -190,6 +201,10 @@ export function useManageActivity(): UseManageActivityReturn {
             setFieldErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
         }
     }, [fieldErrors]);
+
+    const handleArrayFieldChange = useCallback((field: 'hinh_anh' | 'tep_dinh_kem', urls: string[]) => {
+        setForm(prev => ({ ...prev, [field]: urls }));
+    }, []);
 
     const handleSemesterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
         const selected = e.target.value;
@@ -221,6 +236,13 @@ export function useManageActivity(): UseManageActivityReturn {
         return errs;
     };
 
+    const getReturnPath = useCallback((): string => {
+        if (isMonitorRoute) return '/monitor/activities';
+        if (isTeacherRoute) return '/teacher/activities';
+        if (isAdminRoute) return '/admin/activities';
+        return '/activities';
+    }, [isAdminRoute, isMonitorRoute, isTeacherRoute]);
+
     const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
@@ -251,7 +273,7 @@ export function useManageActivity(): UseManageActivityReturn {
             diem_ren_luyen: form.diem_rl === '' ? 0 : Number(form.diem_rl),
             dia_diem: form.dia_diem || undefined,
             so_luong_toi_da: form.sl_toi_da === '' ? undefined : Number(form.sl_toi_da),
-            pham_vi: 'lop',
+            pham_vi: isAdminRoute ? 'toan_truong' : 'lop',
             hoc_ky: form.hoc_ky,
             nam_hoc: form.nam_hoc,
             yeu_cau_gps: form.yeu_cau_gps,
@@ -259,6 +281,8 @@ export function useManageActivity(): UseManageActivityReturn {
             geo_latitude: form.yeu_cau_gps ? Number(form.geo_latitude) : undefined,
             geo_longitude: form.yeu_cau_gps ? Number(form.geo_longitude) : undefined,
             geo_radius_meters: form.yeu_cau_gps ? Number(form.geo_radius_meters || 100) : undefined,
+            hinh_anh: form.hinh_anh.length > 0 ? form.hinh_anh : undefined,
+            tep_dinh_kem: form.tep_dinh_kem.length > 0 ? form.tep_dinh_kem : undefined,
         };
 
         try {
@@ -269,9 +293,13 @@ export function useManageActivity(): UseManageActivityReturn {
                 await activityApi.createActivity(payload);
                 showSuccess('Tạo hoạt động thành công!');
             }
-            setTimeout(() => navigate(-1 as unknown as string), 1000);
+            setTimeout(() => navigate(getReturnPath(), { replace: true }), 600);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Lỗi không xác định';
+            const apiError = err as { response?: { data?: { message?: string; errors?: Array<{ message?: string }> } }; message?: string };
+            const errorMessage = apiError.response?.data?.errors?.[0]?.message
+                || apiError.response?.data?.message
+                || apiError.message
+                || 'Lỗi không xác định';
             showError(errorMessage);
         }
         setStatus(s => ({ ...s, submitting: false }));
@@ -284,6 +312,7 @@ export function useManageActivity(): UseManageActivityReturn {
         status,
         fieldErrors,
         handleFormChange,
+        handleArrayFieldChange,
         handleSubmit,
         semesterOptions,
         currentSemesterValue: getCurrentSemesterValue(),

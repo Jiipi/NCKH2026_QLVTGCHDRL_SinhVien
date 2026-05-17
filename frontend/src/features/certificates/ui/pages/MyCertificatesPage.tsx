@@ -1,8 +1,8 @@
 import React from 'react';
-import { Search, X, Trophy } from 'lucide-react';
+import { Search, X, Trophy, Award, ShieldCheck } from 'lucide-react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { useCertificates } from '../../model/useCertificates';
-import CertificatesHeader from '../components/CertificatesHeader';
+import { StudentPageHero } from '../../../../shared/components/student';
 import CertificateCard from '../components/CertificateCard';
 
 export default function MyCertificatesPage() {
@@ -37,9 +37,15 @@ export default function MyCertificatesPage() {
 
   return (
     <div className="space-y-6">
-      <CertificatesHeader
-        certificates={certificates}
-        totalPoints={totalPoints}
+      <StudentPageHero
+        eyebrow="Không gian sinh viên"
+        title="Chứng nhận của tôi"
+        description="Tổng hợp các chứng nhận hoạt động đã hoàn thành."
+        badge={{ icon: ShieldCheck, label: 'Hồ sơ chứng nhận' }}
+        metrics={[
+          { icon: Award, label: 'Chứng nhận', value: certificates.length, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: Trophy, label: 'Tổng điểm', value: totalPoints.toFixed(1), tone: 'text-amber-600 dark:text-amber-300' },
+        ]}
       />
 
       <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">

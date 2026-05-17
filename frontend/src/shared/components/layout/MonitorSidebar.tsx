@@ -16,12 +16,12 @@ import {
   Bell,
   Home,
   ChevronDown,
-  Menu,
   ChevronsLeft,
   User,
   QrCode,
   Award,
-  ShieldAlert
+  ShieldAlert,
+  Trophy
 } from 'lucide-react';
 
 interface MenuItemProps {
@@ -361,7 +361,12 @@ export default function MonitorSidebar() {
     if (hasAnyPermission(['students.read', 'classmates.read', 'classmates.assist'])) {
       menu.push({ key: 'students', to: '/monitor/students', label: 'Sinh viên lớp', icon: <Users className="w-5 h-5" />, active: getActiveState('/monitor/students') });
     }
-    
+
+    // Điểm rèn luyện
+    if (hasAnyPermission(['points.view_own', 'points.view_all', 'scores.read', 'students.read'])) {
+      menu.push({ key: 'class-scores', to: '/monitor/class-scores', label: 'Điểm rèn luyện', icon: <Trophy className="w-5 h-5" />, active: getActiveState('/monitor/class-scores') });
+    }
+
     // Báo cáo
     if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
       menu.push({ key: 'reports', to: '/monitor/reports', label: 'Báo cáo & Thống kê', icon: <BarChart3 className="w-5 h-5" />, active: getActiveState('/monitor/reports') });

@@ -1,12 +1,7 @@
-/**
- * Manage Activity Page
- * Page cho tạo/sửa hoạt động - dùng trực tiếp hook và shared components
- */
-
 import React from 'react';
 import type { FC } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AlertCircle, Lock } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ClipboardList, GraduationCap, Info, Layers3, Lock } from 'lucide-react';
 import { useManageActivity } from '../../../model/hooks/useManageActivity';
 import { getSemesterLabel } from '../../../../../shared/lib/semester';
 import { ActivityForm } from '../../shared/ActivityForm';
@@ -14,13 +9,10 @@ import Header from '../../../../../shared/components/layout/Header';
 import ClassManagementLayout from '../../../../../shared/components/layout/ClassManagementLayout';
 import { LoadingSpinner } from '../../../../../shared/components/common';
 
-// Helper to format semester for display
 function formatSemesterDisplay(semesterValue: string): string {
-  if (!semesterValue) return '';
-  // Use getSemesterLabel which handles both formats
+  if (!semesterValue) return 'Chưa chọn học kỳ';
   const label = getSemesterLabel(semesterValue);
   if (label && label !== semesterValue) return label;
-  // Fallback: manual format
   const match = semesterValue.match(/hoc_ky_([12])[_-](\d{4})/);
   if (match) return `Học kỳ ${match[1]} - ${match[2]}`;
   return semesterValue;
@@ -28,13 +20,14 @@ function formatSemesterDisplay(semesterValue: string): string {
 
 const ManageActivityPage: FC = () => {
   const location = useLocation();
-  const { 
+  const {
     isEditMode,
     form,
     activityTypes,
     status,
     fieldErrors,
     handleFormChange,
+    handleArrayFieldChange,
     handleSubmit,
     semesterOptions,
     currentSemesterValue,
@@ -45,35 +38,95 @@ const ManageActivityPage: FC = () => {
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isMonitorRoute = location.pathname.startsWith('/monitor') || location.pathname.startsWith('/class');
+  const semesterLabel = formatSemesterDisplay(currentSemesterValue);
+  const currentSemesterLabel = formatSemesterDisplay(currentSemester || '');
+  const disabled = status.submitting || false;
+
+  const title = isEditMode
+    ? 'Chỉnh sửa hoạt động'
+    : isMonitorRoute
+      ? 'Tạo hoạt động lớp'
+      : 'Tạo hoạt động rèn luyện';
+
+  const subtitle = isMonitorRoute
+    ? 'Hoạt động do lớp trưởng tạo sẽ gắn vào lớp hiện tại và chờ giảng viên hoặc quản trị viên duyệt.'
+    : isAdminRoute
+      ? 'Tạo hoạt động cấp hệ thống, cấu hình học kỳ, thời gian, điểm rèn luyện và điều kiện điểm danh.'
+      : 'Tạo hoạt động cho lớp phụ trách, sau đó theo dõi đăng ký và điểm danh.';
 
   const heroHeader = (
-    <div className="bg-gradient-to-r from-indigo-600 to-purple-500 rounded-2xl border border-white/30 shadow-xl p-6 text-white">
-      <p className="text-sm font-semibold uppercase tracking-wide opacity-80">
-        {isEditMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới'}
-      </p>
-      <h1 className="text-3xl font-bold mt-1">
-        {isEditMode ? 'Chỉnh sửa hoạt động rèn luyện' : 'Tạo hoạt động rèn luyện cho lớp'}
-      </h1>
-      <p className="text-white/80 text-sm mt-2 max-w-3xl">
-        {isEditMode
-          ? 'Cập nhật thời gian, nội dung và điểm rèn luyện để hoạt động phản ánh chính xác thực tế.'
-          : 'Điền thông tin chi tiết về học kỳ, năm học, điểm rèn luyện và nội dung hoạt động. Dữ liệu chính xác giúp quá trình duyệt và điểm danh diễn ra thuận lợi.'}
-      </p>
-    </div>
+    <section className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 shadow-sm backdrop-blur-xl">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400" />
+      <div className="grid gap-6 px-5 py-6 md:grid-cols-[1fr_auto] md:px-7">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20">
+            {isMonitorRoute ? <GraduationCap className="h-7 w-7" /> : <ClipboardList className="h-7 w-7" />}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {isEditMode ? 'Cập nhật thông tin' : 'Biểu mẫu hoạt động'}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950 md:text-3xl">{title}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{subtitle}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 text-sm md:min-w-[260px]">
+          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-700">
+            <CalendarDays className="h-4 w-4 text-blue-600" />
+            <span className="font-medium">{semesterLabel}</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-emerald-700">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="font-medium">{isEditMode ? 'Sẵn sàng lưu thay đổi' : 'Trạng thái sau tạo: Chờ duyệt'}</span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 
-  // Banner cảnh báo đã được tắt - cho phép tạo hoạt động cho mọi học kỳ
-  const semesterWarningBanner = null;
+  const semesterWarningBanner = !isWritable ? (
+    <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+      <Lock className="mt-0.5 h-5 w-5 shrink-0" />
+      <div>
+        <p className="font-semibold">Học kỳ đang chọn khác học kỳ hiện hành</p>
+        <p className="text-sm">Học kỳ hiện hành: {currentSemesterLabel}. Kiểm tra kỹ trước khi lưu hoạt động.</p>
+      </div>
+    </div>
+  ) : null;
+
+  const monitorNotice = isMonitorRoute ? (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-800">
+      <div className="flex items-start gap-3">
+        <Info className="mt-0.5 h-5 w-5 shrink-0" />
+        <div className="space-y-1">
+          <p className="font-semibold">Luồng lớp trưởng</p>
+          <p>Hệ thống tự xác định lớp từ tài khoản lớp trưởng. Bạn không cần chọn lớp thủ công.</p>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const formSection = (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+    <section className="rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:p-6">
+      <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <Layers3 className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-950">Thông tin hoạt động</h2>
+          <p className="text-sm text-slate-500">Nhập đầy đủ các trường bắt buộc để gửi duyệt.</p>
+        </div>
+      </div>
+
       {status.loading ? (
         <LoadingSpinner text="Đang tải dữ liệu..." />
       ) : (
-        <ActivityForm 
+        <ActivityForm
           form={form}
           activityTypes={activityTypes}
           onFormChange={handleFormChange}
+          onArrayFieldChange={handleArrayFieldChange}
           onSubmit={handleSubmit}
           fieldErrors={fieldErrors}
           status={status}
@@ -81,17 +134,17 @@ const ManageActivityPage: FC = () => {
           semesterOptions={semesterOptions}
           currentSemesterValue={currentSemesterValue}
           onSemesterChange={handleSemesterChange}
-          disabled={false}
+          disabled={disabled}
         />
       )}
-    </div>
+    </section>
   );
 
   if (isAdminRoute) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
         <Header />
-        <main className="max-w-5xl mx-auto p-6 space-y-6">
+        <main className="mx-auto max-w-6xl space-y-6 p-6">
           {heroHeader}
           {semesterWarningBanner}
           {formSection}
@@ -101,11 +154,11 @@ const ManageActivityPage: FC = () => {
   }
 
   if (isMonitorRoute) {
-    // Đã nằm trong MonitorLayout, không cần thêm header phụ để tránh chồng chéo
     return (
       <div className="space-y-6">
         {heroHeader}
         {semesterWarningBanner}
+        {monitorNotice}
         {formSection}
       </div>
     );
@@ -113,7 +166,7 @@ const ManageActivityPage: FC = () => {
 
   return (
     <ClassManagementLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         {heroHeader}
         {semesterWarningBanner}
         {formSection}

@@ -37,9 +37,20 @@ class TeacherActivityRepository {
       return [];
     }
 
+    // Get all student user IDs in teacher's homeroom classes
+    const students = await prisma.sinhVien.findMany({
+      where: { lop_id: { in: classIds } },
+      select: { nguoi_dung_id: true }
+    });
+    const classCreatorUserIds = students.map(s => s.nguoi_dung_id).filter((id): id is string => Boolean(id));
+    classCreatorUserIds.push(teacherId);
+
     // Build semester where clause using simple filter
     const activityWhere: Prisma.HoatDongWhereInput = {
-      lop_id: { in: classIds },
+      OR: [
+        { lop_id: { in: classIds } },
+        { lop_id: null, nguoi_tao_id: { in: classCreatorUserIds } }
+      ],
       trang_thai: 'cho_duyet'
     };
 
@@ -132,7 +143,7 @@ class TeacherActivityRepository {
     if (classCreatorUserIds.length === 0) return 0;
 
     // Build semester filter
-    let semesterWhere: { hoc_ky?: HocKy; nam_hoc?: string } = {};
+    let semesterWhere: Prisma.HoatDongWhereInput = {};
     if (semesterId) {
       const semStr = String(semesterId).trim();
       let hocKy: HocKy | null = null;
@@ -153,16 +164,21 @@ class TeacherActivityRepository {
       if (hocKy && yearRaw) {
         semesterWhere = {
           hoc_ky: hocKy,
-          nam_hoc: yearRaw
+          nam_hoc: { contains: yearRaw }
         };
       }
     }
 
-    // Count activities assigned to the teacher's classes in this semester
+    // Count activities assigned to the teacher's classes OR created by class members (even if lop_id is null)
     const where: Prisma.HoatDongWhereInput = {
       AND: [
         semesterWhere,
-        { lop_id: { in: classIds } }
+        {
+          OR: [
+            { lop_id: { in: classIds } },
+            { lop_id: null, nguoi_tao_id: { in: classCreatorUserIds } }
+          ]
+        }
       ]
     };
 

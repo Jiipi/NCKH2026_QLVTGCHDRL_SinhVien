@@ -7,6 +7,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { faceRecognitionController } from '../controllers/FaceRecognitionController';
+import { auth, requireMonitor } from '../../../../core/http/middleware/authJwt';
+import { getMonitorClass } from '../../../../core/http/middleware/classMonitor';
 import { isTeacherOrAbove } from '../../../../core/utils/roleHelper';
 
 const router = Router();
@@ -34,6 +36,8 @@ const upload = multer({
 router.get('/health',
   (req, res) => faceRecognitionController.healthCheck(req, res)
 );
+
+router.use(auth);
 
 router.get('/status',
   (req, res) => faceRecognitionController.getFaceStatus(req, res)
@@ -74,6 +78,8 @@ router.post('/attendance/:activityId',
 );
 
 router.post('/monitor-attendance/:activityId',
+  requireMonitor,
+  getMonitorClass,
   upload.array('files', 30),
   (req, res) => faceRecognitionController.monitorBulkFaceAttendance(req, res)
 );

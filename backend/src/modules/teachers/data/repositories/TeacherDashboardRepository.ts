@@ -80,15 +80,21 @@ class TeacherDashboardRepository {
     }
 
     // Build activity filter for pending/approved counts
+    // Support activities created by class members even if lop_id is null
     const activityWhere = {
-      lop_id: { in: classIds },
+      OR: [
+        { lop_id: { in: classIds } },
+        { nguoi_tao_id: { in: studentUserIds.concat([teacherId]) } }
+      ],
       trang_thai: { in: ['da_duyet', 'ket_thuc'] as PrismaTrangThaiHoatDong[] },
       ...(semesterFilter.hoc_ky && { hoc_ky: semesterFilter.hoc_ky }),
-      ...(semesterFilter.nam_hoc && { nam_hoc: semesterFilter.nam_hoc })
+      ...(semesterFilter.nam_hoc && { nam_hoc: { contains: semesterFilter.nam_hoc } })
     };
 
     // Count total activities using countClassActivities utility
-    const totalActivitiesPromises = classIds.map(cId => countClassActivities(cId, semesterFilter));
+    const totalActivitiesPromises = classIds.map(cId => countClassActivities(cId, semesterFilter, {
+      classCreatorUserIds: studentUserIds.concat([teacherId])
+    }));
 
     const [
       classActivityCounts,
@@ -99,10 +105,13 @@ class TeacherDashboardRepository {
       Promise.all(totalActivitiesPromises),
       prisma.hoatDong.count({
         where: {
-          lop_id: { in: classIds },
+          OR: [
+            { lop_id: { in: classIds } },
+            { nguoi_tao_id: { in: studentUserIds.concat([teacherId]) } }
+          ],
           trang_thai: 'cho_duyet',
           ...(semesterFilter.hoc_ky && { hoc_ky: semesterFilter.hoc_ky }),
-          ...(semesterFilter.nam_hoc && { nam_hoc: semesterFilter.nam_hoc })
+          ...(semesterFilter.nam_hoc && { nam_hoc: { contains: semesterFilter.nam_hoc } })
         }
       }),
       prisma.hoatDong.count({
@@ -175,15 +184,15 @@ class TeacherDashboardRepository {
     }
 
     // Build activity filter
-    const activityWhere = {
+    const activityWhere: Prisma.HoatDongWhereInput = {
       dang_ky_hd: {
         some: {
           sinh_vien: { lop_id: lop.id }
         }
       },
       trang_thai: { in: ['da_duyet', 'ket_thuc'] as PrismaTrangThaiHoatDong[] },
-      hoc_ky: undefined as HocKy | undefined,
-      nam_hoc: undefined as string | undefined
+      hoc_ky: undefined,
+      nam_hoc: undefined
     };
 
     const approvedActivityWhere = { ...activityWhere };
@@ -207,9 +216,9 @@ class TeacherDashboardRepository {
 
       if (hocKy && yearRaw) {
         activityWhere.hoc_ky = hocKy;
-        activityWhere.nam_hoc = yearRaw;
+        activityWhere.nam_hoc = { contains: yearRaw };
         approvedActivityWhere.hoc_ky = hocKy;
-        approvedActivityWhere.nam_hoc = yearRaw;
+        approvedActivityWhere.nam_hoc = { contains: yearRaw };
       }
     }
 
@@ -223,7 +232,7 @@ class TeacherDashboardRepository {
     type TrangThaiDangKyEnum = 'cho_duyet' | 'da_duyet' | 'da_tham_gia' | 'tu_choi' | 'huy';
     interface RegistrationWhere {
       sinh_vien: { lop_id: string };
-      hoat_dong?: { hoc_ky: HocKy; nam_hoc: string };
+      hoat_dong?: Prisma.HoatDongWhereInput;
       trang_thai_dk?: TrangThaiDangKyEnum;
     }
 

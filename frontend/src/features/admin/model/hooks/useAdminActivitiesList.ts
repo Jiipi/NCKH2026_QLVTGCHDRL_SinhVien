@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import adminActivitiesApi from '../../services/adminActivitiesApi';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import useSemesterData, { useGlobalSemesterSync, setGlobalSemester, getGlobalSemester } from '../../../../shared/hooks/useSemesterData';
@@ -96,10 +97,15 @@ function loadInitialSemester(): string {
  */
 export default function useAdminActivitiesList() {
   const { showSuccess, showError, confirm } = useNotification();
+  const location = useLocation();
+  const statusFromUrl = useMemo(() => {
+    const status = new URLSearchParams(location.search).get('status') || '';
+    return ACTIVITY_STATUS_OPTIONS.some(option => option.value === status) ? status : '';
+  }, [location.search]);
   
   // UI State
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<Filters>({ type: '', status: '', from: '', to: '' });
+  const [filters, setFilters] = useState<Filters>({ type: '', status: statusFromUrl, from: '', to: '' });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
@@ -121,6 +127,11 @@ export default function useAdminActivitiesList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0 });
+
+  useEffect(() => {
+    setFilters(prev => (prev.status === statusFromUrl ? prev : { ...prev, status: statusFromUrl }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [statusFromUrl]);
 
   const selectedSemester = scopeTab === 'class' ? classSemesterState : systemSemesterState;
   const { options: baseSemesterOptions, isWritable, currentSemester, loading: semesterLoading } = useSemesterData(

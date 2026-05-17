@@ -11,6 +11,7 @@ import qrAttendanceApi from '../services/qrAttendanceApi';
 import { studentActivitiesApi } from '../../student/services/studentActivitiesApi';
 import { FaceAttendanceCard } from '../../face-recognition/ui/components';
 import { getCurrentSemesterValue } from '../../../shared/lib/semester';
+import { StudentPageHero } from '../../../shared/components/student';
 import ScannerView from './components/ScannerView';
 import ScannerControls from './components/ScannerControls';
 
@@ -63,14 +64,7 @@ function InstructionItem({ icon: Icon, text, tone = 'indigo' }: {
   );
 }
 
-function HeroChip({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-2xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-      <Icon className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-300" />
-      {label}
-    </span>
-  );
-}
+
 
 export default function QRScannerModernPage() {
   const [searchParams] = useSearchParams();
@@ -134,33 +128,18 @@ export default function QRScannerModernPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <motion.section
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:rounded-[2rem] sm:p-6"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(45,212,191,0.14),transparent_32%),radial-gradient(circle_at_100%_0%,rgba(129,140,248,0.14),transparent_28%)]" />
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-lg shadow-indigo-500/20 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950 sm:h-14 sm:w-14 sm:rounded-[1.4rem]">
-              <Fingerprint className="h-6 w-6 sm:h-7 sm:w-7" />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian lớp trưởng</p>
-              <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Điểm danh hoạt động</h1>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
-                Chọn phương thức điểm danh phù hợp, quét QR nhanh hoặc xác minh sinh trắc học cho hoạt động đang diễn ra.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <HeroChip icon={QrCode} label="Quét QR" />
-            <HeroChip icon={Camera} label="Khuôn mặt" />
-            <HeroChip icon={Fingerprint} label="Vân tay" />
-            <HeroChip icon={ShieldCheck} label="Theo hoạt động" />
-          </div>
-        </div>
-      </motion.section>
+      <StudentPageHero
+        eyebrow="Không gian lớp trưởng"
+        title="Điểm danh hoạt động"
+        description="Chọn phương thức điểm danh phù hợp, quét QR nhanh hoặc xác minh sinh trắc học cho hoạt động đang diễn ra."
+        heroIcon={Fingerprint}
+        chips={[
+          { icon: QrCode, label: 'Quét QR' },
+          { icon: Camera, label: 'Khuôn mặt' },
+          { icon: Fingerprint, label: 'Vân tay' },
+          { icon: ShieldCheck, label: 'Theo hoạt động' },
+        ]}
+      />
 
       <div className="rounded-3xl border border-white/60 bg-white/55 p-2 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/45 sm:rounded-[2rem]">
         <div className="flex flex-col gap-2 sm:flex-row">

@@ -1,22 +1,16 @@
 import React from 'react';
 import {
-  Activity as ActivityIcon, Search, Calendar, MapPin, Users, Award,
-  CheckCircle, XCircle, Filter, List, Tag, Grid3X3,
-  Clock, Sparkles, SlidersHorizontal, RefreshCw, X
+  Activity as ActivityIcon, Search,
+  CheckCircle, XCircle, Filter, List, Grid3X3,
+  Clock, SlidersHorizontal, RefreshCw, Sparkles, X
 } from 'lucide-react';
-import { useNotification } from '../../../../../shared/contexts/NotificationContext';
-import ActivityDetailModal from '../../../../../entities/activity/ui/ActivityDetailModal';
-import { ActivityTypesManagementPage } from '../../../../activity-types';
 import useTeacherActivitiesPage from '../../../model/hooks/useTeacherActivitiesPage';
-import { getBestActivityImage } from '../../../../../shared/lib/activityImages';
 import TeacherActivitiesHeroInline from '../../shared/activities-management/TeacherActivitiesHeroInline';
 import TeacherActivityCardInline, { Activity } from '../../shared/activities-management/TeacherActivityCardInline';
 import ActivityDetailModalInline from '../../shared/activities-management/ActivityDetailModalInline';
 import Pagination from '../../../../../shared/components/common/Pagination';
 
 export default function TeacherActivitiesPage() {
-  const { showSuccess, showError } = useNotification();
-
   const {
     activities,
     filteredActivities,
@@ -29,7 +23,6 @@ export default function TeacherActivitiesPage() {
     activityTypes,
     selectedActivity,
     showDetailModal,
-    activeTab,
     viewMode,
     searchTerm,
     statusFilter,
@@ -41,7 +34,6 @@ export default function TeacherActivitiesPage() {
     limit,
     effectiveTotal,
     heroStats,
-    setActiveTab,
     setViewMode,
     setSearchTerm,
     setStatusFilter,
@@ -90,17 +82,11 @@ export default function TeacherActivitiesPage() {
     <div className="space-y-6">
       {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
       <TeacherActivitiesHeroInline
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         stats={heroStats}
         activityTypesCount={activityTypes.length}
       />
 
-      {/* Content based on active tab */}
-      {activeTab === 'types' ? (
-        <ActivityTypesManagementPage showHeader={false} />
-      ) : (
-        <>
+      <>
           {/* Filters */}
           <div className="rounded-[2rem] border border-white/60 bg-white/60 backdrop-blur-2xl shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60">
             <div className="p-6">
@@ -540,8 +526,7 @@ export default function TeacherActivitiesPage() {
             }}
             getStatusLabel={getStatusLabel}
           />
-        </>
-      )}
+      </>
     </div>
   );
 }

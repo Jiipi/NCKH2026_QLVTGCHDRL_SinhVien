@@ -80,7 +80,7 @@ class ApprovalTeacherApi {
    */
   async getPendingActivities(params = {}) {
     try {
-      const response = await http.get('/teacher/pending-activities', { params });
+      const response = await http.get('/teacher/activities/pending', { params });
       const data = response?.data?.data || response?.data || {};
       return createSuccessResponse({
         items: Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []),

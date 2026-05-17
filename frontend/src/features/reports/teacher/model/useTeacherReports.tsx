@@ -5,26 +5,48 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import useSemesterData from '../../../../shared/hooks/useSemesterData';
+import useSemesterData, { getGlobalSemester, setGlobalSemester, useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
 import reportsApi from '../../services/reportsApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+
+function normalizeTeacherStats(data: any) {
+  const overview = data?.overview || {};
+  const summary = data?.summary || {};
+
+  return {
+    ...data,
+    totalActivities: data?.totalActivities ?? overview.totalActivities ?? summary.totalActivities ?? 0,
+    totalStudents: data?.totalStudents ?? overview.totalStudents ?? summary.totalStudents ?? 0,
+    participationRate: data?.participationRate ?? overview.participationRate ?? 0,
+    averageScore: data?.averageScore ?? data?.avgPoints ?? overview.avgPoints ?? 0,
+    totalRegistrations: data?.totalRegistrations ?? summary.totalRegistrations ?? 0,
+    approvedRegistrations: data?.approvedRegistrations ?? summary.approvedRegistrations ?? 0,
+    approvedActivities: data?.approvedActivities ?? summary.approvedActivities ?? 0
+  };
+}
 
 export default function useTeacherReports() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dateRange, setDateRange] = useState('month');
-  const [semester, setSemester] = useState(() => getCurrentSemesterValue(true));
+  const [semester, setSemesterState] = useState(() => getGlobalSemester() || getCurrentSemesterValue(true));
   const [filterMode, setFilterMode] = useState('semester'); // 'semester' | 'dateRange'
 
   const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
+  useGlobalSemesterSync(semester, setSemesterState);
+
+  const setSemester = useCallback((value: string) => {
+    setSemesterState(value);
+    setGlobalSemester(value);
+  }, []);
 
   // Sync with backend current semester when available
   useEffect(() => {
-    if (currentSemester && semesterOptions.length > 0) {
+    if (!getGlobalSemester() && currentSemester && semesterOptions.length > 0) {
       const inOptions = semesterOptions.some(opt => opt.value === currentSemester);
       if (inOptions && semester !== currentSemester) {
-        setSemester(currentSemester);
+        setSemesterState(currentSemester);
       }
     }
   }, [currentSemester, semesterOptions, semester]);
@@ -65,7 +87,7 @@ export default function useTeacherReports() {
         params = getDateRangeParams();
       }
       const data = await reportsApi.getTeacherStatistics(params);
-      setStats(data);
+      setStats(normalizeTeacherStats(data));
     } catch (err) {
       console.error('Error loading statistics:', err);
       setError('Không thể tải thống kê');

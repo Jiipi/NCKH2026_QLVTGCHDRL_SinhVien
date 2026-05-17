@@ -418,7 +418,7 @@ function TeacherSidebar(props) {
       activityItems.push({
         key: 'all-activities',
         to: '/teacher/activities',
-        label: 'Danh mục hoạt động',
+        label: 'Danh sách hoạt động',
         icon: <Calendar className="w-4 h-4" />,
         active: getActiveState('/teacher/activities')
       });

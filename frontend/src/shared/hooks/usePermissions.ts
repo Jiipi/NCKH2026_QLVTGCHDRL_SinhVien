@@ -17,6 +17,27 @@ import sessionStorageManager from '../api/sessionStorageManager';
 const POLLING_INTERVAL = 30000; // 30 seconds
 const PERMISSIONS_STORAGE_KEY_PREFIX = 'user_permissions';
 
+const PERMISSION_ALIASES: Record<string, string[]> = {
+  'activities.write': ['activities.create', 'activities.update', 'activities.manage'],
+  'activities.create': ['activities.write', 'activities.manage'],
+  'activities.update': ['activities.write', 'activities.manage'],
+  'activities.read': ['activities.view'],
+  'activities.view': ['activities.read'],
+  'registrations.write': ['registrations.register', 'registrations.approve', 'registrations.reject', 'registrations.manage'],
+  'registrations.read': ['registrations.view'],
+  'attendance.write': ['attendance.mark', 'attendance.checkin', 'attendance.manage'],
+  'attendance.read': ['attendance.view'],
+  'reports.read': ['reports.view'],
+  'notifications.write': ['notifications.create', 'notifications.manage'],
+  'notifications.read': ['notifications.view'],
+  'students.read': ['students.view'],
+  'classmates.read': ['classmates.view'],
+  'profile.read': ['profile.view'],
+  'scores.read': ['points.read', 'points.view_own', 'points.view_all'],
+  'activityTypes.write': ['activityTypes.create', 'activityTypes.update', 'activityTypes.manage'],
+  'activityTypes.read': ['activityTypes.view'],
+};
+
 /**
  * Permission type
  */
@@ -133,6 +154,9 @@ export const usePermissions = (): UsePermissionsReturn => {
     // 3. Kiểm tra resource wildcard (ví dụ: users.*)
     const [resource] = requiredPermission.split('.');
     if (resource && permissions.includes(`${resource}.*`)) return true;
+
+    const aliases = PERMISSION_ALIASES[requiredPermission] || [];
+    if (aliases.some(alias => permissions.includes(alias))) return true;
 
     return false;
   }, [permissions]);

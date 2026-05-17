@@ -7,22 +7,33 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { teacherStudentScoresApi } from '../../services/teacherStudentScoresApi';
 import { mapStudentScoreToUI } from '../mappers/teacher.mappers';
 import { useDataChangeListener, useAutoRefresh } from '../../../../shared/lib/dataRefresh';
+import useSemesterData, { getGlobalSemester, useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
+import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
 
 /**
  * Hook quản lý điểm rèn luyện sinh viên của giáo viên
  */
 export function useTeacherStudentScores() {
+  const [semester, setSemester] = useState(() => getGlobalSemester() || getCurrentSemesterValue(true));
   const [scoresData, setScoresData] = useState<unknown[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentSemester } = useSemesterData(semester, { autoFetchStatus: false });
+  useGlobalSemesterSync(semester, setSemester);
+
+  useEffect(() => {
+    if (!getGlobalSemester() && currentSemester && semester !== currentSemester) {
+      setSemester(currentSemester);
+    }
+  }, [currentSemester, semester]);
 
   // Business logic: Load scores
   const load = useCallback(async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await teacherStudentScoresApi.list(params);
+      const result = await teacherStudentScoresApi.list({ semester, ...params });
       
       if (result.success && 'data' in result) {
         setScoresData(result.data.items || []);
@@ -42,16 +53,18 @@ export function useTeacherStudentScores() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [semester]);
 
   // Business logic: Refresh
   const refresh = useCallback(async () => {
-    await load();
-  }, [load]);
+    await load({ semester });
+  }, [load, semester]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (semester) {
+      load({ semester });
+    }
+  }, [load, semester]);
 
   // Auto-reload when scores or attendance data changes from other components (same tab)
   useDataChangeListener(['SCORES', 'ATTENDANCE', 'ACTIVITIES'], refresh, { debounceMs: 500 });
@@ -73,9 +86,9 @@ export function useTeacherStudentScores() {
   }, [scoresData]);
 
   // Business logic: Get student score detail
-  const getStudentScore = useCallback(async (studentId: string, semester?: string) => {
+  const getStudentScore = useCallback(async (studentId: string, nextSemester?: string) => {
     try {
-      const result = await teacherStudentScoresApi.getStudentScore(studentId, semester);
+      const result = await teacherStudentScoresApi.getStudentScore(studentId, nextSemester || semester);
       if (result.success && 'data' in result) {
         return mapStudentScoreToUI(result.data);
       } else {
@@ -87,12 +100,14 @@ export function useTeacherStudentScores() {
       console.error('[useTeacherStudentScores] Get score error:', err);
       return null;
     }
-  }, []);
+  }, [semester]);
 
   return {
     // Data
     scores,
     total,
+    semester,
+    setSemester,
     
     // State
     loading,

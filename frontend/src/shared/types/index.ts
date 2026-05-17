@@ -63,9 +63,13 @@ export interface Activity {
 
 export interface ActivityType {
     id: string;
-    ten_loai: string;
+    ten_loai?: string;
+    ten_loai_hd?: string;
+    name?: string;
     mo_ta?: string;
+    diem_mac_dinh?: number;
     diem_toi_da?: number;
+    mau_sac?: string;
     is_active?: boolean;
 }
 

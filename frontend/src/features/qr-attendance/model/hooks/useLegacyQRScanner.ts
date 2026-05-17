@@ -137,13 +137,33 @@ export function useLegacyQRScanner() {
       detectionInProgressRef.current = false;
       stopCamera({ preserveStarting: true });
       setIsStarting(true);
+      // Enumerate cameras and filter out virtual cameras (OBS, ManyCam, etc.)
+      let videoConstraints: MediaTrackConstraints = {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920, min: 640 },
+        height: { ideal: 1080, min: 480 },
+        aspectRatio: { ideal: 16/9 }
+      };
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoCams = devices.filter(d => d.kind === 'videoinput');
+        const virtualKeywords = ['obs', 'virtual', 'manycam', 'xsplit', 'snap camera', 'droidcam', 'iriun', 'epoccam', 'newtek'];
+        const realCams = videoCams.filter(d => {
+          const name = (d.label || '').toLowerCase();
+          return !virtualKeywords.some(kw => name.includes(kw));
+        });
+        const selectedCam = realCams.length > 0 ? realCams[0] : (videoCams.length > 0 ? videoCams[0] : null);
+        if (selectedCam?.deviceId) {
+          videoConstraints = {
+            deviceId: { exact: selectedCam.deviceId },
+            width: { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 },
+            aspectRatio: { ideal: 16/9 }
+          };
+        }
+      } catch (_) { /* fallback to default constraints */ }
       stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920, min: 640 },
-          height: { ideal: 1080, min: 480 },
-          aspectRatio: { ideal: 16/9 }
-        } as MediaTrackConstraints
+        video: videoConstraints
       });
       streamRef.current = stream;
       registerStreamTracks(stream);
@@ -189,7 +209,8 @@ export function useLegacyQRScanner() {
               setIsScanning(true);
               scanningActiveRef.current = true;
               setTimeout(() => { setIsStarting(false); }, 500);
-              setTimeout(() => { setupZXing().finally(() => { if (!zxingReaderRef.current && scanningActiveRef.current) startScanningLoop(); }); }, 300);
+              // Always use jsQR + BarcodeDetector scanning loop (ZXing interferes with video srcObject)
+              setTimeout(() => { startScanningLoop(); }, 300);
             })
             .catch((err) => { 
               // Bỏ qua AbortError vì đây là warning, không phải lỗi nghiêm trọng
@@ -219,17 +240,14 @@ export function useLegacyQRScanner() {
   };
 
   async function setupZXing() {
-    if (!scanningActiveRef.current) return;
+    if (!scanningActiveRef.current || !videoRef.current) return;
     try {
-      const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 50 });
+      const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 80 });
       zxingReaderRef.current = reader;
-      const deviceId = (streamRef.current?.getVideoTracks?.()[0]?.getSettings?.().deviceId) || undefined;
-      const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (res) => {
+      // Use decodeFromVideoElement to reuse existing stream — decodeFromVideoDevice
+      // creates its own MediaStream which overwrites video.srcObject and causes visual glitches
+      const controls = await reader.decodeFromVideoElement(videoRef.current, (res) => {
         if (!scanningActiveRef.current || !zxingControlsRef.current) return;
-        if (videoRef.current?.srcObject instanceof MediaStream && scanningActiveRef.current && zxingControlsRef.current) {
-          const zxStream = videoRef.current.srcObject;
-          if (zxStream !== streamRef.current) { streamRef.current = zxStream; registerStreamTracks(zxStream); }
-        }
         if (res && res.getText) {
           const text = res.getText();
           if (text && scanningActiveRef.current && zxingControlsRef.current) {

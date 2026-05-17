@@ -16,6 +16,39 @@ import type {
 } from '../../business/interfaces/IPointsRepository';
 
 class PointsRepository implements IPointsRepository {
+  private mergeAttendanceIntoRegistrations(
+    registrations: RegistrationWithActivity[],
+    attendances: Array<{
+      id: string;
+      sv_id: string;
+      hd_id: string;
+      tg_diem_danh: Date;
+      hoat_dong: RegistrationWithActivity['hoat_dong'];
+    }>
+  ): RegistrationWithActivity[] {
+    const byActivity = new Map<string, RegistrationWithActivity>();
+
+    registrations.forEach((registration) => {
+      byActivity.set(registration.hd_id || registration.hoat_dong?.id || registration.id, registration);
+    });
+
+    attendances.forEach((attendance) => {
+      if (byActivity.has(attendance.hd_id)) return;
+
+      byActivity.set(attendance.hd_id, {
+        id: `attendance:${attendance.id}`,
+        sv_id: attendance.sv_id,
+        hd_id: attendance.hd_id,
+        trang_thai_dk: 'da_tham_gia',
+        ngay_dang_ky: attendance.tg_diem_danh,
+        ngay_duyet: attendance.tg_diem_danh,
+        hoat_dong: attendance.hoat_dong,
+      });
+    });
+
+    return Array.from(byActivity.values());
+  }
+
   async findStudentByUserId(userId: string): Promise<StudentWithDetails | null> {
     const result = await prisma.sinhVien.findUnique({
       where: { nguoi_dung_id: userId },
@@ -56,18 +89,44 @@ class PointsRepository implements IPointsRepository {
       }
     }
 
-    const results = await prisma.dangKyHoatDong.findMany({
-      where,
-      include: {
-        hoat_dong: {
-          include: {
-            loai_hd: true,
+    const [registrations, attendances] = await Promise.all([
+      prisma.dangKyHoatDong.findMany({
+        where,
+        include: {
+          hoat_dong: {
+            include: {
+              loai_hd: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.diemDanh.findMany({
+        where: {
+          sv_id: studentId,
+          trang_thai_tham_gia: 'co_mat',
+          xac_nhan_tham_gia: true,
+          ...(where.hoat_dong ? { hoat_dong: where.hoat_dong as Prisma.HoatDongWhereInput } : {}),
+        },
+        include: {
+          hoat_dong: {
+            include: {
+              loai_hd: true,
+            },
+          },
+        },
+      }),
+    ]);
 
-    return results as unknown as RegistrationWithActivity[];
+    return this.mergeAttendanceIntoRegistrations(
+      registrations as unknown as RegistrationWithActivity[],
+      attendances as unknown as Array<{
+        id: string;
+        sv_id: string;
+        hd_id: string;
+        tg_diem_danh: Date;
+        hoat_dong: RegistrationWithActivity['hoat_dong'];
+      }>
+    );
   }
 
   async findAllRegistrations(studentId: string): Promise<RegistrationWithActivity[]> {

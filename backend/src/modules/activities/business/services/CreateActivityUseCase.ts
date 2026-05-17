@@ -2,6 +2,7 @@ import type { HoatDong, Prisma } from '@prisma/client';
 import type IActivityRepository from '../interfaces/IActivityRepository';
 import { ValidationError } from '../../../../core/errors/AppError';
 import { determineSemesterFromDate } from '../../../../core/utils/semester';
+import { normalizeRoleName } from '../../../../core/utils/roleHelper';
 import crypto from 'crypto';
 import { logInfo } from '../../../../core/logger';
 
@@ -113,7 +114,7 @@ class CreateActivityUseCase {
    */
   private async inferClassId(user: User): Promise<string | null> {
     const userId = user.sub;
-    const role = user.role;
+    const role = normalizeRoleName(user.role);
 
     // LOP_TRUONG hoặc SINH_VIEN: lấy lop_id từ bảng SinhVien
     if (role === 'LOP_TRUONG' || role === 'SINH_VIEN') {

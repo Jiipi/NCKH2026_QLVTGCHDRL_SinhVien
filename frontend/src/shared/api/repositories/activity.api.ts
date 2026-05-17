@@ -6,6 +6,7 @@
 
 import http from '../http';
 import { API_ENDPOINTS } from '../endpoints';
+import { emitActivitiesChange, emitApprovalsChange } from '../../lib/dataRefresh';
 import type {
     Activity,
     GetActivitiesParams,
@@ -39,7 +40,10 @@ class ActivityApi {
      */
     async createActivity(data: CreateActivityDto): Promise<Activity> {
         const response = await http.post(API_ENDPOINTS.activities.create, data);
-        return response.data?.data || response.data;
+        const activity = response.data?.data || response.data;
+        emitActivitiesChange({ action: 'create', id: activity?.id });
+        emitApprovalsChange({ action: 'create', id: activity?.id });
+        return activity;
     }
 
     /**
@@ -48,7 +52,9 @@ class ActivityApi {
      */
     async updateActivity(id: string, data: UpdateActivityDto): Promise<Activity> {
         const response = await http.put(API_ENDPOINTS.activities.update(id), data);
-        return response.data?.data || response.data;
+        const activity = response.data?.data || response.data;
+        emitActivitiesChange({ action: 'update', id });
+        return activity;
     }
 
     /**
@@ -57,6 +63,7 @@ class ActivityApi {
      */
     async deleteActivity(id: string): Promise<void> {
         await http.delete(API_ENDPOINTS.activities.delete(id));
+        emitActivitiesChange({ action: 'delete', id });
     }
 
     /**
@@ -65,7 +72,10 @@ class ActivityApi {
      */
     async approveActivity(id: string, note?: string): Promise<Activity> {
         const response = await http.post(API_ENDPOINTS.activities.approve(id), { note });
-        return response.data?.data || response.data;
+        const activity = response.data?.data || response.data;
+        emitActivitiesChange({ action: 'approve', id });
+        emitApprovalsChange({ action: 'approve', id });
+        return activity;
     }
 
     /**
@@ -74,7 +84,10 @@ class ActivityApi {
      */
     async rejectActivity(id: string, reason: string): Promise<Activity> {
         const response = await http.post(API_ENDPOINTS.activities.reject(id), { reason });
-        return response.data?.data || response.data;
+        const activity = response.data?.data || response.data;
+        emitActivitiesChange({ action: 'reject', id });
+        emitApprovalsChange({ action: 'reject', id });
+        return activity;
     }
 
     /**

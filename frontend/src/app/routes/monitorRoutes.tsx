@@ -17,6 +17,7 @@ const MonitorReportsPage = React.lazy(() => import('../../features/reports/monit
 const AttendanceAuditPage = React.lazy(() => import('../../features/attendance-audit/ui/AttendanceAuditPage'));
 const ClassApprovalsPage = React.lazy(() => import('../../features/approvals/ui/pages/ClassApprovalsPage'));
 const MonitorNotificationsPage = React.lazy(() => import('../../features/notifications/ui/MonitorNotificationsPage'));
+const MonitorScoresPage = React.lazy(() => import('../../features/monitor/ui/MonitorScoresPage'));
 
 function MonitorHome() {
   return React.createElement(MonitorDashboardPage, null);
@@ -39,5 +40,6 @@ export function monitorRoutes() {
     React.createElement(Route, { key: 'class-reports', path: 'reports', element: React.createElement(PermissionRouteGuard, { anyOf: ['reports.read', 'reports.view', 'reports.export'], fallbackPath: '/monitor', element: React.createElement(MonitorReportsPage) }) }),
     React.createElement(Route, { key: 'monitor-attendance-audit', path: 'attendance-audit', element: React.createElement(PermissionRouteGuard, { anyOf: ['reports.read', 'reports.view', 'attendance.read', 'attendance.view'], fallbackPath: '/monitor', element: React.createElement(AttendanceAuditPage, { scope: 'monitor' }) }) }),
     React.createElement(Route, { key: 'class-notifications', path: 'notifications', element: React.createElement(PermissionRouteGuard, { anyOf: ['notifications.view', 'notifications.read', 'notifications.write', 'notifications.create'], fallbackPath: '/monitor', element: React.createElement(MonitorNotificationsPage) }) }),
+    React.createElement(Route, { key: 'monitor-class-scores', path: 'class-scores', element: React.createElement(PermissionRouteGuard, { anyOf: ['points.view_own', 'points.view_all', 'scores.read', 'students.read'], fallbackPath: '/monitor', element: React.createElement(MonitorScoresPage) }) }),
   ]);
 }

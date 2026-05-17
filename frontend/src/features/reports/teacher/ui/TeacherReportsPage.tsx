@@ -26,6 +26,7 @@ export default function ModernReports() {
     setDateRange,
     semester,
     setSemester,
+    semesterOptions,
     filterMode,
     setFilterMode,
     loadStatistics,
@@ -65,6 +66,11 @@ export default function ModernReports() {
       <TeacherReportsFilters
         dateRange={dateRange}
         setDateRange={setDateRange}
+        semester={semester}
+        semesterOptions={semesterOptions}
+        setSemester={setSemester}
+        filterMode={filterMode}
+        setFilterMode={setFilterMode}
         onRefresh={loadStatistics}
         onExportExcel={handleExportExcel}
         onExportPDF={handleExportPDF}

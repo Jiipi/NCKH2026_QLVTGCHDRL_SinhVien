@@ -259,10 +259,12 @@ export async function faceAttendance(
     return response.data?.data || response.data;
   } catch (error: any) {
     console.error('[FaceAPI] Attendance failed:', error);
-    const errorCode = error.response?.data?.data?.errorCode || error.response?.data?.errorCode;
+    console.error('[FaceAPI] Attendance response:', error.response?.data);
+    const respData = error.response?.data;
+    const errorCode = respData?.data?.errorCode || respData?.errorCode || respData?.error?.code || 'UNKNOWN';
     return {
       success: false,
-      message: error.response?.data?.message || error.response?.data?.error || error.message || 'Điểm danh thất bại',
+      message: respData?.data?.message || respData?.message || respData?.error?.message || respData?.error || error.message || 'Điểm danh thất bại',
       errorCode
     };
   }
