@@ -113,3 +113,6 @@ frontend_error.log
 backend/uploads/
 backend/src/core/uploads/
 uploads/
+
+# Runtime data files
+backend/data/
