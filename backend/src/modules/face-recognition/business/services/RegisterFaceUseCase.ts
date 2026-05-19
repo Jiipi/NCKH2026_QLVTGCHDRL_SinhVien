@@ -156,14 +156,8 @@ class RegisterFaceUseCase {
     }
 
     // 5. Lưu hoặc cập nhật embedding vào database (atomic upsert - tránh race condition)
-    // Lấy model info từ AI service health
-    let modelName = 'buffalo_l';
-    let modelVersion = '1.0.0';
-    try {
-      const health = await faceRecognitionClient.healthCheck();
-      if ((health as any).model_name) modelName = (health as any).model_name;
-      if ((health as any).model_version) modelVersion = (health as any).model_version;
-    } catch (_) { /* use defaults */ }
+    // Lấy model info từ cache (tránh gọi healthCheck mỗi lần register)
+    const { modelName, modelVersion } = await RegisterFaceUseCase.getCachedModelInfo();
 
     const upsertResult = await this.faceDataRepository.upsertBySinhVienId(sinhVien.id, {
       vector_dac_trung: embedding,
@@ -194,6 +188,31 @@ class RegisterFaceUseCase {
       imagesProcessed,
       imagesTotal
     };
+  }
+
+  // ─── Cache model info từ AI service (TTL 5 phút) ───
+  private static _cachedModelInfo: { modelName: string; modelVersion: string; fetchedAt: number } | null = null;
+  private static readonly MODEL_INFO_TTL_MS = 5 * 60 * 1000; // 5 phút
+
+  static async getCachedModelInfo(): Promise<{ modelName: string; modelVersion: string }> {
+    const now = Date.now();
+    if (
+      RegisterFaceUseCase._cachedModelInfo &&
+      now - RegisterFaceUseCase._cachedModelInfo.fetchedAt < RegisterFaceUseCase.MODEL_INFO_TTL_MS
+    ) {
+      return RegisterFaceUseCase._cachedModelInfo;
+    }
+
+    let modelName = 'buffalo_l';
+    let modelVersion = '1.0.0';
+    try {
+      const health = await faceRecognitionClient.healthCheck();
+      if ((health as any).model_name) modelName = (health as any).model_name;
+      if ((health as any).model_version) modelVersion = (health as any).model_version;
+    } catch (_) { /* use defaults */ }
+
+    RegisterFaceUseCase._cachedModelInfo = { modelName, modelVersion, fetchedAt: now };
+    return { modelName, modelVersion };
   }
 }
 

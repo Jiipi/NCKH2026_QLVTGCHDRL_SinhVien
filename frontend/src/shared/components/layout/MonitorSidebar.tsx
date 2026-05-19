@@ -122,6 +122,19 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   const containerRef = useRef(null);
   const hoverTimerRef = useRef(null);
 
+  // Close flyout on outside tap (touch devices don't fire onMouseLeave)
+  useEffect(() => {
+    if (!collapsed || !flyoutOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const container = containerRef.current as HTMLElement | null;
+      if (container && !container.contains(e.target as Node)) {
+        setFlyoutOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [collapsed, flyoutOpen]);
+
   const handleToggle = useCallback(() => {
     setOpen(prev => {
       const newState = !prev;
@@ -370,7 +383,7 @@ export default function MonitorSidebar() {
     // Báo cáo
     if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
       menu.push({ key: 'reports', to: '/monitor/reports', label: 'Báo cáo & Thống kê', icon: <BarChart3 className="w-5 h-5" />, active: getActiveState('/monitor/reports') });
-      menu.push({ key: 'attendance-audit', to: '/monitor/attendance-audit', label: 'Audit điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: getActiveState('/monitor/attendance-audit') });
+      menu.push({ key: 'attendance-audit', to: '/monitor/attendance-audit', label: 'Lịch sử điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: getActiveState('/monitor/attendance-audit') });
     }
     
     // Thông báo
@@ -456,7 +469,7 @@ export default function MonitorSidebar() {
             </div>
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
               <ChevronsLeft className="w-4 h-4" />

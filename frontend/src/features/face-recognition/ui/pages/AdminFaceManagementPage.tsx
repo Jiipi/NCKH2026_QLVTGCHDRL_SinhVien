@@ -5,6 +5,10 @@
  * Tích hợp vào admin routes: /admin/face-management
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { CheckCircle2, Clock, ScanFace, Users, XCircle } from 'lucide-react';
+import RolePageHero from '../../../../shared/components/common/RolePageHero';
+import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
 import { getAdminFaceRegistrations, verifyFaceData, rejectFaceData } from '../../services/faceApi';
 
 interface FaceRegistrationItem {
@@ -37,12 +41,14 @@ const STATUS_OPTIONS = [
 ];
 
 export const AdminFaceManagementPage: React.FC = () => {
+  const location = useLocation();
   const [data, setData] = useState<AdminFaceListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const isTeacherRoute = location.pathname.startsWith('/teacher');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -94,75 +100,51 @@ export const AdminFaceManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-800/50 rounded-xl">
-              <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            Quản lý khuôn mặt
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            Duyệt và quản lý dữ liệu khuôn mặt đăng ký của sinh viên
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Status filter */}
+      <RolePageHero
+        eyebrow={isTeacherRoute ? 'Không gian giảng viên' : 'Không gian quản trị'}
+        title={isTeacherRoute ? 'Duyệt khuôn mặt sinh viên' : 'Quản lý khuôn mặt'}
+        description="Duyệt và quản lý dữ liệu khuôn mặt đăng ký của sinh viên phục vụ điểm danh nhanh."
+        heroIcon={ScanFace}
+        metrics={[
+          { icon: Users, label: 'Tổng hồ sơ', value: data?.total || 0, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: Clock, label: 'Trang hiện tại', value: data ? `${data.page}/${data.totalPages}` : '0/0', tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: CheckCircle2, label: 'Đang hiển thị', value: data?.items?.length || 0, tone: 'text-emerald-600 dark:text-emerald-300' },
+        ]}
+        actions={(
+          <>
           <select
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500"
+            className="rounded-2xl border border-white/70 bg-white/60 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
           >
             {STATUS_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
 
-          {/* Verify all button */}
           {statusFilter === 'pending' && data && data.items.filter(i => !i.daXacMinh).length > 0 && (
             <button
               onClick={handleVerifyAll}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-medium"
+              className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <CheckCircle2 className="h-4 w-4" />
               Duyệt tất cả
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Stats */}
-      {data && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-            <span>Tổng: <strong className="text-gray-900 dark:text-white">{data.total}</strong></span>
-            <span>Trang {data.page}/{data.totalPages}</span>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      />
 
       {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-600 border-t-transparent" />
-        </div>
-      )}
+      {loading && <AppLoadingScreen />}
 
       {/* Empty */}
       {!loading && data && data.items.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
+        <div className="bg-white/80 rounded-[1.5rem] border border-white/60 p-12 text-center shadow-sm backdrop-blur-xl">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScanFace className="h-8 w-8 text-slate-400" />
           </div>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-slate-500 font-semibold">
             {statusFilter === 'pending' ? 'Không có dữ liệu khuôn mặt chờ duyệt' : 'Không có dữ liệu khuôn mặt'}
           </p>
         </div>
@@ -170,59 +152,55 @@ export const AdminFaceManagementPage: React.FC = () => {
 
       {/* Table */}
       {!loading && data && data.items.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white/90 rounded-[1.5rem] border border-white/60 shadow-sm overflow-hidden backdrop-blur-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Sinh viên</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Lớp</th>
-                  <th className="text-center px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Ảnh</th>
-                  <th className="text-center px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Trạng thái</th>
-                  <th className="text-center px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Ngày ĐK</th>
-                  <th className="text-center px-5 py-3 font-semibold text-gray-600 dark:text-gray-300">Thao tác</th>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="text-left px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Sinh viên</th>
+                  <th className="text-left px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Lớp</th>
+                  <th className="text-center px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Ảnh</th>
+                  <th className="text-center px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Trạng thái</th>
+                  <th className="text-center px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Ngày ĐK</th>
+                  <th className="text-center px-5 py-3 font-black uppercase tracking-[0.12em] text-xs text-slate-500">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              <tbody className="divide-y divide-slate-100">
                 {data.items.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
+                  <tr key={item.id} className="hover:bg-slate-50 transition">
                     <td className="px-5 py-4">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{item.hoTen}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.mssv}</p>
+                        <p className="font-bold text-slate-950">{item.hoTen}</p>
+                        <p className="text-xs text-slate-500">{item.mssv}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-700 dark:text-gray-300">{item.lopTen || '—'}</td>
+                    <td className="px-5 py-4 text-slate-700">{item.lopTen || '—'}</td>
                     <td className="px-5 py-4 text-center">
                       {item.anhKhuonMat ? (
                         <button
                           onClick={() => setPreviewImage(item.anhKhuonMat)}
-                          className="inline-block w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 hover:border-emerald-500 transition"
+                          className="inline-block w-12 h-12 rounded-2xl overflow-hidden border border-slate-200 hover:border-emerald-500 transition"
                         >
                           <img src={item.anhKhuonMat} alt="Face" className="w-full h-full object-cover" />
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-xs">Không có ảnh</span>
+                        <span className="text-slate-400 text-xs">Không có ảnh</span>
                       )}
                     </td>
                     <td className="px-5 py-4 text-center">
                       {item.daXacMinh ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-semibold">
-                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
                           Đã duyệt
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-semibold">
-                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                          </svg>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                          <Clock className="h-3.5 w-3.5" />
                           Chờ duyệt
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+                    <td className="px-5 py-4 text-center text-slate-500 text-xs">
                       {new Date(item.ngayDangKy).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-5 py-4 text-center">
@@ -232,23 +210,25 @@ export const AdminFaceManagementPage: React.FC = () => {
                             <button
                               onClick={() => handleVerify(item.id)}
                               disabled={actionLoading === item.id}
-                              className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 font-medium"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs rounded-2xl hover:bg-emerald-700 transition disabled:opacity-50 font-bold"
                               title="Duyệt"
                             >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
                               {actionLoading === item.id ? '...' : 'Duyệt'}
                             </button>
                             <button
                               onClick={() => handleReject(item.id)}
                               disabled={actionLoading === item.id}
-                              className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition disabled:opacity-50 font-medium"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 text-white text-xs rounded-2xl hover:bg-rose-700 transition disabled:opacity-50 font-bold"
                               title="Từ chối"
                             >
+                              <XCircle className="h-3.5 w-3.5" />
                               Từ chối
                             </button>
                           </>
                         )}
                         {item.daXacMinh && (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </div>
                     </td>
@@ -260,21 +240,21 @@ export const AdminFaceManagementPage: React.FC = () => {
 
           {/* Pagination */}
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                className="px-3 py-1.5 border border-slate-200 rounded-2xl text-sm font-semibold hover:bg-white disabled:opacity-50 transition"
               >
                 ← Trước
               </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-slate-600 font-semibold">
                 Trang {data.page} / {data.totalPages}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
                 disabled={page >= data.totalPages}
-                className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+                className="px-3 py-1.5 border border-slate-200 rounded-2xl text-sm font-semibold hover:bg-white disabled:opacity-50 transition"
               >
                 Tiếp →
               </button>

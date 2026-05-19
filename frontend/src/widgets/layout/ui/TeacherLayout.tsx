@@ -5,6 +5,8 @@ import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
 import MobileSidebarWrapper from '../../../shared/components/layout/MobileSidebarWrapper';
 import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton';
+import MobileBottomNav from '../../../shared/components/layout/MobileBottomNav';
+import { useIsMobile } from '../../../shared/design-system/hooks/useMediaQuery';
 import '../../../shared/styles/teacher-sidebar.css';
 
 export default function ModernTeacherLayout() {
@@ -15,22 +17,14 @@ export default function ModernTeacherLayout() {
 
   // Mobile sidebar state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
 
-  // Detect mobile viewport
+  // Auto-close mobile sidebar when leaving mobile breakpoint
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) {
-        setMobileSidebarOpen(false); // Close mobile sidebar when resizing to desktop
-      }
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (!isMobile) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -78,12 +72,14 @@ export default function ModernTeacherLayout() {
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
         <main className="flex-1 min-h-0 overflow-y-auto flex flex-col overscroll-contain">
-          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(72px,calc(64px+env(safe-area-inset-bottom)))] sm:px-6 sm:py-6 sm:pb-[max(1rem,env(safe-area-inset-bottom))] lg:px-8 lg:py-8">
             <Outlet />
           </div>
           <ModernFooter />
         </main>
       </div>
+
+      {isMobile && <MobileBottomNav />}
 
       {/* Mobile Menu Button - FAB ẨN, dùng nút trong header */}
       {/* {isMobile && (

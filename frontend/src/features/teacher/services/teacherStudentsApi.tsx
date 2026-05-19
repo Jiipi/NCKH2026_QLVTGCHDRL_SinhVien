@@ -146,6 +146,13 @@ const teacherStudentsApi = {
     const response = await http.get(`/teacher/students/import/jobs/${jobId}`);
     return response.data;
   },
+
+  downloadImportTemplate: async () => {
+    const response = await http.get('/teacher/students/import/template', {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 /**

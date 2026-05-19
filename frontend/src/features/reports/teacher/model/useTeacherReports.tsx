@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useSemesterData, { getGlobalSemester, setGlobalSemester, useGlobalSemesterSync } from '../../../../shared/hooks/useSemesterData';
 import reportsApi from '../../services/reportsApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { downloadExcelWorkbook } from '../../../../shared/lib/exportExcel';
 
 function normalizeTeacherStats(data: any) {
   const overview = data?.overview || {};
@@ -110,6 +111,28 @@ export default function useTeacherReports() {
     }
     
     try {
+      if (format === 'excel') {
+        const dateLabel = new Date().toLocaleDateString('vi-VN');
+        downloadExcelWorkbook([
+          {
+            name: 'Tổng quan',
+            rows: [
+              ['Chỉ số', 'Giá trị'],
+              ['Học kỳ', filterMode === 'semester' ? (semester || '') : 'Theo khoảng thời gian'],
+              ['Ngày xuất', dateLabel],
+              ['Tổng hoạt động', (stats as any)?.totalActivities || 0],
+              ['Tổng sinh viên', (stats as any)?.totalStudents || 0],
+              ['Tỷ lệ tham gia', `${Math.round(Number((stats as any)?.participationRate || 0))}%`],
+              ['Điểm trung bình', Number((stats as any)?.averageScore || 0).toFixed(1)],
+              ['Tổng đăng ký', (stats as any)?.totalRegistrations || 0],
+              ['Đăng ký đã duyệt', (stats as any)?.approvedRegistrations || 0],
+              ['Hoạt động đã duyệt', (stats as any)?.approvedActivities || 0],
+            ],
+          },
+        ], `bao_cao_giang_vien_${new Date().toISOString().split('T')[0]}.xls`);
+        return { success: true, message: 'Xuất báo cáo Excel thành công!' };
+      }
+
       let params: { format: string; semester?: string; startDate?: string; endDate?: string } = { format };
       if (filterMode === 'semester') {
         params.semester = semester || undefined;
@@ -118,13 +141,11 @@ export default function useTeacherReports() {
       }
       const data = await reportsApi.exportTeacherReport(params);
 
-      const blob = new Blob([data], {
-        type: format === 'excel' ? 'text/csv' : 'text/csv'
-      });
+      const blob = new Blob([data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `bao-cao-giang-vien-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `bao-cao-giang-vien-${new Date().toISOString().split('T')[0]}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
       return { success: true, message: 'Xuất báo cáo thành công!' };
@@ -135,7 +156,7 @@ export default function useTeacherReports() {
         message: 'Không thể xuất báo cáo: ' + (err.response?.data?.message || 'Lỗi không xác định')
       };
     }
-  }, [filterMode, semester, getDateRangeParams, isWritable]);
+  }, [filterMode, semester, getDateRangeParams, isWritable, stats]);
 
   return {
     stats,

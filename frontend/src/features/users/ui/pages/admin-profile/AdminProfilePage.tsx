@@ -3,6 +3,7 @@ import { Calendar, CheckCircle, Clock, Edit3, Key, Mail, Shield, User } from 'lu
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
 import { userProfileApi } from '../../../services';
 import { formatDateVN } from '../../../../../shared/lib/date';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 import {
   ProfileEditCard,
   ProfileHeroCard,
@@ -129,13 +130,7 @@ export default function AdminProfile() {
   ] : [];
 
   if (loading) {
-    return (
-      <ProfileShell theme={theme}>
-        <div className="flex h-96 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-        </div>
-      </ProfileShell>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (!profile) {

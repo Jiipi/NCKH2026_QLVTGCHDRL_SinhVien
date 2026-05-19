@@ -13,6 +13,20 @@ import type { IFaceDataRepository, FaceAuditContext } from '../interfaces';
 // Ngưỡng similarity mặc định
 const DEFAULT_THRESHOLD = 0.68;
 
+// Tính cosine similarity inline — tránh gọi AI service /verify
+function calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 interface FaceAttendanceInput extends FaceAuditContext {
   userId: string;           // nguoi_dung_id
   activityId: string;       // hoat_dong_id
@@ -71,9 +85,9 @@ class FaceAttendanceUseCase {
       throw new NotFoundError('Hoạt động không tồn tại');
     }
 
-    // Kiểm tra thời gian hoạt động (Cho phép điểm danh sớm 12 tiếng để xử lý lỗi lệch múi giờ UTC/Local)
+    // Kiểm tra thời gian hoạt động (30 phút leeway cho sai số đồng hồ)
     const now = new Date();
-    const leeway = 12 * 60 * 60 * 1000; // 12 hours leeway
+    const leeway = 30 * 60 * 1000; // 30 phút leeway
     if (now.getTime() + leeway < activity.ngay_bd.getTime()) {
       throw new ValidationError(`Hoạt động chưa bắt đầu. Thời gian bắt đầu: ${activity.ngay_bd.toLocaleString('vi-VN')}`);
     }
@@ -131,16 +145,13 @@ class FaceAttendanceUseCase {
       throw new ValidationError(embedResult.message || 'Không thể nhận diện khuôn mặt từ ảnh');
     }
 
-    // 7. So sánh với embedding đã lưu
-    const verifyResult = await faceRecognitionClient.verifyEmbeddings({
-      embedding1: savedFaceData.vector_dac_trung,
-      embedding2: embedResult.embedding,
-      threshold
-    });
+    // 7. So sánh với embedding đã lưu (inline cosine similarity — không gọi AI /verify)
+    const similarity = calculateCosineSimilarity(savedFaceData.vector_dac_trung, embedResult.embedding);
+    const isMatch = similarity >= threshold;
 
-    if (!verifyResult.is_match) {
+    if (!isMatch) {
       throw new ValidationError(
-        `Khuôn mặt không khớp (độ tương đồng: ${(verifyResult.similarity * 100).toFixed(1)}%, yêu cầu: ${(threshold * 100).toFixed(1)}%)`
+        `Khuôn mặt không khớp (độ tương đồng: ${(similarity * 100).toFixed(1)}%, yêu cầu: ${(threshold * 100).toFixed(1)}%)`
       );
     }
 
@@ -157,8 +168,8 @@ class FaceAttendanceUseCase {
       nguoi_diem_danh_id: userId,
       sv_id: sinhVien.id,
       hd_id: activityId,
-      do_tin_cay_nhan_dien: verifyResult.similarity,
-      ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(verifyResult.similarity * 100).toFixed(1)}%)`,
+      do_tin_cay_nhan_dien: similarity,
+      ghi_chu: `Điểm danh bằng nhận diện khuôn mặt (similarity: ${(similarity * 100).toFixed(1)}%)`,
       vi_tri_gps: gpsText,
       gps_latitude: normalizedLocation?.latitude ?? null,
       gps_longitude: normalizedLocation?.longitude ?? null,
@@ -184,7 +195,7 @@ class FaceAttendanceUseCase {
       attendanceId: attendance.id,
       activityId: activity.id,
       activityName: activity.ten_hd,
-      similarity: verifyResult.similarity,
+      similarity,
       threshold,
       timestamp: attendance.tg_diem_danh
     };

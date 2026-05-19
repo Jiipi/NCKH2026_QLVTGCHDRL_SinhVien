@@ -21,6 +21,7 @@ import { StudentPageHero } from '../../../../shared/components/student';
 | `metrics` | `Array<{ icon, label, value, tone? }>` | Card metric lớn (mode thay thế — Certificates) |
 | `badge` | `{ icon, label }` | Badge pill hiện trên title (thay thế eyebrow) |
 | `heroIcon` | `React.ElementType` | Icon lớn bên trái text (kiểu QR Scanner) |
+| `actions` | `React.ReactNode` | Cụm nút/chip thao tác bên phải, dùng cho các trang có nút xuất file/tạo mới/lịch sử |
 
 ## Các Variant Sử Dụng
 
@@ -73,6 +74,8 @@ Dùng cho: QR Scanner / Điểm danh
 1. **KHÔNG copy-paste hero** — luôn import từ `shared/components/student`
 2. Khi thêm trang mới, chọn variant phù hợp (chips/metrics/heroIcon)
 3. Trang Dashboard và Profile có hệ thống hero riêng, không dùng component này
+4. Nếu có `metrics` và `actions`, không tách nút ra mép phải; truyền qua prop `actions` để component gom vào panel bên phải cùng metrics.
+5. Metrics phải nằm trong panel chung, tự đổi grid theo số lượng để tránh card nhỏ bị trôi giữa hero.
 
 ## File Location
 ```

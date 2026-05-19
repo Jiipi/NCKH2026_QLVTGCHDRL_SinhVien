@@ -4,6 +4,8 @@ import AdminStudentSidebar from './AdminStudentSidebar';
 import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
 import MobileSidebarWrapper from './MobileSidebarWrapper';
+import MobileBottomNav from './MobileBottomNav';
+import { useIsMobile } from '../../design-system/hooks/useMediaQuery';
 
 export default function AdminStudentLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -11,18 +13,11 @@ export default function AdminStudentLayout() {
     return stored === 'true';
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setMobileSidebarOpen(false);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (!isMobile) setMobileSidebarOpen(false);
+  }, [isMobile]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -58,12 +53,14 @@ export default function AdminStudentLayout() {
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
         <main className="flex-1 min-h-0 overflow-y-auto flex flex-col overscroll-contain">
-          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+          <div className="flex-1 flex min-w-0 flex-col px-3 py-3 pb-[max(72px,calc(64px+env(safe-area-inset-bottom)))] sm:px-6 sm:py-6 sm:pb-[max(1rem,env(safe-area-inset-bottom))] lg:px-8 lg:py-8">
             <Outlet />
           </div>
           <ModernFooter />
         </main>
       </div>
+
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 }

@@ -27,9 +27,13 @@ import type BulkApproveRegistrationsUseCase from '../../business/services/BulkAp
 import type GetClassStatisticsUseCase from '../../business/services/GetClassStatisticsUseCase';
 import type AssignClassMonitorUseCase from '../../business/services/AssignClassMonitorUseCase';
 import type CreateStudentUseCase from '../../business/services/CreateStudentUseCase';
+import type UpdateStudentUseCase from '../../business/services/UpdateStudentUseCase';
+import type DeleteStudentUseCase from '../../business/services/DeleteStudentUseCase';
 import type ExportStudentsUseCase from '../../business/services/ExportStudentsUseCase';
 import type { TeacherStudent } from '../../teachers.types';
 import type GetReportStatisticsUseCase from '../../business/services/GetReportStatisticsUseCase';
+import { parseSemesterString } from '../../../../core/utils/semester';
+import type { HocKy, Prisma } from '@prisma/client';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -62,6 +66,8 @@ export interface TeachersUseCases {
   getClassStatistics: GetClassStatisticsUseCase;
   assignClassMonitor: AssignClassMonitorUseCase;
   createStudent: CreateStudentUseCase;
+  updateStudent: UpdateStudentUseCase;
+  deleteStudent: DeleteStudentUseCase;
   exportStudents: ExportStudentsUseCase;
   getReportStatistics: GetReportStatisticsUseCase;
 }
@@ -136,7 +142,10 @@ class TeachersController {
         limit: limit ? Number(limit) : undefined,
         semester: semester as string | undefined
       });
-      return sendResponse(res, 200, ApiResponse.success(result));
+
+      const stats = await this.computeActivityStats(req.user!.sub, semester as string | undefined);
+      const payload = (result && typeof result === 'object') ? { ...result as Record<string, unknown>, stats } : { items: result, stats };
+      return sendResponse(res, 200, ApiResponse.success(payload));
     } catch (error) {
       logError('Get pending activities error', error);
       if (error instanceof AppError) {
@@ -144,6 +153,30 @@ class TeachersController {
       }
       return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy hoạt động chờ duyệt'));
     }
+  }
+
+  private async computeActivityStats(teacherId: string, semester: string | undefined): Promise<{ total: number; pending: number; approved: number; rejected: number }> {
+    const classes = await prisma.lop.findMany({ where: { chu_nhiem: teacherId }, select: { id: true } });
+    const classIds = classes.map(c => c.id);
+    if (classIds.length === 0) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+
+    const where: Prisma.HoatDongWhereInput = { lop_id: { in: classIds } };
+    if (semester) {
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        where.hoc_ky = parsed.semester as HocKy;
+        where.nam_hoc = parsed.year;
+      }
+    }
+
+    const [total, pending, approved, rejected] = await Promise.all([
+      prisma.hoatDong.count({ where }),
+      prisma.hoatDong.count({ where: { ...where, trang_thai: 'cho_duyet' } }),
+      prisma.hoatDong.count({ where: { ...where, trang_thai: 'da_duyet' } }),
+      prisma.hoatDong.count({ where: { ...where, trang_thai: 'tu_choi' } })
+    ]);
+
+    return { total, pending, approved, rejected };
   }
 
   async getActivityHistory(req: AuthenticatedRequest, res: Response): Promise<Response> {
@@ -223,12 +256,14 @@ class TeachersController {
     try {
       const { semester, semesterId, classId, classFilter } = req.query;
       const filters: Record<string, string> = {};
-      
+
       if (semester || semesterId) filters.semester = String(semester || semesterId);
       if (classId || classFilter) filters.classId = String(classId || classFilter);
 
       const registrations = await this.useCases.getPendingRegistrations.execute(req.user!, filters);
-      return sendResponse(res, 200, ApiResponse.success(registrations));
+      const counts = await this.computeRegistrationCounts(req.user!.sub, filters.semester, filters.classId);
+      const payload = (registrations && typeof registrations === 'object') ? { ...registrations as Record<string, unknown>, counts } : { items: registrations, counts };
+      return sendResponse(res, 200, ApiResponse.success(payload));
     } catch (error) {
       logError('Get pending registrations error', error);
       if (error instanceof AppError) {
@@ -236,6 +271,30 @@ class TeachersController {
       }
       return sendResponse(res, 500, ApiResponse.error('Lỗi khi lấy đăng ký chờ duyệt'));
     }
+  }
+
+  private async computeRegistrationCounts(teacherId: string, semester: string | undefined, classId: string | undefined): Promise<{ cho_duyet: number; da_duyet: number; tu_choi: number; da_tham_gia: number }> {
+    let classes = await prisma.lop.findMany({ where: { chu_nhiem: teacherId }, select: { id: true } });
+    if (classId) classes = classes.filter(c => c.id === classId);
+    const classIds = classes.map(c => c.id);
+    if (classIds.length === 0) return { cho_duyet: 0, da_duyet: 0, tu_choi: 0, da_tham_gia: 0 };
+
+    const where: Prisma.DangKyHoatDongWhereInput = { sinh_vien: { lop_id: { in: classIds } } };
+    if (semester) {
+      const parsed = parseSemesterString(semester);
+      if (parsed && parsed.year) {
+        where.hoat_dong = { is: { hoc_ky: parsed.semester as HocKy, nam_hoc: parsed.year } };
+      }
+    }
+
+    const [cho_duyet, da_duyet, tu_choi, da_tham_gia] = await Promise.all([
+      prisma.dangKyHoatDong.count({ where: { ...where, trang_thai_dk: 'cho_duyet' } }),
+      prisma.dangKyHoatDong.count({ where: { ...where, trang_thai_dk: 'da_duyet' } }),
+      prisma.dangKyHoatDong.count({ where: { ...where, trang_thai_dk: 'tu_choi' } }),
+      prisma.dangKyHoatDong.count({ where: { ...where, trang_thai_dk: 'da_tham_gia' } })
+    ]);
+
+    return { cho_duyet, da_duyet, tu_choi, da_tham_gia };
   }
 
   async approveRegistration(req: AuthenticatedRequest, res: Response): Promise<Response> {
@@ -361,6 +420,35 @@ class TeachersController {
         return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
       }
       return sendResponse(res, 500, ApiResponse.error('Lỗi khi tạo sinh viên'));
+    }
+  }
+
+  async updateStudent(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const result = await this.useCases.updateStudent.execute(req.user!, req.params.id, req.body);
+      return sendResponse(res, 200, ApiResponse.success(result, 'Cập nhật sinh viên thành công'));
+    } catch (error) {
+      logError('Update student error', error);
+      if (error instanceof AppError) {
+        return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+      }
+      return sendResponse(res, 500, ApiResponse.error('Lỗi khi cập nhật sinh viên'));
+    }
+  }
+
+  async deleteStudent(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const ok = await this.useCases.deleteStudent.execute(req.user!, req.params.id);
+      if (!ok) {
+        return sendResponse(res, 404, ApiResponse.error('Không tìm thấy sinh viên hoặc không có quyền xoá'));
+      }
+      return sendResponse(res, 200, ApiResponse.success(null, 'Xoá sinh viên thành công'));
+    } catch (error) {
+      logError('Delete student error', error);
+      if (error instanceof AppError) {
+        return sendResponse(res, error.statusCode, ApiResponse.error(error.message));
+      }
+      return sendResponse(res, 500, ApiResponse.error('Lỗi khi xoá sinh viên'));
     }
   }
 

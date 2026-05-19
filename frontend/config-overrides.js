@@ -49,5 +49,23 @@ module.exports = function override(config, env) {
     config.devtool = false;
   }
 
+  // Dev watch tuning: ignore node_modules and cache to avoid infinite recompile loops
+  // (fork-ts-checker writes cache files which chokidar polling would otherwise detect as changes).
+  if (env === 'development') {
+    config.watchOptions = {
+      ...(config.watchOptions || {}),
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/build/**',
+        '**/dist/**',
+        '**/coverage/**',
+        '**/.cache/**'
+      ],
+      aggregateTimeout: 300,
+      poll: 1500
+    };
+  }
+
   return config;
 };

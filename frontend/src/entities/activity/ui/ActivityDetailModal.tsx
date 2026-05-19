@@ -111,8 +111,8 @@ export default function ActivityDetailModal({ activityId, isOpen, onClose }) {
   const canRegister = userRole === 'SINH VIÊN' && !isRegistered && withinTime && !isDeadlinePast;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 bg-black bg-opacity-50 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-gray-900">Chi tiết hoạt động</h2>

@@ -1,11 +1,14 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, X, Trophy, Award, ShieldCheck } from 'lucide-react';
 import { useNotification } from '../../../../shared/contexts/NotificationContext';
 import { useCertificates } from '../../model/useCertificates';
 import { StudentPageHero } from '../../../../shared/components/student';
+import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
 import CertificateCard from '../components/CertificateCard';
 
 export default function MyCertificatesPage() {
+  const location = useLocation();
   const { showSuccess, showError } = useNotification();
   const {
     certificates,
@@ -33,12 +36,13 @@ export default function MyCertificatesPage() {
     }
   };
 
-  if (loading) return (<div className="flex h-96 items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55"><div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div></div>);
+  if (loading) return <AppLoadingScreen />;
+  const isMonitorRoute = location.pathname.startsWith('/monitor');
 
   return (
     <div className="space-y-6">
       <StudentPageHero
-        eyebrow="Không gian sinh viên"
+        eyebrow={isMonitorRoute ? 'Không gian lớp trưởng' : 'Không gian sinh viên'}
         title="Chứng nhận của tôi"
         description="Tổng hợp các chứng nhận hoạt động đã hoàn thành."
         badge={{ icon: ShieldCheck, label: 'Hồ sơ chứng nhận' }}

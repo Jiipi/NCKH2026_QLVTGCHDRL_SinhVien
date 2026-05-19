@@ -9,6 +9,7 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
 import { useAdminDashboardPage } from '../../../model';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 import { 
   AdminDashboardHero,
   AdminStatsGrid,
@@ -77,18 +78,7 @@ const AdminDashboardPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
-        <div className="text-center">
-          <div className="relative mb-4 inline-block">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 dark:border-white/10"></div>
-            <div className="absolute inset-0 h-16 w-16 animate-spin rounded-full border-4 border-r-amber-500 border-t-indigo-600"></div>
-            <Zap className="absolute inset-0 m-auto h-6 w-6 animate-pulse text-indigo-600 dark:text-indigo-300" />
-          </div>
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">Đang tải dashboard...</p>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (

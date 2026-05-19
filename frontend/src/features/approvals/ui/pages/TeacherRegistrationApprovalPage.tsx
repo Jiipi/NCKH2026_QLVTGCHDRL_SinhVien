@@ -3,6 +3,8 @@ import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCi
 import { approvalTeacherApi } from '../../services';
 import { ConfirmModal, Toast } from '../../../../shared/components/common';
 import { useSemesterData } from '../../../../shared/hooks';
+import RolePageHero from '../../../../shared/components/common/RolePageHero';
+import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
 
 export default function TeacherRegistrationApprovals() {
   const [registrations, setRegistrations] = useState([]);
@@ -16,8 +18,8 @@ export default function TeacherRegistrationApprovals() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [semester, setSemester] = useState('current');
-  const { options: semesterOptions, isWritable } = useSemesterData(semester);
+  const [semester, setSemester] = useState('');
+  const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState('');
 
@@ -53,6 +55,20 @@ export default function TeacherRegistrationApprovals() {
   };
 
   useEffect(() => {
+    if (semesterOptions.length > 0) {
+      const semesterInOptions = semesterOptions.some(opt => opt.value === semester);
+      if (!semester || !semesterInOptions) {
+        const currentInOptions = currentSemester && semesterOptions.some(opt => opt.value === currentSemester);
+        const newSemester = currentInOptions ? currentSemester : semesterOptions[0]?.value;
+        if (newSemester && newSemester !== semester) {
+          setSemester(newSemester);
+        }
+      }
+    }
+  }, [semesterOptions, currentSemester, semester]);
+
+  useEffect(() => {
+    if (!semester) return;
     loadRegistrations();
   }, [semester, page, limit, statusFilter, searchTerm, classId]);
 
@@ -292,7 +308,7 @@ export default function TeacherRegistrationApprovals() {
   const pageItems = filteredRegistrations.slice(startIdx, endIdx);
 
   const RegistrationCard = ({ registration }) => (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white/90 rounded-[1.5rem] border border-white/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
       {/* Header with checkbox */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3">
@@ -303,7 +319,7 @@ export default function TeacherRegistrationApprovals() {
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-black text-slate-950">
               {registration.sinh_vien?.nguoi_dung?.ho_ten ||
                 registration.student?.nguoi_dung?.ho_ten ||
                 registration.user?.ho_ten}
@@ -314,14 +330,14 @@ export default function TeacherRegistrationApprovals() {
             </div>
           </div>
         </div>
-        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColors[registration.trang_thai_dk]}`}>
+        <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${statusColors[registration.trang_thai_dk]}`}>
           {statusLabels[registration.trang_thai_dk]}
         </span>
       </div>
 
       {/* Activity Info */}
-      <div className="bg-blue-50 rounded-lg p-4 mb-4">
-        <h4 className="font-medium text-gray-900 mb-2">{registration.hoat_dong?.ten_hd || registration.activity?.ten_hd}</h4>
+      <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4 mb-4">
+        <h4 className="font-bold text-slate-950 mb-2">{registration.hoat_dong?.ten_hd || registration.activity?.ten_hd}</h4>
         <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2" />
@@ -353,7 +369,7 @@ export default function TeacherRegistrationApprovals() {
           <button
             onClick={() => handleApproveClick(registration.id)}
             disabled={processing || !isWritable}
-            className={`flex-1 flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${isWritable ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-2xl font-bold transition-colors ${isWritable ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Phê duyệt
@@ -361,7 +377,7 @@ export default function TeacherRegistrationApprovals() {
           <button
             onClick={() => handleRejectClick(registration.id)}
             disabled={processing || !isWritable}
-            className={`flex-1 flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${isWritable ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-2xl font-bold transition-colors ${isWritable ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
           >
             <XCircle className="h-4 w-4 mr-2" />
             Từ chối
@@ -388,53 +404,33 @@ export default function TeacherRegistrationApprovals() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
     <div className="space-y-6">
-      {/* Gradient Header + Stats */}
-      <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 rounded-2xl shadow-2xl p-8">
-        <div className="flex items-start justify-between">
-          <div className="text-white">
-            <h1 className="text-3xl font-extrabold drop-shadow-sm">Phê duyệt đăng ký</h1>
-            <p className="text-indigo-100 mt-1">Quản lý đăng ký các lớp bạn phụ trách theo học kỳ</p>
-          </div>
-          <div className="text-white/90 text-sm bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm">
-            Hiển thị <span className="font-semibold">{Math.min(page * limit, effectiveTotal)}</span> / {effectiveTotal}
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          {(() => {
-            const cards = [
-              { key: 'cho_duyet', label: 'Chờ duyệt', value: counts.cho_duyet, color: 'from-yellow-400/30 to-amber-400/20' },
-              { key: 'da_duyet', label: 'Đã duyệt', value: counts.da_duyet, color: 'from-emerald-400/30 to-green-400/20' },
-              { key: 'tu_choi', label: 'Từ chối', value: counts.tu_choi, color: 'from-rose-400/30 to-red-400/20' },
-              { key: 'da_tham_gia', label: 'Đã tham gia', value: counts.da_tham_gia, color: 'from-sky-400/30 to-blue-400/20' }
-            ];
-            const toRender = statusFilter === 'all' ? cards : cards.filter(c => c.key === statusFilter);
-            return toRender.map((stat, idx) => (
-              <div key={idx} className={`rounded-xl p-4 bg-gradient-to-br ${stat.color} border border-white/20 text-white shadow-xl`}>
-                <div className="text-3xl font-extrabold">{stat.value}</div>
-                <div className="text-sm opacity-90 mt-1">{stat.label}</div>
-              </div>
-            ));
-          })()}
-        </div>
-      </div>
+      <RolePageHero
+        eyebrow="Không gian giảng viên"
+        title="Phê duyệt đăng ký"
+        description="Quản lý đăng ký tham gia hoạt động của các lớp bạn phụ trách theo học kỳ."
+        heroIcon={UserCheck}
+        metrics={[
+          { icon: Clock, label: 'Chờ duyệt', value: counts.cho_duyet, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: CheckCircle, label: 'Đã duyệt', value: counts.da_duyet, tone: 'text-emerald-600 dark:text-emerald-300' },
+          { icon: XCircle, label: 'Từ chối', value: counts.tu_choi, tone: 'text-rose-600 dark:text-rose-300' },
+          { icon: Users, label: 'Đã tham gia', value: counts.da_tham_gia, tone: 'text-blue-600 dark:text-blue-300' },
+        ]}
+        actions={(
+          <span className="inline-flex items-center rounded-2xl border border-white/70 bg-white/60 px-4 py-2.5 text-sm font-bold text-slate-600">
+            Hiển thị {Math.min(page * limit, effectiveTotal)} / {effectiveTotal}
+          </span>
+        )}
+      />
 
 
 
       {/* Filters and Bulk Actions */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white/80 rounded-[1.5rem] border border-white/60 p-4 shadow-sm backdrop-blur-xl">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -445,7 +441,7 @@ export default function TeacherRegistrationApprovals() {
                 placeholder="Tìm kiếm theo tên sinh viên, MSSV hoặc hoạt động..."
                 value={searchTerm}
                 onChange={(e) => { setPage(1); setSearchTerm(e.target.value); }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 font-semibold"
               />
             </div>
           </div>
@@ -455,7 +451,7 @@ export default function TeacherRegistrationApprovals() {
             <select
               value={classId}
               onChange={(e) => { setPage(1); setClassId(e.target.value); }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 font-semibold"
             >
               <option value="">Tất cả lớp phụ trách</option>
               {classes.map(c => (
@@ -469,7 +465,7 @@ export default function TeacherRegistrationApprovals() {
             <select
               value={statusFilter}
               onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 font-semibold"
             >
               <option value="cho_duyet">Chờ duyệt</option>
               <option value="da_duyet">Đã duyệt</option>
@@ -488,7 +484,7 @@ export default function TeacherRegistrationApprovals() {
               <button
                 onClick={handleBulkApproveClick}
                 disabled={processing || !isWritable}
-                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${isWritable ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`flex items-center px-4 py-3 rounded-2xl font-bold transition-colors ${isWritable ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
               >
                 <UserCheck className="h-4 w-4 mr-2" />
                 Duyệt ({selectedRegistrations.length})
@@ -496,7 +492,7 @@ export default function TeacherRegistrationApprovals() {
               <button
                 onClick={handleBulkRejectClick}
                 disabled={processing || !isWritable}
-                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${isWritable ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                className={`flex items-center px-4 py-3 rounded-2xl font-bold transition-colors ${isWritable ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
               >
                 <UserX className="h-4 w-4 mr-2" />
                 Từ chối ({selectedRegistrations.length})
@@ -531,7 +527,7 @@ export default function TeacherRegistrationApprovals() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <div className="bg-white/80 rounded-[1.5rem] border border-white/60 p-12 text-center shadow-sm">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {searchTerm || statusFilter !== 'cho_duyet' ? 'Không tìm thấy đăng ký' : 'Không có đăng ký nào cần duyệt'}
@@ -551,7 +547,7 @@ export default function TeacherRegistrationApprovals() {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center justify-between bg-white/80 rounded-[1.5rem] border border-white/60 p-4 shadow-sm">
         <div className="text-sm text-gray-600">
           Đang hiển thị {filteredRegistrations.length ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, effectiveTotal)} / {effectiveTotal}
         </div>

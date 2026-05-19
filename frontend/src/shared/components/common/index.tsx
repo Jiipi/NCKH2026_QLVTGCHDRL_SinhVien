@@ -17,6 +17,8 @@ export { default as AvatarUpload } from './AvatarUpload';
 export { default as UserSearchSelect } from './UserSearchSelect';
 export { default as ProfileTabs } from './ProfileTabs';
 export { default as SemesterFilter } from './SemesterFilter';
+export { default as RolePageHero } from './RolePageHero';
+export type { RolePageHeroProps, HeroChip, HeroMetric } from './RolePageHero';
 
 export const ErrorMessage = ({ message = 'Đã xảy ra lỗi', className = '' }) => (
   <div className={`p-4 rounded-lg border border-red-200 bg-red-50 text-red-700 ${className}`}>

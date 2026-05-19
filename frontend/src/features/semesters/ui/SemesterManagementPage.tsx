@@ -3,6 +3,7 @@ import { Calendar, Lock, CheckCircle, AlertCircle, RefreshCw, Plus, Sparkles } f
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { invalidateSemesterCache } from '../model/semesterCache';
 import semestersApi from '../services/semestersApi';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 
 export default function SemesterManagement() {
   const { showSuccess, showError, confirm } = useNotification();
@@ -108,14 +109,7 @@ export default function SemesterManagement() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-700 font-bold">Đang tải...</p>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   const totalSemesters = semesters.length;
@@ -151,7 +145,7 @@ export default function SemesterManagement() {
                 <Plus className="h-5 w-5" />
                 Tạo học kỳ mới
               </button>
-              <div className="grid grid-cols-3 gap-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
                 {[
                   { icon: Calendar, label: 'Tổng học kỳ', value: totalSemesters, tone: 'text-indigo-600 dark:text-indigo-300' },
                   { icon: CheckCircle, label: 'Đang hoạt động', value: activeSemester ? 1 : 0, tone: 'text-emerald-600 dark:text-emerald-300' },

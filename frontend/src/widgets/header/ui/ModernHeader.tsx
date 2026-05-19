@@ -381,23 +381,59 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    
+    const search = location.search || '';
+    const params = new URLSearchParams(search);
+    const statusParam = params.get('status') || '';
+
     // Dashboard pages -> Show Greeting
     if (path === '/' || path === '/student' || path === '/monitor' || path === '/teacher' || path === '/admin') {
       return profile ? `Chào mừng trở lại, ${profile?.ho_ten || profile?.ten_dn || 'bạn'}!` : 'Trang chủ';
     }
 
-    // Role-agnostic or specific pages
+    // Specific (most-specific first to avoid prefix collisions)
+    if (path.startsWith('/teacher/approve')) return 'Phê duyệt hoạt động';
+    if (path.startsWith('/teacher/registrations/approve')) return 'Phê duyệt đăng ký';
+    if (path.startsWith('/teacher/face-management')) return 'Duyệt khuôn mặt sinh viên';
+    if (path.startsWith('/teacher/student-scores')) return 'Điểm sinh viên';
+    if (path.startsWith('/teacher/students/import')) return 'Import sinh viên';
+    if (path.startsWith('/teacher/students')) return 'Danh sách sinh viên';
+    if (path.startsWith('/teacher/activities')) return 'Danh sách hoạt động';
+    if (path.startsWith('/teacher/reports')) return 'Báo cáo & Thống kê';
+    if (path.startsWith('/teacher/notifications')) return 'Thông báo';
+
+    if (path.startsWith('/admin/users')) return 'Quản lý tài khoản';
+    if (path.startsWith('/admin/activities')) {
+      return statusParam === 'cho_duyet' ? 'Phê duyệt hoạt động' : 'Quản lý hoạt động';
+    }
+    if (path.startsWith('/admin/approvals')) return 'Phê duyệt đăng ký';
+    if (path.startsWith('/admin/reports')) return 'Báo cáo hệ thống';
+    if (path.startsWith('/admin/qr-attendance')) return 'Điểm danh QR';
+    if (path.startsWith('/admin/attendance-audit')) return 'Lịch sử điểm danh';
+    if (path.startsWith('/admin/notifications')) return 'Quản lý thông báo';
+    if (path.startsWith('/admin/settings')) return 'Cài đặt hệ thống';
+    if (path.startsWith('/admin/semesters')) return 'Quản lý học kỳ';
+    if (path.startsWith('/admin/activity-types')) return 'Loại hoạt động';
+    if (path.startsWith('/admin/face-management')) return 'Duyệt khuôn mặt';
+    if (path.startsWith('/admin/roles')) return 'Phân quyền';
+
+    if (path.startsWith('/monitor/approve')) return 'Phê duyệt đăng ký';
+    if (path.startsWith('/monitor/qr-scanner')) return 'Điểm danh QR';
+    if (path.startsWith('/monitor/attendance-audit')) return 'Lịch sử điểm danh';
+    if (path.startsWith('/monitor/students')) return 'Quản lý sinh viên lớp';
+    if (path.startsWith('/monitor/reports')) return 'Báo cáo lớp';
+    if (path.startsWith('/monitor/activity-oversight')) return 'Hoạt động lớp';
+    if (path.startsWith('/monitor/my-activities')) return 'Hoạt động của tôi';
+
+    // Role-agnostic fallbacks
     if (path.includes('/my-activities')) return 'Hoạt động của tôi';
-    if (path.includes('/activities')) return 'Khám phá hoạt động';
     if (path.includes('/scores')) return 'Điểm rèn luyện';
     if (path.includes('/qr-scanner') || path.includes('/qr')) return 'Điểm danh';
     if (path.includes('/profile') || path.includes('/my-profile')) return 'Hồ sơ cá nhân';
-    if (path.includes('/verify') || path.includes('/teacher/verify')) return 'Phê duyệt hoạt động';
-    if (path.includes('/manage-students') || path.includes('/students')) return 'Quản lý sinh viên';
+    if (path.includes('/verify')) return 'Phê duyệt';
+    if (path.includes('/activities')) return 'Khám phá hoạt động';
     if (path.includes('/reports')) return 'Báo cáo & Thống kê';
     if (path.includes('/users')) return 'Quản lý người dùng';
-    if (path.includes('/settings')) return 'Cài đặt hệ thống';
+    if (path.includes('/settings')) return 'Cài đặt';
 
     return 'Hệ thống Quản lý Rèn luyện';
   };

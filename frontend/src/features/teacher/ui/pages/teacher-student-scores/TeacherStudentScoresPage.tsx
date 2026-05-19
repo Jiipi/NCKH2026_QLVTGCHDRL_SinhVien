@@ -1,6 +1,8 @@
 ﻿import React, { useMemo, useState, useCallback } from 'react';
-import { Trophy, Search, Filter, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { Trophy, Search, Filter, RefreshCw, ArrowUpDown, Users } from 'lucide-react';
 import { useTeacherStudentScores } from '../../../model/hooks/useTeacherStudentScores';
+import RolePageHero from '../../../../../shared/components/common/RolePageHero';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 const RANK_COLORS = ['bg-yellow-100 text-yellow-800', 'bg-gray-100 text-gray-700', 'bg-amber-100 text-amber-700'];
 
@@ -48,14 +50,7 @@ export default function TeacherStudentScoresPage() {
   }, [refresh]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600 dark:border-indigo-400/20 dark:border-t-indigo-300" />
-          <p className="font-semibold text-slate-500 dark:text-slate-300">Đang tải bảng điểm...</p>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (error) {
@@ -172,24 +167,15 @@ export default function TeacherStudentScoresPage() {
 
 function ScoresHero({ total }) {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
-      <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Bảng điểm rèn luyện</p>
-          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
-            Theo dõi thành tích và xếp loại của sinh viên
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
-            Tra cứu điểm rèn luyện, số hoạt động tham gia và xếp loại theo từng lớp phụ trách.
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] border border-white/70 bg-white/55 px-5 py-4 text-right shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Tổng số sinh viên</p>
-          <p className="mt-1 text-4xl font-black tracking-[-0.05em] text-indigo-600 dark:text-indigo-300">{total}</p>
-        </div>
-      </div>
-    </section>
+    <RolePageHero
+      eyebrow="Không gian giảng viên"
+      title="Theo dõi thành tích và xếp loại của sinh viên"
+      description="Tra cứu điểm rèn luyện, số hoạt động tham gia và xếp loại theo từng lớp phụ trách."
+      heroIcon={Trophy}
+      metrics={[
+        { icon: Users, label: 'Tổng số sinh viên', value: total, tone: 'text-indigo-600 dark:text-indigo-300' },
+      ]}
+    />
   );
 }
 

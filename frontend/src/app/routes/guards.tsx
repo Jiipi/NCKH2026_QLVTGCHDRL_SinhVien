@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { normalizeRole, roleMatches } from '../../shared/lib/role';
 import { useAppStore } from '../../shared/store';
 import { usePermissions } from '../../shared/hooks/usePermissions';
+import AppLoadingScreen from '../../shared/components/common/AppLoadingScreen';
 
 interface RoleGuardProps {
   allow: string[];
@@ -45,11 +46,7 @@ export function PermissionRouteGuard({ permission, anyOf, allOf, element, fallba
   const location = useLocation();
 
   if (loading) {
-    return React.createElement('div', {
-      className: 'flex items-center justify-center min-h-screen'
-    }, React.createElement('div', {
-      className: 'animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'
-    }));
+    return React.createElement(AppLoadingScreen, { fullScreen: true });
   }
 
   let hasAccess = true;

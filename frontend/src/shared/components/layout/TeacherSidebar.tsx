@@ -138,7 +138,21 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const containerRef = useRef(null);
   const hoverTimerRef = useRef(null);
-  
+
+  // Close flyout when clicking/tapping outside (needed for touch devices since onMouseLeave doesn't fire on touch)
+  useEffect(() => {
+    if (!collapsed || !flyoutOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const container = containerRef.current as HTMLElement | null;
+      if (!container) return;
+      if (!container.contains(e.target as Node)) {
+        setFlyoutOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [collapsed, flyoutOpen]);
+
   const handleToggle = useCallback(() => {
     setOpen(prev => {
       const newState = !prev;
@@ -358,25 +372,35 @@ function TeacherSidebar(props) {
   }
   
   // NEW ALGORITHM: Direct path comparison + sub-routes highlighting
+  // Sub-paths that belong to a *different* sibling menu and must NOT light up the parent prefix.
+  const exclusiveSubPaths: Record<string, string[]> = {
+    '/teacher/students': ['/teacher/students/import']
+  };
+
   const getActiveState = (menuPath) => {
     if (!menuPath) return false;
-    
+
     // Clean paths
     const cleanMenuPath = menuPath.replace(/\/$/, '');
     const cleanCurrentPath = path.replace(/\/$/, '');
-    
+
     // Special-case dashboard: only active on exact '/teacher'
     if (cleanMenuPath === '/teacher') {
       return cleanCurrentPath === '/teacher';
     }
-    
+
     // Direct comparison (exact match)
     if (cleanCurrentPath === cleanMenuPath) return true;
-    
+
+    // If current path is registered as exclusive to another sibling menu, don't highlight this parent.
+    const excluded = exclusiveSubPaths[cleanMenuPath] || [];
+    if (excluded.some(p => cleanCurrentPath === p || cleanCurrentPath.startsWith(p + '/'))) {
+      return false;
+    }
+
     // Sub-route check: highlight parent menu when on sub-routes
-    // Example: /teacher/students should be active when on /teacher/students/import
     if (cleanCurrentPath.startsWith(cleanMenuPath + '/')) return true;
-    
+
     return false;
   };
 
@@ -615,7 +639,7 @@ function TeacherSidebar(props) {
             </div>
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
               <ChevronsLeft className="w-4 h-4" />

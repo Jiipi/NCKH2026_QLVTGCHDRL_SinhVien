@@ -4,27 +4,21 @@ import ModernHeader from '../../../widgets/header/ui/ModernHeader';
 import ModernFooter from '../../../widgets/header/ui/ModernFooter';
 import MobileSidebarWrapper from '../../../shared/components/layout/MobileSidebarWrapper';
 import MobileMenuButton from '../../../shared/components/layout/MobileMenuButton';
+import MobileBottomNav from '../../../shared/components/layout/MobileBottomNav';
+import { useIsMobile } from '../../../shared/design-system/hooks/useMediaQuery';
 import { Outlet } from 'react-router-dom';
 
 export default function MonitorLayout({ children }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const stored = localStorage.getItem('monitor-sidebar-collapsed');
     return stored === 'true';
   });
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setMobileSidebarOpen(false);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (!isMobile) setMobileSidebarOpen(false);
+  }, [isMobile]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -73,12 +67,13 @@ export default function MonitorLayout({ children }) {
           onMenuClick: () => setMobileSidebarOpen(true)
         }),
         React.createElement('main', { key: 'main', className: 'flex-1 min-h-0 overflow-y-auto overscroll-contain' }, [
-          React.createElement('div', { key: 'content-div', className: 'min-w-0 px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8' },
+          React.createElement('div', { key: 'content-div', className: 'min-w-0 px-3 py-3 pb-[max(72px,calc(64px+env(safe-area-inset-bottom)))] sm:px-6 sm:py-6 sm:pb-[max(1rem,env(safe-area-inset-bottom))] lg:px-8 lg:py-8' },
             children || React.createElement(Outlet)
           ),
           React.createElement(ModernFooter, { key: 'footer' })
         ])
-      ])
+      ]),
+      isMobile && React.createElement(MobileBottomNav, { key: 'mobile-bottom-nav' })
 
       // Mobile Menu Button - ẨN, dùng nút trong header
       // isMobile && React.createElement(MobileMenuButton, { 

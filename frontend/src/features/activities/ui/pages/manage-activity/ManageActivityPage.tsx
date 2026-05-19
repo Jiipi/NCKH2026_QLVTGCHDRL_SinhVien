@@ -8,6 +8,7 @@ import { ActivityForm } from '../../shared/ActivityForm';
 import Header from '../../../../../shared/components/layout/Header';
 import ClassManagementLayout from '../../../../../shared/components/layout/ClassManagementLayout';
 import { LoadingSpinner } from '../../../../../shared/components/common';
+import { StudentPageHero } from '../../../../../shared/components/student';
 
 function formatSemesterDisplay(semesterValue: string): string {
   if (!semesterValue) return 'Chưa chọn học kỳ';
@@ -54,7 +55,7 @@ const ManageActivityPage: FC = () => {
       ? 'Tạo hoạt động cấp hệ thống, cấu hình học kỳ, thời gian, điểm rèn luyện và điều kiện điểm danh.'
       : 'Tạo hoạt động cho lớp phụ trách, sau đó theo dõi đăng ký và điểm danh.';
 
-  const heroHeader = (
+  const legacyHeroHeader = (
     <section className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 shadow-sm backdrop-blur-xl">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400" />
       <div className="grid gap-6 px-5 py-6 md:grid-cols-[1fr_auto] md:px-7">
@@ -84,6 +85,19 @@ const ManageActivityPage: FC = () => {
       </div>
     </section>
   );
+
+  const heroHeader = isMonitorRoute ? (
+    <StudentPageHero
+      eyebrow="Không gian lớp trưởng"
+      title={title}
+      description={subtitle}
+      heroIcon={GraduationCap}
+      chips={[
+        { icon: CalendarDays, label: semesterLabel },
+        { icon: CheckCircle2, label: isEditMode ? 'Sẵn sàng lưu thay đổi' : 'Trạng thái sau tạo: Chờ duyệt' },
+      ]}
+    />
+  ) : legacyHeroHeader;
 
   const semesterWarningBanner = !isWritable ? (
     <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">

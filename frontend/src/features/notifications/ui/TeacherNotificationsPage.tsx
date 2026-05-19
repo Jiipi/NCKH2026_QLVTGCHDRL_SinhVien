@@ -1,6 +1,7 @@
 import React from 'react';
-import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Search, Calendar, TrendingUp, Zap } from 'lucide-react';
+import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Calendar, Zap } from 'lucide-react';
 import useNotificationBroadcast from '../model/hooks/useNotificationBroadcast';
+import RolePageHero from '../../../shared/components/common/RolePageHero';
 
 export default function ModernNotifications() {
   const {
@@ -34,77 +35,27 @@ export default function ModernNotifications() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Modern Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                  <Bell className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white drop-shadow-lg">Gửi Thông Báo</h1>
-                  <p className="text-indigo-100 mt-1">Gửi thông báo tới sinh viên trong lớp phụ trách</p>
-                </div>
-              </div>
-              <button
-                onClick={toggleHistory}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl hover:bg-indigo-50 transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 font-semibold"
-              >
-                <Clock className="h-5 w-5" />
-                {showHistory ? 'Ẩn lịch sử' : 'Xem lịch sử'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <Sparkles className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.total}</div>
-            <div className="text-indigo-100 text-sm font-medium">Tổng thông báo</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Zap className="h-6 w-6" />
-              </div>
-              <TrendingUp className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.thisWeek}</div>
-            <div className="text-emerald-100 text-sm font-medium">Tuần này</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Users className="h-6 w-6" />
-              </div>
-              <Target className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.classScope}</div>
-            <div className="text-amber-100 text-sm font-medium">Toàn lớp</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Activity className="h-6 w-6" />
-              </div>
-              <Filter className="h-5 w-5 opacity-50" />
-            </div>
-            <div className="text-3xl font-bold mb-1">{stats.activityScope}</div>
-            <div className="text-rose-100 text-sm font-medium">Theo hoạt động</div>
-          </div>
-        </div>
+        <RolePageHero
+          eyebrow="Không gian giảng viên"
+          title="Gửi thông báo"
+          description="Gửi thông báo tới sinh viên trong lớp phụ trách và theo dõi lịch sử gửi."
+          heroIcon={Bell}
+          metrics={[
+            { icon: MessageSquare, label: 'Tổng thông báo', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300' },
+            { icon: Zap, label: 'Tuần này', value: stats.thisWeek, tone: 'text-emerald-600 dark:text-emerald-300' },
+            { icon: Users, label: 'Toàn lớp', value: stats.classScope, tone: 'text-amber-600 dark:text-amber-300' },
+            { icon: Activity, label: 'Theo hoạt động', value: stats.activityScope, tone: 'text-rose-600 dark:text-rose-300' },
+          ]}
+          actions={(
+            <button
+              onClick={toggleHistory}
+              className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md"
+            >
+              <Clock className="h-5 w-5" />
+              {showHistory ? 'Ẩn lịch sử' : 'Xem lịch sử'}
+            </button>
+          )}
+        />
 
         {/* Alert Messages */}
         {feedback.error && (

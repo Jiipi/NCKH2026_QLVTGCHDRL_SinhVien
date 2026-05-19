@@ -16,7 +16,23 @@ module.exports = function(app) {
                      (isDocker ? 'http://backend-dev:3001' : 'http://localhost:3001');
   
   console.log(`[setupProxy] Using backend URL: ${backendUrl} (isDocker: ${isDocker})`);
-  
+
+  // Proxy /api to backend (was previously handled by package.json "proxy" field,
+  // moved here so it doesn't catch /ws used by webpack-dev-server HMR)
+  app.use(
+    '/api',
+    createProxyMiddleware({
+      target: backendUrl,
+      changeOrigin: true,
+      logLevel: 'warn',
+      onError: (err, req, res) => {
+        console.error('[Proxy /api] Error:', err.message, `(target: ${backendUrl})`);
+        res.writeHead(502, { 'Content-Type': 'text/plain' });
+        res.end('Bad gateway');
+      }
+    })
+  );
+
   // Proxy /uploads to backend
   app.use(
     '/uploads',

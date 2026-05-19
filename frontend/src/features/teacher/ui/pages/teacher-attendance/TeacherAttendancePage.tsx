@@ -1,6 +1,8 @@
 ﻿import React, { useMemo, useState, useCallback } from 'react';
 import { RefreshCw, Search, CheckCircle2, XCircle, Calendar, Award, MapPin, Users } from 'lucide-react';
 import { useTeacherAttendance } from '../../../model/hooks/useTeacherAttendance';
+import RolePageHero from '../../../../../shared/components/common/RolePageHero';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 const STATUS_CONFIG = {
   present: { label: 'Có mặt', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200', button: 'bg-emerald-500 hover:bg-emerald-600' },
@@ -47,14 +49,7 @@ export default function TeacherAttendancePage() {
   }, [updateAttendance]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Đang tải danh sách điểm danh...</p>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (error) {
@@ -135,24 +130,15 @@ export default function TeacherAttendancePage() {
 
 function AttendanceHero({ total }) {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.12),transparent_28%)]" />
-      <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Điểm danh hoạt động</p>
-          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">
-            Theo dõi trạng thái tham gia
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
-            Cập nhật trạng thái điểm danh và rà soát lượt tham gia hoạt động của sinh viên.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-white/60 bg-white/55 p-4 text-right shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Tổng lượt điểm danh</p>
-          <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-indigo-600 dark:text-indigo-300">{total}</p>
-        </div>
-      </div>
-    </section>
+    <RolePageHero
+      eyebrow="Không gian giảng viên"
+      title="Theo dõi trạng thái tham gia"
+      description="Cập nhật trạng thái điểm danh và rà soát lượt tham gia hoạt động của sinh viên."
+      heroIcon={Calendar}
+      metrics={[
+        { icon: Users, label: 'Tổng lượt điểm danh', value: total, tone: 'text-indigo-600 dark:text-indigo-300' },
+      ]}
+    />
   );
 }
 function AttendanceRecordCard({ record, updating, onUpdateStatus }) {

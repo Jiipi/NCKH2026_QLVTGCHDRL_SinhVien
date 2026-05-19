@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Award, BarChart3, Target } from 'lucide-react';
 import { StudentPageHero } from '../../../shared/components/student';
 import useStudentScores from '../model/hooks/useStudentScores';
@@ -9,6 +10,7 @@ import ScoresActivities from './components/Scores/ScoresActivities';
 import ScoresRankingTable from './components/Scores/ScoresRankingTable';
 
 export default function StudentScoresPage() {
+  const location = useLocation();
   const {
     semester,
     handleSemesterChange,
@@ -24,11 +26,12 @@ export default function StudentScoresPage() {
   if (loading) {
     return <ScoresLoading semester={semester} onSemesterChange={handleSemesterChange} />;
   }
+  const isMonitorRoute = location.pathname.startsWith('/monitor');
 
   return (
     <div className="flex flex-col flex-1 space-y-6" data-ref="student-scores-refactored">
       <StudentPageHero
-        eyebrow="Không gian sinh viên"
+        eyebrow={isMonitorRoute ? 'Không gian lớp trưởng' : 'Không gian sinh viên'}
         title="Điểm rèn luyện"
         description="Theo dõi tổng điểm, mục tiêu học kỳ, hoạt động đã ghi nhận và thứ hạng trong lớp."
         chips={[

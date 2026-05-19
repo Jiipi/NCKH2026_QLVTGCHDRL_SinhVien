@@ -9,8 +9,6 @@ import useTeacherReports from '../model/useTeacherReports';
 import {
   TeacherReportsHeader,
   TeacherReportsFilters,
-  TeacherStatsGrid,
-  TeacherStatsDetails,
   TeacherChartsSection,
   TeacherReportsTable,
   TeacherReportsLoadingState,
@@ -61,7 +59,7 @@ export default function ModernReports() {
 
   return (
     <div className="p-8">
-      <TeacherReportsHeader />
+      <TeacherReportsHeader stats={stats} />
 
       <TeacherReportsFilters
         dateRange={dateRange}
@@ -76,13 +74,15 @@ export default function ModernReports() {
         onExportPDF={handleExportPDF}
       />
 
-      <TeacherStatsGrid stats={stats} />
+      <TeacherChartsSection
+        monthlyActivities={(stats as any)?.monthlyActivities || []}
+        pointsDistribution={(stats as any)?.pointsDistribution || []}
+      />
 
-      <TeacherStatsDetails stats={stats} />
-
-      <TeacherChartsSection />
-
-      <TeacherReportsTable />
+      <TeacherReportsTable
+        activityTypes={(stats as any)?.activityTypes || []}
+        topStudents={(stats as any)?.topStudents || []}
+      />
     </div>
   );
 }

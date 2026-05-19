@@ -207,6 +207,8 @@ export interface IFaceDataRepository {
     anh_khuon_mat?: string | null;
     anh_khuon_mat_ds?: string[] | null;
     so_anh_dang_ky?: number;
+    model_name?: string;
+    model_version?: string;
     audit?: FaceAuditContext;
   }): Promise<{ data: DuLieuKhuonMatData; isUpdate: boolean }>;
 

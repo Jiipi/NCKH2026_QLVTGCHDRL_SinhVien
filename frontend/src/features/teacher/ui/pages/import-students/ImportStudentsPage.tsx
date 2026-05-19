@@ -9,9 +9,10 @@ import {
   Users,
   XCircle
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
-import { teacherClassesApi, teacherStudentsApi } from '../../../services';
+import RolePageHero from '../../../../../shared/components/common/RolePageHero';
+import { teacherStudentsApi } from '../../../services';
 
 type ImportRow = {
   mssv?: string;
@@ -48,8 +49,6 @@ const statusLabel = (status: string) => ({
 
 export default function ImportStudents() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const classIdFromURL = searchParams.get('classId');
   const { showSuccess, showError, showWarning } = useNotification();
 
   const [file, setFile] = useState<File | null>(null);
@@ -82,8 +81,8 @@ export default function ImportStudents() {
     if (!selectedFile) return;
 
     const fileName = selectedFile.name.toLowerCase();
-    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
-      showError('Vui lòng chọn file Excel (.xlsx, .xls) hoặc CSV (.csv)');
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      showError('Vui lòng chọn file Excel (.xlsx hoặc .xls)');
       return;
     }
 
@@ -111,7 +110,7 @@ export default function ImportStudents() {
       await loadImportJobs();
     } catch (err) {
       console.error('Parse error:', err);
-      showError('Không thể đọc file Excel. Vui lòng kiểm tra định dạng file.');
+      showError('Không thể đọc file Excel. Vui lòng kiểm tra định dạng file (.xlsx hoặc .xls).');
     } finally {
       setUploading(false);
     }
@@ -146,49 +145,34 @@ export default function ImportStudents() {
 
   const downloadTemplate = async () => {
     try {
-      let className = 'CTK46A';
-      try {
-        const clsRes = await teacherClassesApi.getClasses();
-        const list = clsRes?.data?.classes || clsRes?.data || [];
-        if (Array.isArray(list) && list.length > 0) {
-          if (classIdFromURL) {
-            const selectedClass = list.find((c: any) => String(c.id) === String(classIdFromURL));
-            className = selectedClass ? String(selectedClass.ten_lop) : String(list[0].ten_lop || className);
-          } else {
-            className = String(list[0].ten_lop || className);
-          }
-        }
-      } catch (_) {}
-
-      const base = Date.now() % 10000000;
-      const mssv1 = String(base).padStart(7, '0');
-      const mssv2 = String((base + 1) % 10000000).padStart(7, '0');
-      const template = `MSSV,Họ và tên,Email,Ngày sinh (YYYY-MM-DD),Giới tính (nam/nu/khac),Lớp,Số điện thoại,Địa chỉ,Tên đăng nhập,Mật khẩu\n${mssv1},Sinh Viên Mẫu A,sv${mssv1}@dlu.edu.vn,2003-01-15,nam,${className},0900000001,Địa chỉ 1,${mssv1},123456\n${mssv2},Sinh Viên Mẫu B,sv${mssv2}@dlu.edu.vn,2003-05-20,nu,${className},0900000002,Địa chỉ 2,${mssv2},123456`;
-
-      const blob = new Blob(['﻿' + template], { type: 'text/csv;charset=utf-8;' });
+      const blob = await teacherStudentsApi.downloadImportTemplate();
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'mau_import_sinh_vien.csv';
+      link.download = 'mau_import_sinh_vien.xlsx';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
       showSuccess('Đã tải xuống file mẫu');
     } catch (_) {
-      showError('Không thể tạo file mẫu. Vui lòng thử lại.');
+      showError('Không thể tải file mẫu. Vui lòng thử lại.');
     }
   };
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 sm:p-6">
-        <div className="relative z-10">
-          <button onClick={() => navigate('/teacher/students')} className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600">
-            <ArrowLeft className="h-5 w-5" />
+      <RolePageHero
+        eyebrow="Không gian giảng viên"
+        title="Import sinh viên"
+        description="Tải file mẫu Excel, điền thông tin sinh viên rồi tải lên để hệ thống kiểm tra và import."
+        heroIcon={FileSpreadsheet}
+        actions={(
+          <button onClick={() => navigate('/teacher/students')} className="inline-flex items-center gap-2 rounded-2xl border border-white/70 bg-white/60 px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">
+            <ArrowLeft className="h-4 w-4" />
             Quay lại danh sách
           </button>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500">Import dữ liệu</p>
-          <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Import sinh viên</h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Tải lên file Excel hoặc CSV, xem preview lỗi từng dòng rồi xác nhận import.</p>
-        </div>
-      </section>
+        )}
+      />
 
       <div className="rounded-[2rem] border border-blue-200/60 bg-blue-50/60 p-6 dark:border-blue-400/20 dark:bg-blue-950/40">
         <div className="flex items-start gap-4">
@@ -196,9 +180,12 @@ export default function ImportStudents() {
           <div>
             <h3 className="mb-2 font-semibold text-blue-900">Hướng dẫn import</h3>
             <ul className="space-y-1 text-sm text-blue-800">
-              <li>• File Excel/CSV phải có: MSSV, Họ và tên, Email, Ngày sinh, Giới tính, Lớp, SĐT, Địa chỉ, Tên đăng nhập, Mật khẩu</li>
-              <li>• Hệ thống sẽ preview, validate và lưu lịch sử import trước khi ghi DB</li>
-              <li>• Chỉ các dòng hợp lệ được import sau khi xác nhận</li>
+              <li>• Bước 1: Bấm <b>Tải file mẫu</b> để tải file Excel chuẩn (đã điền sẵn 2 dòng ví dụ).</li>
+              <li>• Bước 2: Mở file, thay 2 dòng ví dụ bằng danh sách sinh viên thật. Giữ nguyên hàng tiêu đề.</li>
+              <li>• Bước 3: Bấm <b>Tải lên để kiểm tra</b>. Hệ thống sẽ preview, validate và đánh dấu các dòng lỗi.</li>
+              <li>• Bước 4: Nếu mọi dòng hợp lệ, bấm <b>Xác nhận import</b> để lưu vào hệ thống.</li>
+              <li>• Cột bắt buộc: MSSV, Họ và tên, Email (@dlu.edu.vn), Ngày sinh (YYYY-MM-DD), Giới tính (nam/nu/khac), Lớp.</li>
+              <li>• Tên đăng nhập = MSSV. Mật khẩu mặc định <b>dlu@MSSV</b> — sinh viên đổi sau lần đăng nhập đầu.</li>
             </ul>
           </div>
         </div>
@@ -206,11 +193,11 @@ export default function ImportStudents() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="rounded-[2rem] border border-dashed border-white/60 bg-white/60 p-8 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/60">
-          <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} className="hidden" id="file-upload" />
+          <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" id="file-upload" />
           <label htmlFor="file-upload" className="cursor-pointer">
             <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <p className="mb-2 text-lg font-semibold text-gray-700">Chọn file Excel hoặc CSV</p>
-            <p className="text-sm text-gray-500">Kéo thả file hoặc click để chọn</p>
+            <p className="mb-2 text-lg font-semibold text-gray-700">Chọn file Excel</p>
+            <p className="text-sm text-gray-500">Kéo thả file .xlsx / .xls hoặc click để chọn</p>
             {file && (
               <div className="mt-4 flex items-center justify-center gap-2 text-indigo-600">
                 <FileSpreadsheet className="h-5 w-5" />
@@ -226,7 +213,7 @@ export default function ImportStudents() {
         <div className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 p-8">
           <Download className="mb-4 h-12 w-12 text-indigo-600" />
           <p className="mb-2 text-lg font-semibold text-gray-900">Tải file mẫu</p>
-          <p className="mb-4 text-center text-sm text-gray-600">Tải xuống file mẫu CSV với định dạng chuẩn</p>
+          <p className="mb-4 text-center text-sm text-gray-600">File Excel chuẩn, đã điền sẵn 2 dòng ví dụ. Chỉ cần đổi thành thông tin sinh viên thật rồi tải lên.</p>
           <button onClick={downloadTemplate} className="rounded-lg bg-indigo-600 px-6 py-2 text-white hover:bg-indigo-700">Tải xuống mẫu</button>
         </div>
       </div>
@@ -249,8 +236,8 @@ export default function ImportStudents() {
             </div>
           </div>
 
-          <div className="max-h-96 overflow-auto">
-            <table className="w-full">
+          <div className="max-h-96 overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[720px]">
               <thead className="sticky top-0 bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Trạng thái</th>

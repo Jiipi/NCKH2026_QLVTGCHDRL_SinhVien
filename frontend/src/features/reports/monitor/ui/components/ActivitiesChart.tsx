@@ -132,7 +132,8 @@ export default function ActivitiesChart({ data }) {
 function ActivitiesTable({ data, totalActivities, totalPoints }) {
   return (
     <div className="overflow-hidden rounded-xl border-2 border-gray-200">
-      <table className="w-full">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
         <thead>
           <tr className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
             <th className="px-6 py-4 text-left font-semibold">Loại hoạt động</th>
@@ -197,6 +198,7 @@ function ActivitiesTable({ data, totalActivities, totalPoints }) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }

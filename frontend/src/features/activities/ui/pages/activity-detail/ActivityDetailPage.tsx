@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Download, Image as ImageIcon, File, CheckCircle, UserCheck } from 'lucide-react';
+import { useLocation, useParams } from 'react-router-dom';
+import { Download, Image as ImageIcon, File, CheckCircle, UserCheck, Activity, Award, Calendar, MapPin } from 'lucide-react';
 import { useActivityDetail } from '../../../model/hooks/useActivityDetail';
 import { getActivityImages } from '../../../../../shared/lib/activityImages';
 import { FaceAttendanceCard } from '../../../../face-recognition/ui/components';
+import { StudentPageHero } from '../../../../../shared/components/student';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 export default function ActivityDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const { activity: data, loading, error, refresh } = useActivityDetail(id);
   const [attendanceSuccess, setAttendanceSuccess] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null);
 
   if (loading) {
-    return <div>Đang tải...</div>;
+    return <AppLoadingScreen />;
   }
 
   if (error) {
@@ -49,6 +52,9 @@ export default function ActivityDetailPage() {
   };
 
   const activityImages = getActivityImages(data.hinh_anh, data.loai_hd?.ten_loai_hd || data.loai);
+  const isMonitorRoute = location.pathname.startsWith('/monitor');
+  const startLabel = start ? start.toLocaleDateString('vi-VN') : 'Chưa có thời gian';
+  const locationLabel = data.dia_diem || 'Chưa có địa điểm';
   const metadata = [
     { label: 'Loại hoạt động', value: data.loai || data.loai_hd?.ten_loai_hd || '—' },
     { label: 'Điểm rèn luyện', value: String(data.diem_rl || 0) },
@@ -59,10 +65,17 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="flex flex-col flex-1 space-y-6" data-ref="activity-detail-refactored">
-      <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
-        <h1 className="text-2xl font-bold">{data.ten_hd || data.name || 'Hoạt động'}</h1>
-        <p className="mt-4 text-gray-700">{data.mo_ta || '—'}</p>
-      </section>
+      <StudentPageHero
+        eyebrow={isMonitorRoute ? 'Không gian lớp trưởng' : 'Chi tiết hoạt động'}
+        title={data.ten_hd || data.name || 'Hoạt động'}
+        description={data.mo_ta || 'Theo dõi thông tin hoạt động, đăng ký, điểm danh và tài liệu liên quan.'}
+        heroIcon={Activity}
+        chips={[
+          { icon: Award, label: `${data.diem_rl || 0} điểm RL` },
+          { icon: Calendar, label: startLabel },
+          { icon: MapPin, label: locationLabel },
+        ]}
+      />
 
       <section className="rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
         <div className="mb-3 flex items-center gap-2">

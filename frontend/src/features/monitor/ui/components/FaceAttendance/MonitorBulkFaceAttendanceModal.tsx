@@ -205,7 +205,7 @@ export default function MonitorBulkFaceAttendanceModal({ isOpen, activity, onClo
 
             {result && (
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-slate-200 p-4 dark:border-white/10">
                     <p className="text-xs font-black uppercase text-slate-400">Tổng ảnh</p>
                     <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{result.totalImages}</p>

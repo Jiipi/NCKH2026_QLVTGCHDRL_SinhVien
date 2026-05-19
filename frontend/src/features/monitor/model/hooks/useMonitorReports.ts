@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { monitorReportsApi } from '../../services/monitorReportsApi';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { downloadExcelWorkbook } from '../../../../shared/lib/exportExcel';
 
 /**
  * Hook quản lý reports
@@ -73,15 +74,35 @@ export function useMonitorReports() {
   const handleExportExcel = useCallback(() => {
     if (!reportData) return;
     try {
-      const csv = generateCSV();
-      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const overview = reportData.overview || {};
+      const topStudents = Array.isArray(reportData.topStudents) ? reportData.topStudents : [];
+      downloadExcelWorkbook([
+        {
+          name: 'Tổng quan',
+          rows: [
+            ['Chỉ số', 'Giá trị'],
+            ['Học kỳ', semester],
+            ['Ngày xuất', new Date().toLocaleDateString('vi-VN')],
+            ['Tổng sinh viên', overview.totalStudents || 0],
+            ['Tổng hoạt động', overview.totalActivities || 0],
+            ['Điểm TB', overview.avgPoints || 0],
+            ['Tỷ lệ tham gia', `${overview.participationRate || 0}%`],
+          ],
+        },
+        {
+          name: 'Top sinh viên',
+          rows: [
+            ['STT', 'Họ tên', 'MSSV', 'Điểm RL', 'Hoạt động'],
+            ...topStudents.map((student, index) => [
+              index + 1,
+              student.name || '',
+              student.mssv || '',
+              student.points || 0,
+              student.activities || 0,
+            ]),
+          ],
+        },
+      ], `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.xls`);
     } catch (e) {
       console.error('Export Excel failed', e);
       alert('Xuất Excel thất bại. Vui lòng thử lại.');

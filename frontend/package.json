@@ -43,7 +43,6 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://dacn_backend_dev:3001",
   "devDependencies": {
     "@types/node": "^24.10.2",
     "@types/react": "^19.2.7",

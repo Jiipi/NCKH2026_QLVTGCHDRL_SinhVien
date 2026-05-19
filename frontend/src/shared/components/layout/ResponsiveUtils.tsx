@@ -48,19 +48,34 @@ export function ResponsiveCard({ title, children, className = '', actions }) {
 
 /**
  * ResponsiveGrid - Grid that adjusts columns based on screen size
+ *
+ * Uses static class maps so Tailwind's content scanner can preserve the classes
+ * during production purge (interpolation like `grid-cols-${cols.mobile}` would be stripped).
  */
+const COL_MOBILE: Record<number, string> = {
+  1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4',
+  5: 'grid-cols-5', 6: 'grid-cols-6'
+};
+const COL_TABLET: Record<number, string> = {
+  1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4',
+  5: 'sm:grid-cols-5', 6: 'sm:grid-cols-6'
+};
+const COL_DESKTOP: Record<number, string> = {
+  1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6'
+};
+const GAP_MAP: Record<number, string> = {
+  1: 'gap-1', 2: 'gap-2', 3: 'gap-3', 4: 'gap-4', 5: 'gap-5', 6: 'gap-6', 8: 'gap-8'
+};
+const STACK_GAP_MAP = GAP_MAP;
+
 export function ResponsiveGrid({ children, cols = { mobile: 1, tablet: 2, desktop: 3 }, gap = 4, className = '' }) {
-  const gridClasses = `
-    grid 
-    grid-cols-${cols.mobile} 
-    sm:grid-cols-${cols.tablet} 
-    lg:grid-cols-${cols.desktop} 
-    gap-${gap}
-    ${className}
-  `;
-  
+  const m = COL_MOBILE[cols.mobile] || COL_MOBILE[1];
+  const t = COL_TABLET[cols.tablet] || COL_TABLET[2];
+  const d = COL_DESKTOP[cols.desktop] || COL_DESKTOP[3];
+  const g = GAP_MAP[gap] || GAP_MAP[4];
   return (
-    <div className={gridClasses.replace(/\s+/g, ' ').trim()}>
+    <div className={`grid ${m} ${t} ${d} ${g} ${className}`.trim()}>
       {children}
     </div>
   );
@@ -70,16 +85,10 @@ export function ResponsiveGrid({ children, cols = { mobile: 1, tablet: 2, deskto
  * ResponsiveStack - Flexbox that stacks on mobile
  */
 export function ResponsiveStack({ children, direction = 'row', gap = 4, className = '' }) {
-  const stackClasses = `
-    flex 
-    flex-col 
-    ${direction === 'row' ? 'sm:flex-row' : 'sm:flex-col'}
-    gap-${gap}
-    ${className}
-  `;
-  
+  const dirClass = direction === 'row' ? 'sm:flex-row' : 'sm:flex-col';
+  const g = STACK_GAP_MAP[gap] || STACK_GAP_MAP[4];
   return (
-    <div className={stackClasses.replace(/\s+/g, ' ').trim()}>
+    <div className={`flex flex-col ${dirClass} ${g} ${className}`.trim()}>
       {children}
     </div>
   );

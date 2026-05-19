@@ -4,6 +4,7 @@ import { extractUsersFromAxiosResponse } from '../../../../../shared/lib/apiNorm
 import { getUserAvatar, getStudentAvatar } from '../../../../../shared/lib/avatar';
 import { adminRolesApi } from '../../../services';
 import Pagination from '../../../../../shared/components/common/Pagination';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 // Interfaces for type safety
 interface RoleData {
@@ -671,27 +672,7 @@ export default function AdminRoles() {
 
         {/* User Cards */}
         {usersLoading ? (
-          <div style={{ padding: 48, textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{ position: 'relative', width: 48, height: 48 }}>
-                <div style={{ 
-                  position: 'absolute',
-                  inset: 0,
-                  border: '4px solid #e5e7eb',
-                  borderRadius: '50%'
-                }}></div>
-                <div style={{ 
-                  position: 'absolute',
-                  inset: 0,
-                  border: '4px solid #6366f1',
-                  borderTopColor: 'transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-              </div>
-              <p style={{ color: '#6b7280', fontSize: 14, fontWeight: 500 }}>Đang tải người dùng...</p>
-            </div>
-          </div>
+          <AppLoadingScreen />
         ) : users.length === 0 ? (
           <div style={{ padding: 64, textAlign: 'center' }}>
             <Users size={48} style={{ color: '#d1d5db', margin: '0 auto 16px' }} />

@@ -3,6 +3,7 @@ import { BookOpen, Calendar, CheckCircle, Clock, Edit3, Key, Mail, Shield, User 
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
 import { teacherClassesApi, teacherDashboardApi } from '../../../services';
 import { formatDateVN } from '../../../../../shared/lib/date';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 import {
   ProfileEditCard,
   ProfileHeroCard,
@@ -153,13 +154,7 @@ export default function TeacherProfilePage() {
   ] : [];
 
   if (loading) {
-    return (
-      <ProfileShell theme={theme}>
-        <div className="flex h-96 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-teal-200 border-t-teal-600" />
-        </div>
-      </ProfileShell>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (!profile) {

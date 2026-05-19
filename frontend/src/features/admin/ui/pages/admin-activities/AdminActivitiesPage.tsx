@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ActivityDetailModal from '../../../../../entities/activity/ui/ActivityDetailModal';
 import SemesterClosureBanner from '../../../../../shared/components/semester/SemesterClosureBanner';
 import { useAdminActivitiesList } from '../../../model';
@@ -21,6 +21,9 @@ interface Stats {
 
 const AdminActivitiesPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const statusParam = new URLSearchParams(location.search).get('status') || '';
+  const isApprovalMode = statusParam === 'cho_duyet';
 
   const {
     query,
@@ -113,6 +116,7 @@ const AdminActivitiesPage: React.FC = () => {
           pendingCount={stats.pending}
           approvedCount={stats.approved}
           rejectedCount={stats.rejected}
+          approvalMode={isApprovalMode}
         />
 
         <AdminActivitiesToolbar

@@ -220,8 +220,8 @@ export default function ImportStudents() {
               {previewJobId && <span className="text-xs font-mono text-slate-500">Job: {previewJobId}</span>}
             </div>
           </div>
-          <div className="max-h-96 overflow-auto">
-            <table className="w-full">
+          <div className="max-h-96 overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[720px]">
               <thead className="sticky top-0 bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Trạng thái</th>

@@ -12,7 +12,7 @@ class ApprovalAdminApi {
    */
   async getRegistrations(params = {}) {
     try {
-      const response = await http.get('/admin/registrations', { params });
+      const response = await http.get('/core/admin/registrations', { params });
       const data = response?.data?.data || response?.data || {};
       return createSuccessResponse({
         items: Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []),
@@ -26,11 +26,10 @@ class ApprovalAdminApi {
 
   /**
    * Approves a single registration (admin)
-   * @param {string} registrationId - The ID of the registration to approve
    */
   async approveRegistration(registrationId) {
     try {
-      await http.post(`/admin/registrations/${registrationId}/approve`);
+      await http.post(`/core/admin/registrations/${registrationId}/approve`);
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -39,12 +38,10 @@ class ApprovalAdminApi {
 
   /**
    * Rejects a single registration (admin)
-   * @param {string} registrationId - The ID of the registration to reject
-   * @param {string} reason - The reason for rejection
    */
   async rejectRegistration(registrationId, reason) {
     try {
-      await http.post(`/admin/registrations/${registrationId}/reject`, { reason });
+      await http.post(`/core/admin/registrations/${registrationId}/reject`, { reason });
       return createSuccessResponse(null);
     } catch (error) {
       return handleApiError(error);
@@ -53,16 +50,13 @@ class ApprovalAdminApi {
 
   /**
    * Bulk action for registrations (admin)
-   * @param {Array<string>} ids - Registration IDs
-   * @param {string} action - 'approve' or 'reject'
-   * @param {string} reason - Required for reject
    */
   async bulkAction(ids: string[], action: string, reason: string | null = null) {
     try {
       const payload: { ids: string[]; action: string; reason?: string } = { ids, action };
       if (reason) payload.reason = reason;
-      
-      const response = await http.post('/admin/registrations/bulk', payload);
+
+      const response = await http.post('/core/admin/registrations/bulk', payload);
       return createSuccessResponse(response.data?.data || null);
     } catch (error) {
       return handleApiError(error);

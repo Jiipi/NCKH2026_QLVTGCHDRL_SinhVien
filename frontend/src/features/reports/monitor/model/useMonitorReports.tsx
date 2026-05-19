@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import reportsApi from '../../services/reportsApi';
 import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import { downloadExcelWorkbook } from '../../../../shared/lib/exportExcel';
 
 export default function useMonitorReports() {
   const [reportData, setReportData] = useState(null);
@@ -86,27 +87,6 @@ export default function useMonitorReports() {
     document.body.removeChild(link);
   };
 
-  const generateCSV = useCallback(() => {
-    if (!reportData) return '';
-    let csv = 'BÁO CÁO THỐNG KÊ LỚP\n\n';
-    csv += `Học kỳ: ${semester}\n`;
-    csv += `Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}\n\n`;
-    csv += 'TỔNG QUAN\n';
-    csv += `Tổng sinh viên,${reportData.overview.totalStudents}\n`;
-    csv += `Tổng hoạt động,${reportData.overview.totalActivities}\n`;
-    csv += `Điểm TB,${reportData.overview.avgPoints}\n`;
-    csv += `Tỷ lệ tham gia,${reportData.overview.participationRate}%\n\n`;
-    
-    if (reportData.topStudents?.length > 0) {
-      csv += 'TOP SINH VIÊN\n';
-      csv += 'STT,Họ tên,MSSV,Điểm RL,Hoạt động\n';
-      reportData.topStudents.forEach((s, i) => {
-        csv += `${i + 1},"${s.name}",${s.mssv},${s.points},${s.activities}\n`;
-      });
-    }
-    return csv;
-  }, [reportData, semester]);
-
   const generateReportHTML = useCallback(() => {
     return `
       <!DOCTYPE html>
@@ -139,10 +119,36 @@ export default function useMonitorReports() {
       alert('Chỉ có thể xuất báo cáo cho học kỳ đang kích hoạt');
       return;
     }
-    const csv = generateCSV();
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    downloadBlob(blob, `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.csv`);
-  }, [reportData, generateCSV, semester, isWritable]);
+    const overview = reportData.overview || {};
+    const topStudents = Array.isArray(reportData.topStudents) ? reportData.topStudents : [];
+    downloadExcelWorkbook([
+      {
+        name: 'Tổng quan',
+        rows: [
+          ['Chỉ số', 'Giá trị'],
+          ['Học kỳ', semester],
+          ['Ngày xuất', new Date().toLocaleDateString('vi-VN')],
+          ['Tổng sinh viên', overview.totalStudents || 0],
+          ['Tổng hoạt động', overview.totalActivities || 0],
+          ['Điểm TB', overview.avgPoints || 0],
+          ['Tỷ lệ tham gia', `${overview.participationRate || 0}%`],
+        ],
+      },
+      {
+        name: 'Top sinh viên',
+        rows: [
+          ['STT', 'Họ tên', 'MSSV', 'Điểm RL', 'Hoạt động'],
+          ...topStudents.map((student, index) => [
+            index + 1,
+            student.name || '',
+            student.mssv || '',
+            student.points || 0,
+            student.activities || 0,
+          ]),
+        ],
+      },
+    ], `bao_cao_lop_${semester}_${new Date().toISOString().split('T')[0]}.xls`);
+  }, [reportData, semester, isWritable]);
 
   const handleExportPDF = useCallback(() => {
     if (!reportData) return;

@@ -1,8 +1,8 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { 
-  Globe, Building, Users, Clock, CheckCircle, XCircle, Award, 
+import {
+  Globe, Building, Users, Clock, CheckCircle, XCircle, Award,
   Search, Filter, Calendar, RefreshCw, SlidersHorizontal, Grid3X3, List,
-  Trophy, Sparkles, X
+  Trophy, Sparkles, X, Shield
 } from 'lucide-react';
 
 // Hook & Services
@@ -14,6 +14,8 @@ import { useSemesterData } from '../../../../shared/hooks';
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
 import AdminRegistrationCard from '../shared/AdminRegistrationCard';
 import Pagination from '../../../../shared/components/common/Pagination';
+import { AdminPageHero } from '../../../../shared/components/admin';
+import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
 
 // ============================================
 // CONSTANTS
@@ -125,37 +127,23 @@ export default function AdminApprovalsPage() {
   }, [scopeTab, semester, filteredSemesterOptions, setSemester]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-r-amber-500 border-t-indigo-600 dark:border-white/10 dark:border-r-amber-300 dark:border-t-indigo-300" />
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
     <div className="space-y-6">
-      {/* ============================================ */}
-      {/* HERO HEADER - Neo-Brutalism + Glassmorphism */}
-      {/* ============================================ */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(245,158,11,0.12),transparent_28%)]" />
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
-              <Sparkles className="h-4 w-4" />
-              Quản trị phê duyệt
-            </div>
-            <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Phê duyệt đăng ký</h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Quản lý và phê duyệt đăng ký tham gia hoạt động của sinh viên toàn hệ thống.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] border border-white/60 bg-white/40 p-3 shadow-inner shadow-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-            <HeroMetric icon={Clock} value={stats.pending ?? 0} label="Chờ duyệt" tone="text-amber-600 dark:text-amber-300" />
-            <HeroMetric icon={CheckCircle} value={stats.approved ?? 0} label="Đã duyệt" tone="text-emerald-600 dark:text-emerald-300" />
-            <HeroMetric icon={Trophy} value={stats.participated ?? 0} label="Đã tham gia" tone="text-indigo-600 dark:text-indigo-300" />
-            <HeroMetric icon={XCircle} value={stats.rejected ?? 0} label="Từ chối" tone="text-rose-600 dark:text-rose-300" />
-          </div>
-        </div>
-      </section>
+      <AdminPageHero
+        eyebrow="Quản trị phê duyệt"
+        title="Phê duyệt đăng ký"
+        description="Phê duyệt, từ chối và theo dõi đăng ký tham gia hoạt động của sinh viên toàn hệ thống."
+        heroIcon={Shield}
+        metrics={[
+          { icon: Clock, label: 'Chờ duyệt', value: stats.pending ?? 0, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: CheckCircle, label: 'Đã duyệt', value: stats.approved ?? 0, tone: 'text-emerald-600 dark:text-emerald-300' },
+          { icon: Trophy, label: 'Đã tham gia', value: stats.participated ?? 0, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: XCircle, label: 'Từ chối', value: stats.rejected ?? 0, tone: 'text-rose-600 dark:text-rose-300' },
+        ]}
+      />
 
       {/* ============================================ */}
       {/* SCOPE SELECTOR (Admin specific) */}
@@ -666,20 +654,6 @@ export default function AdminApprovalsPage() {
         isOpen={!!activityDetailId}
         onClose={() => setActivityDetailId(null)}
       />
-    </div>
-  );
-}
-
-function HeroMetric({ icon: Icon, value, label, tone }) {
-  return (
-    <div className="rounded-2xl border border-white/65 bg-white/55 p-4 shadow-sm backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 dark:border-white/10 dark:bg-slate-900/45">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{label}</p>
-        <span className="rounded-full border border-white/70 bg-white/55 p-2 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <Icon className={`h-4 w-4 ${tone}`} />
-        </span>
-      </div>
-      <p className={`text-3xl font-black leading-none tracking-[-0.05em] ${tone}`}>{value}</p>
     </div>
   );
 }

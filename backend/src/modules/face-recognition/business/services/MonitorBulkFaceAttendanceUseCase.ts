@@ -3,7 +3,7 @@ import { faceRecognitionClient } from '../../services';
 import type { IFaceDataRepository, FaceAuditContext, ClassFaceDataSnapshot } from '../interfaces';
 
 const DEFAULT_THRESHOLD = 0.68;
-const ATTENDANCE_TIME_LEEWAY_MS = 12 * 60 * 60 * 1000;
+const ATTENDANCE_TIME_LEEWAY_MS = 30 * 60 * 1000; // 30 phút leeway (thay vì 12h trước đây)
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type MarkedStudent = {
@@ -97,9 +97,10 @@ class MonitorBulkFaceAttendanceUseCase {
       throw new ValidationError(`Hoạt động đã kết thúc lúc ${activity.ngay_kt.toLocaleString('vi-VN')}`);
     }
 
+    // Query đã lọc chỉ face data đã xác minh (da_xac_minh = true) ở repository level
     const classFaceData = await this.faceDataRepository.findFaceDataByClassId(monitorClassId);
     if (classFaceData.length === 0) {
-      throw new ValidationError('Chưa có sinh viên nào trong lớp đăng ký khuôn mặt');
+      throw new ValidationError('Chưa có sinh viên nào trong lớp đăng ký khuôn mặt (đã xác minh)');
     }
 
     const marked: MarkedStudent[] = [];

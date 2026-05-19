@@ -1,9 +1,11 @@
 ﻿import React from 'react';
-import { Users, Search, Filter, Award, TrendingUp, Eye, Mail, Phone, Calendar, User, BookOpen, Trophy, AlertCircle, Download, Star, Medal, Target, Activity, Sparkles, Crown, ChevronRight, BarChart3 } from 'lucide-react';
+import { Users, Search, Download, Star, BarChart3 } from 'lucide-react';
 import Pagination from '../../../shared/components/common/Pagination';
 import StudentCard from './components/Students/StudentCard';
 import StudentDetailModal from './components/Students/StudentDetailModal';
 import { useMonitorStudentManagement } from '../model/hooks/useMonitorStudentManagement';
+import { StudentPageHero } from '../../../shared/components/student';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 
 export default function MonitorStudentManagementPage() {
   const {
@@ -32,60 +34,31 @@ export default function MonitorStudentManagementPage() {
   } = useMonitorStudentManagement();
 
   if (loading) {
-    return (
-      <div className="flex min-h-[24rem] items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55">
-        <div className="flex justify-center items-center h-96">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent absolute top-0 left-0"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(45,212,191,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.12),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(20,184,166,0.10),transparent_26%)]" />
-        <div className="relative z-10 space-y-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-indigo-700 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
-                <Users className="h-4 w-4" />
-                {stats.total} sinh viên
-              </div>
-              <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-5xl">Sinh viên lớp học</h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">Theo dõi thành tích và tiến độ rèn luyện của sinh viên trong lớp.</p>
-            </div>
-            <button
-              onClick={handleExportData}
-              className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
-            >
-              <Download className="h-5 w-5" />
-              Xuất Excel
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-              <Users className="mb-3 h-6 w-6 text-cyan-600 dark:text-cyan-300" />
-              <p className="text-3xl font-black tracking-[-0.04em] text-cyan-600 dark:text-cyan-300">{stats.total}</p>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Tổng sinh viên</p>
-            </div>
-            <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-              <Star className="mb-3 h-6 w-6 text-amber-600 dark:text-amber-300" />
-              <p className="text-3xl font-black tracking-[-0.04em] text-amber-600 dark:text-amber-300">{stats.topPerformers}</p>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Xuất sắc</p>
-            </div>
-            <div className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-              <BarChart3 className="mb-3 h-6 w-6 text-emerald-600 dark:text-emerald-300" />
-              <p className="text-3xl font-black tracking-[-0.04em] text-emerald-600 dark:text-emerald-300">{stats.avgPoints}</p>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Điểm TB</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StudentPageHero
+        eyebrow="Không gian lớp trưởng"
+        title="Sinh viên lớp học"
+        description="Theo dõi thành tích và tiến độ rèn luyện của sinh viên trong lớp."
+        heroIcon={Users}
+        metrics={[
+          { icon: Users, label: 'Tổng sinh viên', value: stats.total, tone: 'text-cyan-600 dark:text-cyan-300' },
+          { icon: Star, label: 'Xuất sắc', value: stats.topPerformers, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: BarChart3, label: 'Điểm TB', value: stats.avgPoints, tone: 'text-emerald-600 dark:text-emerald-300' },
+        ]}
+        actions={(
+          <button
+            onClick={handleExportData}
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-500/20 transition-all hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950"
+          >
+            <Download className="h-5 w-5" />
+            Xuất Excel
+          </button>
+        )}
+      />
 
       {/* Filters */}
       <div className="rounded-[2rem] border border-white/60 bg-white/60 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">

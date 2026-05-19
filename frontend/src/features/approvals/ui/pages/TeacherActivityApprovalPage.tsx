@@ -11,14 +11,15 @@ import {
   Filter,
   Search,
   History,
-  FileCheck
+  FileCheck,
+  BookOpen
 } from 'lucide-react';
 import { approvalTeacherApi } from '../../services';
-import { getActivityImage } from '../../../../shared/lib/activityImages';
 import { ConfirmModal, Toast } from '../../../../shared/components/common';
 import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetailModal';
 import { useSemesterData } from '../../../../shared/hooks';
-import { getCurrentSemesterValue } from '../../../../shared/lib/semester';
+import RolePageHero from '../../../../shared/components/common/RolePageHero';
+import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
 
 export default function ModernActivityApproval() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -207,13 +208,7 @@ export default function ModernActivityApproval() {
   };
 
   if (loading) {
-    return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (error) {
@@ -235,29 +230,27 @@ export default function ModernActivityApproval() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Phê duyệt hoạt động</h1>
-        <p className="text-sm sm:text-base text-gray-600">
-          Xem và phê duyệt các hoạt động do sinh viên trong lớp tạo
-          {semester && (
-            <span className="ml-2 text-blue-600 font-medium">
-              ({(semesterOptions || []).find(opt => opt.value === semester)?.label})
-            </span>
-          )}
-        </p>
-      </div>
+    <div className="space-y-6">
+      <RolePageHero
+        eyebrow="Không gian giảng viên"
+        title="Phê duyệt hoạt động"
+        description={`Xem và phê duyệt các hoạt động do sinh viên trong lớp tạo${semester ? ` (${(semesterOptions || []).find(opt => opt.value === semester)?.label || ''})` : ''}.`}
+        heroIcon={FileCheck}
+        metrics={[
+          { icon: BookOpen, label: 'Tổng hoạt động', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: Clock, label: 'Chờ duyệt', value: stats.pending, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: CheckCircle, label: 'Đã duyệt', value: stats.approved, tone: 'text-emerald-600 dark:text-emerald-300' },
+        ]}
+      />
 
       {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px space-x-4">
+      <div className="rounded-[1.5rem] border border-white/60 bg-white/70 p-2 shadow-sm backdrop-blur-xl">
+          <nav className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveTab('pending')}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'pending'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`rounded-2xl px-4 py-2.5 font-bold text-sm transition-colors ${activeTab === 'pending'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-white hover:text-slate-900'
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -272,9 +265,9 @@ export default function ModernActivityApproval() {
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'history'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`rounded-2xl px-4 py-2.5 font-bold text-sm transition-colors ${activeTab === 'history'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-white hover:text-slate-900'
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -283,46 +276,17 @@ export default function ModernActivityApproval() {
               </div>
             </button>
           </nav>
-        </div>
       </div>
 
       {/* Stats Summary - Only show for pending tab */}
-      {!loading && activeTab === 'pending' && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Tổng hoạt động</div>
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-100 p-3 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Chờ duyệt</div>
-                <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Đã duyệt</div>
-                <div className="text-2xl font-bold text-gray-900">{stats.approved}</div>
-              </div>
-            </div>
-          </div>
+      {!loading && activeTab === 'pending' && !isWritable && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+          Học kỳ này không cho phép phê duyệt hoặc chỉnh sửa.
         </div>
       )}
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-6 shadow-sm">
+      <div className="bg-white/80 rounded-[1.5rem] border border-white/60 p-4 sm:p-5 shadow-sm backdrop-blur-xl">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -332,7 +296,7 @@ export default function ModernActivityApproval() {
                 placeholder="Tìm kiếm hoạt động..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 text-sm font-semibold"
               />
             </div>
           </div>
@@ -341,7 +305,7 @@ export default function ModernActivityApproval() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-w-[140px]"
+                className="px-3 sm:px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 text-sm font-semibold min-w-[140px]"
               >
                 <option value="all">Tất cả</option>
                 <option value="da_duyet">Đã duyệt</option>
@@ -352,7 +316,7 @@ export default function ModernActivityApproval() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-w-[140px]"
+                className="px-3 sm:px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 text-sm font-semibold min-w-[140px]"
               >
                 <option value="all">Tất cả</option>
                 <option value="cho_duyet">Chờ duyệt</option>
@@ -362,7 +326,7 @@ export default function ModernActivityApproval() {
             )}
             <button
               onClick={loadActivities}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors text-sm font-bold"
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Tải lại</span>
@@ -372,37 +336,27 @@ export default function ModernActivityApproval() {
       </div>
 
       {/* Activities Grid - Responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
         {filteredActivities.length > 0 ? (
           filteredActivities.map(activity => (
-            <div key={activity.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
-              {/* Activity Image */}
-              <div className="relative w-full h-36 overflow-hidden">
-                <img
-                  src={getActivityImage(activity.hinh_anh, activity.loai_hd?.ten_loai_hd)}
-                  alt={activity.ten_hd}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-
-                {/* Status Badge */}
-                <div className="absolute top-3 right-3">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-sm ${statusColors[activity.trang_thai]}`}>
+            <div key={activity.id} className="bg-white/90 border border-white/70 rounded-[1.5rem] overflow-hidden shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg flex flex-col">
+              <div className="border-b border-slate-100 p-5">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-indigo-500">{activity.loai_hd?.ten_loai_hd || 'Hoạt động'}</p>
+                    <h3 className="mt-1 text-lg font-black text-slate-950 line-clamp-2">{activity.ten_hd}</h3>
+                  </div>
+                  <span className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${statusColors[activity.trang_thai]}`}>
                     {statusLabels[activity.trang_thai]}
                   </span>
                 </div>
-
-                {/* Title overlay on image */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="font-bold text-white text-lg line-clamp-2 drop-shadow-lg">{activity.ten_hd}</h3>
-                </div>
+                <p className="text-slate-500 text-sm line-clamp-2">{activity.mo_ta || 'Không có mô tả'}</p>
               </div>
 
-              {/* Content */}
               <div className="p-5 flex-1 flex flex-col">
                 {/* Creator Info - Lớp trưởng */}
                 {activity.nguoi_tao && (
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3 flex-shrink-0">
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3 mb-3 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-indigo-600" />
                       <div className="min-w-0 flex-1">
@@ -420,12 +374,9 @@ export default function ModernActivityApproval() {
                   </div>
                 )}
 
-                {/* Description */}
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-shrink-0">{activity.mo_ta || 'Không có mô tả'}</p>
-
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-3 flex-shrink-0">
-                  <div className="flex items-center gap-2 bg-amber-50 rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-amber-50 rounded-2xl p-3">
                     <Award className="w-4 h-4 text-amber-600 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs text-gray-500">Điểm</div>
@@ -433,7 +384,7 @@ export default function ModernActivityApproval() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-blue-50 rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-blue-50 rounded-2xl p-3">
                     <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs text-gray-500">Ngày</div>
@@ -443,7 +394,7 @@ export default function ModernActivityApproval() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-green-50 rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-green-50 rounded-2xl p-3">
                     <Users className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs text-gray-500">SL tối đa</div>
@@ -451,7 +402,7 @@ export default function ModernActivityApproval() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-purple-50 rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-purple-50 rounded-2xl p-3">
                     <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs text-gray-500">Tạo lúc</div>
@@ -468,7 +419,7 @@ export default function ModernActivityApproval() {
                     <div className="flex flex-col gap-2">
                       <button
                         onClick={() => handleApproveClick(activity.id)}
-                        className={`w-full px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 font-medium text-sm shadow-sm ${isWritable ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                        className={`w-full px-4 py-3 rounded-2xl transition-all flex items-center justify-center gap-2 font-bold text-sm shadow-sm ${isWritable ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                         disabled={!isWritable}
                       >
                         <CheckCircle className="w-4 h-4" />
@@ -477,7 +428,7 @@ export default function ModernActivityApproval() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleRejectClick(activity.id)}
-                          className={`flex-1 px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 font-medium text-sm ${isWritable ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                          className={`flex-1 px-3 py-2.5 rounded-2xl transition-colors flex items-center justify-center gap-1.5 font-bold text-sm ${isWritable ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                           disabled={!isWritable}
                         >
                           <XCircle className="w-4 h-4" />
@@ -485,7 +436,7 @@ export default function ModernActivityApproval() {
                         </button>
                         <button
                           onClick={() => handleViewDetail(activity)}
-                          className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-sm"
+                          className="flex-1 border border-slate-200 text-slate-700 px-3 py-2.5 rounded-2xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 text-sm font-bold"
                         >
                           <Eye className="w-4 h-4" />
                           Chi tiết
@@ -503,7 +454,7 @@ export default function ModernActivityApproval() {
                       )}
                       <button
                         onClick={() => handleViewDetail(activity)}
-                        className="w-full border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                        className="w-full border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 text-sm font-bold"
                       >
                         <Eye className="w-4 h-4" />
                         Xem chi tiết

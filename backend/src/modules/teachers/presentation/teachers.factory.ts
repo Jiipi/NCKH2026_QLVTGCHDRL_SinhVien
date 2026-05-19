@@ -20,6 +20,8 @@ import BulkApproveRegistrationsUseCase from '../business/services/BulkApproveReg
 import GetClassStatisticsUseCase from '../business/services/GetClassStatisticsUseCase';
 import AssignClassMonitorUseCase from '../business/services/AssignClassMonitorUseCase';
 import CreateStudentUseCase from '../business/services/CreateStudentUseCase';
+import UpdateStudentUseCase from '../business/services/UpdateStudentUseCase';
+import DeleteStudentUseCase from '../business/services/DeleteStudentUseCase';
 import ExportStudentsUseCase from '../business/services/ExportStudentsUseCase';
 import GetReportStatisticsUseCase from '../business/services/GetReportStatisticsUseCase';
 import TeachersController from './controllers/TeachersController';
@@ -76,6 +78,8 @@ export function createTeachersController(): TeachersController {
     getClassStatistics: new GetClassStatisticsUseCase(teacherRepository),
     assignClassMonitor: new AssignClassMonitorUseCase(teacherRepository),
     createStudent: new CreateStudentUseCase(teacherRepository),
+    updateStudent: new UpdateStudentUseCase(teacherRepository),
+    deleteStudent: new DeleteStudentUseCase(teacherRepository),
     exportStudents: new ExportStudentsUseCase(teacherRepository),
     getReportStatistics: new GetReportStatisticsUseCase(teacherRepository)
   };

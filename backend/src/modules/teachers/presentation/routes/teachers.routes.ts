@@ -4,6 +4,7 @@
  */
 
 import express, { type Router, type Request, type Response } from 'express';
+import XLSX from 'xlsx';
 import { createTeachersController } from '../teachers.factory';
 import { auth, requireTeacher } from '../../../../core/http/middleware/authJwt';
 import { asyncHandler } from '../../../../core/http/middleware/asyncHandler';
@@ -136,6 +137,58 @@ router.get('/students/import/jobs', auth, asyncHandler(async (_req: Request, res
   return res.json({ success: true, data: jobs });
 }));
 
+/**
+ * GET /teachers/students/import/template
+ * Download Excel template for student import
+ */
+router.get('/students/import/template', auth, asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  if (authReq.user?.role !== 'GIANG_VIEN' && authReq.user?.role !== 'GIANG_VIÊN' && authReq.user?.role !== 'ADMIN') {
+    return res.status(403).json({ success: false, message: 'Không có quyền tải file mẫu' });
+  }
+
+  const { prisma } = await import('../../../../data/infrastructure/prisma/client');
+  const teacherClasses = await prisma.lop.findMany({
+    where: { chu_nhiem: authReq.user!.sub },
+    select: { ten_lop: true },
+    orderBy: { ten_lop: 'asc' }
+  });
+  const className = teacherClasses[0]?.ten_lop || 'CTK46A';
+
+  const base = Date.now() % 10000000;
+  const mssv1 = String(base).padStart(7, '0');
+  const mssv2 = String((base + 1) % 10000000).padStart(7, '0');
+
+  const headers = [
+    'MSSV',
+    'Họ và tên',
+    'Email',
+    'Ngày sinh (YYYY-MM-DD)',
+    'Giới tính (nam/nu/khac)',
+    'Lớp',
+    'Số điện thoại',
+    'Địa chỉ'
+  ];
+  const rows = [
+    [mssv1, 'Sinh Viên Mẫu A', `sv${mssv1}@dlu.edu.vn`, '2003-01-15', 'nam', className, '0900000001', 'Địa chỉ 1'],
+    [mssv2, 'Sinh Viên Mẫu B', `sv${mssv2}@dlu.edu.vn`, '2003-05-20', 'nu',  className, '0900000002', 'Địa chỉ 2']
+  ];
+
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  worksheet['!cols'] = [
+    { wch: 10 }, { wch: 24 }, { wch: 28 }, { wch: 22 }, { wch: 22 },
+    { wch: 12 }, { wch: 14 }, { wch: 32 }
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'SinhVien');
+
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="mau_import_sinh_vien.xlsx"');
+  return res.send(buffer);
+}));
+
 
 /**
  * GET /teachers/students/import/jobs/:jobId
@@ -171,7 +224,7 @@ router.post('/students/preview', auth, uploadExcel.single('file'), asyncHandler(
     const result = await validateStudents(rows);
 
     const job = await createImportJob({
-      actorId: uploadReq.user!.id,
+      actorId: uploadReq.user!.sub,
       filename: originalName,
       totalRows: rows.length,
       previewPayload: result
@@ -210,7 +263,7 @@ router.post('/students/import', auth, asyncHandler(async (req: Request, res: Res
   }
 
   const result = await confirmStudentImportJob(jobId, {
-    userId: uploadReq.user!.id,
+    userId: uploadReq.user!.sub,
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'] || null,
     requestId: null,
@@ -224,6 +277,18 @@ router.post('/students/import', auth, asyncHandler(async (req: Request, res: Res
  * Export students list
  */
 router.get('/students/export', auth, asyncHandler((req: Request, res: Response) => teachersController.exportStudents(req as AuthenticatedRequest, res)));
+
+/**
+ * PUT /teachers/students/:id
+ * Update a student in the teacher's class
+ */
+router.put('/students/:id', auth, asyncHandler((req: Request, res: Response) => teachersController.updateStudent(req as AuthenticatedRequest, res)));
+
+/**
+ * DELETE /teachers/students/:id
+ * Delete a student in the teacher's class
+ */
+router.delete('/students/:id', auth, asyncHandler((req: Request, res: Response) => teachersController.deleteStudent(req as AuthenticatedRequest, res)));
 
 /**
  * GET /teachers/reports/statistics

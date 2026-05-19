@@ -104,9 +104,9 @@ services:
         echo 'Waiting for DB...'; sleep 3;
       done &&
       npx prisma generate || true &&
-      npx ts-node --transpile-only src/index.ts"
+      npx nodemon --watch src --ext ts,js,json --exec 'ts-node --transpile-only src/index.ts'"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -153,7 +153,13 @@ services:
     environment:
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1500"
       WATCHPACK_POLLING: "true"
+      WDS_SOCKET_HOST: "0.0.0.0"
+      WDS_SOCKET_PORT: "0"
+      FAST_REFRESH: "true"
+      TSC_COMPILE_ON_ERROR: "true"
+      DISABLE_ESLINT_PLUGIN: "true"
       BROWSER: "none"
       # Remove hardcoded IP - let the frontend use dynamic origin-based URL
       # REACT_APP_API_URL will be computed by frontend's http.js
@@ -169,7 +175,7 @@ services:
       - dacn_network
     command: sh -lc "npm install && npm start"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

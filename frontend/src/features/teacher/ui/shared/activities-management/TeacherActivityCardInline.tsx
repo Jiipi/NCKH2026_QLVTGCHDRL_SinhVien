@@ -165,7 +165,7 @@ export default function TeacherActivityCardInline({
                   <span className={`text-xs font-semibold ${timeStatusColor}`}>• {timeStatus}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <InfoRow icon={Clock} label={startDate?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} subLabel={startDate?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} />
                   <InfoRow icon={MapPin} label={activity.dia_diem || 'Chưa xác định'} />
                   <InfoRow icon={Users} label={activity.don_vi_to_chuc || 'Nhà trường'} />

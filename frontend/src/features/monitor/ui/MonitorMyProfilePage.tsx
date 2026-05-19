@@ -4,6 +4,7 @@ import useStudentProfile from '../../student/model/hooks/useStudentProfile';
 import { dashboardApi } from '../../../shared/api/dashboardApi';
 import { formatDateVN } from '../../../shared/lib/date';
 import { FaceRegistrationPageContent } from '../../face-recognition/ui/pages/FaceRegistrationPage';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 import {
   ProfileEditCard,
   ProfileHeroCard,
@@ -76,13 +77,7 @@ export default function MonitorMyProfilePage() {
   };
 
   if (loading) {
-    return (
-      <ProfileShell theme={theme}>
-        <div className="flex h-96 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-        </div>
-      </ProfileShell>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (

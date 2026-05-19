@@ -583,7 +583,16 @@ async def register_face_multi(files: List[UploadFile] = File(...)):
             )
             
         import numpy as np
-        avg_embedding = np.mean(embeddings, axis=0).tolist()
+        avg = np.mean(embeddings, axis=0)
+        # Normalize lại sau khi average — ArcFace output là unit vector,
+        # mean của nhiều unit vectors không phải unit vector
+        norm = np.linalg.norm(avg)
+        if norm > 0:
+            avg = avg / norm
+        avg_embedding = avg.tolist()
+        
+        # liveness_all_passed chỉ True khi KHÔNG có ảnh nào fail liveness
+        all_passed = len(failed_images) == 0
         
         return RegisterMultiResponse(
             success=True,
@@ -593,7 +602,7 @@ async def register_face_multi(files: List[UploadFile] = File(...)):
             images_processed=len(embeddings),
             images_total=len(files),
             liveness_scores=liveness_scores,
-            liveness_all_passed=True
+            liveness_all_passed=all_passed
         )
     except Exception as e:
         logger.error(f"Lỗi register-multi: {e}")

@@ -42,8 +42,21 @@ export const teacherStudentScoresApi = {
       const items = rawItems.map((student) => {
         const studentInfo = student.sinh_vien || student;
         const user = student.nguoi_dung || student.user || {};
-        const score = Number(student.tong_diem ?? student.totalPoints ?? student.total_points ?? student.diem_rl ?? student.score ?? studentInfo.diem_rl ?? 0);
-        const activities = student.hoat_dong || student.activities || [];
+        const activities = student.hoat_dong || student.activities || student.dang_ky_hd || [];
+
+        const fallbackScore = activities.reduce((sum: number, item: Record<string, unknown>) => {
+          const hd = (item?.hoat_dong as Record<string, unknown>) || (item as Record<string, unknown>);
+          const direct = Number(hd?.diem_rl);
+          if (Number.isFinite(direct) && direct > 0) return sum + direct;
+          const fallback = Number((hd?.loai_hd as Record<string, unknown> | undefined)?.diem_mac_dinh);
+          return Number.isFinite(fallback) ? sum + fallback : sum;
+        }, 0);
+
+        const reportedScore = Number(student.tong_diem ?? student.totalPoints ?? student.total_points ?? student.diem_rl ?? student.score ?? studentInfo.diem_rl);
+        const score = Number.isFinite(reportedScore) && reportedScore > 0 ? reportedScore : fallbackScore;
+
+        const reportedCount = Number(student.tong_hoat_dong ?? student.activitiesJoined ?? student.totalActivities ?? student.total_activities);
+        const activityCount = Number.isFinite(reportedCount) && reportedCount > 0 ? reportedCount : activities.length;
 
         return {
           id: student.id || studentInfo.id,
@@ -55,7 +68,7 @@ export const teacherStudentScoresApi = {
             ten_lop: student.className || student.ten_lop
           },
           tong_diem: score,
-          tong_hoat_dong: Number(student.tong_hoat_dong ?? student.activitiesJoined ?? student.totalActivities ?? student.total_activities ?? activities.length ?? 0),
+          tong_hoat_dong: activityCount,
           xep_loai: student.xep_loai || classifyScore(score),
           hoat_dong: activities
         };

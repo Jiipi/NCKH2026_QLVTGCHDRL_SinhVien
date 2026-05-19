@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { monitorStudentManagementApi } from '../../services/monitorStudentManagementApi';
 import useSemesterData from '../../../../shared/hooks/useSemesterData';
 import { sessionStorageManager } from '../../../../shared/api';
+import { downloadExcelWorkbook } from '../../../../shared/lib/exportExcel';
 
 /**
  * Hook quản lý sinh viên lớp
@@ -174,7 +175,7 @@ export function useMonitorStudentManagement() {
   // Business logic: Export data
   const handleExportData = useCallback(() => {
     const headers = ['MSSV', 'Họ tên', 'Email', 'Điểm RL', 'Số hoạt động', 'Xếp hạng'];
-    const csvData = filteredStudents.map(student => [
+    const rows = filteredStudents.map(student => [
       student.mssv,
       student.nguoi_dung.ho_ten,
       student.nguoi_dung.email,
@@ -183,19 +184,12 @@ export function useMonitorStudentManagement() {
       student.rank
     ]);
 
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `danh_sach_sinh_vien_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadExcelWorkbook([
+      {
+        name: 'Danh sách sinh viên',
+        rows: [headers, ...rows],
+      },
+    ], `danh_sach_sinh_vien_${new Date().toISOString().split('T')[0]}.xls`);
   }, [filteredStudents]);
 
   // Effects

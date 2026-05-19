@@ -1,6 +1,7 @@
 import React from 'react';
-import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Filter, Search, Calendar, TrendingUp, Zap } from 'lucide-react';
+import { Bell, Send, Users, Activity, AlertCircle, Sparkles, CheckCircle, Clock, MessageSquare, Target, Calendar, Zap } from 'lucide-react';
 import useNotificationBroadcast from '../model/hooks/useNotificationBroadcast';
+import { StudentPageHero } from '../../../shared/components/student';
 
 export default function ClassNotifications() {
   const {
@@ -33,114 +34,27 @@ export default function ClassNotifications() {
 
   return (
     <div className="space-y-6">
-      {/* Ultra Modern Header - Neo-brutalism + Glassmorphism Hybrid */}
-      <div className="relative min-h-[280px]">
-        {/* Animated Background Grid */}
-        <div className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'grid-move 20s linear infinite'
-          }}></div>
-        </div>
-
-
-        {/* Main Content Container with Glassmorphism */}
-        <div className="relative z-10 p-8">
-          <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-2xl p-8 shadow-2xl">
-
-            {/* Top Bar */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg px-4 py-2">
-                  <span className="text-white font-semibold text-sm">🔔 Thông báo</span>
-                </div>
-                <div className="h-8 w-px bg-white/30"></div>
-                <div className="text-white/90 font-medium text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    {stats.total} đã gửi
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={toggleHistory}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm"
-              >
-                <Clock className="h-4 w-4" />
-                {showHistory ? 'Ẩn lịch sử' : 'Lịch sử'}
-              </button>
-            </div>
-
-            {/* Main Title Section */}
-            <div className="mb-8">
-              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-                Gửi thông báo
-              </h1>
-
-              <p className="text-white/90 text-lg font-normal max-w-2xl leading-relaxed">
-                Gửi thông báo và cập nhật quan trọng đến sinh viên trong lớp
-              </p>
-            </div>
-
-            {/* Stats Bar */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1 - Total */}
-              <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 hover:bg-white/30 transition-all duration-200">
-                <MessageSquare className="h-5 w-5 text-white mb-2" />
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
-                <p className="text-xs font-medium text-white/80 uppercase tracking-wide">Tổng</p>
-              </div>
-
-              {/* Card 2 - This Week */}
-              <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 hover:bg-white/30 transition-all duration-200">
-                <Zap className="h-5 w-5 text-white mb-2" />
-                <p className="text-2xl font-bold text-white">{stats.thisWeek}</p>
-                <p className="text-xs font-medium text-white/80 uppercase tracking-wide">Tuần này</p>
-              </div>
-
-              {/* Card 3 - Class Scope */}
-              <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 hover:bg-white/30 transition-all duration-200">
-                <Users className="h-5 w-5 text-white mb-2" />
-                <p className="text-2xl font-bold text-white">{stats.classScope}</p>
-                <p className="text-xs font-medium text-white/80 uppercase tracking-wide">Toàn lớp</p>
-              </div>
-
-              {/* Card 4 - Activity Scope */}
-              <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 hover:bg-white/30 transition-all duration-200">
-                <Activity className="h-5 w-5 text-white mb-2" />
-                <p className="text-2xl font-bold text-white">{stats.activityScope}</p>
-                <p className="text-xs font-medium text-white/80 uppercase tracking-wide">Hoạt động</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Custom CSS for animations */}
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes grid-move {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(50px); }
-          }
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0) rotate(45deg); }
-            50% { transform: translateY(-20px) rotate(45deg); }
-          }
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .animate-bounce-slow {
-            animation: bounce-slow 3s ease-in-out infinite;
-          }
-          .animate-spin-slow {
-            animation: spin-slow 8s linear infinite;
-          }
-        `}} />
-      </div>
+      <StudentPageHero
+        eyebrow="Không gian lớp trưởng"
+        title="Gửi thông báo"
+        description="Gửi thông báo và cập nhật quan trọng đến sinh viên trong lớp."
+        heroIcon={Bell}
+        metrics={[
+          { icon: MessageSquare, label: 'Tổng', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: Zap, label: 'Tuần này', value: stats.thisWeek, tone: 'text-emerald-600 dark:text-emerald-300' },
+          { icon: Users, label: 'Toàn lớp', value: stats.classScope, tone: 'text-cyan-600 dark:text-cyan-300' },
+          { icon: Activity, label: 'Hoạt động', value: stats.activityScope, tone: 'text-amber-600 dark:text-amber-300' },
+        ]}
+        actions={(
+          <button
+            onClick={toggleHistory}
+            className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/55 px-4 py-2.5 text-sm font-bold text-indigo-600 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-indigo-300"
+          >
+            <Clock className="h-4 w-4" />
+            {showHistory ? 'Ẩn lịch sử' : 'Lịch sử'}
+          </button>
+        )}
+      />
 
       {/* Alert Messages */}
       {feedback.error && (

@@ -287,7 +287,7 @@ class FaceDataRepository implements IFaceDataRepository {
           gps_longitude: data.gps_longitude ?? null,
           gps_accuracy_m: data.gps_accuracy_m ?? null,
           khoang_cach_m: data.khoang_cach_m ?? null,
-          ket_qua_geofence: data.ket_qua_geofence || null
+          ket_qua_geofence: (data.ket_qua_geofence as any) || null
         },
         select: {
           id: true,
@@ -458,7 +458,8 @@ class FaceDataRepository implements IFaceDataRepository {
   async findFaceDataByClassId(classId: string) {
     const faceData = await prisma.duLieuKhuonMat.findMany({
       where: {
-        sinh_vien: { lop_id: classId }
+        sinh_vien: { lop_id: classId },
+        da_xac_minh: true  // Chỉ lấy face data đã được xác minh
       },
       select: {
         id: true,

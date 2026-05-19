@@ -13,6 +13,7 @@ import RecentActivities from '../../student/ui/components/Dashboard/RecentActivi
 import MonitorClassStats from './components/Dashboard/MonitorClassStats';
 import MonitorTopStudents from './components/Dashboard/MonitorTopStudents';
 import MonitorChartsSection from './components/Dashboard/MonitorChartsSection';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 
 // Page entry animation
 const pageVariants = {
@@ -117,19 +118,12 @@ export default function MonitorDashboardPage() {
         {loading && (
           <motion.div
             key="loading"
-            className="flex flex-col items-center justify-center py-16"
             variants={spinnerVariants}
             initial="initial"
             animate="animate"
             exit="exit"
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            >
-              <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3" />
-            </motion.div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải dữ liệu lớp học...</p>
+            <AppLoadingScreen />
           </motion.div>
         )}
       </AnimatePresence>

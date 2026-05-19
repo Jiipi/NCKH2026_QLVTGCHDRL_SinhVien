@@ -126,6 +126,19 @@ function Group({ title, children, defaultOpen = false, groupKey, icon, collapsed
   const containerRef = useRef(null);
   const hoverTimerRef = useRef(null);
 
+  // Close flyout on outside tap (touch devices don't fire onMouseLeave)
+  useEffect(() => {
+    if (!collapsed || !flyoutOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const container = containerRef.current as HTMLElement | null;
+      if (container && !container.contains(e.target as Node)) {
+        setFlyoutOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [collapsed, flyoutOpen]);
+
   const handleToggle = useCallback(() => {
     setOpen(prev => {
       const newState = !prev;
@@ -229,6 +242,8 @@ function SidebarSemesterPicker() {
 function AdminStudentSidebar() {
   const location = useLocation();
   const path = location.pathname;
+  const search = location.search || '';
+  const isApprovalActivities = path.startsWith('/admin/activities') && new URLSearchParams(search).get('status') === 'cho_duyet';
   const { hasAnyPermission, loading: permissionsLoading } = usePermissions();
   const [profile, setProfile] = React.useState(null);
 
@@ -312,10 +327,10 @@ function AdminStudentSidebar() {
     // Activities group
     const activitiesItems = [];
     if (hasAnyPermission(['activities.view', 'activities.read', 'activities.write'])) {
-      activitiesItems.push({ key: 'admin-activities', to: '/admin/activities', label: 'Danh sách hoạt động', icon: <Activity className="w-4 h-4" />, active: isActive('/admin/activities') });
+      activitiesItems.push({ key: 'admin-activities', to: '/admin/activities', label: 'Danh sách hoạt động', icon: <Activity className="w-4 h-4" />, active: isActive('/admin/activities') && !isApprovalActivities });
     }
     if (hasAnyPermission(['activities.approve'])) {
-      activitiesItems.push({ key: 'admin-activity-approvals', to: '/admin/activities?status=cho_duyet', label: 'Phê duyệt hoạt động', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/activities') && path.includes('status=cho_duyet') });
+      activitiesItems.push({ key: 'admin-activity-approvals', to: '/admin/activities?status=cho_duyet', label: 'Phê duyệt hoạt động', icon: <CheckSquare className="w-4 h-4" />, active: isApprovalActivities });
     }
     if (hasAnyPermission(['registrations.approve'])) {
       activitiesItems.push({ key: 'admin-approvals', to: '/admin/approvals', label: 'Phê duyệt đăng ký', icon: <CheckSquare className="w-4 h-4" />, active: isActive('/admin/approvals') });
@@ -341,7 +356,7 @@ function AdminStudentSidebar() {
     // Reports
     if (hasAnyPermission(['reports.read', 'reports.view', 'reports.export'])) {
       menu.push({ key: 'reports', to: '/admin/reports', label: 'Báo cáo', icon: <FileText className="w-5 h-5" />, active: isActive('/admin/reports') });
-      menu.push({ key: 'attendance-audit', to: '/admin/attendance-audit', label: 'Audit điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: isActive('/admin/attendance-audit') });
+      menu.push({ key: 'attendance-audit', to: '/admin/attendance-audit', label: 'Lịch sử điểm danh', icon: <ShieldAlert className="w-5 h-5" />, active: isActive('/admin/attendance-audit') });
     }
 
     // Notifications
@@ -361,7 +376,7 @@ function AdminStudentSidebar() {
     }
 
     return menu;
-  }, [path, hasAnyPermission]);
+  }, [path, search, isApprovalActivities, hasAnyPermission]);
 
   const renderMenuItems = useCallback((items) => {
     return items.map(item => {
@@ -446,7 +461,7 @@ function AdminStudentSidebar() {
             </div>
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="touch-target p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white transition-colors"
               title="Thu gọn sidebar"
             >
               <ChevronsLeft className="w-4 h-4" />

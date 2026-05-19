@@ -135,7 +135,9 @@ export async function validateStudentRow(
   const sdt = (row['Số điện thoại'] || row['SĐT'] || row['sdt'] || '').toString().trim();
   const dia_chi = (row['Địa chỉ'] || row['dia_chi'] || '').toString().trim();
   const ten_dang_nhap = (row['Tên đăng nhập'] || row['ten_dang_nhap'] || row['ten_dn'] || mssv).toString().trim();
-  const mat_khau = (row['Mật khẩu'] || row['mat_khau'] || '').toString().trim();
+  const mat_khau_raw = (row['Mật khẩu'] || row['mat_khau'] || '').toString().trim();
+  // Default password if column is omitted from the simplified template (mssv-based, must be changed on first login)
+  const mat_khau = mat_khau_raw || `dlu@${mssv}`;
 
   if (!mssv) errors.push('MSSV không được để trống');
   if (!ho_ten) errors.push('Họ tên không được để trống');
@@ -143,8 +145,6 @@ export async function validateStudentRow(
   if (!ngay_sinh) errors.push('Ngày sinh không được để trống');
   if (!gioi_tinh) errors.push('Giới tính không được để trống');
   if (!lop) errors.push('Lớp không được để trống');
-  if (!ten_dang_nhap) errors.push('Tên đăng nhập không được để trống');
-  if (!mat_khau) errors.push('Mật khẩu không được để trống');
 
   if (errors.length > 0) {
     return { valid: false, errors, data: { mssv, ho_ten, email, lop } as Partial<StudentData> };

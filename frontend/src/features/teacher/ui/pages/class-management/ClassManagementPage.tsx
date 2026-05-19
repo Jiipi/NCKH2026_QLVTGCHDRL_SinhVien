@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../../../../../shared/contexts/NotificationContext';
 import { teacherClassesApi, teacherStudentsApi } from '../../../services';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 export default function ClassManagementPage() {
   const { showSuccess, showError, showWarning } = useNotification();
@@ -138,13 +139,7 @@ export default function ClassManagementPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (classes.length === 0) {

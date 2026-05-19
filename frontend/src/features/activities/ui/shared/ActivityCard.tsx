@@ -126,7 +126,7 @@ export const ActivityCard: FC<ActivityCardProps> = ({
                   {activityType}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
                 <div className="flex items-start gap-1.5"><Clock className="h-4 w-4 text-gray-400 mt-0.5" /><p>{formatDisplayDate(startDate)}</p></div>
                 <div className="flex items-start gap-1.5"><MapPin className="h-4 w-4 text-gray-400 mt-0.5" /><p>{activity.dia_diem || 'N/A'}</p></div>
                 <div className="flex items-start gap-1.5"><Users className="h-4 w-4 text-gray-400 mt-0.5" /><p>{activity.don_vi_to_chuc || 'N/A'}</p></div>

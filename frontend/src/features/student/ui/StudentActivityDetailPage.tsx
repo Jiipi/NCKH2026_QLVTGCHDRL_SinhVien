@@ -5,6 +5,7 @@ import useStudentActivityDetail from '../model/hooks/useStudentActivityDetail';
 import { getActivityImages } from '../../../shared/lib/activityImages';
 import { FaceAttendanceCard } from '../../face-recognition/ui/components';
 import { StudentPageHero } from '../../../shared/components/student';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 
 export default function StudentActivityDetailPage() {
   const { id } = useParams();
@@ -13,7 +14,7 @@ export default function StudentActivityDetailPage() {
   const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null);
 
   if (loading) {
-    return <div>Đang tải...</div>;
+    return <AppLoadingScreen />;
   }
 
   if (error) {

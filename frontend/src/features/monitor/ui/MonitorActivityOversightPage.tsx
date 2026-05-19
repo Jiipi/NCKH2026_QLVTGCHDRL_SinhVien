@@ -8,6 +8,8 @@ import ActivityEditModal from './components/Activities/ActivityEditModal';
 import { useMonitorActivityOversight } from '../model/hooks/useMonitorActivityOversight';
 import ActivitySortBar from '../../activities/ui/shared/ActivitySortBar';
 import MonitorBulkFaceAttendanceModal from './components/FaceAttendance/MonitorBulkFaceAttendanceModal';
+import { StudentPageHero } from '../../../shared/components/student';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
 
 const statusConfig = {
   co_san: { label: 'Có sẵn', icon: UserPlus, tone: 'teal', countKey: 'availableCount' },
@@ -40,32 +42,8 @@ const toneClasses = {
   }
 };
 
-function MetricCard({ icon: Icon, label, value, tone }: { icon: React.ElementType; label: string; value: number; tone: keyof typeof toneClasses }) {
-  return (
-    <div className="rounded-2xl border border-white/60 bg-white/45 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{label}</span>
-        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses[tone].icon}`}>
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <p className="text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">{value}</p>
-    </div>
-  );
-}
-
 function LoadingSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="h-56 animate-pulse rounded-[2rem] border border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" />
-      <div className="h-40 animate-pulse rounded-[2rem] border border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="h-64 animate-pulse rounded-2xl border border-white/60 bg-white/55 dark:border-white/10 dark:bg-slate-950/55" />
-        ))}
-      </div>
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
 
 export default function MonitorActivityOversightPage() {
@@ -149,49 +127,36 @@ export default function MonitorActivityOversightPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(99,102,241,0.15),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(20,184,166,0.14),transparent_28%)]" />
-        <div className="relative z-10 space-y-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-lg shadow-indigo-500/20 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950">
-                <ActivityIcon className="h-7 w-7" />
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-300">Không gian lớp trưởng</p>
-                <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý hoạt động lớp</h1>
-                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">
-                  Theo dõi đề xuất, đăng ký và trạng thái hoạt động theo học kỳ với giao diện quản trị gọn, rõ và dễ thao tác.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-2xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                {semesterOptions.find(option => option.value === semester)?.label || 'Học kỳ hiện tại'}
-              </span>
-              <span className={`rounded-2xl border px-3 py-2 text-xs font-bold shadow-sm backdrop-blur-xl ${isWritable ? 'border-emerald-200/70 bg-emerald-50/80 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300' : 'border-slate-200/70 bg-slate-50/80 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400'}`}>
-                {isWritable ? 'Có quyền tạo/sửa' : 'Chỉ xem học kỳ'}
-              </span>
-              <button
-                onClick={handleCreateActivity}
-                disabled={!isWritable}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950' : 'cursor-not-allowed border border-white/60 bg-white/40 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'}`}
-              >
-                <Plus className="h-4 w-4" />
-                Tạo hoạt động
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard icon={ActivityIcon} label="Tổng hoạt động" value={totalActivitiesCount} tone="indigo" />
-            <MetricCard icon={Clock} label="Chờ duyệt" value={pendingCount} tone="amber" />
-            <MetricCard icon={CheckCircle} label="Đã duyệt" value={approvedCount} tone="emerald" />
-            <MetricCard icon={Award} label="Kết thúc" value={endedCount} tone="teal" />
-          </div>
-        </div>
-      </section>
+      <StudentPageHero
+        eyebrow="Không gian lớp trưởng"
+        title="Quản lý hoạt động lớp"
+        description="Theo dõi đề xuất, đăng ký và trạng thái hoạt động theo học kỳ với giao diện quản trị gọn, rõ và dễ thao tác."
+        heroIcon={ActivityIcon}
+        metrics={[
+          { icon: ActivityIcon, label: 'Tổng hoạt động', value: totalActivitiesCount, tone: 'text-indigo-600 dark:text-indigo-300' },
+          { icon: Clock, label: 'Chờ duyệt', value: pendingCount, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: CheckCircle, label: 'Đã duyệt', value: approvedCount, tone: 'text-emerald-600 dark:text-emerald-300' },
+          { icon: Award, label: 'Kết thúc', value: endedCount, tone: 'text-teal-600 dark:text-teal-300' },
+        ]}
+        actions={(
+          <>
+            <span className="rounded-2xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              {semesterOptions.find(option => option.value === semester)?.label || 'Học kỳ hiện tại'}
+            </span>
+            <span className={`rounded-2xl border px-3 py-2 text-xs font-bold shadow-sm backdrop-blur-xl ${isWritable ? 'border-emerald-200/70 bg-emerald-50/80 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300' : 'border-slate-200/70 bg-slate-50/80 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400'}`}>
+              {isWritable ? 'Có quyền tạo/sửa' : 'Chỉ xem học kỳ'}
+            </span>
+            <button
+              onClick={handleCreateActivity}
+              disabled={!isWritable}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${isWritable ? 'bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 dark:from-white dark:via-indigo-100 dark:to-white dark:text-slate-950' : 'cursor-not-allowed border border-white/60 bg-white/40 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'}`}
+            >
+              <Plus className="h-4 w-4" />
+              Tạo hoạt động
+            </button>
+          </>
+        )}
+      />
 
       <section className="rounded-[2rem] border border-white/60 bg-white/60 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-5">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import useTeacherActivitiesPage from '../../../model/hooks/useTeacherActivitiesPage';
 import TeacherActivitiesHeroInline from '../../shared/activities-management/TeacherActivitiesHeroInline';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 import TeacherActivityCardInline, { Activity } from '../../shared/activities-management/TeacherActivityCardInline';
 import ActivityDetailModalInline from '../../shared/activities-management/ActivityDetailModalInline';
 import Pagination from '../../../../../shared/components/common/Pagination';
@@ -68,14 +69,7 @@ export default function TeacherActivitiesPage() {
   const getStatusLabel = (status) => STATUS_LABELS[status] || 'Chưa xác định';
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200"></div>
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent absolute top-0 left-0"></div>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (

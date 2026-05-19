@@ -206,16 +206,8 @@ class TeacherPrismaRepository extends BaseTeacherRepository {
 
   // ==================== REGISTRATION METHODS ====================
   async getClassRegistrations(classIds: string[], filters: ClassRegistrationFilters = {}): Promise<ClassRegistration[]> {
-    const registrations = await this.registrationRepo.getClassRegistrations(classIds, filters) as unknown as RegistrationWithRelations[];
-    return registrations.map(r => ({
-      id: r.id,
-      studentId: r.sinh_vien?.id || '',
-      studentName: r.sinh_vien?.nguoi_dung?.ho_ten ?? null,
-      mssv: r.sinh_vien?.mssv || '',
-      activityName: r.hoat_dong?.ten_hd || '',
-      status: r.trang_thai_dk,
-      registrationDate: r.ngay_dang_ky
-    }));
+    const registrations = await this.registrationRepo.getClassRegistrations(classIds, filters);
+    return registrations as unknown as ClassRegistration[];
   }
 
   async getTeacherClassRegistrationsForChartsAll(teacherId: string, semesterId: string | null = null): Promise<RegistrationForCharts[]> {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
 import { useAttendanceAudit } from '../model/useAttendanceAudit';
+import { StudentPageHero } from '../../../shared/components/student';
 
 type Scope = 'admin' | 'monitor';
 
@@ -47,20 +48,6 @@ function getStudentName(item: any) {
   return `${name || 'Sinh viên'}${mssv ? ` (${mssv})` : ''}`;
 }
 
-function StatCard({ title, value, icon, tone }: { title: string; value: any; icon: React.ReactNode; tone: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{value || 0}</p>
-        </div>
-        <div className={`rounded-lg p-3 ${tone}`}>{icon}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function AttendanceAuditPage({ scope = 'admin' }: { scope?: Scope }) {
   const { filters, data, loading, error, updateFilter, clearFilters, reload } = useAttendanceAudit(scope);
   const summary: any = data.summary || {};
@@ -68,24 +55,24 @@ export default function AttendanceAuditPage({ scope = 'admin' }: { scope?: Scope
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">Audit điểm danh</p>
-          <h1 className="text-2xl font-bold text-slate-900">Lịch sử bất thường điểm danh</h1>
-          <p className="text-sm text-slate-500">Theo dõi phiên QR, token QR và các lần quét thành công/thất bại.</p>
-        </div>
-        <button onClick={reload} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-          <RefreshCw className="h-4 w-4" /> Làm mới
-        </button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-5">
-        <StatCard title="Tổng event" value={summary.totalEvents} icon={<ShieldAlert className="h-5 w-5 text-blue-700" />} tone="bg-blue-50" />
-        <StatCard title="Quét thành công" value={summary.successfulScans} icon={<CheckCircle className="h-5 w-5 text-emerald-700" />} tone="bg-emerald-50" />
-        <StatCard title="Quét thất bại" value={summary.failedScans} icon={<XCircle className="h-5 w-5 text-red-700" />} tone="bg-red-50" />
-        <StatCard title="Điểm danh trùng" value={summary.duplicateAttemptCount} icon={<AlertTriangle className="h-5 w-5 text-amber-700" />} tone="bg-amber-50" />
-        <StatCard title="IP đáng nghi" value={summary.suspiciousIpCount} icon={<ShieldAlert className="h-5 w-5 text-purple-700" />} tone="bg-purple-50" />
-      </div>
+      <StudentPageHero
+        eyebrow={scope === 'monitor' ? 'Không gian lớp trưởng' : 'Lịch sử điểm danh'}
+        title="Lịch sử điểm danh"
+        description="Tra cứu lịch sử các phiên QR, token QR và các lần quét điểm danh thành công hoặc thất bại."
+        heroIcon={ShieldAlert}
+        metrics={[
+          { icon: ShieldAlert, label: 'Tổng event', value: summary.totalEvents || 0, tone: 'text-blue-600 dark:text-blue-300' },
+          { icon: CheckCircle, label: 'Thành công', value: summary.successfulScans || 0, tone: 'text-emerald-600 dark:text-emerald-300' },
+          { icon: XCircle, label: 'Thất bại', value: summary.failedScans || 0, tone: 'text-rose-600 dark:text-rose-300' },
+          { icon: AlertTriangle, label: 'Điểm danh trùng', value: summary.duplicateAttemptCount || 0, tone: 'text-amber-600 dark:text-amber-300' },
+          { icon: ShieldAlert, label: 'IP đáng nghi', value: summary.suspiciousIpCount || 0, tone: 'text-purple-600 dark:text-purple-300' },
+        ]}
+        actions={(
+          <button onClick={reload} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+            <RefreshCw className="h-4 w-4" /> Làm mới
+          </button>
+        )}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">

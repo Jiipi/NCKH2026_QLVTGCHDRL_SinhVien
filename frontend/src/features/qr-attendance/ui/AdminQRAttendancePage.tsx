@@ -1,19 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   QrCode, Download, Search, Filter, 
   Activity, CheckCircle, XCircle, Clock, AlertCircle, Eye,
   Users, Calendar, MapPin, Smartphone,
-  Zap, TrendingUp, GraduationCap, Sparkles, FileText
+  Zap, TrendingUp, GraduationCap, FileText
 } from 'lucide-react';
 import { useAdminQRAttendance } from '../model/hooks/useAdminQRAttendance';
 import { useNotification } from '../../../shared/contexts/NotificationContext';
 import { useSemesterData } from '../../../shared/hooks';
 import Pagination from '../../../shared/components/common/Pagination';
+import { StudentPageHero } from '../../../shared/components/student';
+import AppLoadingScreen from '../../../shared/components/common/AppLoadingScreen';
+import { downloadExcelWorkbook } from '../../../shared/lib/exportExcel';
 import AdminQRModal from './components/AdminQRModal';
 import AdminDetailModal from './components/AdminDetailModal';
 import qrApi from '../services/qrApi';
 
 export default function AdminQRAttendancePage() {
+  const location = useLocation();
   const { showSuccess, showError, showInfo } = useNotification();
   const {
     attendanceRecords,
@@ -46,6 +51,8 @@ export default function AdminQRAttendancePage() {
   const [exporting, setExporting] = useState(false);
   const [activeSection, setActiveSection] = useState<'attendance' | 'fallback'>('attendance');
   const [fallbackNotes, setFallbackNotes] = useState<Record<string, string>>({});
+  const isMonitorRoute = location.pathname.startsWith('/monitor');
+  const isTeacherRoute = location.pathname.startsWith('/teacher');
   
   // Bộ lọc cho tạo QR
   const [qrSemester, setQrSemester] = useState('');
@@ -185,40 +192,34 @@ export default function AdminQRAttendancePage() {
         return;
       }
 
-      // Tạo CSV
-      const headers = ['MSSV', 'Họ tên', 'Lớp', 'Hoạt động', 'Thời gian điểm danh', 'Phương thức', 'Trạng thái', 'Người điểm danh'];
-      const csvRows = [headers.join(',')];
-      
-      records.forEach(record => {
-        const row = [
-          record.student?.mssv || '',
-          `"${record.student?.name || ''}"`,
-          `"${record.student?.class || ''}"`,
-          `"${record.activity?.name || ''}"`,
-          record.attendance?.time ? new Date(record.attendance.time).toLocaleString('vi-VN') : '',
-          record.attendance?.method || '',
-          record.attendance?.status === 'co_mat' ? 'Có mặt' : 
-            record.attendance?.status === 'vang_mat' ? 'Vắng mặt' : 
-            record.attendance?.status === 'muon' ? 'Muộn' : 'Về sớm',
-          `"${record.checked_by?.name || ''}"`
-        ];
-        csvRows.push(row.join(','));
-      });
-      
-      const csvContent = '\uFEFF' + csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `diem-danh-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadExcelWorkbook([
+        {
+          name: 'Điểm danh',
+          rows: [
+            ['MSSV', 'Họ tên', 'Lớp', 'Hoạt động', 'Thời gian điểm danh', 'Phương thức', 'Trạng thái', 'Người điểm danh'],
+            ...records.map(record => [
+              record.student?.mssv || '',
+              record.student?.name || '',
+              typeof record.student?.class === 'object'
+                ? record.student?.class?.ten_lop || ''
+                : record.student?.class || '',
+              record.activity?.name || '',
+              record.attendance?.time ? new Date(record.attendance.time).toLocaleString('vi-VN') : '',
+              record.attendance?.method || '',
+              record.attendance?.status === 'co_mat' ? 'Có mặt'
+                : record.attendance?.status === 'vang_mat' ? 'Vắng mặt'
+                  : record.attendance?.status === 'muon' ? 'Muộn'
+                    : record.attendance?.status === 've_som' ? 'Về sớm'
+                      : record.attendance?.status || '',
+              record.checked_by?.name || '',
+            ]),
+          ],
+        },
+      ], `diem_danh_${new Date().toISOString().split('T')[0]}.xls`);
       
       showSuccess(`Đã xuất ${records.length} bản ghi điểm danh`, 'Thành công');
     } catch (error) {
-      console.error('Lỗi xuất CSV:', error);
+      console.error('Lỗi xuất Excel:', error);
       showError('Không thể xuất báo cáo', 'Lỗi');
     } finally {
       setExporting(false);
@@ -276,26 +277,7 @@ export default function AdminQRAttendancePage() {
   const normalizedRecords = attendanceRecords.map(normalizeRecord);
 
   if (loading && normalizedRecords.length === 0) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '400px', 
-        flexDirection: 'column', 
-        gap: '16px' 
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #3498db',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <p>Đang tải dữ liệu điểm danh...</p>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
@@ -310,53 +292,29 @@ export default function AdminQRAttendancePage() {
       </style>
 
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(129,140,248,0.16),transparent_30%),radial-gradient(circle_at_100%_0%,rgba(236,72,153,0.12),transparent_28%)]" />
-          <div className="relative z-10 space-y-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-3xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-indigo-300">
-                  <Sparkles className="h-4 w-4" />
-                  {stats.total} điểm danh
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/55 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-                    <QrCode className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-3xl">Quản lý QR điểm danh</h1>
-                    <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-300">Quản lý điểm danh bằng QR code, theo dõi trạng thái tham gia và phương thức điểm danh cho tất cả hoạt động.</p>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Download className="h-5 w-5" />
-                {exporting ? 'Đang xuất...' : 'Xuất CSV'}
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                { icon: QrCode, label: 'Tổng điểm danh', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300', bg: 'bg-indigo-50 dark:bg-indigo-400/10' },
-                { icon: CheckCircle, label: 'Có mặt', value: stats.coMat, tone: 'text-emerald-600 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-400/10' },
-                { icon: XCircle, label: 'Vắng mặt', value: stats.vangMat, tone: 'text-rose-600 dark:text-rose-300', bg: 'bg-rose-50 dark:bg-rose-400/10' },
-                { icon: Clock, label: 'Muộn / Về sớm', value: stats.muon + stats.veSom, tone: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-400/10' },
-                { icon: TrendingUp, label: 'Tỷ lệ có mặt', value: `${attendanceRate}%`, tone: 'text-blue-600 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-400/10' }
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/60 bg-white/55 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl ${stat.bg}`}>
-                    <stat.icon className={`h-5 w-5 ${stat.tone}`} />
-                  </div>
-                  <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{stat.value}</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <StudentPageHero
+          eyebrow={isMonitorRoute ? 'Không gian lớp trưởng' : isTeacherRoute ? 'Không gian giảng viên' : 'Quản lý điểm danh'}
+          title="Quản lý QR điểm danh"
+          description="Quản lý điểm danh bằng QR code, theo dõi trạng thái tham gia và phương thức điểm danh cho tất cả hoạt động."
+          heroIcon={QrCode}
+          metrics={[
+            { icon: QrCode, label: 'Tổng điểm danh', value: stats.total, tone: 'text-indigo-600 dark:text-indigo-300' },
+            { icon: CheckCircle, label: 'Có mặt', value: stats.coMat, tone: 'text-emerald-600 dark:text-emerald-300' },
+            { icon: XCircle, label: 'Vắng mặt', value: stats.vangMat, tone: 'text-rose-600 dark:text-rose-300' },
+            { icon: Clock, label: 'Muộn / Về sớm', value: stats.muon + stats.veSom, tone: 'text-amber-600 dark:text-amber-300' },
+            { icon: TrendingUp, label: 'Tỷ lệ có mặt', value: `${attendanceRate}%`, tone: 'text-blue-600 dark:text-blue-300' },
+          ]}
+          actions={(
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download className="h-5 w-5" />
+              {exporting ? 'Đang xuất...' : 'Xuất Excel'}
+            </button>
+          )}
+        />
 
         {/* Quick Actions - Style đơn giản */}
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-6">

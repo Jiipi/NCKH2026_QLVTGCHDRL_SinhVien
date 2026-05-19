@@ -11,6 +11,7 @@ import useTeacherDashboard from '../../../model/hooks/useTeacherDashboard';
 import useTeacherRegistrationActions from '../../../model/hooks/useTeacherRegistrationActions';
 import { teacherDashboardApi } from '../../../services';
 import { getUserAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
+import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
 
 // --- Framer Motion Variants ---
 const pageVariants = {
@@ -195,11 +196,8 @@ export default function TeacherDashboardPage() {
       {/* Loading */}
       <AnimatePresence mode="wait">
         {loading && (
-          <motion.div key="loading" className="flex flex-col items-center justify-center rounded-[2rem] border border-white/60 bg-white/60 py-16 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-              <Loader2 className="mb-3 h-8 w-8 text-indigo-600 dark:text-indigo-300" />
-            </motion.div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">Đang tải dữ liệu...</p>
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <AppLoadingScreen />
           </motion.div>
         )}
       </AnimatePresence>
