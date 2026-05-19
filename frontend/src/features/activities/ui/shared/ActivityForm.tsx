@@ -1,5 +1,5 @@
 import type { FC, ChangeEvent, FormEvent } from 'react';
-import { CalendarDays, Clock, Crosshair, FileText, Image as ImageIcon, Loader2, LocateFixed, MapPin, Paperclip, Save, Tag, Trophy, Users, X } from 'lucide-react';
+import { CalendarDays, Clock, Crosshair, FileText, Image as ImageIcon, Loader2, LocateFixed, MapPin, Paperclip, Save, Sparkles, Tag, Trophy, Users, X } from 'lucide-react';
 import { LabeledInput } from '../../../../shared/components/forms/LabeledInput';
 import FileUpload from '../../../../shared/ui/FileUpload/FileUpload';
 
@@ -98,8 +98,72 @@ export const ActivityForm: FC<ActivityFormProps> = ({
     }, undefined, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   };
 
+  // ─── Quick fill sample data ───
+  const SAMPLE_ACTIVITIES = [
+    { ten_hd: 'Ngày hội Công nghệ Thông tin 2026', mo_ta: 'Chương trình giao lưu, triển lãm sản phẩm CNTT do sinh viên tự phát triển. Bao gồm các bài thuyết trình, demo sản phẩm, và phần thi lập trình nhanh.', dia_diem: 'Hội trường A - Tầng 3', diem_rl: '5' },
+    { ten_hd: 'Hiến máu nhân đạo Xuân 2026', mo_ta: 'Hoạt động hiến máu tình nguyện do Hội Chữ thập đỏ trường tổ chức. Sinh viên cần mang theo CCCD và đảm bảo sức khỏe trước khi tham gia.', dia_diem: 'Nhà thi đấu đa năng', diem_rl: '3' },
+    { ten_hd: 'Workshop kỹ năng mềm - Giao tiếp hiệu quả', mo_ta: 'Workshop chia sẻ kinh nghiệm về kỹ năng giao tiếp, thuyết trình và làm việc nhóm từ các diễn giả doanh nghiệp. Có phần thực hành tương tác.', dia_diem: 'Phòng hội thảo B2.01', diem_rl: '2' },
+    { ten_hd: 'Chiến dịch Mùa hè xanh 2026', mo_ta: 'Hoạt động tình nguyện dọn vệ sinh môi trường, trồng cây xanh tại khu vực lân cận trường. Phát động phong trào bảo vệ môi trường trong sinh viên.', dia_diem: 'Sân trường & khu vực lân cận', diem_rl: '4' },
+    { ten_hd: 'Cuộc thi Sáng tạo khởi nghiệp SV 2026', mo_ta: 'Cuộc thi dành cho các nhóm sinh viên có ý tưởng khởi nghiệp sáng tạo. Vòng chung kết thuyết trình trước ban giám khảo doanh nghiệp.', dia_diem: 'Hội trường lớn - Cơ sở chính', diem_rl: '6' },
+  ];
+
+  const fillSampleData = () => {
+    if (disabled || isEditMode) return;
+
+    const sample = SAMPLE_ACTIVITIES[Math.floor(Math.random() * SAMPLE_ACTIVITIES.length)];
+    const now = new Date();
+    const startDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 ngày sau
+    const endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000); // +4 giờ
+    const regDeadline = new Date(startDate.getTime() - 24 * 60 * 60 * 1000); // 1 ngày trước bắt đầu
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const toLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+    const firstType = activityTypes[0];
+    const typeId = firstType?.id || '';
+
+    const fields: Record<string, string> = {
+      ten_hd: sample.ten_hd,
+      mo_ta: sample.mo_ta,
+      dia_diem: sample.dia_diem,
+      diem_rl: sample.diem_rl,
+      ngay_bd: toLocal(startDate),
+      ngay_kt: toLocal(endDate),
+      han_dk: toLocal(regDeadline),
+      sl_toi_da: '50',
+      loai_hd_id: typeId,
+    };
+
+    for (const [name, value] of Object.entries(fields)) {
+      onFormChange({ target: { name, value, type: 'text' } } as ChangeEvent<HTMLInputElement>);
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Quick Fill Banner - chỉ hiện ở chế độ tạo mới */}
+      {!isEditMode && (
+        <div className="lg:col-span-2">
+          <button
+            type="button"
+            onClick={fillSampleData}
+            disabled={disabled}
+            className="group flex w-full items-center gap-3 rounded-2xl border border-dashed border-violet-300 bg-gradient-to-r from-violet-50 via-fuchsia-50 to-indigo-50 px-5 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md hover:shadow-violet-100/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-400/30 dark:from-violet-950/30 dark:via-fuchsia-950/20 dark:to-indigo-950/30 dark:hover:border-violet-400/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 transition-transform group-hover:scale-110">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-violet-900 dark:text-violet-200">Nhập nhanh dữ liệu mẫu</p>
+              <p className="text-xs text-violet-600/70 dark:text-violet-400/60">Click để tự động điền tất cả trường với dữ liệu mẫu ngẫu nhiên • Tiết kiệm thời gian test</p>
+            </div>
+            <div className="hidden shrink-0 rounded-xl border border-violet-200/70 bg-white/80 px-3 py-1.5 text-xs font-bold text-violet-600 shadow-sm backdrop-blur-sm transition-colors group-hover:bg-violet-100 sm:block dark:border-violet-400/20 dark:bg-violet-950/50 dark:text-violet-300">
+              ✨ Quick Fill
+            </div>
+          </button>
+        </div>
+      )}
+
       <LabeledInput id="ten_hd" label="Tên hoạt động" error={fieldErrors.ten_hd}>
         <div className="relative">
           <FileText className={iconClass} />
