@@ -32,14 +32,29 @@ class ApprovalTeacherApi {
 
   async getPendingRegistrations(params = {}) {
     try {
-      const response = await http.get('/teacher/registrations/pending', { params });
+      // Use generic /teacher/registrations endpoint so we can filter by any status.
+      // /teacher/registrations/pending is hard-coded to cho_duyet only.
+      const status = (params as { status?: string }).status;
+      const useGeneric = status && status !== 'cho_duyet';
+      const url = useGeneric ? '/teacher/registrations' : '/teacher/registrations/pending';
+      const response = await http.get(url, { params });
       const data = response?.data?.data || response?.data || {};
-      const items = data.items || data.data || data || [];
+      const itemsRaw = data.items || data.data || (Array.isArray(data) ? data : []);
+      const items = Array.isArray(itemsRaw) ? itemsRaw : [];
+
+      // Generic endpoint returns a plain array — derive counts client-side
+      const counts = data.counts || (useGeneric ? {
+        cho_duyet: items.filter((r: { trang_thai_dk?: string }) => r.trang_thai_dk === 'cho_duyet').length,
+        da_duyet: items.filter((r: { trang_thai_dk?: string }) => r.trang_thai_dk === 'da_duyet').length,
+        tu_choi: items.filter((r: { trang_thai_dk?: string }) => r.trang_thai_dk === 'tu_choi').length,
+        da_tham_gia: items.filter((r: { trang_thai_dk?: string }) => r.trang_thai_dk === 'da_tham_gia').length,
+      } : undefined);
+
       return createSuccessResponse({
-        items: Array.isArray(items) ? items : [],
+        items,
         pagination: data.pagination || {},
-        total: data.total,
-        counts: data.counts
+        total: typeof data.total === 'number' ? data.total : items.length,
+        counts
       });
     } catch (error) {
       return handleApiError(error);

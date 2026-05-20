@@ -119,7 +119,8 @@ class FaceAttendanceUseCase {
       latitude: activity.geo_latitude?.toString(),
       longitude: activity.geo_longitude?.toString(),
       radiusMeters: activity.geo_radius_meters,
-      required: activity.yeu_cau_gps
+      required: activity.yeu_cau_gps,
+      cho_phep_fallback: activity.cho_phep_fallback
     }, location);
 
     if (!geofence.allowed) {

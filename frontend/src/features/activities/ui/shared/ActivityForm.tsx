@@ -1,5 +1,6 @@
 import type { FC, ChangeEvent, FormEvent } from 'react';
-import { CalendarDays, Clock, Crosshair, FileText, Image as ImageIcon, Loader2, LocateFixed, MapPin, Paperclip, Save, Sparkles, Tag, Trophy, Users, X } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, CalendarDays, Clock, Crosshair, FileText, Image as ImageIcon, Loader2, LocateFixed, MapPin, Paperclip, Save, Sparkles, Tag, Trophy, Users, X } from 'lucide-react';
 import { LabeledInput } from '../../../../shared/components/forms/LabeledInput';
 import FileUpload from '../../../../shared/ui/FileUpload/FileUpload';
 
@@ -90,12 +91,150 @@ export const ActivityForm: FC<ActivityFormProps> = ({
   onSemesterChange,
   disabled,
 }: ActivityFormProps) => {
-  const fillCurrentLocation = () => {
-    if (!navigator.geolocation || disabled) return;
-    navigator.geolocation.getCurrentPosition((position) => {
-      onFormChange({ target: { name: 'geo_latitude', value: String(position.coords.latitude), type: 'text' } } as ChangeEvent<HTMLInputElement>);
-      onFormChange({ target: { name: 'geo_longitude', value: String(position.coords.longitude), type: 'text' } } as ChangeEvent<HTMLInputElement>);
-    }, undefined, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+  type GpsSource = 'gps' | 'geocode';
+  const [gpsState, setGpsState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    accuracy?: number;
+    source?: GpsSource;
+    message?: string;
+  }>({ status: 'idle' });
+
+  /** Geocode an address string via Nominatim (OpenStreetMap, free, no API key) */
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lon: number } | null> => {
+    try {
+      const q = encodeURIComponent(address);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&accept-language=vi`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  const fillCoords = (lat: number, lon: number) => {
+    const round = (n: number) => Number(n.toFixed(6));
+    onFormChange({ target: { name: 'geo_latitude', value: String(round(lat)), type: 'text' } } as ChangeEvent<HTMLInputElement>);
+    onFormChange({ target: { name: 'geo_longitude', value: String(round(lon)), type: 'text' } } as ChangeEvent<HTMLInputElement>);
+  };
+
+  /** Try browser geolocation. Resolve with the best fix collected within `timeoutMs`,
+   *  or reject with a typed error code so the UI can give actionable guidance. */
+  const tryBrowserGeolocation = (timeoutMs = 12000) => {
+    return new Promise<{ latitude: number; longitude: number; accuracy: number }>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject({ code: 'unsupported' as const });
+        return;
+      }
+
+      let best: { latitude: number; longitude: number; accuracy: number } | null = null;
+      let firstError: GeolocationPositionError | null = null;
+      let settled = false;
+      let watchId: number | null = null;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        if (best) {
+          resolve(best);
+        } else if (firstError) {
+          const codeMap: Record<number, 'denied' | 'unavailable' | 'timeout'> = {
+            1: 'denied',
+            2: 'unavailable',
+            3: 'timeout',
+          };
+          reject({ code: codeMap[firstError.code] ?? 'unavailable', message: firstError.message });
+        } else {
+          reject({ code: 'timeout' as const });
+        }
+      };
+
+      const handlePos = (pos: GeolocationPosition) => {
+        const fix = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? Number.POSITIVE_INFINITY,
+        };
+        if (!best || fix.accuracy < best.accuracy) best = fix;
+        // Mobile/dedicated GPS: ≤30m is great; finish early.
+        if (fix.accuracy <= 30) finish();
+      };
+
+      const handleErr = (err: GeolocationPositionError) => {
+        if (!firstError) firstError = err;
+        // PERMISSION_DENIED is terminal — no point waiting.
+        if (err.code === 1) finish();
+      };
+
+      // High-accuracy single shot (fast on mobile / cached fix on desktop).
+      navigator.geolocation.getCurrentPosition(handlePos, handleErr, {
+        enableHighAccuracy: true,
+        timeout: timeoutMs,
+        maximumAge: 0,
+      });
+
+      // Continuous watch lets accuracy refine when the device has GPS.
+      watchId = navigator.geolocation.watchPosition(handlePos, handleErr, {
+        enableHighAccuracy: true,
+        timeout: timeoutMs,
+        maximumAge: 0,
+      });
+
+      window.setTimeout(finish, timeoutMs);
+    });
+  };
+
+  const fillCurrentLocation = async () => {
+    if (disabled) return;
+    setGpsState({ status: 'loading' });
+
+    let gpsErrorCode: 'denied' | 'unavailable' | 'timeout' | 'unsupported' | null = null;
+    try {
+      const fix = await tryBrowserGeolocation(12000);
+      // Accept whatever the browser gives us. On a laptop using Wi-Fi positioning the
+      // accuracy can be ~1–3 km — that's still useful as a starting point and the user
+      // can fine-tune the coordinates or widen the radius.
+      fillCoords(fix.latitude, fix.longitude);
+      setGpsState({ status: 'success', accuracy: fix.accuracy, source: 'gps' });
+      return;
+    } catch (err) {
+      gpsErrorCode = (err as { code?: typeof gpsErrorCode })?.code ?? 'unavailable';
+    }
+
+    // Permission denied is terminal — no fallback will help, the user must re-grant.
+    if (gpsErrorCode === 'denied') {
+      setGpsState({
+        status: 'error',
+        message: 'Trình duyệt đã chặn quyền vị trí. Hãy cấp lại quyền tại biểu tượng ổ khóa trên thanh địa chỉ rồi thử lại.',
+      });
+      return;
+    }
+
+    // Fallback: geocode the address field via Nominatim.
+    const address = form.dia_diem?.trim();
+    if (address) {
+      const geo = await geocodeAddress(address);
+      if (geo) {
+        fillCoords(geo.lat, geo.lon);
+        setGpsState({
+          status: 'success',
+          source: 'geocode',
+          message: 'Đã suy ra tọa độ từ địa điểm — vui lòng kiểm tra lại trên bản đồ.',
+        });
+        return;
+      }
+    }
+
+    const messageByCode: Record<'unavailable' | 'timeout' | 'unsupported', string> = {
+      unavailable: 'Không xác định được vị trí. Trên laptop/PC, hãy bật Wi-Fi và Dịch vụ định vị (Settings → Privacy → Location) hoặc nhập địa điểm để hệ thống tra tọa độ.',
+      timeout: 'Hết thời gian chờ GPS. Hãy thử lại hoặc nhập địa điểm vào ô “Địa điểm” để hệ thống tra tọa độ.',
+      unsupported: 'Trình duyệt không hỗ trợ định vị. Hãy nhập địa điểm để hệ thống tra tọa độ.',
+    };
+    setGpsState({ status: 'error', message: messageByCode[gpsErrorCode ?? 'unavailable'] });
   };
 
   // ─── Quick fill sample data ───
@@ -317,11 +456,20 @@ export const ActivityForm: FC<ActivityFormProps> = ({
               <button
                 type="button"
                 onClick={fillCurrentLocation}
-                disabled={disabled}
+                disabled={disabled || gpsState.status === 'loading'}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <LocateFixed className="h-4 w-4" />
-                Dùng vị trí hiện tại
+                {gpsState.status === 'loading' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang lấy vị trí...
+                  </>
+                ) : (
+                  <>
+                    <LocateFixed className="h-4 w-4" />
+                    Dùng vị trí hiện tại
+                  </>
+                )}
               </button>
               <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input
@@ -334,6 +482,41 @@ export const ActivityForm: FC<ActivityFormProps> = ({
                 />
                 Cho phép yêu cầu điểm danh thủ công khi GPS lỗi
               </label>
+
+              {gpsState.status === 'success' && (() => {
+                const acc = gpsState.accuracy;
+                const isWeak = typeof acc === 'number' && acc > 200;
+                const radiusNum = Number(form.geo_radius_meters);
+                const suggestRadius = typeof acc === 'number' && Number.isFinite(radiusNum) && acc + 50 > radiusNum;
+                return (
+                  <div className={`flex w-full items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium md:col-span-3 ${isWeak ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                    <LocateFixed className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="space-y-1">
+                      <div>
+                        {gpsState.source === 'geocode'
+                          ? 'Đã điền tọa độ từ địa điểm.'
+                          : 'Đã điền tọa độ từ vị trí hiện tại.'}
+                        {typeof acc === 'number' && gpsState.source !== 'geocode' && (
+                          <> Độ chính xác ~<strong>{Math.round(acc)} m</strong>.</>
+                        )}
+                      </div>
+                      {gpsState.message && <div className="opacity-90">{gpsState.message}</div>}
+                      {isWeak && (
+                        <div className="opacity-90">
+                          Laptop/PC thường định vị qua Wi-Fi nên sai số có thể lớn. Bạn có thể chỉnh tay tọa độ hoặc tăng bán kính.
+                          {suggestRadius && <> Gợi ý bán kính ≥ <strong>{Math.ceil((acc as number) + 50)} m</strong>.</>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              {gpsState.status === 'error' && gpsState.message && (
+                <div className="flex w-full items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 md:col-span-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>{gpsState.message}</div>
+                </div>
+              )}
             </div>
           </div>
         )}

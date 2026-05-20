@@ -206,16 +206,29 @@ class FaceRecognitionController {
       const statusCode = err.statusCode || 500;
       let errorCode = 'UNKNOWN';
       const msg = err.message || '';
+      const reason = err.details?.reason;
       if (msg.includes('chưa đăng ký khuôn mặt')) errorCode = 'NO_REGISTRATION';
       else if (msg.includes('chưa được xác minh')) errorCode = 'NOT_VERIFIED';
       else if (msg.includes('không khớp')) errorCode = 'MISMATCH';
       else if (msg.includes('không tìm thấy khuôn mặt') || msg.includes('Không thể nhận diện')) errorCode = 'NO_FACE';
       else if (msg.includes('liveness')) errorCode = 'LIVENESS_FAIL';
       else if (msg.includes('nhiều khuôn mặt')) errorCode = 'MULTI_FACE';
+      else if (reason === 'low_gps_accuracy') errorCode = 'LOW_GPS_ACCURACY';
+      else if (reason === 'missing_gps') errorCode = 'MISSING_GPS';
       else if (msg.includes('ngoài khu vực') || msg.includes('GPS')) errorCode = 'GEOFENCE_FAIL';
       else if (err.details?.errorCode) errorCode = err.details.errorCode;
 
-      return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi điểm danh', statusCode, { errorCode }));
+      const errorPayload: Record<string, unknown> = { errorCode };
+      if (reason) errorPayload.reason = reason;
+      if (err.details?.geofence) {
+        const gf = err.details.geofence as { accuracyMeters?: number; distanceMeters?: number; radiusMeters?: number };
+        if (gf.accuracyMeters !== undefined) errorPayload.accuracyMeters = gf.accuracyMeters;
+        if (gf.distanceMeters !== undefined) errorPayload.distanceMeters = gf.distanceMeters;
+        if (gf.radiusMeters !== undefined) errorPayload.radiusMeters = gf.radiusMeters;
+      }
+      if (err.details?.canRequestFallback !== undefined) errorPayload.canRequestFallback = err.details.canRequestFallback;
+
+      return sendResponse(res, statusCode, ApiResponse.error(err.message || 'Lỗi điểm danh', statusCode, errorPayload));
     }
   }
 

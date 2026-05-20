@@ -12,3 +12,4 @@ export { default as DashboardRegistrationCard } from './DashboardRegistrationCar
 export { default as DashboardSemesterCard } from './DashboardSemesterCard';
 export { default as DashboardStatsGrid } from './DashboardStatsGrid';
 export { default as DashboardStudentList } from './DashboardStudentList';
+export { default as TeacherChartsSection } from './TeacherChartsSection';

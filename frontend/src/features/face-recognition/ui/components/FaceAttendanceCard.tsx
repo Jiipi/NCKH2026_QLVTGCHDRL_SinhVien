@@ -67,6 +67,20 @@ const ERROR_CONFIGS: Record<string, { icon: React.ElementType; title: string; hi
     canFallback: true,
     tone: 'border-rose-200/70 bg-rose-50/80 text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200'
   },
+  LOW_GPS_ACCURACY: {
+    icon: ShieldAlert,
+    title: 'GPS sai số quá lớn',
+    hint: 'Đang dùng WiFi/IP để định vị nên kém chính xác. Hãy bật GPS, ra ngoài trời hoặc dùng điện thoại; hoặc gửi yêu cầu xác minh thủ công.',
+    canFallback: true,
+    tone: 'border-amber-200/70 bg-amber-50/80 text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200'
+  },
+  MISSING_GPS: {
+    icon: ShieldAlert,
+    title: 'Không lấy được vị trí GPS',
+    hint: 'Vui lòng cấp quyền truy cập vị trí cho trình duyệt và bật định vị thiết bị, sau đó thử lại.',
+    canFallback: true,
+    tone: 'border-amber-200/70 bg-amber-50/80 text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200'
+  },
   UNKNOWN: {
     icon: AlertTriangle,
     title: 'Điểm danh thất bại',

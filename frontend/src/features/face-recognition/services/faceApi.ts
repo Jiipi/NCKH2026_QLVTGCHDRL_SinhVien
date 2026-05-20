@@ -261,11 +261,24 @@ export async function faceAttendance(
     console.error('[FaceAPI] Attendance failed:', error);
     console.error('[FaceAPI] Attendance response:', error.response?.data);
     const respData = error.response?.data;
-    const errorCode = respData?.data?.errorCode || respData?.errorCode || respData?.error?.code || 'UNKNOWN';
+    const errorCode = respData?.errors?.errorCode
+      || respData?.data?.errorCode
+      || respData?.errorCode
+      || respData?.error?.code
+      || (respData?.errors?.reason === 'low_gps_accuracy' ? 'LOW_GPS_ACCURACY' : null)
+      || (respData?.errors?.reason === 'missing_gps' ? 'MISSING_GPS' : null)
+      || 'UNKNOWN';
+    // Sub-classify GEOFENCE_FAIL based on the underlying reason for richer UI
+    const reason = respData?.errors?.reason;
+    const refinedCode = errorCode === 'GEOFENCE_FAIL' && reason === 'low_gps_accuracy'
+      ? 'LOW_GPS_ACCURACY'
+      : errorCode === 'GEOFENCE_FAIL' && reason === 'missing_gps'
+        ? 'MISSING_GPS'
+        : errorCode;
     return {
       success: false,
       message: respData?.data?.message || respData?.message || respData?.error?.message || respData?.error || error.message || 'Điểm danh thất bại',
-      errorCode
+      errorCode: refinedCode
     };
   }
 }

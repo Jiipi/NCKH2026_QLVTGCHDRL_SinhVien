@@ -49,10 +49,10 @@ const PHASE_CONFIG: Record<DetectionPhase, { label: string; color: string; ringC
 
 // ─── Quality thresholds (stricter) ───
 const QUALITY = {
-  brightnessMin: 60,
-  brightnessMax: 210,
-  edgeMin: 12,
-  skinRatioMin: 0.08,      // ≥8% pixels in oval region must be skin-toned
+  brightnessMin: 50,
+  brightnessMax: 220,
+  edgeMin: 6,              // edge strength on a 120x90 sample, computed correctly per row
+  skinRatioMin: 0.18,      // ≥18% of oval pixels must look like skin — avoids tile/wall false positives
   stabilityRequired: 4,    // must pass 4 consecutive checks (~1.2s at 300ms interval)
   countdownSeconds: 3,
   cooldownMs: 3000,        // 3s cooldown between auto-captures
@@ -212,42 +212,43 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
     ctx.drawImage(video, 0, 0, sampleW, sampleH);
     const pixels = ctx.getImageData(0, 0, sampleW, sampleH).data;
 
-    // ─── Brightness & edge analysis ───
+    // ─── Brightness analysis (whole frame) ───
     let totalBrightness = 0;
-    let previous = 0;
-    let edgeScore = 0;
     const pixelCount = pixels.length / 4;
-
     for (let i = 0; i < pixels.length; i += 4) {
-      const brightness = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
-      totalBrightness += brightness;
-      edgeScore += Math.abs(brightness - previous);
-      previous = brightness;
+      totalBrightness += pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
     }
-
     const avgBrightness = totalBrightness / pixelCount;
-    const avgEdge = edgeScore / pixelCount;
     const isBright = avgBrightness >= QUALITY.brightnessMin && avgBrightness <= QUALITY.brightnessMax;
-    const isSharp = avgEdge >= QUALITY.edgeMin;
 
-    // ─── Skin detection in oval region ───
+    // ─── Skin detection in oval region (computes edges on the same pass) ───
     const cx = sampleW / 2;
     const cy = sampleH * 0.45; // oval center slightly above middle
     const rx = sampleW * 0.25;
     const ry = sampleH * 0.35;
     let skinCount = 0;
     let ovalCount = 0;
+    let ovalEdgeSum = 0;
+    let ovalEdgeSamples = 0;
 
     for (let y = 0; y < sampleH; y++) {
       for (let x = 0; x < sampleW; x++) {
-        // Check if pixel is inside oval
         const dx = (x - cx) / rx;
         const dy = (y - cy) / ry;
         if (dx * dx + dy * dy <= 1) {
           ovalCount++;
           const idx = (y * sampleW + x) * 4;
-          if (isSkinPixel(pixels[idx], pixels[idx + 1], pixels[idx + 2])) {
+          const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+          if (isSkinPixel(r, g, b)) {
             skinCount++;
+          }
+          // Edge strength: only compare to left neighbour within the same row
+          if (x > 0) {
+            const prevIdx = (y * sampleW + (x - 1)) * 4;
+            const prevBri = pixels[prevIdx] * 0.299 + pixels[prevIdx + 1] * 0.587 + pixels[prevIdx + 2] * 0.114;
+            const curBri = r * 0.299 + g * 0.587 + b * 0.114;
+            ovalEdgeSum += Math.abs(curBri - prevBri);
+            ovalEdgeSamples++;
           }
         }
       }
@@ -255,6 +256,8 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
 
     const skinRatio = ovalCount > 0 ? skinCount / ovalCount : 0;
     const hasFace = skinRatio >= QUALITY.skinRatioMin;
+    const avgEdge = ovalEdgeSamples > 0 ? ovalEdgeSum / ovalEdgeSamples : 0;
+    const isSharp = avgEdge >= QUALITY.edgeMin;
 
     // ─── Determine phase ───
     if (!isBright) {
@@ -264,17 +267,17 @@ const FaceCamera = forwardRef<FaceCameraRef, FaceCameraProps>(({
       return;
     }
 
+    if (!hasFace) {
+      stabilityCountRef.current = 0;
+      setQualityDetail('Đưa khuôn mặt vào trong khung');
+      if (!isCountingRef.current) setPhase('WAITING');
+      return;
+    }
+
     if (!isSharp) {
       stabilityCountRef.current = 0;
       setQualityDetail('Ảnh mờ — giữ yên camera');
       if (!isCountingRef.current) setPhase('POSITIONING');
-      return;
-    }
-
-    if (!hasFace) {
-      stabilityCountRef.current = 0;
-      setQualityDetail('Chưa phát hiện khuôn mặt');
-      if (!isCountingRef.current) setPhase('WAITING');
       return;
     }
 

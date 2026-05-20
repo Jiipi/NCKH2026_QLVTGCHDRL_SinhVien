@@ -213,20 +213,37 @@ export function useFaceRecognition(
     setError(null);
 
     try {
-      // Lấy vị trí GPS trước khi điểm danh
+      // Lấy vị trí GPS — thử watchPosition trong tối đa 10s, lấy fix có accuracy tốt nhất
       let location: { latitude: number; longitude: number; accuracy?: number } | null = null;
       if (navigator.geolocation) {
         try {
           location = await new Promise<{ latitude: number; longitude: number; accuracy?: number } | null>((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (position) => resolve({
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy
-              }),
-              () => resolve(null),
-              { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+            let best: { latitude: number; longitude: number; accuracy?: number } | null = null;
+            let watchId: number | null = null;
+            const finish = () => {
+              if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+              resolve(best);
+            };
+            const target = 80;   // ≤80m thì coi như đủ tốt, dừng sớm
+            const hardTimeoutMs = 12000;
+
+            watchId = navigator.geolocation.watchPosition(
+              (position) => {
+                const fix = {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                  accuracy: position.coords.accuracy
+                };
+                if (!best || (fix.accuracy ?? Infinity) < (best.accuracy ?? Infinity)) {
+                  best = fix;
+                }
+                if ((fix.accuracy ?? Infinity) <= target) finish();
+              },
+              () => finish(),
+              { enableHighAccuracy: true, timeout: hardTimeoutMs, maximumAge: 0 }
             );
+
+            window.setTimeout(finish, hardTimeoutMs);
           });
         } catch {
           location = null;
@@ -236,7 +253,15 @@ export function useFaceRecognition(
       const result = await faceAttendance(activityId, imageBlob, undefined, location);
 
       if (!result.success) {
-        setError(result.message);
+        // Surface accuracy reason so user understands why GPS was rejected
+        const accuracyText = location?.accuracy
+          ? ` (sai số GPS: ~${Math.round(location.accuracy)}m)`
+          : '';
+        const enriched = result.message?.includes('GPS') && accuracyText && !result.message.includes('m)')
+          ? `${result.message}${accuracyText}`
+          : result.message;
+        setError(enriched);
+        return { ...result, message: enriched };
       }
 
       return result;

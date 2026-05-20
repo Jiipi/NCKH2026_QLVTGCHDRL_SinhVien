@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   CheckCircle,
   XCircle,
@@ -20,6 +20,7 @@ import ActivityDetailModal from '../../../../entities/activity/ui/ActivityDetail
 import { useSemesterData } from '../../../../shared/hooks';
 import RolePageHero from '../../../../shared/components/common/RolePageHero';
 import AppLoadingScreen from '../../../../shared/components/common/AppLoadingScreen';
+import ActivityImageSlideshow from '../../../../shared/components/ActivityImageSlideshow';
 
 export default function ModernActivityApproval() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -36,6 +37,9 @@ export default function ModernActivityApproval() {
   const [rejectReason, setRejectReason] = useState('');
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
   const [detailModal, setDetailModal] = useState({ isOpen: false, activity: null });
+
+  // Track latest request to ignore stale responses
+  const latestRequestIdRef = useRef(0);
 
   // Unified semester options
   const { options: semesterOptions, currentSemester, isWritable } = useSemesterData(semester);
@@ -55,17 +59,15 @@ export default function ModernActivityApproval() {
   }, [semesterOptions, currentSemester, semester]);
 
   useEffect(() => {
-    // Clear old data immediately when semester/activeTab/filter changes
-    setActivities([]);
-    if (activeTab === 'pending') {
-      setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
-    }
-    setError('');
+    // Reset filter when switching tabs to avoid stale filter from another tab
+    setFilter('all');
+  }, [activeTab]);
 
-    loadActivities();
-  }, [semester, activeTab, filter]);
+  const loadActivities = useCallback(async () => {
+    // Don't fire if semester not yet resolved — avoids race with stale empty response
+    if (!semester) return;
 
-  const loadActivities = async () => {
+    const requestId = ++latestRequestIdRef.current;
     try {
       setLoading(true);
       setError('');
@@ -96,6 +98,10 @@ export default function ModernActivityApproval() {
       console.log('[TeacherActivityApproval] Loading activities:', { endpoint, params, activeTab });
 
       const result = await approvalTeacherApi.getApprovalActivities(endpoint, params);
+
+      // Drop stale response if a newer request started
+      if (requestId !== latestRequestIdRef.current) return;
+
       if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách hoạt động');
 
       const responseData = result.data.raw || {};
@@ -116,6 +122,7 @@ export default function ModernActivityApproval() {
       console.log(`✅ Loaded ${activitiesArray.length} activities (tab: ${activeTab})`);
       if (activeTab === 'pending') console.log(`📊 Stats:`, responseData.stats);
     } catch (err) {
+      if (requestId !== latestRequestIdRef.current) return;
       console.error('Error loading activities:', err);
       setError('Không thể tải danh sách hoạt động');
       setActivities([]);
@@ -123,9 +130,22 @@ export default function ModernActivityApproval() {
         setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
       }
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [semester, activeTab, filter, searchTerm]);
+
+  useEffect(() => {
+    // Clear old data immediately when semester/activeTab/filter changes
+    setActivities([]);
+    if (activeTab === 'pending') {
+      setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    }
+    setError('');
+
+    loadActivities();
+  }, [semester, activeTab, filter, loadActivities]);
 
   const showToast = (message, type = 'success') => {
     setToast({ isOpen: true, message, type });
@@ -340,15 +360,27 @@ export default function ModernActivityApproval() {
         {filteredActivities.length > 0 ? (
           filteredActivities.map(activity => (
             <div key={activity.id} className="bg-white/90 border border-white/70 rounded-[1.5rem] overflow-hidden shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg flex flex-col">
-              <div className="border-b border-slate-100 p-5">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-indigo-500">{activity.loai_hd?.ten_loai_hd || 'Hoạt động'}</p>
-                    <h3 className="mt-1 text-lg font-black text-slate-950 line-clamp-2">{activity.ten_hd}</h3>
-                  </div>
-                  <span className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${statusColors[activity.trang_thai]}`}>
-                    {statusLabels[activity.trang_thai]}
+              <div className="relative w-full h-40 overflow-hidden bg-slate-100">
+                <ActivityImageSlideshow
+                  images={activity.hinh_anh}
+                  activityType={activity.loai_hd?.ten_loai_hd}
+                  alt={activity.ten_hd}
+                  className="w-full h-full object-cover"
+                  showDots
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none" />
+                <div className="absolute top-3 left-3">
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/90 text-indigo-600 shadow-sm">
+                    {activity.loai_hd?.ten_loai_hd || 'Hoạt động'}
                   </span>
+                </div>
+                <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold border ${statusColors[activity.trang_thai]}`}>
+                  {statusLabels[activity.trang_thai]}
+                </span>
+              </div>
+              <div className="border-b border-slate-100 p-5">
+                <div className="mb-2">
+                  <h3 className="text-lg font-black text-slate-950 line-clamp-2">{activity.ten_hd}</h3>
                 </div>
                 <p className="text-slate-500 text-sm line-clamp-2">{activity.mo_ta || 'Không có mô tả'}</p>
               </div>

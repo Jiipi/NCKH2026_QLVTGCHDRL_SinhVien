@@ -12,6 +12,7 @@ import useTeacherRegistrationActions from '../../../model/hooks/useTeacherRegist
 import { teacherDashboardApi } from '../../../services';
 import { getUserAvatar, getAvatarGradient } from '../../../../../shared/lib/avatar';
 import AppLoadingScreen from '../../../../../shared/components/common/AppLoadingScreen';
+import { TeacherChartsSection } from '../../shared/dashboard';
 
 // --- Framer Motion Variants ---
 const pageVariants = {
@@ -221,6 +222,13 @@ export default function TeacherDashboardPage() {
               <DashboardMetric icon={Users} value={stats.totalStudents} label="Sinh viên phụ trách" tone="text-sky-600 dark:text-sky-300" bg="bg-sky-50 dark:bg-sky-400/10" />
               <DashboardMetric icon={Target} value={`${stats.participationRate}%`} label="Tỉ lệ tham gia" tone="text-emerald-600 dark:text-emerald-300" bg="bg-emerald-50 dark:bg-emerald-400/10" />
             </motion.div>
+
+            <TeacherChartsSection
+              stats={stats}
+              students={students}
+              recentActivities={recentActivities}
+              pendingRegistrations={pendingRegistrations}
+            />
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
               <div className="rounded-[2rem] border border-white/60 bg-white/60 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20">

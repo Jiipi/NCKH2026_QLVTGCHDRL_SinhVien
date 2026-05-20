@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserCheck, UserX, Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { approvalTeacherApi } from '../../services';
 import { ConfirmModal, Toast } from '../../../../shared/components/common';
@@ -36,6 +36,9 @@ export default function TeacherRegistrationApprovals() {
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
   const [counts, setCounts] = useState({ cho_duyet: 0, da_duyet: 0, tu_choi: 0, da_tham_gia: 0 });
   const [scrollDown, setScrollDown] = useState(false);
+
+  // Track latest request to ignore stale responses
+  const latestRequestIdRef = useRef(0);
 
   // Status mappings
   const statusLabels = {
@@ -89,13 +92,14 @@ export default function TeacherRegistrationApprovals() {
     })();
   }, []);
 
-  const loadRegistrations = async () => {
+  const loadRegistrations = useCallback(async () => {
+    if (!semester) return;
+    const requestId = ++latestRequestIdRef.current;
     try {
       setLoading(true);
       setError('');
       console.log('🔍 Đang tải danh sách đăng ký từ API...');
 
-      // Teacher has specific endpoint /teacher/registrations/pending
       const params = {
         semester: semester || undefined,
         page,
@@ -105,6 +109,10 @@ export default function TeacherRegistrationApprovals() {
         classId: classId || undefined
       };
       const result = await approvalTeacherApi.getPendingRegistrations(params);
+
+      // Drop stale response if a newer request started
+      if (requestId !== latestRequestIdRef.current) return;
+
       if (!result.success) throw new Error((result as { error?: string }).error || 'Không thể tải danh sách đăng ký');
 
       const registrationsArray = result.data.items;
@@ -123,14 +131,17 @@ export default function TeacherRegistrationApprovals() {
         console.log('⚠️ Không có đăng ký nào');
       }
     } catch (err) {
+      if (requestId !== latestRequestIdRef.current) return;
       console.error('❌ Lỗi khi tải đăng ký:', err);
       console.error('Chi tiết lỗi:', err.response?.data);
       setError('Không thể tải danh sách đăng ký: ' + (err.response?.data?.message || err.message));
       setRegistrations([]);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [semester, page, limit, statusFilter, searchTerm, classId]);
 
   const showToast = (message, type = 'success') => {
     setToast({ isOpen: true, message, type });

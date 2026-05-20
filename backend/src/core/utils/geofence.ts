@@ -9,6 +9,7 @@ export interface GeofenceConfig {
   longitude?: number | string | null;
   radiusMeters?: number | string | null;
   required?: boolean | null;
+  cho_phep_fallback?: boolean | null;
 }
 
 export interface GeofenceEvaluation {
@@ -65,14 +66,21 @@ export function evaluateGeofence(config: GeofenceConfig, location?: AttendanceLo
   const activityLongitude = toNumber(config.longitude);
   const radiusMeters = toNumber(config.radiusMeters) ?? 100;
   const normalized = normalizeAttendanceLocation(location);
+  const fallbackAllowed = Boolean(config.cho_phep_fallback);
 
   if (activityLatitude === null || activityLongitude === null || !normalized) {
-    return { allowed: false, result: 'khong_co_gps', reason: 'missing_gps', radiusMeters };
+    // Nếu cho_phep_fallback = true, cho phép qua nhưng ghi nhận reason
+    return {
+      allowed: fallbackAllowed,
+      result: 'khong_co_gps',
+      reason: 'missing_gps',
+      radiusMeters
+    };
   }
 
   if (normalized.accuracy !== undefined && normalized.accuracy > MAX_ALLOWED_ACCURACY_METERS) {
     return {
-      allowed: false,
+      allowed: fallbackAllowed,
       result: 'khong_co_gps',
       reason: 'low_gps_accuracy',
       accuracyMeters: normalized.accuracy,
@@ -85,7 +93,7 @@ export function evaluateGeofence(config: GeofenceConfig, location?: AttendanceLo
   const allowed = distanceMeters <= radiusMeters + tolerance;
 
   return {
-    allowed,
+    allowed: allowed || fallbackAllowed,
     result: allowed ? 'trong_vung' : 'ngoai_vung',
     reason: allowed ? undefined : 'outside_geofence',
     distanceMeters,
