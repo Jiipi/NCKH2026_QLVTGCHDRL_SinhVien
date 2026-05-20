@@ -452,7 +452,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
       <div className="w-full px-3 sm:px-5">
         <div className="relative flex h-14 items-center justify-between gap-2 sm:h-16 sm:gap-3">
           {/* Left: Mobile menu + Greeting text */}
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 lg:flex-[0_1_48%] xl:flex-[0_1_42%]">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 lg:flex-[0_1_48%] xl:flex-[0_1_38%] 2xl:flex-[0_1_36%]">
             {/* Mobile Menu Button */}
             {isMobile && onMenuClick && (
               <button
@@ -500,7 +500,7 @@ export default function ModernHeader({ isMobile, onMenuClick }) {
           </div>
 
           {isAuthenticated && (
-            <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex">
+            <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 min-[1920px]:flex">
               {headerStats.map(({ icon: Icon, label, value }) => (
                 <div key={label} className="group/stat flex min-w-fit items-center gap-2 rounded-2xl border border-white/60 bg-white/45 px-3 py-2 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-teal-50 text-indigo-600 ring-1 ring-white/70 transition-transform group-hover/stat:scale-105 dark:from-indigo-400/10 dark:to-teal-400/10 dark:text-indigo-300 dark:ring-white/10">

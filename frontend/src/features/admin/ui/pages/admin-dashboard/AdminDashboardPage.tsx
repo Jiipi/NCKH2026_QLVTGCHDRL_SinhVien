@@ -84,7 +84,7 @@ const AdminDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6" data-ref="admin-dashboard-refactored">
       {/* Header Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
           <AdminDashboardHero userProfile={userProfile} />
           {/* Widget yêu cầu đóng học kỳ */}

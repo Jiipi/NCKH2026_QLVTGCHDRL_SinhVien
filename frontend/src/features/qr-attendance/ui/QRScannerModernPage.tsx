@@ -75,6 +75,7 @@ export default function QRScannerModernPage() {
   const [activeTab, setActiveTab] = useState<'qr' | 'face' | 'fingerprint'>(requestedTab);
   const [ongoingActivities, setOngoingActivities] = useState<any[]>([]);
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
+  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
   const [loadingActivities, setLoadingActivities] = useState(false);
 
   const currentSemester = requestedSemester;
@@ -168,7 +169,7 @@ export default function QRScannerModernPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
-            <FaceTab activities={ongoingActivities} loading={loadingActivities} selectedId={selectedActivityId} onSelect={setSelectedActivityId} />
+            <FaceTab activities={ongoingActivities} loading={loadingActivities} selectedId={selectedActivityId} onSelect={setSelectedActivityId} attendedIds={attendedIds} onAttended={(id: string) => { setAttendedIds(prev => new Set(prev).add(id)); const remaining = ongoingActivities.filter((a: any) => { const aId = String(a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id || ''); return aId !== id && !attendedIds.has(aId); }); if (remaining.length > 0) { const nextId = String(remaining[0].hoat_dong?.id || remaining[0].hd_id || remaining[0].hoat_dong_id || remaining[0].id || ''); setSelectedActivityId(nextId); } else { setSelectedActivityId(''); } }} />
           </motion.div>
         ) : (
           <motion.div
@@ -329,7 +330,13 @@ function QRTab() {
   );
 }
 
-function FaceTab({ activities, loading, selectedId, onSelect }: any) {
+function FaceTab({ activities, loading, selectedId, onSelect, attendedIds, onAttended }: any) {
+  const availableActivities = useMemo(() => 
+    activities.filter((a: any) => {
+      const id = String(a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id || '');
+      return !attendedIds?.has(id);
+    }), [activities, attendedIds]);
+
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
       <aside className="lg:col-span-2">
@@ -356,14 +363,14 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
             </label>
             {loading ? (
               <div className="h-12 w-full animate-pulse rounded-2xl bg-white/55 dark:bg-white/5" />
-            ) : activities.length > 0 ? (
+            ) : availableActivities.length > 0 ? (
               <div className="relative">
                 <select
                   value={selectedId}
                   onChange={(e) => onSelect(e.target.value)}
                   className="mobile-input block w-full appearance-none rounded-2xl border border-white/70 bg-white/55 px-4 py-3 pr-10 text-sm font-bold text-slate-900 shadow-inner shadow-white/40 backdrop-blur-xl transition-all focus:border-teal-300 focus:outline-none focus:ring-4 focus:ring-teal-100/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
                 >
-                  {activities.map((a: any) => {
+                  {availableActivities.map((a: any) => {
                     const id = a.hoat_dong?.id || a.hd_id || a.hoat_dong_id || a.id;
                     const name = a.hoat_dong?.ten_hd || a.hoat_dong?.name || a.name || a.ten_hd || `Hoạt động #${id}`;
                     return <option key={id} value={id}>{name}</option>;
@@ -372,8 +379,11 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
             ) : (
-              <div className="rounded-2xl border border-amber-200/70 bg-amber-50/80 p-4 text-sm font-semibold text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300">
-                Bạn không có hoạt động nào đã được duyệt đang diễn ra.
+              <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/80 p-4 text-sm font-semibold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Đã điểm danh tất cả hoạt động!</span>
+                </div>
               </div>
             )}
           </div>
@@ -381,9 +391,13 @@ function FaceTab({ activities, loading, selectedId, onSelect }: any) {
       </aside>
 
       <section className="lg:col-span-3">
-        {selectedId && !loading && activities.length > 0 ? (
+        {selectedId && !loading && availableActivities.length > 0 ? (
           <div className="rounded-3xl border border-white/60 bg-white/60 p-3 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-black/20 sm:p-4 lg:rounded-[2rem]">
-            <FaceAttendanceCard hoatDongId={selectedId} className="border border-white/60 shadow-sm dark:border-white/10" />
+            <FaceAttendanceCard
+              hoatDongId={selectedId}
+              className="border border-white/60 shadow-sm dark:border-white/10"
+              onSuccess={() => onAttended?.(selectedId)}
+            />
           </div>
         ) : (
           <div className="rounded-3xl border border-dashed border-white/70 bg-white/60 p-6 text-center shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/55 sm:p-12 lg:rounded-[2rem]">

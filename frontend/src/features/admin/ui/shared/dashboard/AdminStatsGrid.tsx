@@ -48,16 +48,16 @@ export default function AdminStatsGrid({ stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {statItems.map((item, index) => {
         const Icon = item.icon;
         return (
-          <div key={index} className="group rounded-[1.5rem] border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10">
-            <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg}`}>
-              <Icon className={`h-5 w-5 ${item.tone}`} />
+          <div key={index} className="group rounded-[1.5rem] border border-white/60 bg-white/60 p-3 shadow-sm backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-lg dark:border-white/10 dark:bg-slate-950/55 dark:hover:bg-white/10 sm:p-4">
+            <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl sm:mb-4 sm:h-11 sm:w-11 ${item.bg}`}>
+              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${item.tone}`} />
             </div>
-            <p className="text-3xl font-black tracking-[-0.05em] text-slate-950 dark:text-white">{item.value}</p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{item.label}</p>
+            <p className="text-2xl font-black tracking-[-0.05em] text-slate-950 dark:text-white sm:text-3xl">{item.value}</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500 sm:text-[10px] sm:tracking-[0.16em]">{item.label}</p>
           </div>
         );
       })}
